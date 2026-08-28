@@ -4,7 +4,5 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './styles.css';
 import './legacy-auth.css';
-import './reference-ui.css';
-import './sf-table-brand.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><BrowserRouter><App /></BrowserRouter></React.StrictMode>);
