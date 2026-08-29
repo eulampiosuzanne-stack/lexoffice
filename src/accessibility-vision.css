@@ -1,0 +1,25 @@
+/* LEXOFFICE — acessibilidade visual sem alterar o layout original */
+html{font-size:17px!important}body{font-size:1rem!important;line-height:1.55!important;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.app,.app button,.app input,.app select,.app textarea,.app table{font-size:1rem!important}
+.app p,.app label,.app td,.app li,.app a,.app span,.app small{line-height:1.5!important}
+.app .page-title h1,.app .module h1,.app .page-head h1{font-size:30px!important;letter-spacing:.01em!important;text-shadow:0 1px 0 rgba(255,255,255,.10),0 2px 2px rgba(0,0,0,.55)!important}
+.app h2{font-size:22px!important;line-height:1.3!important;text-shadow:0 1px 0 rgba(255,255,255,.07),0 2px 2px rgba(0,0,0,.45)!important}
+.app h3{font-size:18px!important;line-height:1.35!important;text-shadow:0 1px 0 rgba(255,255,255,.06),0 2px 2px rgba(0,0,0,.4)!important}
+.app .page-title p,.app .page-head p,.app .module>p{font-size:16px!important;color:#aab2c1!important}
+.app .nav-group>small{font-size:11px!important;color:#8b94a7!important}
+.app .nav-group a{font-size:15px!important;min-height:38px!important;height:auto!important;font-weight:600!important;text-shadow:0 1px 1px rgba(0,0,0,.55)!important}
+.app .brand b{font-size:17px!important;text-shadow:0 1px 1px rgba(0,0,0,.6)!important}.app .brand small{font-size:10px!important;color:#8a93a5!important}
+.app .profile-copy b{font-size:12px!important}.app .profile-copy small{font-size:10px!important}
+.app .crumb,.app .search{font-size:13px!important}
+.app .card strong{font-size:27px!important;text-shadow:0 1px 0 rgba(255,255,255,.08),0 2px 2px rgba(0,0,0,.55)!important}.app .card span{font-size:12px!important;color:#a6adbb!important}
+.app table{font-size:14px!important}.app th{font-size:11px!important;color:#9aa3b4!important}.app td{font-size:14px!important}
+.app input,.app select,.app textarea{font-size:16px!important;min-height:42px!important}.app textarea{line-height:1.55!important}
+.app button,.app .primary,.app .secondary,.app .integration-action{font-size:14px!important;font-weight:700!important;min-height:40px!important;text-shadow:0 1px 1px rgba(0,0,0,.45)!important}
+.app .integration-pill,.app .badge,.app .status-dot,.app .template-tags small{font-size:11px!important}
+.app .signature-row strong,.app .smart-card h3,.app .connection-card h2{font-size:16px!important}.app .signature-row small,.app .smart-card p,.app .connection-card p{font-size:13px!important;color:#a8b0bf!important}
+/* Mantém abas e estados selecionados no padrão original vinho, removendo amarelo/dourado acidental. */
+.app [role="tab"],.app .tab,.app .tabs button,.app .tab-button,.app .process-tabs button{background:#171c27!important;color:#d7dbe4!important;border:1px solid #303746!important;box-shadow:none!important}
+.app [role="tab"][aria-selected="true"],.app .tab.active,.app .tabs button.active,.app .tab-button.active,.app .process-tabs button.active{background:linear-gradient(90deg,#8f1c3b,#5b1022)!important;color:#fff!important;border-color:#8f1c3b!important;box-shadow:none!important}
+.app .nav-group a.active{background:linear-gradient(90deg,#8f1c3b,#5b1022)!important;color:#fff!important}
+.app *:focus-visible{outline:3px solid #e55b78!important;outline-offset:2px!important}
+@media(max-width:760px){html{font-size:16px!important}.app .page-title h1,.app .module h1,.app .page-head h1{font-size:26px!important}}
