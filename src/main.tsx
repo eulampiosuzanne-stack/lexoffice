@@ -10,6 +10,7 @@ import './interaction-feedback.css';
 import './office-brand.css';
 import './module-fixes.css';
 import './screen-fixes.css';
+import './accessibility-vision.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
