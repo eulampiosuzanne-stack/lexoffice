@@ -1,0 +1,126 @@
+/* LEXOFFICE — feedback visual para elementos realmente interativos, sem alterar o layout original */
+.app button,
+.app a,
+.app [role="button"],
+.app input[type="checkbox"],
+.app input[type="radio"],
+.app select,
+.app .doc-template-card,
+.app .smart-card,
+.app .agent-item,
+.app .integration-action,
+.app .primary,
+.app .secondary,
+.app .logout {
+  cursor: pointer;
+}
+
+.app button,
+.app a,
+.app [role="button"],
+.app .doc-template-card,
+.app .smart-card,
+.app .agent-item,
+.app .integration-action,
+.app .primary,
+.app .secondary,
+.app .logout {
+  transition: border-color .16s ease, background-color .16s ease, color .16s ease, box-shadow .16s ease, transform .12s ease, opacity .16s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app button:not(:disabled):active,
+.app a:active,
+.app [role="button"]:active,
+.app .doc-template-card:active,
+.app .smart-card:active,
+.app .agent-item:active,
+.app .integration-action:not(:disabled):active,
+.app .primary:not(:disabled):active,
+.app .secondary:not(:disabled):active {
+  transform: translateY(1px) scale(.992)!important;
+}
+
+.app button:focus-visible,
+.app a:focus-visible,
+.app [role="button"]:focus-visible,
+.app input:focus-visible,
+.app select:focus-visible,
+.app textarea:focus-visible {
+  outline: 2px solid #d73c5b!important;
+  outline-offset: 2px!important;
+}
+
+.app button:disabled,
+.app .integration-action:disabled,
+.app .primary:disabled,
+.app .secondary:disabled {
+  cursor: not-allowed!important;
+  opacity: .48!important;
+}
+
+.app .doc-template-card:hover,
+.app .doc-template-card.selected,
+.app .smart-card:hover,
+.app .smart-card[aria-selected="true"],
+.app .agent-item:hover,
+.app .agent-item.selected,
+.app [role="button"][aria-pressed="true"] {
+  border-color: #8f2945!important;
+  background: #171923!important;
+}
+
+.app .doc-template-card.selected,
+.app .smart-card[aria-selected="true"],
+.app .agent-item.selected,
+.app [role="button"][aria-pressed="true"] {
+  box-shadow: inset 0 0 0 1px rgba(215,60,91,.32)!important;
+}
+
+.app .doc-template-card.selected::after,
+.app .agent-item.selected::after {
+  content: '✓';
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #b51f43;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+.app .doc-template-card,
+.app .agent-item {
+  position: relative;
+}
+
+.app tbody tr[data-clickable="true"],
+.app .signature-row[data-clickable="true"] {
+  cursor: pointer;
+  transition: background-color .16s ease, border-color .16s ease;
+}
+
+.app tbody tr[data-clickable="true"]:hover,
+.app .signature-row[data-clickable="true"]:hover {
+  background: #141923!important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app button,
+  .app a,
+  .app [role="button"],
+  .app .doc-template-card,
+  .app .smart-card,
+  .app .agent-item,
+  .app .integration-action,
+  .app .primary,
+  .app .secondary {
+    transition: none!important;
+  }
+}
