@@ -1,0 +1,21 @@
+/* Central de Conversas — adaptada ao layout original LEXOFFICE */
+.wa-workspace .wa-conversation-center{padding:0!important;overflow:hidden!important;border:1px solid #242a36!important;background:#0d121c!important}
+.wa-conversation-center .wa-center-title{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid #242a36}
+.wa-conversation-center .wa-center-title h3{margin:0!important;font-size:20px!important}.wa-conversation-center .wa-center-title small{color:#8e97a9;font-size:12px}
+.wa-conversation-center .wa-center-grid{display:grid;grid-template-columns:320px minmax(0,1fr) 285px;min-height:610px}
+.wa-conversation-center .wa-conversation-list{border-right:1px solid #242a36;background:#0e1420;max-height:610px;overflow:auto}
+.wa-conversation-center .signature-row{border:0!important;border-bottom:1px solid #202737!important;border-radius:0!important;background:transparent!important;min-height:76px;padding:13px 15px!important}
+.wa-conversation-center .signature-row:hover,.wa-conversation-center .signature-row.selected{background:#172235!important;border-left:3px solid #b51f43!important}
+.wa-conversation-center .signature-row strong{font-size:15px!important;color:#eef1f6!important}.wa-conversation-center .signature-row small{font-size:12px!important;color:#9aa3b4!important;line-height:1.45}
+.wa-conversation-center .wa-chat{display:flex;flex-direction:column;min-width:0;background:#090e17}
+.wa-conversation-center .wa-chat-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 16px;border-bottom:1px solid #242a36;background:#0e1420;flex-wrap:wrap}
+.wa-conversation-center .wa-chat-head h2{font-family:inherit!important;font-size:18px!important;margin:0!important;color:#f3f5f8!important}.wa-conversation-center .wa-chat-head small{font-size:11px;color:#8d97aa}
+.wa-conversation-center .wa-handler-actions{display:flex;gap:7px;flex-wrap:wrap}.wa-conversation-center .wa-handler-actions button{min-height:38px!important}
+.wa-conversation-center .wa-message-stream{height:430px;overflow:auto;padding:22px;display:flex;flex-direction:column;gap:10px}
+.wa-conversation-center .wa-bubble{max-width:76%;padding:11px 14px;border-radius:16px;border:1px solid #273143;font-size:15px!important;line-height:1.5;box-shadow:0 2px 5px rgba(0,0,0,.2)}
+.wa-conversation-center .wa-bubble.inbound{align-self:flex-start;background:#121a27;color:#eef1f5;border-bottom-left-radius:5px}.wa-conversation-center .wa-bubble.outbound{align-self:flex-end;background:#17304a;color:#f5f8fb;border-color:#244c70;border-bottom-right-radius:5px}
+.wa-conversation-center .wa-bubble small{display:block;margin-top:5px;font-size:10px;color:#a8b2c2}
+.wa-conversation-center .wa-composer{display:flex;gap:9px;padding:13px 15px;border-top:1px solid #242a36;background:#0e1420}.wa-conversation-center .wa-composer input{flex:1;min-height:44px!important;font-size:15px!important}.wa-conversation-center .wa-composer button{min-width:100px}
+.wa-conversation-center .wa-contact-info{border-left:1px solid #242a36;background:#0e1420;padding:18px;overflow:auto}.wa-conversation-center .wa-contact-info h4{margin:0 0 15px;color:#9fa9bb;font-size:12px;letter-spacing:.8px}.wa-conversation-center .wa-contact-info strong{display:block;color:#f0f3f7;font-size:16px;margin-bottom:8px}.wa-conversation-center .wa-contact-info p{font-size:12px;color:#9ca6b7;line-height:1.55;word-break:break-word}.wa-conversation-center .wa-info-block{padding:15px 0;border-top:1px solid #242a36}.wa-conversation-center .wa-info-block:first-of-type{border-top:0}
+@media(max-width:1180px){.wa-conversation-center .wa-center-grid{grid-template-columns:280px minmax(0,1fr)}.wa-conversation-center .wa-contact-info{display:none}}
+@media(max-width:760px){.wa-conversation-center .wa-center-grid{grid-template-columns:1fr}.wa-conversation-center .wa-conversation-list{max-height:230px;border-right:0;border-bottom:1px solid #242a36}.wa-conversation-center .wa-message-stream{height:360px}.wa-conversation-center .wa-bubble{max-width:88%}}
