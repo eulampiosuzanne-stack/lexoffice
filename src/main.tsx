@@ -12,6 +12,7 @@ import './module-fixes.css';
 import './screen-fixes.css';
 import './accessibility-vision.css';
 import './pages/whatsapp-conversations.css';
+import './pages/agent-advanced.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
