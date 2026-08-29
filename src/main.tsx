@@ -8,6 +8,7 @@ import './legacy-auth.css';
 import './original-layout.css';
 import './interaction-feedback.css';
 import './office-brand.css';
+import './module-fixes.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
