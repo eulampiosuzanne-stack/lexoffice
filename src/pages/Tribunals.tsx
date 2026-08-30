@@ -8,7 +8,21 @@ const ufs=['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA'
 const national=[['STF','Supremo Tribunal Federal'],['STJ','Superior Tribunal de Justiça'],['TST','Tribunal Superior do Trabalho'],['TSE','Tribunal Superior Eleitoral'],['STM','Superior Tribunal Militar'],...[1,2,3,4,5,6].map(n=>[`TRF${n}`,`Tribunal Regional Federal da ${n}ª Região`]),...ufs.map(uf=>[`TJ${uf}`,`Tribunal de Justiça de ${uf}`]),...Array.from({length:24},(_,i)=>[`TRT${i+1}`,`Tribunal Regional do Trabalho da ${i+1}ª Região`]),...ufs.map(uf=>[`TRE${uf}`,`Tribunal Regional Eleitoral de ${uf}`])] as [string,string][];
 const systems=['PJe','eproc','Projudi','SAJ / e-SAJ','SEEU','Creta','Apolo','DataJud','Sistema próprio','Outro'];
 const nameOf=(c:string)=>national.find(x=>x[0]===c)?.[1]||c;
-async function fn(name:string,body:any){if(!supabase)throw new Error('Backend indisponível.');const r=await supabase.functions.invoke(name,{body});if(r.data?.error)throw new Error(r.data.error);if(r.error)throw new Error('Não foi possível concluir a operação. Tente novamente.');return r.data||{}}
+async function edgeErrorMessage(error:any){
+ const ctx=error?.context;
+ if(ctx&&typeof ctx.clone==='function'){
+  try{const data=await ctx.clone().json();const msg=data?.error||data?.message||data?.msg;if(msg)return String(msg)}catch{}
+  const status=Number(ctx?.status||0);
+  if(status===401)return 'Sua sessão expirou ou não é mais válida. Entre novamente no LEXOFFICE.';
+  if(status===403)return 'Seu usuário não tem permissão para executar esta operação.';
+  if(status===404)return 'O serviço solicitado não foi encontrado.';
+  if(status>=500)return 'O serviço de tribunais encontrou um erro interno. O detalhe foi registrado no servidor.';
+ }
+ const msg=String(error?.message||'').trim();
+ if(msg&&!/Edge Function returned a non-2xx status code/i.test(msg))return msg;
+ return 'Não foi possível concluir a operação com o tribunal.';
+}
+async function fn(name:string,body:any){if(!supabase)throw new Error('Backend indisponível.');const r=await supabase.functions.invoke(name,{body});if(r.data?.error)throw new Error(r.data.error);if(r.error)throw new Error(await edgeErrorMessage(r.error));return r.data||{}}
 export default function Tribunals(){
  const[tab,setTab]=useState('access'),[connections,setConnections]=useState<Conn[]>([]),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[error,setError]=useState(false),[worker,setWorker]=useState<any>({jobs:[],interventions:[]});
  const[cred,setCred]=useState({tribunal_code:'TJMG',judicial_system:'PJe',oab_number:'',oab_uf:'MG',login:'',password:'',two_factor_code:''});
@@ -17,7 +31,7 @@ export default function Tribunals(){
  async function load(){try{const[a,b]=await Promise.all([fn('tribunal-connection-manager',{action:'list'}),fn('tribunal-worker-config',{action:'status'}).catch(()=>({jobs:[],interventions:[]}))]);setConnections(a.connections||[]);setWorker(b)}catch{}}
  useEffect(()=>{load();const id=setInterval(load,45000);return()=>clearInterval(id)},[]);
  async function run(cb:()=>Promise<any>){setBusy(true);setNotice('');try{const r=await cb();setError(false);setNotice(r.message||'Salvo com sucesso.');await load();return r}catch(e:any){setError(true);setNotice(e?.message||'Não foi possível salvar.')}finally{setBusy(false)}}
- async function saveAccess(){await run(()=>fn('tribunal-worker-config',{action:'save_credentials',...cred}));setCred(v=>({...v,password:'',two_factor_code:''}))}
+ async function saveAccess(){await run(()=>fn('tribunal-worker-config',{action:'save_credentials',...cred,tribunal_name:nameOf(cred.tribunal_code)}));setCred(v=>({...v,password:'',two_factor_code:''}))}
  async function saveOab(){await run(async()=>{await fn('tribunal-connection-manager',{action:'save',tribunal_code:oab.tribunal_code,tribunal_name:nameOf(oab.tribunal_code),judicial_system:oab.judicial_system,oab_number:oab.oab_number,oab_uf:oab.oab_uf,requires_2fa:true});return fn('tribunal-connection-manager',{action:'import_oab',tribunal_code:oab.tribunal_code,tribunal_name:nameOf(oab.tribunal_code),judicial_system:oab.judicial_system,oab_number:oab.oab_number,oab_uf:oab.oab_uf})})}
  async function sync(c:Conn){await run(()=>fn('tribunal-worker-config',{action:'enqueue',connection_id:c.id}))}
  async function addManual(){await run(()=>fn('tribunal-connection-manager',{action:'add_process',...manual,tribunal_name:nameOf(manual.tribunal_code)}));setManual(v=>({...v,cnj_number:'',subject:''}))}
