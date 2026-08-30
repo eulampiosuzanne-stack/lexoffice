@@ -18,6 +18,7 @@ import './pages/investigation.css';
 import './pages/client-cards.css';
 import './pages/card-layouts.css';
 import './pages/calculator-cards.css';
+import './pages/settings-enhanced.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
