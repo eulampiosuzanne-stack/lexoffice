@@ -1,37 +1,95 @@
-import {useMemo,useState} from 'react';
-import {Search,Phone,Mail,Image,UserRound,Building2,Globe2,Archive,FileSearch,Car,MapPin,ShieldCheck,ExternalLink,Database,AtSign,Hash,BriefcaseBusiness} from 'lucide-react';
+import {useEffect,useMemo,useState} from 'react';
+import {Search,Phone,Building2,Car,MapPin,ShieldCheck,Database,BriefcaseBusiness,Landmark,UsersRound,BadgeDollarSign,FileBadge2,Network,House,Layers3,RotateCw,Star} from 'lucide-react';
 import {supabase} from '../lib/supabase';
 import './integrations.css';
 
-type Tool={key:string;title:string;description:string;category:string;icon:any;placeholder:string;run:(q:string)=>string|null;note?:string};
-const enc=(v:string)=>encodeURIComponent(v.trim());
-const google=(q:string)=>`https://www.google.com/search?q=${enc(q)}`;
-const tools:Tool[]=[
- {key:'google',title:'Google — Pesquisa avançada',description:'Pesquisa aberta com operadores, termos exatos e combinações.',category:'Pesquisa geral',icon:Search,placeholder:'Nome, empresa, termo ou expressão',run:q=>google(`"${q}"`)},
- {key:'phone',title:'Telefone / WhatsApp',description:'Pesquisa referências públicas associadas a um número.',category:'Pessoa',icon:Phone,placeholder:'DDD + número',run:q=>google(`"${q.replace(/\D/g,'')}" OR "${q}"`)},
- {key:'email',title:'E-mail',description:'Localiza ocorrências públicas de um endereço de e-mail.',category:'Pessoa',icon:Mail,placeholder:'nome@dominio.com',run:q=>google(`"${q}"`)},
- {key:'username',title:'Usuário / redes sociais',description:'Pesquisa um nome de usuário em redes e páginas indexadas.',category:'Pessoa',icon:AtSign,placeholder:'usuario',run:q=>google(`"${q.replace(/^@/,'')}" site:instagram.com OR site:facebook.com OR site:linkedin.com OR site:x.com`)},
- {key:'namecpf',title:'CPF / Nome',description:'Pesquisa no cadastro interno do escritório e referências públicas por nome.',category:'Pessoa',icon:UserRound,placeholder:'Nome completo ou CPF',run:q=>null,note:'CPF é consultado apenas nos dados do próprio LEXOFFICE; fontes restritas não são acessadas sem integração autorizada.'},
- {key:'image',title:'Imagem / pesquisa reversa',description:'Abre ferramentas públicas para pesquisa reversa de imagem.',category:'Imagem',icon:Image,placeholder:'Cole uma URL de imagem',run:q=>`https://lens.google.com/uploadbyurl?url=${enc(q)}`},
- {key:'company',title:'CNPJ / empresa',description:'Pesquisa razão social, CNPJ e referências públicas da empresa.',category:'Empresa',icon:Building2,placeholder:'CNPJ ou razão social',run:q=>google(`"${q}" CNPJ OR empresa`)},
- {key:'domain',title:'Domínio / site',description:'Pesquisa domínio, páginas indexadas e informações públicas do site.',category:'Internet',icon:Globe2,placeholder:'exemplo.com.br',run:q=>google(`site:${q.replace(/^https?:\/\//,'').split('/')[0]}`)},
- {key:'ip',title:'IP / infraestrutura',description:'Abre consulta pública de IP, ASN e localização aproximada.',category:'Internet',icon:MapPin,placeholder:'8.8.8.8',run:q=>`https://ipinfo.io/${enc(q)}`},
- {key:'archive',title:'Arquivos históricos',description:'Consulta versões antigas de páginas na Wayback Machine.',category:'Internet',icon:Archive,placeholder:'https://site.com',run:q=>`https://web.archive.org/web/*/${q}`},
- {key:'docs',title:'Documentos públicos',description:'Pesquisa PDFs, planilhas e documentos indexados publicamente.',category:'Documentos',icon:FileSearch,placeholder:'Nome, CPF parcial, empresa ou assunto',run:q=>google(`"${q}" (filetype:pdf OR filetype:xls OR filetype:xlsx OR filetype:doc OR filetype:docx)`)},
- {key:'vehicle',title:'Veículo / placa',description:'Pesquisa referências públicas relacionadas a placa, modelo ou veículo.',category:'Bens',icon:Car,placeholder:'Placa ou modelo',run:q=>google(`"${q.toUpperCase()}" veículo OR placa`)},
- {key:'business',title:'Vínculos profissionais',description:'Pesquisa cargos, empresas, quadro societário e perfis profissionais públicos.',category:'Empresa',icon:BriefcaseBusiness,placeholder:'Nome completo',run:q=>google(`"${q}" empresa OR sócio OR administrador OR LinkedIn`)},
- {key:'hash',title:'Hash / indicador técnico',description:'Pesquisa indicadores técnicos públicos, hashes e artefatos digitais.',category:'Internet',icon:Hash,placeholder:'Hash, domínio ou indicador',run:q=>google(`"${q}"`)},
+type CatalogItem={slug:string;title:string;description:string;category:string;input_kind:string;provider_mode:string;novelty:boolean;sort_order:number};
+type SearchResult={slug?:string;title?:string;status:string;source?:string;result?:any;error?:string;search_id?:string};
+
+const fallbackCatalog:CatalogItem[]=[
+ {slug:'phone-data',title:'Dados por telefone',description:'Informações básicas sobre uma pessoa física a partir de um número de telefone.',category:'Pessoa',input_kind:'phone',provider_mode:'provider_required',novelty:true,sort_order:10},
+ {slug:'financed-properties',title:'Imóveis financiados',description:'Identifique imóveis financiados e status das operações por CPF.',category:'Patrimônio',input_kind:'cpf',provider_mode:'provider_required',novelty:true,sort_order:20},
+ {slug:'rural-properties',title:'Imóveis rurais',description:'Consulta de imóveis rurais com informações obtidas em bases oficiais autorizadas.',category:'Patrimônio',input_kind:'cpf_cnpj',provider_mode:'provider_required',novelty:true,sort_order:30},
+ {slug:'vehicle-debts',title:'Débitos veiculares',description:'Consulte multas, IPVA e licenciamento pela placa.',category:'Veículos',input_kind:'plate',provider_mode:'provider_required',novelty:false,sort_order:40},
+ {slug:'cnh-data',title:'Dados da CNH',description:'Consulte informações sobre a CNH para fins jurídicos autorizados.',category:'Veículos',input_kind:'cpf',provider_mode:'provider_required',novelty:false,sort_order:50},
+ {slug:'vehicle-tracking',title:'Rastreamento de veículo',description:'Informações para rastrear referências de veículos por integrações autorizadas.',category:'Veículos',input_kind:'plate',provider_mode:'provider_required',novelty:false,sort_order:60},
+ {slug:'economic-group',title:'Grupo econômico',description:'Relação entre empresas para identificação de possível grupo econômico.',category:'Empresa',input_kind:'cnpj',provider_mode:'public_cnpj',novelty:false,sort_order:70},
+ {slug:'registration-status',title:'Situação cadastral',description:'Situação cadastral da pessoa jurídica nos registros públicos disponíveis.',category:'Empresa',input_kind:'cnpj',provider_mode:'public_cnpj',novelty:false,sort_order:80},
+ {slug:'professional-data',title:'Dados profissionais',description:'Histórico profissional disponível em dados internos e fontes autorizadas.',category:'Pessoa',input_kind:'name_or_cpf',provider_mode:'internal',novelty:false,sort_order:90},
+ {slug:'trademarks-patents',title:'Marcas e patentes',description:'Informações e histórico de marcas e patentes relacionadas à pessoa física ou jurídica.',category:'Empresa',input_kind:'name_or_document',provider_mode:'provider_required',novelty:false,sort_order:100},
+ {slug:'processes',title:'Processos',description:'Informações de processos envolvendo a pessoa física ou jurídica.',category:'Jurídico',input_kind:'name_or_document',provider_mode:'internal',novelty:false,sort_order:110},
+ {slug:'credit-restrictions',title:'Restrição de crédito',description:'Informações de crédito de pessoas físicas ou jurídicas por provedor autorizado.',category:'Financeiro',input_kind:'cpf_cnpj',provider_mode:'provider_required',novelty:false,sort_order:120},
+ {slug:'relationships',title:'Relacionamentos',description:'Informações de relações familiares ou societárias disponíveis em fontes autorizadas.',category:'Pessoa',input_kind:'name_or_document',provider_mode:'provider_required',novelty:false,sort_order:130},
+ {slug:'shareholdings',title:'Participações societárias',description:'Informações sobre sociedades relacionadas à pessoa física ou jurídica.',category:'Empresa',input_kind:'cnpj',provider_mode:'public_cnpj',novelty:false,sort_order:140},
+ {slug:'company-data',title:'Dados da empresa',description:'Informações da pessoa jurídica, incluindo CNAEs e quadro societário.',category:'Empresa',input_kind:'cnpj',provider_mode:'public_cnpj',novelty:false,sort_order:150},
+ {slug:'person-location',title:'Localização de pessoa',description:'Dados de contato e endereço existentes no cadastro interno do escritório.',category:'Pessoa',input_kind:'name_or_cpf',provider_mode:'internal',novelty:false,sort_order:160},
+ {slug:'vehicle-ownership',title:'Propriedade veicular',description:'Veículos registrados em nome da pessoa física ou jurídica por provedor autorizado.',category:'Veículos',input_kind:'cpf_cnpj',provider_mode:'provider_required',novelty:false,sort_order:170},
+ {slug:'vehicle-data',title:'Dados do veículo',description:'Informações completas sobre o veículo e proprietário por integração autorizada.',category:'Veículos',input_kind:'plate',provider_mode:'provider_required',novelty:false,sort_order:180}
 ];
 
+const icons:Record<string,any>={
+ 'phone-data':Phone,'financed-properties':House,'rural-properties':MapPin,'vehicle-debts':Car,'cnh-data':FileBadge2,'vehicle-tracking':Car,
+ 'economic-group':Network,'registration-status':FileBadge2,'professional-data':BriefcaseBusiness,'trademarks-patents':Star,'processes':Landmark,
+ 'credit-restrictions':BadgeDollarSign,'relationships':UsersRound,'shareholdings':Building2,'company-data':Building2,'person-location':MapPin,
+ 'vehicle-ownership':Car,'vehicle-data':Car
+};
+
+const inputLabel=(kind:string)=>({phone:'Telefone',cpf:'CPF',cnpj:'CNPJ',cpf_cnpj:'CPF ou CNPJ',plate:'Placa',name_or_cpf:'Nome ou CPF',name_or_document:'Nome, CPF ou CNPJ',document_or_name:'Nome ou documento'} as Record<string,string>)[kind]||'Dado da consulta';
+
+async function functionError(error:any){
+ try{const body=await error?.context?.clone?.().json?.();return body?.error||body?.message||error?.message||'Falha na consulta.'}catch{return error?.message||'Falha na consulta.'}
+}
+
 export default function Consultations(){
- const [query,setQuery]=useState(''),[category,setCategory]=useState('Todos'),[selected,setSelected]=useState<Tool|null>(null),[internal,setInternal]=useState<any[]>([]),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false);
- const cats=['Todos',...Array.from(new Set(tools.map(t=>t.category)))];
- const visible=useMemo(()=>category==='Todos'?tools:tools.filter(t=>t.category===category),[category]);
- async function run(tool:Tool){setSelected(tool);setNotice('');setInternal([]);const q=query.trim();if(!q){setNotice('Digite o dado que deseja investigar.');return}if(tool.key==='namecpf'){if(!supabase){setNotice('Banco indisponível.');return}setBusy(true);try{const term=q.replace(/\D/g,'');let req=supabase.from('clients').select('id,name,cpf_cnpj,rg,birth_date,profession,address,phone,whatsapp,email,status').limit(50);req=term.length>=6?req.ilike('cpf_cnpj',`%${term}%`):req.ilike('name',`%${q}%`);const {data,error}=await req;if(error)throw error;setInternal(data||[]);setNotice((data||[]).length?`${data!.length} registro(s) encontrado(s) no LEXOFFICE.`:'Nenhum registro encontrado no cadastro interno.')}catch(e:any){setNotice(e?.message||'Falha na pesquisa interna.')}finally{setBusy(false)}return}const url=tool.run(q);if(url)window.open(url,'_blank','noopener,noreferrer')}
- return <div className="module investigation-page"><div className="page-head"><div><h1>Investigação</h1><p>Central de investigação de dados e OSINT para pessoas, empresas, veículos, internet, imagens e documentos.</p></div></div><div className="system-bar"><span><ShieldCheck size={14}/> INVESTIGAÇÃO DE DADOS</span><span className="online">● FONTES PÚBLICAS E DADOS AUTORIZADOS</span></div>
- <div className="integration-panel investigation-search"><h3><Search size={17}/> Dado a investigar</h3><div className="integration-form"><label className="wide">Nome, CPF, CNPJ, telefone, e-mail, usuário, placa, domínio, IP ou termo<input value={query} onChange={e=>setQuery(e.target.value)} placeholder={selected?.placeholder||'Digite o dado que deseja investigar'}/></label></div><div className="investigation-tabs">{cats.map(c=><button key={c} className={category===c?'active':''} onClick={()=>setCategory(c)}>{c}</button>)}</div></div>
- <div className="investigation-grid">{visible.map(tool=>{const I=tool.icon;return <button key={tool.key} className={`investigation-card ${selected?.key===tool.key?'selected':''}`} onClick={()=>run(tool)}><div className="investigation-iconrow"><div className="investigation-icon"><I size={20}/></div><ExternalLink className="investigation-external" size={15}/></div><h3>{tool.title}</h3><p>{tool.description}</p>{tool.note&&<small>{tool.note}</small>}</button>})}</div>
- {notice&&<div className="integration-notice">{busy?'Pesquisando...':notice}</div>}
- {internal.length>0&&<div className="integration-panel investigation-results"><h3><Database size={17}/> Dados encontrados no LEXOFFICE</h3><div className="signature-list">{internal.map(x=><div className="signature-row" key={x.id}><div><strong>{x.name}</strong><small>CPF/CNPJ: {x.cpf_cnpj||'—'} · RG: {x.rg||'—'} · Telefone: {x.phone||x.whatsapp||'—'}</small><small>E-mail: {x.email||'—'} · Profissão: {x.profession||'—'}</small><small>Endereço: {x.address||'—'}</small></div></div>)}</div></div>}
- <div className="integration-panel investigation-responsible"><h3><ShieldCheck size={17}/> Uso responsável</h3><p>Esta área centraliza pesquisas em fontes públicas e dados do próprio escritório. Consultas que dependam de bases restritas, credenciais governamentais ou fornecedores pagos só devem ser habilitadas por integração oficial/autorizada.</p></div></div>
+ const [catalog,setCatalog]=useState<CatalogItem[]>(fallbackCatalog),[query,setQuery]=useState(''),[category,setCategory]=useState('Todos'),[selected,setSelected]=useState<CatalogItem|null>(null),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[results,setResults]=useState<SearchResult[]>([]);
+ const cats=useMemo(()=>['Todos',...Array.from(new Set(catalog.map(x=>x.category)))],[catalog]);
+ const visible=useMemo(()=>category==='Todos'?catalog:catalog.filter(x=>x.category===category),[catalog,category]);
+
+ useEffect(()=>{(async()=>{if(!supabase)return;const {data,error}=await supabase.functions.invoke('investigation-search',{body:{action:'catalog'}});if(!error&&Array.isArray(data?.catalog)&&data.catalog.length)setCatalog(data.catalog)})()},[]);
+
+ async function runOne(item:CatalogItem){
+  setSelected(item);setNotice('');setResults([]);
+  const q=query.trim();if(!q){setNotice(`Informe ${inputLabel(item.input_kind).toLowerCase()} para iniciar a consulta.`);return}
+  if(!supabase){setNotice('Banco de dados indisponível.');return}
+  setBusy(true);
+  try{const {data,error}=await supabase.functions.invoke('investigation-search',{body:{action:'single',slug:item.slug,query:q}});if(error)throw new Error(await functionError(error));if(data?.error)throw new Error(data.error);setResults([{slug:item.slug,title:item.title,status:data.status,source:data.source,result:data.result,search_id:data.search_id}]);setNotice(data.status==='provider_required'?'A categoria existe, mas ainda depende de integração oficial/autorizada.':'Consulta concluída e registrada no histórico.')}catch(e:any){setNotice(e?.message||'Falha na consulta.')}finally{setBusy(false)}
+ }
+
+ async function runBatch(){
+  setSelected(null);setNotice('');setResults([]);
+  const q=query.trim();if(!q){setNotice('Informe o documento, nome, telefone ou placa que deseja investigar.');return}
+  if(!supabase){setNotice('Banco de dados indisponível.');return}
+  setBusy(true);
+  try{const {data,error}=await supabase.functions.invoke('investigation-search',{body:{action:'batch',query:q,slugs:catalog.map(x=>x.slug)}});if(error)throw new Error(await functionError(error));if(data?.error)throw new Error(data.error);setResults(data.results||[]);setNotice(data.status==='completed'?'Múltiplas consultas concluídas.':data.status==='partial'?'Consultas executadas parcialmente; algumas categorias dependem de integração ou formato específico.':'Não foi possível concluir as múltiplas consultas.')}catch(e:any){setNotice(e?.message||'Falha nas múltiplas consultas.')}finally{setBusy(false)}
+ }
+
+ return <div className="module investigation-page">
+  <div className="page-head"><div><h1>Investigação</h1><p>Consultas de pessoas, empresas, processos, patrimônio e veículos com fontes públicas, dados internos e integrações autorizadas.</p></div></div>
+  <div className="system-bar"><span><ShieldCheck size={14}/> INVESTIGAÇÃO DE DADOS</span><span className="online">● CONSULTAS REGISTRADAS E AUDITÁVEIS</span></div>
+
+  <div className="integration-panel investigation-search">
+   <h3><Search size={17}/> Dado a investigar</h3>
+   <div className="integration-form"><label className="wide">Nome, CPF, CNPJ, telefone ou placa<input value={query} onChange={e=>setQuery(e.target.value)} placeholder={selected?`Informe ${inputLabel(selected.input_kind).toLowerCase()}`:'Digite o dado que deseja investigar'} onKeyDown={e=>{if(e.key==='Enter'&&selected)runOne(selected)}}/></label></div>
+   <div className="investigation-tabs">{cats.map(c=><button key={c} className={category===c?'active':''} onClick={()=>setCategory(c)}>{c}</button>)}</div>
+  </div>
+
+  <div className="investigation-grid">
+   <button className="investigation-card" onClick={runBatch} disabled={busy} style={{textAlign:'left'}}>
+    <div className="investigation-iconrow"><div className="investigation-icon"><Layers3 size={20}/></div><RotateCw size={15}/></div>
+    <h3>Múltiplas Consultas</h3><p>Realize várias consultas sobre o mesmo documento ou termo de uma só vez.</p><small>{busy?'EXECUTANDO...':'COMEÇAR'}</small>
+   </button>
+   {visible.map(item=>{const I=icons[item.slug]||Database;const available=item.provider_mode!=='provider_required';return <button key={item.slug} className={`investigation-card ${selected?.slug===item.slug?'selected':''}`} onClick={()=>runOne(item)} disabled={busy} style={{textAlign:'left'}}>
+    {item.novelty&&<div style={{margin:'-18px -18px 14px',padding:'7px 10px',borderRadius:'14px 14px 0 0',textAlign:'center',fontSize:11,fontWeight:800,letterSpacing:'.04em',background:'#4a160f',color:'#f2d58e'}}>★ Novidade</div>}
+    <div className="investigation-iconrow"><div className="investigation-icon"><I size={20}/></div><Star size={15}/></div>
+    <h3>{item.title}</h3><p>{item.description}</p>
+    <small style={{color:available?'#8be6bd':'#d6b36a'}}>{available?'CONSULTA DISPONÍVEL':'INTEGRAÇÃO NECESSÁRIA'}</small>
+   </button>})}
+  </div>
+
+  {notice&&<div className="integration-notice">{busy?'Consultando fontes e registrando a pesquisa...':notice}</div>}
+
+  {results.length>0&&<div className="integration-panel investigation-results"><h3><Database size={17}/> Resultado das consultas</h3><div className="signature-list">{results.map((x,i)=><div className="signature-row" key={`${x.slug||i}-${i}`} style={{alignItems:'flex-start'}}><div style={{width:'100%'}}><strong>{x.title||x.slug||'Consulta'}</strong><small>{x.status==='completed'?'Concluída':x.status==='provider_required'?'Integração necessária':x.status==='failed'?'Falhou':x.status} · {x.source||'fonte não informada'}</small>{x.error&&<p style={{margin:'8px 0 0',color:'#ffadba'}}>{x.error}</p>}{x.result?.message&&<p style={{margin:'8px 0 0'}}>{x.result.message}</p>}{x.result&&x.status==='completed'&&<pre style={{whiteSpace:'pre-wrap',wordBreak:'break-word',fontSize:11,lineHeight:1.5,color:'#c9bea9',margin:'10px 0 0',padding:12,border:'1px solid rgba(217,164,65,.16)',borderRadius:10,background:'#090b0c',maxHeight:360,overflow:'auto'}}>{JSON.stringify(x.result,null,2)}</pre>}</div></div>)}</div></div>}
+
+  <div className="integration-panel investigation-responsible"><h3><ShieldCheck size={17}/> Fontes e segurança</h3><p>O LEXOFFICE consulta apenas dados internos autorizados, fontes públicas permitidas e integrações oficiais. Categorias que dependem de bureaus, DETRAN, bases patrimoniais, CNH ou outros fornecedores permanecem identificadas como “Integração necessária” até existir um provedor autorizado configurado.</p></div>
+ </div>
 }
