@@ -1,0 +1,23 @@
+{
+  "name": "lexoffice-investigation-engine",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Motor isolado de investigação e integrações profundas do LEXOFFICE",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start:worker": "ts-node --esm src/investigation/worker.ts",
+    "check": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
+    "dotenv": "^16.4.5",
+    "otplib": "^12.0.1",
+    "playwright": "^1.51.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2"
+  }
+}
