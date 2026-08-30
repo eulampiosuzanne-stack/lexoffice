@@ -16,6 +16,7 @@ import './pages/whatsapp-conversations.css';
 import './pages/agent-advanced.css';
 import './pages/investigation.css';
 import './pages/client-cards.css';
+import './pages/card-layouts.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
