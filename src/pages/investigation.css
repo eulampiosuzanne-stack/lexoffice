@@ -1,0 +1,3 @@
+/* A antiga rota /consultas agora é a central de Investigação de dados. */
+.app aside nav a[href="/consultas"]{font-size:0!important}
+.app aside nav a[href="/consultas"]::after{content:'Investigação';font-size:14px;line-height:1.2;letter-spacing:.02em}
