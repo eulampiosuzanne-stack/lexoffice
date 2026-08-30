@@ -14,7 +14,61 @@ html{font-size:17px!important}body{font-size:1rem!important;line-height:1.6!impo
 .app .crumb,.app .search{font-size:13px!important}
 .app .card strong{font-size:27px!important;letter-spacing:.025em!important;text-shadow:0 1px 0 rgba(255,255,255,.08),0 2px 2px rgba(0,0,0,.55)!important}.app .card span{font-size:12px!important;color:#a6adbb!important}
 .app table{font-size:14px!important}.app th{font-size:11px!important;color:#9aa3b4!important;letter-spacing:.07em!important}.app td{font-size:14px!important}
-.app input,.app select,.app textarea{font-size:16px!important;min-height:42px!important;letter-spacing:.02em!important}.app textarea{line-height:1.6!important}
+
+/* Campos de preenchimento com relevo e alto contraste, mantendo dimensões/posicionamento do layout original. */
+.app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.app select,
+.app textarea{
+  font-size:16px!important;
+  min-height:46px!important;
+  letter-spacing:.02em!important;
+  color:#f6f7fb!important;
+  background:linear-gradient(180deg,#171d29 0%,#0d121b 100%)!important;
+  border:2px solid #566174!important;
+  border-radius:8px!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.14),
+    inset 0 -3px 6px rgba(0,0,0,.48),
+    0 2px 0 rgba(0,0,0,.7),
+    0 0 0 1px rgba(255,255,255,.025)!important;
+  transition:border-color .15s ease,box-shadow .15s ease,background .15s ease!important;
+}
+.app textarea{line-height:1.6!important;min-height:112px!important}
+.app input::placeholder,.app textarea::placeholder{color:#aeb6c5!important;opacity:1!important}
+.app select option{background:#111722!important;color:#f6f7fb!important}
+.app label{font-weight:700!important;color:#e7eaf0!important}
+.app label>small{font-weight:500!important;color:#b8c0cf!important}
+
+/* Estado ao passar o mouse: o campo fica visivelmente destacado. */
+.app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):hover,
+.app select:hover,
+.app textarea:hover{
+  border-color:#7b879d!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.16),
+    inset 0 -3px 6px rgba(0,0,0,.50),
+    0 3px 0 rgba(0,0,0,.72),
+    0 0 0 2px rgba(143,28,59,.10)!important;
+}
+
+/* Foco muito evidente para facilitar a localização visual do campo ativo. */
+.app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+.app select:focus,
+.app textarea:focus{
+  outline:none!important;
+  border-color:#d64c6c!important;
+  background:linear-gradient(180deg,#1d2432 0%,#101620 100%)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.20),
+    inset 0 -3px 7px rgba(0,0,0,.48),
+    0 3px 0 rgba(0,0,0,.75),
+    0 0 0 3px rgba(214,76,108,.30),
+    0 0 16px rgba(143,28,59,.26)!important;
+}
+
+/* Checkboxes/radios também ficam maiores e mais fáceis de localizar. */
+.app input[type="checkbox"],.app input[type="radio"]{width:18px!important;height:18px!important;accent-color:#9d2748!important;filter:drop-shadow(0 1px 1px rgba(0,0,0,.8))}
+
 .app button,.app .primary,.app .secondary,.app .integration-action{font-size:14px!important;font-weight:700!important;min-height:40px!important;letter-spacing:.025em!important;text-shadow:0 1px 1px rgba(0,0,0,.45)!important}
 .app .integration-pill,.app .badge,.app .status-dot,.app .template-tags small{font-size:11px!important;letter-spacing:.05em!important}
 .app .signature-row strong,.app .smart-card h3,.app .connection-card h2{font-size:16px!important;letter-spacing:.025em!important}.app .signature-row small,.app .smart-card p,.app .connection-card p{font-size:13px!important;color:#a8b0bf!important}
