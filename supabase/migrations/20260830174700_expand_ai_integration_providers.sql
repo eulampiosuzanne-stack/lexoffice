@@ -1,0 +1,2 @@
+alter table public.integration_connections drop constraint if exists integration_connections_provider_check;
+alter table public.integration_connections add constraint integration_connections_provider_check check (provider = any (array['google_calendar'::text,'zapsign'::text,'openai'::text,'whatsapp'::text,'other'::text,'openai_api'::text,'gemini_api'::text,'groq_api'::text,'openrouter_api'::text,'ollama_base_url'::text]));
