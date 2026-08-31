@@ -42,6 +42,7 @@ export default function Finance(){
  const paidFor=(id:string)=>payments.filter(x=>x.financial_entry_id===id).reduce((a,x)=>a+Number(x.amount||0),0);
  const balanceFor=(e:Entry)=>Math.max(0,Number(e.amount||0)-paidFor(e.id));
  const totals=useMemo(()=>entries.reduce((a,e)=>{const v=Number(e.amount)||0,p=paidFor(e.id),bal=Math.max(0,v-p);if(e.type==='income'){a.receivable+=bal;a.paid+=p}else a.payable+=bal;return a},{receivable:0,payable:0,paid:0}),[entries,payments]);
+ const installmentAmount=useMemo(()=>{const total=Number(form.amount)||0;const entry=form.has_down_payment?(Number(form.down_payment_amount)||0):0;const count=Math.max(1,Number(form.installments)||1);return Math.max(0,total-entry)/count},[form.amount,form.down_payment_amount,form.has_down_payment,form.installments]);
 
  async function add(){
   if(!supabase||!orgId)return;
@@ -111,6 +112,7 @@ export default function Finance(){
      <label><input type="checkbox" checked={form.has_down_payment} onChange={e=>setForm({...form,has_down_payment:e.target.checked})}/> Tem entrada</label>
      {form.has_down_payment&&<><label>Valor da entrada<input type="number" step="0.01" min="0" value={form.down_payment_amount} onChange={e=>setForm({...form,down_payment_amount:e.target.value})}/></label><label>Vencimento da entrada<input type="date" value={form.down_payment_date} onChange={e=>setForm({...form,down_payment_date:e.target.value})}/></label></>}
      <label>Parcelas<input type="number" min="1" max="120" value={form.installments} onChange={e=>setForm({...form,installments:Number(e.target.value)})}/></label>
+     <label>Valor da parcela<input value={money(installmentAmount)} readOnly aria-readonly="true"/></label>
      <label>Primeiro vencimento<input type="date" value={form.first_due_date} onChange={e=>setForm({...form,first_due_date:e.target.value})}/></label>
      <label>Dia do vencimento<input type="number" min="1" max="31" value={form.due_day} onChange={e=>setForm({...form,due_day:e.target.value})}/></label>
     </>}
