@@ -19,6 +19,7 @@ import './pages/card-layouts.css';
 import './pages/calculator-cards.css';
 import './pages/settings-enhanced.css';
 import './pages/dashboard-premium.css';
+import './pages/signatures.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
