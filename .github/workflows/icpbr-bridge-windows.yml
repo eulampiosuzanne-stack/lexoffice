@@ -16,7 +16,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '8'
           cache: maven
       - name: Build bridge
         run: mvn -B clean package
@@ -28,6 +28,7 @@ jobs:
           '@echo off' | Set-Content dist/iniciar-lexoffice-icpbr.bat
           'set LEXOFFICE_PKCS11_DLL=C:\Windows\System32\aetpkss1.dll' | Add-Content dist/iniciar-lexoffice-icpbr.bat
           'java -jar lexoffice-icpbr-bridge.jar' | Add-Content dist/iniciar-lexoffice-icpbr.bat
+          'pause' | Add-Content dist/iniciar-lexoffice-icpbr.bat
       - uses: actions/upload-artifact@v4
         with:
           name: lexoffice-icpbr-bridge-windows
