@@ -16,7 +16,7 @@ const size=(n?:number|null)=>!n?'—':n<1024?`${n} B`:n<1048576?`${(n/1024).toFi
 export default function Documents(){
  const [templates,setTemplates]=useState<Template[]>([]),[clients,setClients]=useState<Client[]>([]),[processes,setProcesses]=useState<Process[]>([]),[docs,setDocs]=useState<Doc[]>([]);
  const [clientId,setClientId]=useState(''),[processId,setProcessId]=useState(''),[category,setCategory]=useState(''),[tags,setTags]=useState(''),[search,setSearch]=useState('');
- const [busy,setBusy]=useState(''),[notice,setNotice]=useState(''),[templateSearch,setTemplateSearch]=useState('');
+ const [busy,setBusy]=useState(''),[notice,setNotice]=useState(''),[templateSearch,setTemplateSearch]=useState(''),[templateCategory,setTemplateCategory]=useState('Todos'),[selectedTemplates,setSelectedTemplates]=useState<string[]>([]);
  const fileRef=useRef<HTMLInputElement|null>(null);
 
  async function load(){
@@ -37,7 +37,10 @@ export default function Documents(){
  const clientMap=useMemo(()=>new Map(clients.map(c=>[c.id,c.name])),[clients]);
  const processMap=useMemo(()=>new Map(processes.map(p=>[p.id,p.cnj_number||p.internal_number||p.subject||'Processo'])),[processes]);
  const filtered=useMemo(()=>{const q=search.trim().toLowerCase();return docs.filter(d=>{const hay=[d.name,d.category,d.notes,clientMap.get(d.client_id||''),processMap.get(d.process_id||'')].filter(Boolean).join(' ').toLowerCase();return !q||hay.includes(q)})},[docs,search,clientMap,processMap]);
- const visibleTemplates=useMemo(()=>{const q=templateSearch.trim().toLowerCase();return templates.filter(t=>!q||`${t.name} ${t.category||''} ${t.description||''}`.toLowerCase().includes(q))},[templates,templateSearch]);
+ const templateCategories=useMemo(()=>['Todos',...Array.from(new Set(templates.map(t=>t.category||'Outros'))).sort()],[templates]);
+ const visibleTemplates=useMemo(()=>{const q=templateSearch.trim().toLowerCase();return templates.filter(t=>(templateCategory==='Todos'||(t.category||'Outros')===templateCategory)&&(!q||`${t.name} ${t.category||''} ${t.description||''}`.toLowerCase().includes(q)))},[templates,templateSearch,templateCategory]);
+ const selectedClient=clients.find(c=>c.id===clientId);
+ const selectedClientDocs=clientId?docs.filter(d=>d.client_id===clientId):[];
 
  async function upload(file:File){
   if(!supabase)return;
@@ -67,19 +70,46 @@ export default function Documents(){
   setBusy(`delete:${d.id}`);setNotice('');
   try{const {error:se}=await supabase.storage.from('lexoffice-documents').remove([d.file_path]);if(se)throw se;const {error:de}=await supabase.from('documents').delete().eq('id',d.id);if(de)throw de;setDocs(v=>v.filter(x=>x.id!==d.id));setNotice('Documento excluído.')}catch(e:any){setNotice(e?.message||'Não foi possível excluir o documento.')}finally{setBusy('')}
  }
- async function generate(t:Template){
-  if(!supabase)return;if(!clientId){setNotice('Selecione um cliente antes de gerar o modelo.');return}
-  setBusy(`template:${t.id}`);setNotice('');
-  try{const {data,error}=await supabase.functions.invoke('document-generate',{body:{template_id:t.id,client_id:clientId,process_id:processId||null,title:t.name,include_logo:true,signature_requested:t.signature_enabled!==false}});if(error)throw error;if((data as any)?.error)throw new Error((data as any).error);setNotice(`${t.name} gerado com preenchimento automático.`);const url=(data as any)?.filled_docx_url||(data as any)?.signed_url;if(url)window.open(url,'_blank','noopener,noreferrer');await load()}catch(e:any){setNotice(e?.message||'Falha ao gerar documento.')}finally{setBusy('')}
+ async function generateOne(t:Template){
+  if(!supabase||!clientId)throw new Error('Selecione um cliente antes de gerar documentos.');
+  const {data,error}=await supabase.functions.invoke('document-generate',{body:{template_id:t.id,client_id:clientId,process_id:processId||null,title:t.name,include_logo:true,signature_requested:t.signature_enabled!==false}});
+  if(error)throw error;if((data as any)?.error)throw new Error((data as any).error);
  }
+ async function generateSelected(){
+  if(!clientId){setNotice('Selecione primeiro o cliente.');return}
+  if(!selectedTemplates.length){setNotice('Marque pelo menos um documento.');return}
+  setBusy('generate-selected');setNotice('');let ok=0;const failures:string[]=[];
+  for(const id of selectedTemplates){const t=templates.find(x=>x.id===id);if(!t)continue;try{await generateOne(t);ok++}catch(e:any){failures.push(`${t.name}: ${e?.message||'falha'}`)}}
+  await load();setBusy('');if(ok)setSelectedTemplates([]);setNotice(failures.length?`${ok} documento(s) gerado(s). ${failures.length} não puderam ser gerados.`:`${ok} documento(s) gerado(s) e salvo(s) para ${selectedClient?.name||'o cliente'}.`);
+ }
+ function toggleTemplate(id:string){setSelectedTemplates(v=>v.includes(id)?v.filter(x=>x!==id):[...v,id])}
 
  return <div className="documents-v2-page">
-  <div className="documents-v2-header"><div><h1>Documentos</h1><p>Centralize arquivos do escritório, vincule cliente e processo e gere documentos pelos modelos do LEXOFFICE.</p></div><button className="doc-refresh" onClick={load} disabled={busy==='load'}><RefreshCw size={17} className={busy==='load'?'spin':''}/>Atualizar</button></div>
-
+  <div className="documents-v2-header"><div><h1>Documentos</h1><p>Escolha o cliente, marque somente os documentos necessários e gere tudo de uma vez.</p></div><button className="doc-refresh" onClick={load} disabled={busy==='load'}><RefreshCw size={17} className={busy==='load'?'spin':''}/>Atualizar</button></div>
   {notice&&<div className="documents-v2-notice"><CheckCircle2 size={17}/><span>{notice}</span></div>}
 
+  <section className="doc-templates-card">
+   <div className="doc-section-title"><div className="doc-section-icon"><WandSparkles size={20}/></div><div><h2>Documentos personalizados por cliente</h2><p>A biblioteca completa continua disponível, mas você vê e marca apenas o que realmente precisa para este cliente.</p></div></div>
+   <div className="doc-upload-grid">
+    <label><span><UserRound size={14}/>Cliente</span><select value={clientId} onChange={e=>{setClientId(e.target.value);setProcessId('');setSelectedTemplates([])}}><option value="">Selecione o cliente</option>{clients.map(c=><option key={c.id} value={c.id}>{c.name}{c.cpf_cnpj?` — ${c.cpf_cnpj}`:''}</option>)}</select></label>
+    <label><span><Scale size={14}/>Processo (opcional)</span><select value={processId} onChange={e=>setProcessId(e.target.value)} disabled={!clientId}><option value="">Sem processo específico</option>{availableProcesses.map(p=><option key={p.id} value={p.id}>{p.cnj_number||p.internal_number||p.subject||'Processo'}</option>)}</select></label>
+    <label><span><FolderOpen size={14}/>Tipo de documento</span><select value={templateCategory} onChange={e=>setTemplateCategory(e.target.value)}>{templateCategories.map(x=><option key={x}>{x}</option>)}</select></label>
+    <label><span><Search size={14}/>Localizar documento</span><input value={templateSearch} onChange={e=>setTemplateSearch(e.target.value)} placeholder="Ex.: procuração, contrato, petição..."/></label>
+   </div>
+   {!clientId?<div className="doc-empty" style={{marginTop:18}}><UserRound size={30}/><b>Selecione um cliente para começar.</b><span>Depois marque apenas os documentos que deseja gerar.</span></div>:<>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))',gap:10,marginTop:18,maxHeight:360,overflowY:'auto',paddingRight:4}}>{visibleTemplates.map(t=><label key={t.id} style={{display:'flex',gap:12,alignItems:'flex-start',padding:14,border:selectedTemplates.includes(t.id)?'2px solid #9d2748':'1px solid #444d5b',borderRadius:10,cursor:'pointer',background:selectedTemplates.includes(t.id)?'rgba(157,39,72,.12)':'#151b25'}}><input type="checkbox" checked={selectedTemplates.includes(t.id)} onChange={()=>toggleTemplate(t.id)} style={{width:20,height:20,marginTop:2}}/><div><b>{t.name}</b><small style={{display:'block',marginTop:5,color:'#c4cad5'}}>{t.category||'Documento jurídico'}{t.description?` • ${t.description}`:''}</small></div></label>)}</div>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:14,marginTop:18,flexWrap:'wrap'}}><div><b>{selectedTemplates.length} selecionado(s)</b><small style={{display:'block',marginTop:4}}>Você não precisa usar todos os modelos da biblioteca.</small></div><button className="doc-primary" onClick={generateSelected} disabled={!selectedTemplates.length||busy==='generate-selected'}>{busy==='generate-selected'?<Loader2 className="spin" size={18}/>:<WandSparkles size={18}/>}Gerar documentos selecionados</button></div>
+    {selectedClientDocs.length>0&&<div style={{marginTop:22}}><h3>Documentos já vinculados a {selectedClient?.name}</h3><div className="doc-table-wrap"><table className="doc-table"><thead><tr><th>Documento</th><th>Categoria</th><th>Data</th><th>Ações</th></tr></thead><tbody>{selectedClientDocs.slice(0,12).map(d=><tr key={d.id}><td><b>{d.name}</b></td><td>{d.category||'Outros'}</td><td>{new Date(d.created_at).toLocaleDateString('pt-BR')}</td><td><div className="doc-actions"><button title="Visualizar" onClick={()=>openDoc(d)}><Eye size={16}/></button><button title="Baixar" onClick={()=>openDoc(d,true)}><Download size={16}/></button></div></td></tr>)}</tbody></table></div></div>}
+   </>}
+  </section>
+
+  <section className="doc-library-card">
+   <div className="doc-section-head"><div><h2>Biblioteca de documentos</h2><p>Arquivos já existentes no escritório.</p></div><div className="doc-search"><Search size={17}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nome, cliente, processo, categoria ou tag..."/></div></div>
+   {filtered.length===0?<div className="doc-empty"><FileText size={32}/><b>Nenhum documento encontrado.</b><span>Envie um arquivo ou altere os termos da busca.</span></div>:<div className="doc-table-wrap"><table className="doc-table"><thead><tr><th>Documento</th><th>Cliente</th><th>Processo</th><th>Categoria / Tags</th><th>Data</th><th>Ações</th></tr></thead><tbody>{filtered.map(d=><tr key={d.id}><td><div className="doc-name"><FileText size={18}/><div><b>{d.name}</b><span>{d.mime_type||'Arquivo'} • {size(d.size_bytes)}</span></div></div></td><td>{clientMap.get(d.client_id||'')||'—'}</td><td className="doc-process">{processMap.get(d.process_id||'')||'—'}</td><td><div className="doc-tags"><span>{d.category||'Outros'}</span>{d.notes&&<small>{d.notes}</small>}</div></td><td>{new Date(d.created_at).toLocaleDateString('pt-BR')}</td><td><div className="doc-actions"><button title="Visualizar" onClick={()=>openDoc(d)}><Eye size={16}/></button><button title="Baixar" onClick={()=>openDoc(d,true)}><Download size={16}/></button><button className="danger" title="Excluir" onClick={()=>removeDoc(d)} disabled={busy===`delete:${d.id}`}><Trash2 size={16}/></button></div></td></tr>)}</tbody></table></div>}
+  </section>
+
   <section className="doc-upload-card">
-   <div className="doc-section-title"><div className="doc-section-icon"><Upload size={20}/></div><div><h2>Adicionar documento</h2><p>O arquivo será salvo na biblioteca e pode ser vinculado automaticamente ao cliente e ao processo.</p></div></div>
+   <div className="doc-section-title"><div className="doc-section-icon"><Upload size={20}/></div><div><h2>Adicionar arquivo à biblioteca</h2><p>Use esta área apenas para anexar um documento que já existe fora do LEXOFFICE.</p></div></div>
    <div className="doc-upload-grid">
     <label><span><UserRound size={14}/>Cliente</span><select value={clientId} onChange={e=>{setClientId(e.target.value);setProcessId('')}}><option value="">Sem cliente vinculado</option>{clients.map(c=><option key={c.id} value={c.id}>{c.name}{c.cpf_cnpj?` — ${c.cpf_cnpj}`:''}</option>)}</select></label>
     <label><span><Scale size={14}/>Processo</span><select value={processId} onChange={e=>setProcessId(e.target.value)}><option value="">Sem processo vinculado</option>{availableProcesses.map(p=><option key={p.id} value={p.id}>{p.cnj_number||p.internal_number||p.subject||'Processo'}</option>)}</select></label>
@@ -88,16 +118,6 @@ export default function Documents(){
    </div>
    <input ref={fileRef} hidden type="file" onChange={e=>{const f=e.target.files?.[0];if(f)upload(f);e.currentTarget.value=''}}/>
    <button className="doc-primary" disabled={busy==='upload'} onClick={()=>fileRef.current?.click()}>{busy==='upload'?<Loader2 className="spin" size={18}/>:<Upload size={18}/>}Selecionar arquivo e enviar</button>
-  </section>
-
-  <section className="doc-library-card">
-   <div className="doc-section-head"><div><h2>Biblioteca de documentos</h2><p>{filtered.length} documento(s) encontrado(s)</p></div><div className="doc-search"><Search size={17}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nome, cliente, processo, categoria ou tag..."/></div></div>
-   {filtered.length===0?<div className="doc-empty"><FileText size={32}/><b>Nenhum documento encontrado.</b><span>Envie um arquivo acima ou altere os termos da busca.</span></div>:<div className="doc-table-wrap"><table className="doc-table"><thead><tr><th>Documento</th><th>Cliente</th><th>Processo</th><th>Categoria / Tags</th><th>Data</th><th>Ações</th></tr></thead><tbody>{filtered.map(d=><tr key={d.id}><td><div className="doc-name"><FileText size={18}/><div><b>{d.name}</b><span>{d.mime_type||'Arquivo'} • {size(d.size_bytes)}</span></div></div></td><td>{clientMap.get(d.client_id||'')||'—'}</td><td className="doc-process">{processMap.get(d.process_id||'')||'—'}</td><td><div className="doc-tags"><span>{d.category||'Outros'}</span>{d.notes&&<small>{d.notes}</small>}</div></td><td>{new Date(d.created_at).toLocaleDateString('pt-BR')}</td><td><div className="doc-actions"><button title="Visualizar" onClick={()=>openDoc(d)}><Eye size={16}/></button><button title="Baixar" onClick={()=>openDoc(d,true)}><Download size={16}/></button><button className="danger" title="Excluir" onClick={()=>removeDoc(d)} disabled={busy===`delete:${d.id}`}><Trash2 size={16}/></button></div></td></tr>)}</tbody></table></div>}
-  </section>
-
-  <section className="doc-templates-card">
-   <div className="doc-section-head"><div><span className="doc-kicker"><WandSparkles size={14}/> MODELOS LEXOFFICE</span><h2>Gerar documento com preenchimento automático</h2><p>Escolha cliente e processo acima; o modelo utiliza os dados já cadastrados no sistema.</p></div><div className="doc-search"><Search size={17}/><input value={templateSearch} onChange={e=>setTemplateSearch(e.target.value)} placeholder="Buscar modelo..."/></div></div>
-   <div className="doc-template-grid-v2">{visibleTemplates.map(t=><article key={t.id} className="doc-template-card-v2"><div className="doc-template-icon"><FileText size={22}/></div><span>{t.category||'Documento jurídico'}</span><h3>{t.name}</h3><p>{t.description||'Modelo jurídico do LEXOFFICE com preenchimento automático.'}</p><div className="doc-template-tags"><em><UserRound size={12}/>Cliente</em><em><Scale size={12}/>Processo</em><em><Tags size={12}/>Auto-preenchimento</em></div><button onClick={()=>generate(t)} disabled={busy===`template:${t.id}`}>{busy===`template:${t.id}`?<Loader2 size={16} className="spin"/>:<WandSparkles size={16}/>}Gerar documento</button></article>)}</div>
   </section>
  </div>
 }
