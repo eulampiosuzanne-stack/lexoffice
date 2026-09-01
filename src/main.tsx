@@ -20,6 +20,7 @@ import './pages/calculator-cards.css';
 import './pages/settings-enhanced.css';
 import './pages/dashboard-premium.css';
 import './pages/signatures.css';
+import './luxury-office-theme.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
