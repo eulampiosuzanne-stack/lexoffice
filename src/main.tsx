@@ -22,6 +22,7 @@ import './pages/dashboard-premium.css';
 import './pages/signatures.css';
 import './luxury-office-theme.css';
 import './pages/luxury-modules.css';
+import './pages/luxury-admin-modules.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
