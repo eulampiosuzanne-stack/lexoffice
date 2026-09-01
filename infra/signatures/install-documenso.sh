@@ -57,12 +57,12 @@ NEXT_PRIVATE_SMTP_FROM_NAME=$SMTP_FROM_NAME
 NEXT_PRIVATE_SMTP_FROM_ADDRESS=$SMTP_FROM
 NEXT_PRIVATE_SMTP_SECURE=false
 NEXT_PUBLIC_UPLOAD_TRANSPORT=database
-NEXT_PUBLIC_DISABLE_SIGNUP=true
+# Deixe o primeiro cadastro habilitado. Depois de criar a conta administradora,
+# altere para true e reinicie o container.
+NEXT_PUBLIC_DISABLE_SIGNUP=false
 EOF
 chmod 600 .env
 
-# O compose oficial monta /opt/documenso/cert.p12. Se a versão baixada usar outro caminho,
-# este override garante o certificado do LEXOFFICE sem alterar o compose oficial.
 cat > compose.override.yml <<EOF
 services:
   documenso:
