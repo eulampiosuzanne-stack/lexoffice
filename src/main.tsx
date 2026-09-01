@@ -24,6 +24,7 @@ import './luxury-office-theme.css';
 import './pages/luxury-modules.css';
 import './pages/luxury-admin-modules.css';
 import './pages/final-polish.css';
+import './pages/unified-office-layout.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
