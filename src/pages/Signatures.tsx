@@ -160,23 +160,48 @@ export default function Signatures() {
     setBusy('bridge');
     setBridgeChecked(false);
     try {
-      const response = await fetch(`${BRIDGE}/health`, { signal: AbortSignal.timeout(2200) });
+      const response = await fetch(`${BRIDGE}/health`, { signal: AbortSignal.timeout(3000) });
       if (!response.ok) throw new Error('Ponte indisponível');
+      const health = await response.json().catch(() => null);
+      if (!health?.ok) throw new Error('Ponte respondeu sem confirmação de saúde');
       setBridgeOnline(true);
-
-      const certResponse = await fetch(`${BRIDGE}/certificates`, { signal: AbortSignal.timeout(3500) });
-      if (certResponse.ok) {
-        const json = await certResponse.json();
-        const list = (Array.isArray(json) ? json : (json.certificates || [])) as LocalCert[];
-        setCerts(list);
-        setCertFingerprint((current) => current || list[0]?.fingerprint || '');
-      }
     } catch {
       setBridgeOnline(false);
       setCerts([]);
       setCertFingerprint('');
     } finally {
       setBridgeChecked(true);
+      setBusy(null);
+    }
+  }
+
+  async function loadCertificates() {
+    if (!bridgeOnline) {
+      setNotice('Inicie a ponte ICP-Brasil e clique em Verificar ponte primeiro.');
+      return;
+    }
+    setBusy('certificates');
+    setNotice('Aguardando o PIN do token A3 no seu computador...');
+    try {
+      const certResponse = await fetch(`${BRIDGE}/certificates`, { signal: AbortSignal.timeout(60000) });
+      const raw = await certResponse.text();
+      let json: any = {};
+      try { json = raw ? JSON.parse(raw) : {}; } catch { json = {}; }
+      if (!certResponse.ok) throw new Error(json?.error || raw || 'Não foi possível acessar o certificado A3.');
+      const list = (Array.isArray(json) ? json : (json.certificates || [])) as LocalCert[];
+      setCerts(list);
+      setCertFingerprint((current) => {
+        if (current && list.some((item) => item.fingerprint === current)) return current;
+        return list[0]?.fingerprint || '';
+      });
+      setNotice(list.length
+        ? `Certificado A3 reconhecido. ${list.length} certificado${list.length === 1 ? '' : 's'} disponível${list.length === 1 ? '' : 'is'}.`
+        : 'A ponte está online, mas nenhum certificado foi encontrado no token.');
+    } catch (error: any) {
+      setNotice(error?.name === 'TimeoutError'
+        ? 'Tempo esgotado aguardando o PIN. Clique em Carregar certificado A3 e tente novamente.'
+        : (error?.message || 'Não foi possível carregar o certificado A3.'));
+    } finally {
       setBusy(null);
     }
   }
@@ -359,7 +384,9 @@ export default function Signatures() {
           <span className="eyebrow">PONTE LOCAL ICP-BRASIL</span>
           <h2>{bridgeOnline ? 'Ponte conectada e pronta' : 'Ponte não detectada neste computador'}</h2>
           <p>{bridgeOnline
-            ? `${certs.length} certificado${certs.length === 1 ? '' : 's'} disponível${certs.length === 1 ? '' : 'is'}. O PIN e a chave privada continuam somente no token.`
+            ? (certs.length
+              ? `${certs.length} certificado${certs.length === 1 ? '' : 's'} disponível${certs.length === 1 ? '' : 'is'}. O PIN e a chave privada continuam somente no token.`
+              : 'Ponte ativa. Carregue o certificado A3 abaixo; o PIN será solicitado somente no seu computador.')
             : 'Conecte o token A3, execute o arquivo iniciar-lexoffice-icpbr.bat e depois clique em Verificar ponte.'}</p>
         </div>
       </div>
@@ -385,11 +412,14 @@ export default function Signatures() {
           </select>
         </label>
         <label><Usb size={14}/> Certificado A3
-          <select value={certFingerprint} onChange={(e) => setCertFingerprint(e.target.value)} disabled={!bridgeOnline}>
-            <option value="">{bridgeOnline ? 'Selecione' : 'Inicie a ponte primeiro'}</option>
+          <select value={certFingerprint} onChange={(e) => setCertFingerprint(e.target.value)} disabled={!bridgeOnline || !certs.length}>
+            <option value="">{!bridgeOnline ? 'Inicie a ponte primeiro' : certs.length ? 'Selecione' : 'Carregue o certificado'}</option>
             {certs.map((cert) => <option key={cert.fingerprint} value={cert.fingerprint}>{cert.subject} • {cert.issuer}</option>)}
           </select>
         </label>
+        <button className="integration-action" type="button" onClick={loadCertificates} disabled={!bridgeOnline || busy === 'certificates'}>
+          <KeyRound size={16}/>{busy === 'certificates' ? 'Aguardando PIN...' : certs.length ? 'Recarregar certificado A3' : 'Carregar certificado A3'}
+        </button>
         <label><input type="checkbox" checked={visibleSeal} onChange={(e) => setVisibleSeal(e.target.checked)}/> Mostrar selo visual ICP-Brasil no PDF</label>
         <button className="integration-action icp-sign-button" onClick={signIcp} disabled={busy === 'icp' || !icpDocumentId || !bridgeOnline || !certFingerprint}>
           <ShieldCheck size={16}/>{busy === 'icp' ? 'Assinando...' : 'Assinar PDF com ICP-Brasil'}
