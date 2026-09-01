@@ -1,88 +1,31 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Clock3, FileCheck2, FileText, Plug, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Clock3, FileCheck2, FileText, Plug, RefreshCw, ShieldCheck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import './integrations.css';
 
-type SignatureRow = {
-  id:string;
-  title?:string|null;
-  status?:string|null;
-  signer_name?:string|null;
-  created_at?:string|null;
-  sent_at?:string|null;
-  signed_at?:string|null;
-  provider?:string|null;
-};
-
+type SignatureRow={id:string;title?:string|null;status?:string|null;signer_name?:string|null;created_at?:string|null;sent_at?:string|null;signed_at?:string|null;provider?:string|null};
+type ClicksignStatus={configured:boolean;reachable?:boolean;provider?:string;environment?:'sandbox'|'production';configured_at?:string|null;status_code?:number};
 const ptDate=(value?:string|null)=>value?new Date(value).toLocaleString('pt-BR'):'—';
-const statusLabel=(value?:string|null)=>{
-  const v=(value||'').toLowerCase();
-  if(v==='signed') return 'Assinado';
-  if(v==='sent') return 'Enviado';
-  if(v==='viewed') return 'Visualizado';
-  if(v==='draft') return 'Rascunho';
-  if(v==='cancelled'||v==='canceled') return 'Cancelado';
-  return value||'Registrado';
-};
+const statusLabel=(value?:string|null)=>{const v=(value||'').toLowerCase();if(v==='signed'||v==='closed')return'Assinado';if(v==='sent'||v==='running')return'Enviado';if(v==='viewed')return'Visualizado';if(v==='draft')return'Rascunho';if(v==='cancelled'||v==='canceled')return'Cancelado';return value||'Registrado'};
 
 export default function Signatures(){
-  const [rows,setRows]=useState<SignatureRow[]>([]);
-  const [loading,setLoading]=useState(true);
-  const [notice,setNotice]=useState('');
-
-  useEffect(()=>{(async()=>{
-    if(!supabase){setLoading(false);return;}
-    const {data,error}=await supabase
-      .from('signature_requests')
-      .select('id,title,status,signer_name,created_at,sent_at,signed_at,provider')
-      .order('created_at',{ascending:false})
-      .limit(200);
-    if(error) setNotice(error.message);
-    setRows((data||[]) as SignatureRow[]);
-    setLoading(false);
-  })()},[]);
-
-  const stats=useMemo(()=>({
-    total:rows.length,
-    signed:rows.filter(r=>(r.status||'').toLowerCase()==='signed').length,
-    waiting:rows.filter(r=>['sent','viewed'].includes((r.status||'').toLowerCase())).length,
-  }),[rows]);
-
-  return <div className="module signatures-page">
-    <div className="page-head">
-      <div>
-        <h1>Assinaturas</h1>
-        <p>O fluxo anterior foi desativado. Esta área está preparada para a nova API de assinatura contratada pelo escritório.</p>
-      </div>
-    </div>
-
-    <div className="system-bar">
-      <span><ShieldCheck size={14}/> NOVA INTEGRAÇÃO DE ASSINATURAS</span>
-      <span className="online">● AGUARDANDO CONFIGURAÇÃO DA NOVA API</span>
-    </div>
-
-    <div className="cards signature-stats">
-      <div className="card"><FileText size={20}/><strong>{stats.total}</strong><span>Registros preservados</span></div>
-      <div className="card"><Clock3 size={20}/><strong>{stats.waiting}</strong><span>Registros antigos em andamento</span></div>
-      <div className="card"><FileCheck2 size={20}/><strong>{stats.signed}</strong><span>Documentos já assinados</span></div>
-    </div>
-
-    <div className="integration-panel">
-      <div className="integration-head">
-        <div>
-          <span className="integration-pill">NOVA API</span>
-          <h2>Integração pronta para ser configurada</h2>
-          <p>Documenso, biometria própria, página pública de captura e ponte local não são mais acionados por esta tela. Os documentos e históricos anteriores foram preservados para não haver perda de dados.</p>
-        </div>
-        <div className="integration-icon"><Plug size={22}/></div>
-      </div>
-      <div className="integration-notice">Envios novos estão bloqueados até conectarmos a API contratada.</div>
-    </div>
-
-    <div className="integration-panel">
-      <div className="integration-head"><div><h2>Histórico preservado</h2><p>Somente leitura enquanto a nova integração é implantada.</p></div></div>
-      {loading?<div className="empty">Carregando registros…</div>:rows.length===0?<div className="empty">Nenhum registro de assinatura.</div>:<div className="table-wrap"><table><thead><tr><th>Documento</th><th>Destinatário</th><th>Status</th><th>Provedor anterior</th><th>Criado</th><th>Assinado</th></tr></thead><tbody>{rows.map(r=><tr key={r.id}><td><strong>{r.title||'Documento'}</strong></td><td>{r.signer_name||'—'}</td><td>{statusLabel(r.status)}</td><td>{r.provider||'—'}</td><td>{ptDate(r.created_at)}</td><td>{ptDate(r.signed_at)}</td></tr>)}</tbody></table></div>}
-      {notice&&<div className="integration-notice">{notice}</div>}
-    </div>
-  </div>;
+ const[rows,setRows]=useState<SignatureRow[]>([]),[loading,setLoading]=useState(true),[notice,setNotice]=useState('');
+ const[token,setToken]=useState(''),[environment,setEnvironment]=useState<'sandbox'|'production'>('sandbox'),[busy,setBusy]=useState(false),[clicksign,setClicksign]=useState<ClicksignStatus>({configured:false});
+ async function loadStatus(show=false){if(!supabase)return;const{data,error}=await supabase.functions.invoke('clicksign-status',{body:{}});if(!error&&data){setClicksign(data as ClicksignStatus);if((data as any).environment)setEnvironment((data as any).environment)}if(show)setNotice(error?.message||((data as any)?.reachable?'Clicksign conectada e respondendo normalmente.':'A Clicksign ainda não está conectada ou não respondeu.'))}
+ async function load(){if(!supabase){setLoading(false);return}const[{data,error}]=await Promise.all([supabase.from('signature_requests').select('id,title,status,signer_name,created_at,sent_at,signed_at,provider').order('created_at',{ascending:false}).limit(200),loadStatus(false)]);if(error)setNotice(error.message);setRows((data||[]) as SignatureRow[]);setLoading(false)}
+ useEffect(()=>{load()},[]);
+ async function connect(){if(!supabase||!token.trim()){setNotice('Cole o Access Token da Clicksign.');return}setBusy(true);setNotice(`Validando credencial no ambiente ${environment==='production'?'Produção':'Sandbox'}...`);try{const{data,error}=await supabase.functions.invoke('clicksign-configure',{body:{token:token.trim(),environment}});if(error)throw error;if((data as any)?.error)throw new Error((data as any).error);setToken('');setNotice((data as any)?.message||'Clicksign conectada.');await loadStatus(false)}catch(e:any){setNotice(e?.message||'Não foi possível conectar a Clicksign.')}finally{setBusy(false)}}
+ const stats=useMemo(()=>({total:rows.length,signed:rows.filter(r=>['signed','closed'].includes((r.status||'').toLowerCase())).length,waiting:rows.filter(r=>['sent','viewed','running'].includes((r.status||'').toLowerCase())).length}),[rows]);
+ return <div className="module signatures-page">
+  <div className="page-head"><div><h1>Assinaturas</h1><p>Integração oficial com a Clicksign API 3.0 baseada em Envelopes.</p></div></div>
+  <div className="system-bar"><span><ShieldCheck size={14}/> CLICKSIGN API 3.0</span><span className={clicksign.reachable?'online':''}>● {clicksign.reachable?'CONECTADA':clicksign.configured?'CONFIGURADA — VERIFICAR':'AGUARDANDO TOKEN'}</span></div>
+  <div className="cards signature-stats"><div className="card"><FileText size={20}/><strong>{stats.total}</strong><span>Registros preservados</span></div><div className="card"><Clock3 size={20}/><strong>{stats.waiting}</strong><span>Em andamento</span></div><div className="card"><FileCheck2 size={20}/><strong>{stats.signed}</strong><span>Assinados</span></div></div>
+  <div className="integration-panel"><div className="integration-head"><div><span className="integration-pill">PROVEDOR OFICIAL</span><h2>Clicksign Envelope 3.0</h2><p>O novo fluxo usará envelopes, múltiplos documentos, requisitos de autenticação e acompanhamento por eventos/webhooks da própria Clicksign.</p></div><div className="integration-icon"><Plug size={22}/></div></div>
+   <div className="integration-form"><label className="field"><span>Ambiente</span><select value={environment} onChange={e=>setEnvironment(e.target.value as any)} disabled={busy}><option value="sandbox">Sandbox — testes sem validade jurídica</option><option value="production">Produção — documentos reais</option></select></label><label className="field"><span>Access Token Clicksign</span><input type="password" autoComplete="off" value={token} onChange={e=>setToken(e.target.value)} placeholder="Cole o Access Token da API 3.0" disabled={busy}/></label><button className="integration-action" type="button" onClick={connect} disabled={busy||!token.trim()}>{busy?<RefreshCw className="spin" size={16}/>:<Plug size={16}/>} {busy?'Validando...':'Conectar Clicksign'}</button><button className="secondary" type="button" onClick={()=>loadStatus(true)} disabled={busy}><RefreshCw size={16}/> Testar conexão</button></div>
+   {clicksign.configured&&<div className="integration-notice"><CheckCircle2 size={15}/> Configurada em <b>{clicksign.environment==='production'?'Produção':'Sandbox'}</b>{clicksign.reachable?' e respondendo normalmente.':'. A última verificação não confirmou acesso.'}</div>}
+   <div className="integration-notice">O token é validado no backend e não fica exposto no navegador. O fluxo antigo de biometria própria/Documenso permanece desativado.</div>{notice&&<div className="integration-notice">{notice}</div>}
+  </div>
+  <div className="integration-panel"><div className="integration-head"><div><h2>Próxima etapa da integração</h2><p>Depois da conexão: criar Envelope → enviar PDFs → cadastrar signatários → aplicar requisitos (inclusive biometria SERPRO, quando contratada) → ativar envelope → acompanhar via webhook → armazenar o PDF final na LEXOFFICE.</p></div></div></div>
+  <div className="integration-panel"><div className="integration-head"><div><h2>Histórico preservado</h2><p>Registros anteriores continuam disponíveis somente para consulta enquanto migramos o provedor.</p></div></div>{loading?<div className="empty">Carregando registros…</div>:rows.length===0?<div className="empty">Nenhum registro de assinatura.</div>:<div className="table-wrap"><table><thead><tr><th>Documento</th><th>Destinatário</th><th>Status</th><th>Provedor anterior</th><th>Criado</th><th>Assinado</th></tr></thead><tbody>{rows.map(r=><tr key={r.id}><td><strong>{r.title||'Documento'}</strong></td><td>{r.signer_name||'—'}</td><td>{statusLabel(r.status)}</td><td>{r.provider||'—'}</td><td>{ptDate(r.created_at)}</td><td>{ptDate(r.signed_at)}</td></tr>)}</tbody></table></div>}</div>
+ </div>
 }
