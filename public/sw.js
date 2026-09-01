@@ -1,4 +1,4 @@
-const CACHE='lexoffice-shell-v1';
+const CACHE='lexoffice-shell-v2';
 const SHELL=['/','/manifest.webmanifest','/lexoffice-icon.svg'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).catch(()=>undefined));self.skipWaiting();});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))));self.clients.claim();});
