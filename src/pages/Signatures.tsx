@@ -72,7 +72,8 @@ type LocalCert = {
 };
 
 type ProviderStatus = {
-  documenso: { configured: boolean; reachable: boolean };
+  provider?: string;
+  documenso: { configured: boolean; reachable: boolean; mode?: string; base_url?: string };
   biometrics: { configured: boolean; reachable: boolean };
 };
 
@@ -83,7 +84,7 @@ const safeName = (name: string) => name.normalize('NFD').replace(/[\u0300-\u036f
 
 const verificationOptions = [
   { value: 'simple', label: 'Assinatura eletrônica', detail: 'Link seguro por e-mail e WhatsApp', biometric: false },
-  { value: 'email', label: 'E-mail verificado', detail: 'Assinatura vinculada ao e-mail cadastrado', biometric: false },
+  { value: 'email', label: 'E-mail verificado', detail: 'Código adicional antes da assinatura', biometric: false },
   { value: 'facial', label: 'Biometria facial', detail: 'Selfie + prova de vida', biometric: true },
   { value: 'facial_document', label: 'Rosto + documento', detail: 'Selfie, prova de vida e identidade', biometric: true },
   { value: 'reinforced', label: 'Verificação reforçada', detail: 'Documento + face + prova de vida ativa', biometric: true },
@@ -106,6 +107,7 @@ export default function Signatures() {
   const [expiresAt, setExpiresAt] = useState('');
   const [deliveryEmail, setDeliveryEmail] = useState(true);
   const [deliveryWhatsapp, setDeliveryWhatsapp] = useState(true);
+  const [documensoToken, setDocumensoToken] = useState('');
 
   const [provider, setProvider] = useState<ProviderStatus>({
     documenso: { configured: false, reachable: false },
@@ -143,6 +145,7 @@ export default function Signatures() {
   async function load(showFeedback = false) {
     if (!supabase) return;
     setLoading(true);
+    await supabase.functions.invoke('documenso-refresh-signatures', { body: {} }).catch(() => null);
     const [{ data, error }, { data: docs, error: docsError }, { data: cls, error: clientsError }, providerResult] = await Promise.all([
       supabase.from('signature_requests').select('id,title,status,external_id,sent_at,signed_at,expires_at,document_id,client_id,signer_name,signer_phone,created_at,signed_document_id,signed_file_captured_at,icp_validated_document_id,icp_validated_at,verification_method,verification_status,delivery_email,delivery_whatsapp').order('created_at', { ascending: false }),
       supabase.from('documents').select('id,name,file_path,client_id,process_id,mime_type,category,created_at').eq('mime_type', 'application/pdf').order('created_at', { ascending: false }).limit(2000),
@@ -165,11 +168,27 @@ export default function Signatures() {
   useEffect(() => {
     load();
     checkBridge(false);
-    const timer = window.setInterval(() => {
-      if (rows.some((row) => isWaiting(row.status) || (isSigned(row.status) && !row.signed_document_id))) load(false);
-    }, 30000);
+    const timer = window.setInterval(() => load(false), 30000);
     return () => window.clearInterval(timer);
   }, []);
+
+  async function configureDocumenso() {
+    if (!supabase || !documensoToken.trim()) return;
+    setBusy('documenso');
+    setNotice('Conectando o Documenso Cloud...');
+    try {
+      const { data, error } = await supabase.functions.invoke('documenso-configure', { body: { token: documensoToken.trim() } });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      setDocumensoToken('');
+      setNotice((data as any)?.message || 'Documenso Cloud conectado.');
+      await load(false);
+    } catch (error: any) {
+      setNotice(error?.message || 'Não foi possível conectar o Documenso Cloud.');
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function checkBridge(showFeedback = true) {
     setBusy('bridge');
@@ -268,11 +287,11 @@ export default function Signatures() {
     }
     const selectedVerification = verificationOptions.find((item) => item.value === verificationMethod);
     if (selectedVerification?.biometric && !provider.biometrics.reachable) {
-      setNotice('A biometria ainda não está conectada ao servidor. Escolha outro método por enquanto.');
+      setNotice('A biometria ainda não está disponível no modo cloud gratuito. Escolha outro método por enquanto.');
       return;
     }
     if (!provider.documenso.reachable) {
-      setNotice('Documenso self-hosted ainda não está conectado. O envio ficará disponível assim que o servidor estiver configurado.');
+      setNotice('Conecte o Documenso Cloud com um API Token antes de enviar.');
       return;
     }
 
@@ -440,13 +459,27 @@ export default function Signatures() {
         <p>Envie documentos ao cliente, acompanhe a assinatura e valide o PDF final com ICP-Brasil.</p>
       </div>
       <div className="signature-top-actions">
-        <span className={`provider-pill ${provider.documenso.reachable ? 'ok' : 'off'}`}><Send size={13}/> Documenso {provider.documenso.reachable ? 'online' : 'aguardando servidor'}</span>
+        <span className={`provider-pill ${provider.documenso.reachable ? 'ok' : 'off'}`}><Send size={13}/> Documenso Cloud {provider.documenso.reachable ? 'online' : 'não conectado'}</span>
         <span className={`provider-pill ${bridgeOnline ? 'ok' : 'off'}`}>{bridgeOnline ? <Wifi size={13}/> : <WifiOff size={13}/>} A3 {bridgeOnline ? 'conectado' : 'offline'}</span>
         <button className="sig-btn ghost" onClick={() => checkBridge(true)} disabled={busy === 'bridge'}><RefreshCw size={14}/> Verificar A3</button>
       </div>
     </div>
 
     {notice && <div className="integration-notice signature-notice">{notice}</div>}
+
+    {!provider.documenso.reachable && <section className="signature-workbench" style={{marginBottom:16}}>
+      <div className="signature-section-head">
+        <div><span className="eyebrow">CONEXÃO DE ASSINATURA</span><h2>Conectar Documenso Cloud</h2></div>
+        <a className="sig-btn ghost" href="https://app.documenso.com" target="_blank" rel="noreferrer">Abrir Documenso</a>
+      </div>
+      <div className="signature-sendbar">
+        <div style={{flex:1,minWidth:280}}>
+          <input type="password" value={documensoToken} onChange={(e) => setDocumensoToken(e.target.value)} placeholder="Cole aqui o API Token do Documenso (api_...)" style={{width:'100%'}}/>
+          <small style={{display:'block',marginTop:8}}>Crie uma conta gratuita no Documenso e gere o token em Settings → API Tokens. O token é salvo no backend seguro do LEXOFFICE e não fica no navegador.</small>
+        </div>
+        <button className="sig-btn primary" onClick={configureDocumenso} disabled={busy === 'documenso' || !documensoToken.trim()}><KeyRound size={15}/>{busy === 'documenso' ? 'Conectando...' : 'Conectar Cloud'}</button>
+      </div>
+    </section>}
 
     <div className="signature-kpis compact">
       <div><FileText size={17}/><span>Total</span><strong>{stats.total}</strong></div>
@@ -481,7 +514,7 @@ export default function Signatures() {
 
         <label className="sig-field"><span><Fingerprint size={14}/> Tipo de verificação</span>
           <select value={verificationMethod} onChange={(e) => setVerificationMethod(e.target.value)}>
-            {verificationOptions.map((option) => <option key={option.value} value={option.value} disabled={option.biometric && !provider.biometrics.reachable}>{option.label}{option.biometric && !provider.biometrics.reachable ? ' — aguardando biometria' : ''}</option>)}
+            {verificationOptions.map((option) => <option key={option.value} value={option.value} disabled={option.biometric && !provider.biometrics.reachable}>{option.label}{option.biometric && !provider.biometrics.reachable ? ' — indisponível no modo gratuito' : ''}</option>)}
           </select>
           <small>{verificationOptions.find((item) => item.value === verificationMethod)?.detail}</small>
         </label>
@@ -504,7 +537,7 @@ export default function Signatures() {
         </div>
         <button className="sig-btn primary" onClick={prepareAndSend} disabled={busy === 'batch' || !selectedClientId || (!localFiles.length && !existingDocumentIds.length) || !provider.documenso.reachable}><Send size={16}/>{busy === 'batch' ? 'Enviando...' : 'Enviar para assinatura'}</button>
       </div>
-      {!provider.documenso.reachable && <div className="provider-warning"><AlertTriangle size={15}/> A tela já está pronta, mas o envio ficará bloqueado até o Documenso self-hosted ser ligado ao servidor.</div>}
+      {!provider.documenso.reachable && <div className="provider-warning"><AlertTriangle size={15}/> Conecte o Documenso Cloud acima para liberar o envio. O plano gratuito permite até 5 documentos por mês.</div>}
     </section>
 
     <section className="signature-table-panel">
