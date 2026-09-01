@@ -4,15 +4,15 @@ import {
   AlertTriangle,
   Bell,
   CheckCircle2,
+  Download,
   FileCheck2,
   FileText,
+  Fingerprint,
   KeyRound,
-  PenTool,
-  Plus,
   RefreshCw,
   Send,
   ShieldCheck,
-  Usb,
+  UploadCloud,
   UserRound,
   Wifi,
   WifiOff,
@@ -37,6 +37,10 @@ type RequestRow = {
   signed_file_captured_at?: string | null;
   icp_validated_document_id?: string | null;
   icp_validated_at?: string | null;
+  verification_method?: string | null;
+  verification_status?: string | null;
+  delivery_email?: boolean | null;
+  delivery_whatsapp?: boolean | null;
 };
 
 type DocumentRow = {
@@ -46,6 +50,7 @@ type DocumentRow = {
   client_id?: string | null;
   process_id?: string | null;
   mime_type?: string | null;
+  category?: string | null;
   created_at?: string | null;
 };
 
@@ -54,6 +59,7 @@ type ClientRow = {
   name: string;
   email?: string | null;
   phone?: string | null;
+  whatsapp?: string | null;
   cpf_cnpj?: string | null;
 };
 
@@ -65,22 +71,25 @@ type LocalCert = {
   notAfter?: string;
 };
 
+type ProviderStatus = {
+  documenso: { configured: boolean; reachable: boolean };
+  biometrics: { configured: boolean; reachable: boolean };
+};
+
 const BRIDGE = 'http://127.0.0.1:17681';
 const isSigned = (status?: string | null) => (status || '').toLowerCase() === 'signed';
 const isWaiting = (status?: string | null) => ['sent', 'viewed'].includes((status || '').toLowerCase());
+const safeName = (name: string) => name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'documento.pdf';
 
-const pillStyle = (kind: 'draft' | 'waiting' | 'signed' | 'ready' | 'validated' | 'error') => {
-  const map = {
-    draft: ['#d99a42', 'rgba(217,154,66,.12)', 'rgba(217,154,66,.36)'],
-    waiting: ['#e98686', 'rgba(185,28,28,.12)', 'rgba(185,28,28,.34)'],
-    signed: ['#8ec5ff', 'rgba(64,130,210,.12)', 'rgba(64,130,210,.34)'],
-    ready: ['#f1c970', 'rgba(217,164,65,.12)', 'rgba(217,164,65,.38)'],
-    validated: ['#7fe1b7', 'rgba(48,133,92,.14)', 'rgba(48,133,92,.42)'],
-    error: ['#e98686', 'rgba(185,28,28,.12)', 'rgba(185,28,28,.34)'],
-  } as const;
-  const [color, background, border] = map[kind];
-  return { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 9px', borderRadius: 999, color, background, border: `1px solid ${border}`, fontSize: 10, fontWeight: 800, letterSpacing: '.035em', whiteSpace: 'nowrap' as const };
-};
+const verificationOptions = [
+  { value: 'simple', label: 'Assinatura eletrônica', detail: 'Link seguro por e-mail e WhatsApp', biometric: false },
+  { value: 'email', label: 'E-mail verificado', detail: 'Assinatura vinculada ao e-mail cadastrado', biometric: false },
+  { value: 'facial', label: 'Biometria facial', detail: 'Selfie + prova de vida', biometric: true },
+  { value: 'facial_document', label: 'Rosto + documento', detail: 'Selfie, prova de vida e identidade', biometric: true },
+  { value: 'reinforced', label: 'Verificação reforçada', detail: 'Documento + face + prova de vida ativa', biometric: true },
+];
+
+const verificationLabel = (method?: string | null) => verificationOptions.find((item) => item.value === method)?.label || 'Assinatura eletrônica';
 
 export default function Signatures() {
   const [rows, setRows] = useState<RequestRow[]>([]);
@@ -90,16 +99,18 @@ export default function Signatures() {
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
 
-  const [accountEmail, setAccountEmail] = useState('');
-  const [token, setToken] = useState('');
-  const [configured, setConfigured] = useState(false);
-  const [integrationStatus, setIntegrationStatus] = useState('não configurada');
-
-  const [requestDocumentId, setRequestDocumentId] = useState('');
-  const [signerName, setSignerName] = useState('');
-  const [signerEmail, setSignerEmail] = useState('');
-  const [signerPhone, setSignerPhone] = useState('');
+  const [selectedClientId, setSelectedClientId] = useState('');
+  const [localFiles, setLocalFiles] = useState<File[]>([]);
+  const [existingDocumentIds, setExistingDocumentIds] = useState<string[]>([]);
+  const [verificationMethod, setVerificationMethod] = useState('simple');
   const [expiresAt, setExpiresAt] = useState('');
+  const [deliveryEmail, setDeliveryEmail] = useState(true);
+  const [deliveryWhatsapp, setDeliveryWhatsapp] = useState(true);
+
+  const [provider, setProvider] = useState<ProviderStatus>({
+    documenso: { configured: false, reachable: false },
+    biometrics: { configured: false, reachable: false },
+  });
 
   const [bridgeOnline, setBridgeOnline] = useState(false);
   const [bridgeChecked, setBridgeChecked] = useState(false);
@@ -107,17 +118,15 @@ export default function Signatures() {
   const [certFingerprint, setCertFingerprint] = useState('');
   const [visibleSeal, setVisibleSeal] = useState(true);
 
-  const selectedRequestDoc = useMemo(
-    () => documents.find((d) => d.id === requestDocumentId) || null,
-    [documents, requestDocumentId],
-  );
+  const selectedClient = useMemo(() => clients.find((client) => client.id === selectedClientId) || null, [clients, selectedClientId]);
+  const clientDocuments = useMemo(() => documents.filter((doc) => doc.client_id === selectedClientId && !/(assinado|validado)/i.test(doc.category || '')), [documents, selectedClientId]);
+  const documentMap = useMemo(() => new Map(documents.map((doc) => [doc.id, doc])), [documents]);
 
   const dashboard = useMemo(() => rows.map((row) => {
     const client = clients.find((item) => item.id === row.client_id);
     return {
       ...row,
       clientName: client?.name || row.signer_name || 'Cliente',
-      clientSigned: isSigned(row.status),
       readyForIcp: isSigned(row.status) && Boolean(row.signed_document_id) && !row.icp_validated_document_id,
       validated: Boolean(row.icp_validated_document_id),
     };
@@ -134,41 +143,33 @@ export default function Signatures() {
   async function load(showFeedback = false) {
     if (!supabase) return;
     setLoading(true);
-    const [{ data, error }, { data: docs, error: docsError }, { data: cls }, { data: cfg, error: cfgError }] = await Promise.all([
-      supabase.from('signature_requests').select('id,title,status,external_id,sent_at,signed_at,expires_at,document_id,client_id,signer_name,signer_phone,created_at,signed_document_id,signed_file_captured_at,icp_validated_document_id,icp_validated_at').order('created_at', { ascending: false }),
-      supabase.from('documents').select('id,name,file_path,client_id,process_id,mime_type,created_at').eq('mime_type', 'application/pdf').order('created_at', { ascending: false }).limit(1500),
-      supabase.from('clients').select('id,name,email,phone,cpf_cnpj').order('name').limit(1500),
-      supabase.functions.invoke('zapsign-configure', { body: { action: 'status' } }),
+    const [{ data, error }, { data: docs, error: docsError }, { data: cls, error: clientsError }, providerResult] = await Promise.all([
+      supabase.from('signature_requests').select('id,title,status,external_id,sent_at,signed_at,expires_at,document_id,client_id,signer_name,signer_phone,created_at,signed_document_id,signed_file_captured_at,icp_validated_document_id,icp_validated_at,verification_method,verification_status,delivery_email,delivery_whatsapp').order('created_at', { ascending: false }),
+      supabase.from('documents').select('id,name,file_path,client_id,process_id,mime_type,category,created_at').eq('mime_type', 'application/pdf').order('created_at', { ascending: false }).limit(2000),
+      supabase.from('clients').select('id,name,email,phone,whatsapp,cpf_cnpj').order('name').limit(2000),
+      supabase.functions.invoke('signature-provider-status', { body: {} }),
     ]);
 
     if (error) setNotice(error.message);
     else if (docsError) setNotice(docsError.message);
-    else if (showFeedback) setNotice('Painel de assinaturas atualizado.');
+    else if (clientsError) setNotice(clientsError.message);
+    else if (showFeedback) setNotice('Painel atualizado.');
+
     setRows((data || []) as RequestRow[]);
     setDocuments((docs || []) as DocumentRow[]);
     setClients((cls || []) as ClientRow[]);
-
-    if (!cfgError && cfg) {
-      setConfigured(Boolean((cfg as any).configured));
-      setIntegrationStatus((cfg as any).status || 'não configurada');
-      setAccountEmail((cfg as any).account_email || '');
-    }
+    if (!providerResult.error && providerResult.data) setProvider(providerResult.data as ProviderStatus);
     setLoading(false);
   }
 
   useEffect(() => {
     load();
     checkBridge(false);
+    const timer = window.setInterval(() => {
+      if (rows.some((row) => isWaiting(row.status) || (isSigned(row.status) && !row.signed_document_id))) load(false);
+    }, 30000);
+    return () => window.clearInterval(timer);
   }, []);
-
-  useEffect(() => {
-    if (!selectedRequestDoc?.client_id) return;
-    const client = clients.find((item) => item.id === selectedRequestDoc.client_id);
-    if (!client) return;
-    setSignerName(client.name || '');
-    setSignerEmail(client.email || '');
-    setSignerPhone(client.phone || '');
-  }, [selectedRequestDoc, clients]);
 
   async function checkBridge(showFeedback = true) {
     setBusy('bridge');
@@ -179,12 +180,12 @@ export default function Signatures() {
       const health = await response.json().catch(() => null);
       if (!health?.ok) throw new Error('Ponte respondeu sem confirmação de saúde');
       setBridgeOnline(true);
-      if (showFeedback) setNotice(`Ponte ICP-Brasil conectada e pronta${health?.version ? ` • versão ${health.version}` : ''}.`);
+      if (showFeedback) setNotice(`Ponte ICP-Brasil conectada${health?.version ? ` • versão ${health.version}` : ''}.`);
     } catch {
       setBridgeOnline(false);
       setCerts([]);
       setCertFingerprint('');
-      if (showFeedback) setNotice('Ponte ICP-Brasil não encontrada. Mantenha o programa da ponte aberto e tente novamente.');
+      if (showFeedback) setNotice('Ponte ICP-Brasil não encontrada. Abra o programa da ponte e tente novamente.');
     } finally {
       setBridgeChecked(true);
       setBusy(null);
@@ -207,280 +208,336 @@ export default function Signatures() {
       const list = (Array.isArray(json) ? json : (json.certificates || [])) as LocalCert[];
       setCerts(list);
       setCertFingerprint((current) => current && list.some((item) => item.fingerprint === current) ? current : (list[0]?.fingerprint || ''));
-      setNotice(list.length ? 'Certificado A3 reconhecido e pronto para validar documentos assinados.' : 'Nenhum certificado foi encontrado no token.');
+      setNotice(list.length ? 'Certificado A3 reconhecido e pronto.' : 'Nenhum certificado foi encontrado no token.');
     } catch (error: any) {
-      setNotice(error?.name === 'TimeoutError' ? 'Tempo esgotado aguardando o PIN. Tente novamente.' : (error?.message || 'Não foi possível carregar o certificado A3.'));
+      setNotice(error?.name === 'TimeoutError' ? 'Tempo esgotado aguardando o PIN.' : (error?.message || 'Não foi possível carregar o certificado A3.'));
     } finally {
       setBusy(null);
     }
   }
 
-  async function signIcpForRequest(row: RequestRow) {
-    if (!supabase || !row.signed_document_id) return;
-    const signedDoc = documents.find((doc) => doc.id === row.signed_document_id);
-    if (!signedDoc?.file_path) {
-      setNotice('O PDF final assinado pelo cliente ainda não está disponível na biblioteca. Atualize o painel em alguns segundos.');
-      return;
-    }
-    if (!bridgeOnline) {
-      setNotice('A ponte ICP-Brasil está offline. Clique em Verificar ponte.');
-      return;
-    }
-    if (!certFingerprint) {
-      setNotice('Carregue o certificado A3 antes de validar o documento.');
-      return;
-    }
-
-    setBusy(`icp:${row.id}`);
-    setNotice('Validando o PDF assinado pelo cliente com seu certificado ICP-Brasil...');
-    try {
-      const { data: pdf, error } = await supabase.storage.from('lexoffice-documents').download(signedDoc.file_path);
-      if (error || !pdf) throw error || new Error('PDF assinado pelo cliente não encontrado.');
-
-      const form = new FormData();
-      form.append('file', pdf, signedDoc.name.replace(/\.[^.]+$/, '') + '.pdf');
-      form.append('certificateFingerprint', certFingerprint);
-      form.append('visibleSeal', String(visibleSeal));
-      form.append('sealText', 'Validado com certificado ICP-Brasil');
-
-      const response = await fetch(`${BRIDGE}/sign/pades`, { method: 'POST', body: form });
-      if (!response.ok) throw new Error((await response.text()) || 'A validação ICP-Brasil não foi concluída.');
-      const blob = await response.blob();
-      if (!blob.size) throw new Error('O arquivo validado retornou vazio.');
-
-      const path = signedDoc.file_path.replace(/\.pdf$/i, '') + `-validado-icpbr-${Date.now()}.pdf`;
-      const { error: uploadError } = await supabase.storage.from('lexoffice-documents').upload(path, blob, { contentType: 'application/pdf' });
-      if (uploadError) throw uploadError;
-
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: profile } = user ? await supabase.from('profiles').select('org_id').eq('id', user.id).maybeSingle() : ({ data: null } as any);
-      if (!profile?.org_id) throw new Error('Organização não identificada.');
-
-      const cert = certs.find((item) => item.fingerprint === certFingerprint);
-      const { data: validatedDoc, error: insertError } = await supabase.from('documents').insert({
-        org_id: profile.org_id,
-        client_id: signedDoc.client_id || row.client_id || null,
-        process_id: signedDoc.process_id || null,
-        name: `${(row.title || signedDoc.name).replace(/\.pdf$/i, '')} — Validado ICP-Brasil.pdf`,
-        file_path: path,
-        mime_type: 'application/pdf',
-        size_bytes: blob.size,
-        category: 'Documento validado ICP-Brasil',
-        notes: `PAdES ICP-Brasil • ${cert?.subject || 'certificado A3'} • ${cert?.issuer || ''} • ${new Date().toLocaleString('pt-BR')}`,
-        uploaded_by: user?.id || null,
-      }).select('id').single();
-      if (insertError || !validatedDoc) throw insertError || new Error('Não foi possível registrar o documento validado.');
-
-      const now = new Date().toISOString();
-      const { error: requestError } = await supabase.from('signature_requests').update({
-        icp_validated_document_id: validatedDoc.id,
-        icp_validated_at: now,
-        updated_at: now,
-      }).eq('id', row.id);
-      if (requestError) throw requestError;
-
-      setNotice('Documento validado com ICP-Brasil, selo aplicado e versão final salva na biblioteca.');
-      await load();
-    } catch (error: any) {
-      setNotice(error?.message || 'Não foi possível validar o documento com ICP-Brasil.');
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function saveConfig() {
-    if (!supabase || !token.trim()) return;
-    setBusy('config');
-    const { data, error } = await supabase.functions.invoke('zapsign-configure', { body: { account_email: accountEmail.trim(), token: token.trim() } });
-    if (error) setNotice(error.message);
-    else if ((data as any)?.error) setNotice((data as any).error);
-    else {
-      setConfigured(true);
-      setToken('');
-      setNotice('ZapSign configurada.');
-    }
-    setBusy(null);
-  }
-
-  async function addRequest() {
-    if (!supabase || !selectedRequestDoc || !signerName.trim()) return;
-    setBusy('add');
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setBusy(null); setNotice('Sessão expirada.'); return; }
-    const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).maybeSingle();
-    if (!profile?.org_id) { setBusy(null); setNotice('Organização não identificada.'); return; }
-
+  async function createRequest(document: DocumentRow, orgId: string, userId: string) {
+    if (!supabase || !selectedClient) throw new Error('Cliente não selecionado.');
     const { data: request, error } = await supabase.from('signature_requests').insert({
-      org_id: profile.org_id,
-      client_id: selectedRequestDoc.client_id || null,
-      process_id: selectedRequestDoc.process_id || null,
-      document_id: selectedRequestDoc.id,
-      title: selectedRequestDoc.name,
-      signer_name: signerName.trim(),
-      signer_email: signerEmail.trim() || null,
-      signer_phone: signerPhone.trim() || null,
-      provider: 'zapsign',
+      org_id: orgId,
+      client_id: selectedClient.id,
+      process_id: document.process_id || null,
+      document_id: document.id,
+      title: document.name,
+      signer_name: selectedClient.name,
+      signer_email: selectedClient.email || null,
+      signer_phone: selectedClient.whatsapp || selectedClient.phone || null,
+      provider: 'documenso',
       status: 'draft',
+      verification_method: verificationMethod,
+      verification_status: ['facial', 'facial_document', 'reinforced'].includes(verificationMethod) ? 'pending' : 'not_required',
+      verification_provider: ['facial', 'facial_document', 'reinforced'].includes(verificationMethod) ? 'openbiometrics' : null,
+      delivery_email: deliveryEmail,
+      delivery_whatsapp: deliveryWhatsapp,
       expires_at: expiresAt ? new Date(`${expiresAt}T23:59:59`).toISOString() : null,
-      created_by: user.id,
+      created_by: userId,
     }).select('id').single();
-    if (error || !request) { setBusy(null); setNotice(error?.message || 'Não foi possível criar a solicitação.'); return; }
+    if (error || !request) throw error || new Error('Não foi possível criar a solicitação.');
 
     const { error: signerError } = await supabase.from('signature_signers').insert({
-      org_id: profile.org_id,
+      org_id: orgId,
       signature_request_id: request.id,
-      name: signerName.trim(),
-      email: signerEmail.trim() || null,
-      phone: signerPhone.trim() || null,
+      name: selectedClient.name,
+      email: selectedClient.email || null,
+      phone: selectedClient.whatsapp || selectedClient.phone || null,
       signing_order: 1,
       status: 'pending',
     });
     if (signerError) {
       await supabase.from('signature_requests').delete().eq('id', request.id);
-      setBusy(null);
-      setNotice(signerError.message);
-      return;
+      throw signerError;
     }
-    setNotice('Documento adicionado para assinatura.');
-    setBusy(null);
-    await load();
+    return request.id as string;
   }
 
-  async function send(id: string) {
-    if (!supabase) return;
-    setBusy(id);
-    const { data, error } = await supabase.functions.invoke('zapsign-send-signature', { body: { signature_request_id: id } });
-    if (error) setNotice(error.message);
-    else if ((data as any)?.error) setNotice((data as any).error);
-    else { setNotice('Documento enviado para assinatura do cliente.'); await load(); }
-    setBusy(null);
+  async function prepareAndSend() {
+    if (!supabase || !selectedClient) return;
+    const chosenExisting = existingDocumentIds.map((id) => documentMap.get(id)).filter(Boolean) as DocumentRow[];
+    if (!localFiles.length && !chosenExisting.length) {
+      setNotice('Adicione pelo menos um PDF.');
+      return;
+    }
+    if (!selectedClient.email) {
+      setNotice('O cliente precisa ter e-mail cadastrado para receber a assinatura.');
+      return;
+    }
+    const selectedVerification = verificationOptions.find((item) => item.value === verificationMethod);
+    if (selectedVerification?.biometric && !provider.biometrics.reachable) {
+      setNotice('A biometria ainda não está conectada ao servidor. Escolha outro método por enquanto.');
+      return;
+    }
+    if (!provider.documenso.reachable) {
+      setNotice('Documenso self-hosted ainda não está conectado. O envio ficará disponível assim que o servidor estiver configurado.');
+      return;
+    }
+
+    setBusy('batch');
+    setNotice('Preparando e enviando documentos...');
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Sessão expirada.');
+      const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).maybeSingle();
+      if (!profile?.org_id) throw new Error('Organização não identificada.');
+
+      const preparedDocs: DocumentRow[] = [...chosenExisting];
+      for (const file of localFiles) {
+        if (file.type && file.type !== 'application/pdf') throw new Error(`${file.name} não é um PDF.`);
+        const path = `${profile.org_id}/signatures/${selectedClient.id}/originais/${Date.now()}-${crypto.randomUUID()}-${safeName(file.name)}`;
+        const { error: uploadError } = await supabase.storage.from('lexoffice-documents').upload(path, file, { contentType: 'application/pdf', upsert: false });
+        if (uploadError) throw uploadError;
+        const { data: doc, error: docError } = await supabase.from('documents').insert({
+          org_id: profile.org_id,
+          client_id: selectedClient.id,
+          name: file.name,
+          file_path: path,
+          mime_type: 'application/pdf',
+          size_bytes: file.size,
+          category: 'Documento para assinatura',
+          notes: 'Enviado pela tela de Assinaturas',
+          uploaded_by: user.id,
+        }).select('id,name,file_path,client_id,process_id,mime_type,category,created_at').single();
+        if (docError || !doc) throw docError || new Error('Não foi possível registrar o PDF.');
+        preparedDocs.push(doc as DocumentRow);
+      }
+
+      const requestIds: string[] = [];
+      for (const doc of preparedDocs) requestIds.push(await createRequest(doc, profile.org_id, user.id));
+
+      const { data, error } = await supabase.functions.invoke('documenso-send-signature', { body: { signature_request_ids: requestIds, action: 'send' } });
+      if (error) throw error;
+      const failed = ((data as any)?.results || []).filter((item: any) => !item.ok);
+      if (failed.length) throw new Error(failed.map((item: any) => item.error).join(' • '));
+
+      setLocalFiles([]);
+      setExistingDocumentIds([]);
+      setNotice(`${requestIds.length} documento${requestIds.length === 1 ? '' : 's'} enviado${requestIds.length === 1 ? '' : 's'} ao cliente por e-mail${deliveryWhatsapp ? ' e WhatsApp' : ''}.`);
+      await load(false);
+    } catch (error: any) {
+      setNotice(error?.message || 'Não foi possível enviar os documentos.');
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function remind(row: RequestRow) {
     if (!supabase) return;
     setBusy(`remind:${row.id}`);
-    const { data, error } = await supabase.functions.invoke('zapsign-send-signature', { body: { signature_request_id: row.id, resend: true, reminder: true } });
+    const { data, error } = await supabase.functions.invoke('documenso-send-signature', { body: { signature_request_ids: [row.id], action: 'remind' } });
     if (error) setNotice(error.message);
-    else if ((data as any)?.error) setNotice((data as any).error);
-    else setNotice(`Cobrança de assinatura enviada para ${row.signer_name || 'o cliente'}.`);
+    else {
+      const failed = ((data as any)?.results || []).find((item: any) => !item.ok);
+      setNotice(failed?.error || `Lembrete enviado para ${row.signer_name || 'o cliente'}.`);
+    }
     setBusy(null);
   }
 
-  const statusCell = (row: RequestRow) => {
+  async function signIcpForRequest(row: RequestRow) {
+    if (!supabase || !row.signed_document_id) return;
+    const signedDoc = documentMap.get(row.signed_document_id);
+    if (!signedDoc?.file_path) {
+      setNotice('O PDF assinado ainda está sendo recebido. Atualize o painel em alguns segundos.');
+      return;
+    }
+    if (!bridgeOnline) {
+      setNotice('A ponte ICP-Brasil está offline.');
+      return;
+    }
+    if (!certFingerprint) {
+      await loadCertificates();
+      return;
+    }
+
+    setBusy(`icp:${row.id}`);
+    setNotice('Validando o documento com seu certificado ICP-Brasil...');
+    try {
+      const { data: pdf, error } = await supabase.storage.from('lexoffice-documents').download(signedDoc.file_path);
+      if (error || !pdf) throw error || new Error('PDF assinado não encontrado.');
+      const form = new FormData();
+      form.append('file', pdf, `${row.title || 'documento'}.pdf`);
+      form.append('certificateFingerprint', certFingerprint);
+      form.append('visibleSeal', String(visibleSeal));
+      form.append('sealText', 'Validado com certificado ICP-Brasil');
+      const response = await fetch(`${BRIDGE}/sign/pades`, { method: 'POST', body: form });
+      if (!response.ok) throw new Error((await response.text()) || 'A validação ICP-Brasil não foi concluída.');
+      const blob = await response.blob();
+      if (!blob.size) throw new Error('O arquivo validado retornou vazio.');
+
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: profile } = user ? await supabase.from('profiles').select('org_id').eq('id', user.id).maybeSingle() : ({ data: null } as any);
+      if (!profile?.org_id) throw new Error('Organização não identificada.');
+      const path = `${profile.org_id}/signatures/${row.id}/final/${Date.now()}-${safeName(row.title || 'documento')}-validado-icpbr.pdf`;
+      const { error: uploadError } = await supabase.storage.from('lexoffice-documents').upload(path, blob, { contentType: 'application/pdf' });
+      if (uploadError) throw uploadError;
+      const cert = certs.find((item) => item.fingerprint === certFingerprint);
+      const { data: validatedDoc, error: insertError } = await supabase.from('documents').insert({
+        org_id: profile.org_id,
+        client_id: row.client_id || null,
+        process_id: signedDoc.process_id || null,
+        name: `${(row.title || 'Documento').replace(/\.pdf$/i, '')} — Validado ICP-Brasil.pdf`,
+        file_path: path,
+        mime_type: 'application/pdf',
+        size_bytes: blob.size,
+        category: 'Documento validado ICP-Brasil',
+        notes: `PAdES ICP-Brasil • ${cert?.subject || 'certificado A3'} • ${new Date().toLocaleString('pt-BR')}`,
+        uploaded_by: user?.id || null,
+      }).select('id').single();
+      if (insertError || !validatedDoc) throw insertError || new Error('Não foi possível registrar o documento final.');
+      const now = new Date().toISOString();
+      const { error: requestError } = await supabase.from('signature_requests').update({ icp_validated_document_id: validatedDoc.id, icp_validated_at: now, updated_at: now }).eq('id', row.id);
+      if (requestError) throw requestError;
+      setNotice('Documento validado com ICP-Brasil e pronto para download.');
+      await load(false);
+    } catch (error: any) {
+      setNotice(error?.message || 'Não foi possível validar o documento.');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function downloadFinal(row: RequestRow) {
+    if (!supabase || !row.icp_validated_document_id) return;
+    const doc = documentMap.get(row.icp_validated_document_id);
+    if (!doc?.file_path) return setNotice('Documento final não encontrado na biblioteca.');
+    setBusy(`download:${row.id}`);
+    try {
+      const { data, error } = await supabase.storage.from('lexoffice-documents').download(doc.file_path);
+      if (error || !data) throw error || new Error('Não foi possível baixar o PDF.');
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = doc.name || 'documento-validado-icp-brasil.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (error: any) {
+      setNotice(error?.message || 'Não foi possível baixar o documento.');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const statusBadge = (row: RequestRow) => {
     const status = (row.status || 'draft').toLowerCase();
-    if (row.icp_validated_document_id) return <span style={pillStyle('validated')}><CheckCircle2 size={13}/> VALIDADO ICP-BRASIL</span>;
-    if (status === 'signed' && row.signed_document_id) return <span style={pillStyle('ready')}><FileCheck2 size={13}/> ASSINADO PELO CLIENTE</span>;
-    if (status === 'signed') return <span style={pillStyle('signed')}><RefreshCw size={13}/> PREPARANDO PDF FINAL</span>;
-    if (status === 'sent' || status === 'viewed') return <span style={pillStyle('waiting')}><Bell size={13}/> AGUARDANDO CLIENTE</span>;
-    if (status === 'declined' || status === 'cancelled' || status === 'expired') return <span style={pillStyle('error')}><AlertTriangle size={13}/> {status.toUpperCase()}</span>;
-    return <span style={pillStyle('draft')}><Activity size={13}/> AGUARDANDO ENVIO</span>;
+    if (row.icp_validated_document_id) return <span className="sig-badge validated"><CheckCircle2 size={12}/> Validado ICP</span>;
+    if (status === 'signed' && row.signed_document_id) return <span className="sig-badge ready"><FileCheck2 size={12}/> Assinado</span>;
+    if (status === 'signed') return <span className="sig-badge signed"><RefreshCw size={12}/> Recebendo PDF</span>;
+    if (status === 'viewed') return <span className="sig-badge viewed"><Activity size={12}/> Visualizado</span>;
+    if (status === 'sent') return <span className="sig-badge waiting"><Bell size={12}/> Aguardando cliente</span>;
+    if (['declined', 'cancelled', 'expired'].includes(status)) return <span className="sig-badge error"><AlertTriangle size={12}/> {status}</span>;
+    return <span className="sig-badge draft"><Activity size={12}/> Aguardando envio</span>;
   };
 
   return <>
-    <div className="page-title">
-      <h1>Assinaturas</h1>
-      <p>Fluxo completo: envio ao cliente, acompanhamento da assinatura e validação final com ICP-Brasil A3.</p>
+    <div className="page-title signature-page-title">
+      <div>
+        <h1>Assinaturas</h1>
+        <p>Envie documentos ao cliente, acompanhe a assinatura e valide o PDF final com ICP-Brasil.</p>
+      </div>
+      <div className="signature-top-actions">
+        <span className={`provider-pill ${provider.documenso.reachable ? 'ok' : 'off'}`}><Send size={13}/> Documenso {provider.documenso.reachable ? 'online' : 'aguardando servidor'}</span>
+        <span className={`provider-pill ${bridgeOnline ? 'ok' : 'off'}`}>{bridgeOnline ? <Wifi size={13}/> : <WifiOff size={13}/>} A3 {bridgeOnline ? 'conectado' : 'offline'}</span>
+        <button className="sig-btn ghost" onClick={() => checkBridge(true)} disabled={busy === 'bridge'}><RefreshCw size={14}/> Verificar A3</button>
+      </div>
     </div>
 
-    {notice && <div className="integration-notice">{notice}</div>}
+    {notice && <div className="integration-notice signature-notice">{notice}</div>}
 
-    <div className="signature-kpis" style={{gridTemplateColumns:'repeat(5,minmax(0,1fr))'}}>
-      <div><FileText size={18}/><span>Total</span><strong>{stats.total}</strong></div>
-      <div className="pending"><Activity size={18}/><span>Aguardando envio</span><strong>{stats.draft}</strong></div>
-      <div className="waiting"><Bell size={18}/><span>Aguardando cliente</span><strong>{stats.waiting}</strong></div>
-      <div><FileCheck2 size={18}/><span>Prontos para ICP</span><strong>{stats.ready}</strong></div>
-      <div className="done"><ShieldCheck size={18}/><span>Validados ICP</span><strong>{stats.validated}</strong></div>
+    <div className="signature-kpis compact">
+      <div><FileText size={17}/><span>Total</span><strong>{stats.total}</strong></div>
+      <div className="pending"><Activity size={17}/><span>Aguardando envio</span><strong>{stats.draft}</strong></div>
+      <div className="waiting"><Bell size={17}/><span>Aguardando cliente</span><strong>{stats.waiting}</strong></div>
+      <div><FileCheck2 size={17}/><span>Prontos para ICP</span><strong>{stats.ready}</strong></div>
+      <div className="done"><ShieldCheck size={17}/><span>Finalizados</span><strong>{stats.validated}</strong></div>
     </div>
 
-    <div className={`icp-bridge-panel ${bridgeOnline ? 'online' : 'offline'}`}>
-      <div className="icp-bridge-main">
-        <div className="icp-bridge-icon">{bridgeOnline ? <Wifi size={25}/> : <WifiOff size={25}/>}</div>
+    <section className="signature-workbench">
+      <div className="signature-section-head">
         <div>
-          <span className="eyebrow">PONTE LOCAL ICP-BRASIL</span>
-          <h2>{bridgeOnline ? 'Ponte conectada e pronta' : 'Ponte não detectada neste computador'}</h2>
-          <p>{bridgeOnline ? 'A ponte está ativa. O certificado A3 será usado somente nos documentos que já tiverem sido assinados pelo cliente.' : 'Abra a ponte local e clique em Verificar ponte.'}</p>
+          <span className="eyebrow">NOVA SOLICITAÇÃO</span>
+          <h2>Enviar documentos para assinatura</h2>
         </div>
+        <span className="step-hint">1 Cliente → 2 PDFs → 3 Verificação → 4 Enviar</span>
       </div>
-      <div className="icp-bridge-actions">
-        <span className={`bridge-badge ${bridgeOnline ? 'ok' : 'off'}`}>{bridgeOnline ? <CheckCircle2 size={14}/> : <AlertTriangle size={14}/>} {bridgeOnline ? 'Online' : bridgeChecked ? 'Offline' : 'Verificando'}</span>
-        <button className="integration-action" type="button" onClick={() => checkBridge(true)} disabled={busy === 'bridge'}><RefreshCw size={15}/>{busy === 'bridge' ? 'Verificando...' : 'Verificar ponte'}</button>
-      </div>
-    </div>
 
-    <div className="integration-panel">
-      <h3><Usb size={18}/> Certificado ICP-Brasil A3</h3>
-      <p className="panel-description">Carregue seu certificado uma vez nesta sessão. O PIN é solicitado somente no seu computador. Depois, a validação fica disponível na tabela quando o cliente terminar de assinar.</p>
-      <div className="integration-form">
-        <label><KeyRound size={14}/> Certificado A3
-          <select value={certFingerprint} onChange={(e) => setCertFingerprint(e.target.value)} disabled={!bridgeOnline || !certs.length}>
-            <option value="">{certs.length ? 'Selecione o certificado' : 'Carregue o certificado'}</option>
-            {certs.map((cert) => <option key={cert.fingerprint} value={cert.fingerprint}>{cert.subject} • {cert.issuer}</option>)}
+      <div className="signature-compose-grid">
+        <label className="sig-field wide"><span><UserRound size={14}/> Cliente</span>
+          <select value={selectedClientId} onChange={(e) => { setSelectedClientId(e.target.value); setExistingDocumentIds([]); }}>
+            <option value="">Selecione o cliente</option>
+            {clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}
           </select>
+          {selectedClient && <small>{selectedClient.email || 'Sem e-mail'} • {selectedClient.whatsapp || selectedClient.phone || 'Sem WhatsApp'}</small>}
         </label>
-        <button className="integration-action" type="button" onClick={loadCertificates} disabled={!bridgeOnline || busy === 'certificates'}><KeyRound size={16}/>{busy === 'certificates' ? 'Aguardando PIN...' : 'Carregar certificado A3'}</button>
-        <label><input type="checkbox" checked={visibleSeal} onChange={(e) => setVisibleSeal(e.target.checked)}/> Aplicar selo visual ICP-Brasil no PDF final</label>
-      </div>
-    </div>
 
-    <div className="integration-panel">
-      <div style={{display:'flex',justifyContent:'space-between',gap:12,alignItems:'center',marginBottom:14}}>
-        <div>
-          <h3 style={{marginBottom:4}}><FileCheck2 size={18}/> Controle de documentos e validação</h3>
-          <p className="panel-description" style={{margin:0}}>O botão ICP-Brasil só aparece depois que o cliente assina e o PDF final é recebido.</p>
+        <label className="sig-field upload-field"><span><UploadCloud size={14}/> PDFs do computador</span>
+          <input type="file" accept="application/pdf,.pdf" multiple onChange={(e) => setLocalFiles(Array.from(e.target.files || []))}/>
+          <small>{localFiles.length ? `${localFiles.length} PDF${localFiles.length > 1 ? 's' : ''} selecionado${localFiles.length > 1 ? 's' : ''}` : 'Escolha um ou vários arquivos de uma vez'}</small>
+        </label>
+
+        <label className="sig-field"><span><Fingerprint size={14}/> Tipo de verificação</span>
+          <select value={verificationMethod} onChange={(e) => setVerificationMethod(e.target.value)}>
+            {verificationOptions.map((option) => <option key={option.value} value={option.value} disabled={option.biometric && !provider.biometrics.reachable}>{option.label}{option.biometric && !provider.biometrics.reachable ? ' — aguardando biometria' : ''}</option>)}
+          </select>
+          <small>{verificationOptions.find((item) => item.value === verificationMethod)?.detail}</small>
+        </label>
+
+        <label className="sig-field"><span>Prazo</span><input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)}/><small>Opcional</small></label>
+      </div>
+
+      {selectedClientId && clientDocuments.length > 0 && <details className="library-picker">
+        <summary>Usar também PDFs já salvos na pasta do cliente</summary>
+        <div className="library-items">
+          {clientDocuments.slice(0, 30).map((doc) => <label key={doc.id}><input type="checkbox" checked={existingDocumentIds.includes(doc.id)} onChange={(e) => setExistingDocumentIds((current) => e.target.checked ? [...current, doc.id] : current.filter((id) => id !== doc.id))}/><span>{doc.name}</span></label>)}
         </div>
-        <button className="integration-action" type="button" onClick={() => load(true)} disabled={loading}><RefreshCw size={15}/>{loading ? 'Atualizando...' : 'Atualizar painel'}</button>
+      </details>}
+
+      <div className="signature-sendbar">
+        <div className="delivery-options">
+          <label><input type="checkbox" checked={deliveryEmail} onChange={(e) => setDeliveryEmail(e.target.checked)}/> E-mail</label>
+          <label><input type="checkbox" checked={deliveryWhatsapp} onChange={(e) => setDeliveryWhatsapp(e.target.checked)}/> WhatsApp</label>
+          <span>{localFiles.length + existingDocumentIds.length} documento{localFiles.length + existingDocumentIds.length === 1 ? '' : 's'}</span>
+        </div>
+        <button className="sig-btn primary" onClick={prepareAndSend} disabled={busy === 'batch' || !selectedClientId || (!localFiles.length && !existingDocumentIds.length) || !provider.documenso.reachable}><Send size={16}/>{busy === 'batch' ? 'Enviando...' : 'Enviar para assinatura'}</button>
+      </div>
+      {!provider.documenso.reachable && <div className="provider-warning"><AlertTriangle size={15}/> A tela já está pronta, mas o envio ficará bloqueado até o Documenso self-hosted ser ligado ao servidor.</div>}
+    </section>
+
+    <section className="signature-table-panel">
+      <div className="signature-section-head table-head">
+        <div><span className="eyebrow">ACOMPANHAMENTO</span><h2>Documentos enviados</h2></div>
+        <div className="table-actions">
+          {bridgeOnline && <button className="sig-btn ghost" onClick={loadCertificates} disabled={busy === 'certificates'}><KeyRound size={14}/>{certFingerprint ? 'A3 carregado' : busy === 'certificates' ? 'Aguardando PIN...' : 'Carregar A3'}</button>}
+          <label className="seal-toggle"><input type="checkbox" checked={visibleSeal} onChange={(e) => setVisibleSeal(e.target.checked)}/> selo visual</label>
+          <button className="sig-btn ghost" onClick={() => load(true)} disabled={loading}><RefreshCw size={14}/> Atualizar</button>
+        </div>
       </div>
 
-      <div style={{overflowX:'auto',border:'1px solid rgba(217,164,65,.15)',borderRadius:14}}>
-        <table style={{width:'100%',minWidth:980,borderCollapse:'collapse',background:'rgba(7,9,11,.45)'}}>
-          <thead>
-            <tr style={{textAlign:'left',color:'#a9a092',fontSize:10,textTransform:'uppercase',letterSpacing:'.07em',borderBottom:'1px solid rgba(217,164,65,.18)'}}>
-              <th style={{padding:'13px 14px'}}>Cliente</th><th style={{padding:'13px 14px'}}>Documento</th><th style={{padding:'13px 14px'}}>Assinatura do cliente</th><th style={{padding:'13px 14px'}}>ICP-Brasil</th><th style={{padding:'13px 14px'}}>Ação</th>
-            </tr>
-          </thead>
+      <div className="signature-table-wrap">
+        <table className="signature-table">
+          <thead><tr><th>Cliente</th><th>Documento</th><th>Verificação</th><th>Status</th><th>ICP-Brasil</th><th>Ações</th></tr></thead>
           <tbody>
-            {loading ? <tr><td colSpan={5} style={{padding:22,color:'#9d9486'}}>Carregando documentos...</td></tr> : dashboard.length === 0 ? <tr><td colSpan={5} style={{padding:22,color:'#9d9486'}}>Nenhum documento em acompanhamento.</td></tr> : dashboard.map((row) => (
-              <tr key={row.id} style={{borderBottom:'1px solid rgba(255,255,255,.055)'}}>
-                <td style={{padding:'14px',color:'#f0e7d7',fontWeight:700}}>{row.clientName}</td>
-                <td style={{padding:'14px',color:'#d7cebf'}}>{row.title || 'Documento'}</td>
-                <td style={{padding:'14px'}}>{statusCell(row)}</td>
-                <td style={{padding:'14px'}}>{row.icp_validated_document_id ? <span style={pillStyle('validated')}><ShieldCheck size={13}/> SELO APLICADO</span> : row.signed_document_id ? <span style={pillStyle('ready')}>PENDENTE</span> : <span style={{color:'#777',fontSize:11}}>Aguardando assinatura</span>}</td>
-                <td style={{padding:'14px'}}>
-                  {(row.status || '').toLowerCase() === 'draft' && <button className="integration-action" disabled={!configured || busy === row.id} onClick={() => send(row.id)}><Send size={14}/>{busy === row.id ? 'Enviando...' : 'Enviar ao cliente'}</button>}
-                  {isWaiting(row.status) && <button className="integration-action" disabled={busy === `remind:${row.id}`} onClick={() => remind(row)}><Bell size={14}/>{busy === `remind:${row.id}` ? 'Enviando...' : 'Cobrar assinatura'}</button>}
-                  {isSigned(row.status) && !row.signed_document_id && <button className="integration-action" disabled><RefreshCw size={14}/>Preparando arquivo</button>}
-                  {isSigned(row.status) && row.signed_document_id && !row.icp_validated_document_id && <button className="integration-action" onClick={() => signIcpForRequest(row)} disabled={busy === `icp:${row.id}`}><ShieldCheck size={14}/>{busy === `icp:${row.id}` ? 'Validando...' : 'Validar com ICP-Brasil'}</button>}
-                  {row.icp_validated_document_id && <span style={pillStyle('validated')}><CheckCircle2 size={13}/> CONCLUÍDO</span>}
-                </td>
+            {loading ? <tr><td colSpan={6} className="empty-cell">Carregando...</td></tr> : dashboard.length === 0 ? <tr><td colSpan={6} className="empty-cell">Nenhum documento em acompanhamento.</td></tr> : dashboard.map((row) => (
+              <tr key={row.id}>
+                <td><strong>{row.clientName}</strong></td>
+                <td><span className="doc-title">{row.title || 'Documento'}</span><small>{row.sent_at ? `Enviado ${new Date(row.sent_at).toLocaleDateString('pt-BR')}` : 'Ainda não enviado'}</small></td>
+                <td><span className="verification-chip">{verificationLabel(row.verification_method)}</span></td>
+                <td>{statusBadge(row)}</td>
+                <td>{row.icp_validated_document_id ? <span className="sig-badge validated"><ShieldCheck size={12}/> Selo aplicado</span> : row.signed_document_id ? <span className="sig-badge ready">Pronto para validar</span> : <span className="muted-cell">—</span>}</td>
+                <td><div className="row-actions">
+                  {isWaiting(row.status) && <button className="sig-btn mini" onClick={() => remind(row)} disabled={busy === `remind:${row.id}`}><Bell size={13}/> Lembrar</button>}
+                  {isSigned(row.status) && row.signed_document_id && !row.icp_validated_document_id && <button className="sig-btn mini primary" onClick={() => signIcpForRequest(row)} disabled={busy === `icp:${row.id}` || !bridgeOnline}><ShieldCheck size={13}/>{busy === `icp:${row.id}` ? 'Validando...' : 'Validar ICP'}</button>}
+                  {row.icp_validated_document_id && <button className="sig-btn mini" onClick={() => downloadFinal(row)} disabled={busy === `download:${row.id}`}><Download size={13}/> Baixar PDF</button>}
+                </div></td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-    </div>
-
-    <div className="integration-panel">
-      <h3><Plus size={17}/> Nova assinatura do cliente</h3>
-      <div className="integration-form">
-        <label>Documento
-          <select value={requestDocumentId} onChange={(e) => setRequestDocumentId(e.target.value)}><option value="">Selecione</option>{documents.map((doc) => <option key={doc.id} value={doc.id}>{doc.name}</option>)}</select>
-        </label>
-        <label><UserRound size={14}/> Signatário<input value={signerName} onChange={(e) => setSignerName(e.target.value)}/></label>
-        <label>E-mail<input type="email" value={signerEmail} onChange={(e) => setSignerEmail(e.target.value)}/></label>
-        <label>WhatsApp<input value={signerPhone} onChange={(e) => setSignerPhone(e.target.value)}/></label>
-        <label>Prazo<input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)}/></label>
-        <button className="integration-action" onClick={addRequest} disabled={busy === 'add' || !requestDocumentId || !signerName.trim()}><PenTool size={16}/>{busy === 'add' ? 'Adicionando...' : 'Adicionar para assinatura'}</button>
-      </div>
-    </div>
-
-    <div className="integration-panel">
-      <h3><KeyRound size={17}/> Integração ZapSign</h3>
-      <div className="integration-form">
-        <label>E-mail da conta<input type="email" value={accountEmail} onChange={(e) => setAccountEmail(e.target.value)}/></label>
-        <label>Token / API key<input type="password" value={token} onChange={(e) => setToken(e.target.value)} placeholder={configured ? '•••••••• configurado' : 'Token ZapSign'}/></label>
-        <label>Status<input value={configured ? `Configurada • ${integrationStatus}` : 'Não configurada'} readOnly/></label>
-        <button className="integration-action" onClick={saveConfig} disabled={busy === 'config' || !token.trim()}><ShieldCheck size={16}/>Salvar integração</button>
-      </div>
-    </div>
+    </section>
   </>;
 }
