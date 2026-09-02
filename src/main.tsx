@@ -20,6 +20,7 @@ import './pages/calculator-cards.css';
 import './pages/settings-enhanced.css';
 import './pages/dashboard-premium.css';
 import './pages/signatures.css';
+import './pages/process-movements-premium.css';
 import './luxury-office-theme.css';
 import './pages/luxury-modules.css';
 import './pages/luxury-admin-modules.css';
