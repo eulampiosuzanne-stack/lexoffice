@@ -1,4 +1,13 @@
-/* LEXOFFICE — brilho 3D nas bordas dos itens clicáveis e selecionados */
+/* LEXOFFICE — camada final: brilho 3D dourado/vinho + acessibilidade visual */
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap');
+
+.app h1, .app h2, .app h3,
+.app .page-title h1, .app .page-head h1, .app .module h1 {
+  font-family: 'Playfair Display', Georgia, serif !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em !important;
+}
 
 .app .card,
 .app .integration-panel,
