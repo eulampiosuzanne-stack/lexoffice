@@ -1,0 +1,27 @@
+/* LEXOFFICE — camada de acessibilidade (carregar por último, depois de reference-ui.css) */
+
+.app, .app p, .app label, .app td, .app th,
+.app input, .app select, .app textarea, .app button,
+.app .nav-group a, .app .card span, .app .card strong {
+  font-size: 18px !important;
+  letter-spacing: 0.03em !important;
+  line-height: 1.7 !important;
+}
+
+.app h1, .app h2, .app h3 {
+  letter-spacing: 0.02em !important;
+}
+
+.app input, .app select, .app textarea, .app .input-search {
+  min-height: 48px !important;
+  box-shadow: inset 2px 2px 6px rgba(0,0,0,0.5) !important;
+}
+
+.app *:focus-visible {
+  outline: 3px solid #f4cf78 !important;
+  outline-offset: 2px !important;
+}
+
+.app button, .app a, .app .primary, .app .secondary {
+  min-height: 44px !important;
+}
