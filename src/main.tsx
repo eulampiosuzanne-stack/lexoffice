@@ -39,6 +39,37 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>
 );
 
+// Dashboard executive cards must behave as navigation shortcuts.
+// The current Dashboard component renders visual cards as divs, so this keeps
+// them keyboard/mouse accessible without changing its data-loading behavior.
+const dashboardTargets=['/processos','/crm','/clientes','/agenda','/agenda','/andamentos','/assinaturas','/agentes-ia'];
+document.addEventListener('click',(event)=>{
+  const el=(event.target as HTMLElement | null)?.closest?.('.dashboard-kpi') as HTMLElement | null;
+  if(!el)return;
+  const cards=Array.from(document.querySelectorAll('.dashboard-kpi'));
+  const index=cards.indexOf(el);
+  const target=dashboardTargets[index];
+  if(target)window.location.assign(target);
+});
+document.addEventListener('keydown',(event)=>{
+  if(event.key!=='Enter'&&event.key!==' ')return;
+  const el=(event.target as HTMLElement | null)?.closest?.('.dashboard-kpi') as HTMLElement | null;
+  if(!el)return;
+  event.preventDefault();
+  el.click();
+});
+const decorateDashboardCards=()=>{
+  document.querySelectorAll<HTMLElement>('.dashboard-kpi').forEach((el,index)=>{
+    if(!dashboardTargets[index])return;
+    el.tabIndex=0;
+    el.setAttribute('role','link');
+    el.setAttribute('aria-label',`Abrir ${el.innerText.replace(/\s+/g,' ').trim()}`);
+    el.style.cursor='pointer';
+  });
+};
+new MutationObserver(decorateDashboardCards).observe(document.documentElement,{childList:true,subtree:true});
+decorateDashboardCards();
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').then((registration) => {
