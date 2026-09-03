@@ -1,20 +1,76 @@
 import { useEffect,useState } from 'react';
-import { Activity,Bot,Bell,Clock3,CalendarDays,Gavel,ShieldCheck,RefreshCw,CheckCircle2 } from 'lucide-react';
+import { Activity,Bot,Clock3,CalendarDays,Gavel,ShieldCheck,RefreshCw,CheckCircle2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import './integrations.css';
 
 type Prefs={id?:string;proactive_updates_enabled:boolean;ai_summary_enabled:boolean;notify_user_movements:boolean;notify_user_deadlines:boolean;notify_user_hearings:boolean;notify_user_intimations:boolean;notify_user_decisions:boolean;notify_user_channel:string;hearing_7_days_enabled:boolean;hearing_3_days_enabled:boolean;hearing_1_day_enabled:boolean;hearing_same_day_enabled:boolean};
 const defaults:Prefs={proactive_updates_enabled:true,ai_summary_enabled:true,notify_user_movements:true,notify_user_deadlines:true,notify_user_hearings:true,notify_user_intimations:true,notify_user_decisions:true,notify_user_channel:'whatsapp',hearing_7_days_enabled:true,hearing_3_days_enabled:true,hearing_1_day_enabled:true,hearing_same_day_enabled:true};
+
 export default function ProcessAutomation(){
- const [prefs,setPrefs]=useState<Prefs>(defaults),[orgId,setOrgId]=useState(''),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[movements,setMovements]=useState<any[]>([]),[syncInfo,setSyncInfo]=useState<any[]>([]);
- async function load(){if(!supabase)return;setBusy(true);const {data:{user}}=await supabase.auth.getUser();if(!user){setBusy(false);return}const {data:p}=await supabase.from('profiles').select('org_id').eq('id',user.id).maybeSingle();if(!p?.org_id){setBusy(false);return}setOrgId(p.org_id);const [{data:s},{data:m},{data:t}]=await Promise.all([supabase.from('process_notification_settings').select('*').eq('org_id',p.org_id).maybeSingle(),supabase.from('process_movements').select('id,process_id,movement_date,title,description,source,processes(cnj_number,internal_number,clients(name))').order('movement_date',{ascending:false}).limit(25),supabase.from('tribunal_connections').select('tribunal_name,judicial_system,status,last_sync_at,error_message').eq('org_id',p.org_id).order('tribunal_name')]);if(s)setPrefs({...defaults,...s});setMovements(m||[]);setSyncInfo(t||[]);setBusy(false)}
+ const [prefs,setPrefs]=useState<Prefs>(defaults),[orgId,setOrgId]=useState(''),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[movements,setMovements]=useState<any[]>([]),[syncInfo,setSyncInfo]=useState<any[]>([]),[live,setLive]=useState(false);
+
+ async function loadMovements(currentOrgId:string){
+  if(!supabase||!currentOrgId)return;
+  const {data,error}=await supabase.from('process_movements')
+   .select('id,org_id,process_id,movement_date,created_at,title,description,source,processes(cnj_number,internal_number,clients(name))')
+   .eq('org_id',currentOrgId)
+   .order('created_at',{ascending:false})
+   .limit(50);
+  if(error){setNotice(`Erro ao carregar andamentos: ${error.message}`);return}
+  setMovements(data||[]);
+ }
+
+ async function load(){
+  if(!supabase)return;
+  setBusy(true);
+  const {data:{user}}=await supabase.auth.getUser();
+  if(!user){setBusy(false);return}
+  const {data:p}=await supabase.from('profiles').select('org_id').eq('id',user.id).maybeSingle();
+  if(!p?.org_id){setBusy(false);return}
+  setOrgId(p.org_id);
+  const [{data:s},{data:t}]=await Promise.all([
+   supabase.from('process_notification_settings').select('*').eq('org_id',p.org_id).maybeSingle(),
+   supabase.from('tribunal_connections').select('tribunal_name,judicial_system,status,last_sync_at,error_message').eq('org_id',p.org_id).order('tribunal_name')
+  ]);
+  if(s)setPrefs({...defaults,...s});
+  setSyncInfo(t||[]);
+  await loadMovements(p.org_id);
+  setBusy(false);
+ }
+
  useEffect(()=>{load()},[]);
- async function save(next:Prefs){if(!supabase||!orgId)return;setBusy(true);setNotice('');const payload={org_id:orgId,proactive_updates_enabled:next.proactive_updates_enabled,ai_summary_enabled:next.ai_summary_enabled,notify_user_movements:next.notify_user_movements,notify_user_deadlines:next.notify_user_deadlines,notify_user_hearings:next.notify_user_hearings,notify_user_intimations:next.notify_user_intimations,notify_user_decisions:next.notify_user_decisions,notify_user_channel:next.notify_user_channel,hearing_7_days_enabled:next.hearing_7_days_enabled,hearing_3_days_enabled:next.hearing_3_days_enabled,hearing_1_day_enabled:next.hearing_1_day_enabled,hearing_same_day_enabled:next.hearing_same_day_enabled,updated_at:new Date().toISOString()};const q=next.id?supabase.from('process_notification_settings').update(payload).eq('id',next.id).select().single():supabase.from('process_notification_settings').insert(payload).select().single();const {data,error}=await q as any;setBusy(false);if(error){setNotice(error.message);return}setPrefs({...next,id:data?.id||next.id});setNotice('Automação processual atualizada.')}
+ useEffect(()=>{
+  if(!supabase||!orgId)return;
+  const channel=supabase.channel(`process-movements-${orgId}`)
+   .on('postgres_changes',{event:'INSERT',schema:'public',table:'process_movements',filter:`org_id=eq.${orgId}`},()=>{setLive(true);loadMovements(orgId)})
+   .on('postgres_changes',{event:'UPDATE',schema:'public',table:'process_movements',filter:`org_id=eq.${orgId}`},()=>loadMovements(orgId))
+   .subscribe(status=>setLive(status==='SUBSCRIBED'));
+  const poll=window.setInterval(()=>loadMovements(orgId),30000);
+  return()=>{window.clearInterval(poll);supabase.removeChannel(channel)};
+ },[orgId]);
+
+ async function save(next:Prefs){
+  if(!supabase||!orgId)return;
+  setBusy(true);setNotice('');
+  const payload={org_id:orgId,proactive_updates_enabled:next.proactive_updates_enabled,ai_summary_enabled:next.ai_summary_enabled,notify_user_movements:next.notify_user_movements,notify_user_deadlines:next.notify_user_deadlines,notify_user_hearings:next.notify_user_hearings,notify_user_intimations:next.notify_user_intimations,notify_user_decisions:next.notify_user_decisions,notify_user_channel:next.notify_user_channel,hearing_7_days_enabled:next.hearing_7_days_enabled,hearing_3_days_enabled:next.hearing_3_days_enabled,hearing_1_day_enabled:next.hearing_1_day_enabled,hearing_same_day_enabled:next.hearing_same_day_enabled,updated_at:new Date().toISOString()};
+  const q=next.id?supabase.from('process_notification_settings').update(payload).eq('id',next.id).select().single():supabase.from('process_notification_settings').insert(payload).select().single();
+  const {data,error}=await q as any;
+  setBusy(false);
+  if(error){setNotice(error.message);return}
+  setPrefs({...next,id:data?.id||next.id});setNotice('Automação processual atualizada.');
+ }
  function toggle(k:keyof Prefs){const next={...prefs,[k]:!prefs[k]};setPrefs(next);save(next)}
- const dt=(v:any)=>v?new Date(v).toLocaleString('pt-BR'):'—';const proc=(x:any)=>x?.processes?.cnj_number||x?.processes?.internal_number||'Processo';const cli=(x:any)=>x?.processes?.clients?.name||'Cliente não identificado';
- return <div><div className="page-head"><div><h1>Automação Processual</h1><p>Monitoramento contínuo dos processos e alertas inteligentes para você.</p></div><button className="primary" onClick={load} disabled={busy}><RefreshCw size={15}/>Atualizar</button></div>{notice&&<div className="integration-notice">{notice}</div>}
- <div className="system-bar"><span>⚡ MONITORAMENTO PROCESSUAL CONTÍNUO</span><span className="online">● ATIVO</span></div>
- <div className="integration-panel"><div className="integration-head"><div><span className="integration-pill"><Bot size={14}/> IA PROCESSUAL</span><h2>Quero que a IA me avise quando...</h2><p>Estas opções controlam quais eventos processuais devem gerar alerta.</p></div></div><div className="integration-form"><label><input type="checkbox" checked={prefs.proactive_updates_enabled} onChange={()=>toggle('proactive_updates_enabled')}/> Ativar monitoramento e avisos proativos</label><label><input type="checkbox" checked={prefs.notify_user_movements} onChange={()=>toggle('notify_user_movements')}/> Sair novo andamento processual</label><label><input type="checkbox" checked={prefs.notify_user_intimations} onChange={()=>toggle('notify_user_intimations')}/> Sair intimação</label><label><input type="checkbox" checked={prefs.notify_user_deadlines} onChange={()=>toggle('notify_user_deadlines')}/> Surgir novo prazo</label><label><input type="checkbox" checked={prefs.notify_user_hearings} onChange={()=>toggle('notify_user_hearings')}/> For marcada audiência</label><label><input type="checkbox" checked={prefs.notify_user_decisions} onChange={()=>toggle('notify_user_decisions')}/> Sair decisão, sentença ou acórdão</label><label><input type="checkbox" checked={prefs.ai_summary_enabled} onChange={()=>toggle('ai_summary_enabled')}/> IA resumir e explicar o evento antes de avisar</label><label>Canal de aviso<select value={prefs.notify_user_channel} onChange={e=>{const next={...prefs,notify_user_channel:e.target.value};setPrefs(next);save(next)}}><option value="whatsapp">WhatsApp</option><option value="in_app">Dentro do LEXOFFICE</option><option value="both">WhatsApp + LEXOFFICE</option></select></label></div></div>
- <div className="integration-panel"><h3><CalendarDays size={17}/> Lembretes de audiência</h3><div className="integration-form"><label><input type="checkbox" checked={prefs.hearing_7_days_enabled} onChange={()=>toggle('hearing_7_days_enabled')}/> Avisar 7 dias antes</label><label><input type="checkbox" checked={prefs.hearing_3_days_enabled} onChange={()=>toggle('hearing_3_days_enabled')}/> Avisar 3 dias antes</label><label><input type="checkbox" checked={prefs.hearing_1_day_enabled} onChange={()=>toggle('hearing_1_day_enabled')}/> Avisar 1 dia antes</label><label><input type="checkbox" checked={prefs.hearing_same_day_enabled} onChange={()=>toggle('hearing_same_day_enabled')}/> Avisar no mesmo dia</label></div></div>
- <div className="integration-panel"><div className="integration-head"><div><span className="integration-pill"><Activity size={14}/> ATUALIZAÇÕES</span><h2>Últimos andamentos capturados</h2></div></div>{movements.length===0?<div className="integration-empty"><Activity size={28}/><p>Nenhum andamento carregado.</p></div>:<div className="signature-list">{movements.map(x=><a className="signature-row" href={`/processos?processo=${x.process_id}`} key={x.id}><div><strong>{x.title||'Movimentação processual'}</strong><small>{proc(x)} • {cli(x)} • {dt(x.movement_date)} • {x.source||'fonte não informada'}</small>{x.description&&<p style={{margin:'6px 0 0'}}>{String(x.description).slice(0,300)}</p>}</div><Gavel size={16}/></a>)}</div>}</div>
- <div className="integration-panel"><h3><ShieldCheck size={17}/> Fontes monitoradas</h3>{syncInfo.length===0?<div className="integration-empty"><Clock3 size={28}/><p>Nenhuma conexão de tribunal cadastrada.</p></div>:<div className="signature-list">{syncInfo.map((x,i)=><div className="signature-row" key={i}><div><strong>{x.tribunal_name||'Tribunal'}</strong><small>{x.judicial_system||'sistema não informado'} • última sincronização: {dt(x.last_sync_at)}</small>{x.error_message&&<small>Erro: {x.error_message}</small>}</div><span className="status-dot"><CheckCircle2 size={13}/>{x.status||'configurar'}</span></div>)}</div>}</div></div>}
+ const dt=(v:any)=>v?new Date(v).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}):'—';
+ const proc=(x:any)=>x?.processes?.cnj_number||x?.processes?.internal_number||'Processo';
+ const cli=(x:any)=>x?.processes?.clients?.name||'Cliente não identificado';
+
+ return <div>
+  <div className="page-head"><div><h1>Automação Processual</h1><p>Monitoramento contínuo dos processos e alertas inteligentes para você.</p></div><button className="primary" onClick={load} disabled={busy}><RefreshCw size={15}/>Atualizar</button></div>
+  {notice&&<div className="integration-notice">{notice}</div>}
+  <div className="system-bar"><span>⚡ MONITORAMENTO PROCESSUAL CONTÍNUO</span><span className="online">● {live?'TEMPO REAL':'ATIVO'}</span></div>
+  <div className="integration-panel"><div className="integration-head"><div><span className="integration-pill"><Bot size={14}/> IA PROCESSUAL</span><h2>Quero que a IA me avise quando...</h2><p>Estas opções controlam quais eventos processuais devem gerar alerta.</p></div></div><div className="integration-form"><label><input type="checkbox" checked={prefs.proactive_updates_enabled} onChange={()=>toggle('proactive_updates_enabled')}/> Ativar monitoramento e avisos proativos</label><label><input type="checkbox" checked={prefs.notify_user_movements} onChange={()=>toggle('notify_user_movements')}/> Sair novo andamento processual</label><label><input type="checkbox" checked={prefs.notify_user_intimations} onChange={()=>toggle('notify_user_intimations')}/> Sair intimação</label><label><input type="checkbox" checked={prefs.notify_user_deadlines} onChange={()=>toggle('notify_user_deadlines')}/> Surgir novo prazo</label><label><input type="checkbox" checked={prefs.notify_user_hearings} onChange={()=>toggle('notify_user_hearings')}/> For marcada audiência</label><label><input type="checkbox" checked={prefs.notify_user_decisions} onChange={()=>toggle('notify_user_decisions')}/> Sair decisão, sentença ou acórdão</label><label><input type="checkbox" checked={prefs.ai_summary_enabled} onChange={()=>toggle('ai_summary_enabled')}/> IA resumir e explicar o evento antes de avisar</label><label>Canal de aviso<select value={prefs.notify_user_channel} onChange={e=>{const next={...prefs,notify_user_channel:e.target.value};setPrefs(next);save(next)}}><option value="whatsapp">WhatsApp</option><option value="in_app">Dentro do LEXOFFICE</option><option value="both">WhatsApp + LEXOFFICE</option></select></label></div></div>
+  <div className="integration-panel"><h3><CalendarDays size={17}/> Lembretes de audiência</h3><div className="integration-form"><label><input type="checkbox" checked={prefs.hearing_7_days_enabled} onChange={()=>toggle('hearing_7_days_enabled')}/> Avisar 7 dias antes</label><label><input type="checkbox" checked={prefs.hearing_3_days_enabled} onChange={()=>toggle('hearing_3_days_enabled')}/> Avisar 3 dias antes</label><label><input type="checkbox" checked={prefs.hearing_1_day_enabled} onChange={()=>toggle('hearing_1_day_enabled')}/> Avisar 1 dia antes</label><label><input type="checkbox" checked={prefs.hearing_same_day_enabled} onChange={()=>toggle('hearing_same_day_enabled')}/> Avisar no mesmo dia</label></div></div>
+  <div className="integration-panel"><div className="integration-head"><div><span className="integration-pill"><Activity size={14}/> ATUALIZAÇÕES</span><h2>Últimos andamentos capturados</h2><p>Ordenados pela chegada ao LEXOFFICE, incluindo DJEN e DataJud.</p></div></div>{movements.length===0?<div className="integration-empty"><Activity size={28}/><p>Nenhum andamento carregado.</p></div>:<div className="signature-list">{movements.map(x=><a className="signature-row" href={`/processos?processo=${x.process_id}`} key={x.id}><div><strong>{x.title||'Movimentação processual'}</strong><small>{proc(x)} • {cli(x)} • movimento: {dt(x.movement_date)} • recebido: {dt(x.created_at)} • {x.source||'fonte não informada'}</small>{x.description&&<p style={{margin:'6px 0 0'}}>{String(x.description).slice(0,300)}</p>}</div><Gavel size={16}/></a>)}</div>}</div>
+  <div className="integration-panel"><h3><ShieldCheck size={17}/> Fontes monitoradas</h3>{syncInfo.length===0?<div className="integration-empty"><Clock3 size={28}/><p>Nenhuma conexão de tribunal cadastrada.</p></div>:<div className="signature-list">{syncInfo.map((x,i)=><div className="signature-row" key={i}><div><strong>{x.tribunal_name||'Tribunal'}</strong><small>{x.judicial_system||'sistema não informado'} • última sincronização: {dt(x.last_sync_at)}</small>{x.error_message&&<small>Erro: {x.error_message}</small>}</div><span className="status-dot"><CheckCircle2 size={13}/>{x.status||'configurar'}</span></div>)}</div>}</div>
+ </div>
+}
