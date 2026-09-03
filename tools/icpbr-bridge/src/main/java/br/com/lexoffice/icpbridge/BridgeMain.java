@@ -1,30 +1,419 @@
 package br.com.lexoffice.icpbridge;
 
 import com.sun.net.httpserver.*;
-import java.io.*;import java.net.*;import java.nio.charset.StandardCharsets;import java.nio.file.Files;import java.security.*;import java.security.cert.Certificate;import java.security.cert.X509Certificate;import java.util.*;import javax.swing.*;
-import org.apache.pdfbox.pdmodel.*;import org.apache.pdfbox.pdmodel.font.PDType1Font;import org.apache.pdfbox.pdmodel.interactive.digitalsignature.*;
-import org.bouncycastle.cert.jcajce.JcaCertStore;import org.bouncycastle.cms.*;import org.bouncycastle.cms.jcajce.JcaSignerInfoGeneratorBuilder;import org.bouncycastle.operator.ContentSigner;import org.bouncycastle.operator.jcajce.*;
+
+import java.io.*;
+import java.net.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.security.*;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
+import java.util.*;
+import javax.swing.*;
+
+import org.apache.pdfbox.pdmodel.*;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.interactive.digitalsignature.*;
+
+import org.bouncycastle.cert.jcajce.JcaCertStore;
+import org.bouncycastle.cms.*;
+import org.bouncycastle.cms.jcajce.JcaSignerInfoGeneratorBuilder;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.jcajce.*;
 
 public final class BridgeMain {
- static final String DLL=env("LEXOFFICE_PKCS11_DLL","C:\\Windows\\System32\\aetpkss1.dll");static volatile Provider provider;
- public static void main(String[] a)throws Exception{System.setProperty("java.awt.headless","false");Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());HttpServer s=HttpServer.create(new InetSocketAddress("127.0.0.1",17681),0);s.createContext("/health",new HttpHandler(){public void handle(HttpExchange x)throws IOException{health(x);}});s.createContext("/capabilities",new HttpHandler(){public void handle(HttpExchange x)throws IOException{capabilities(x);}});s.createContext("/certificates",new HttpHandler(){public void handle(HttpExchange x)throws IOException{certificates(x);}});s.createContext("/sign/pades",new HttpHandler(){public void handle(HttpExchange x)throws IOException{sign(x);}});s.setExecutor(java.util.concurrent.Executors.newCachedThreadPool());s.start();System.out.println("LEXOFFICE ICP-Brasil Bridge ativo em http://127.0.0.1:17681");}
- static String env(String n,String d){String v=System.getenv(n);return v==null||v.trim().isEmpty()?d:v;}
- static boolean allowed(HttpExchange x){String o=x.getRequestHeaders().getFirst("Origin");if(o==null)return true;return "https://lexoffice-ashy.vercel.app".equals(o)||"https://lexoffice-alexandreeulampio-2265.vercel.app".equals(o)||"https://lexoffice-git-main-alexandreeulampio-2265.vercel.app".equals(o)||o.startsWith("http://localhost:")||o.startsWith("http://127.0.0.1:");}
- static void cors(HttpExchange x){String o=x.getRequestHeaders().getFirst("Origin");if(o!=null&&allowed(x)){x.getResponseHeaders().set("Access-Control-Allow-Origin",o);x.getResponseHeaders().set("Vary","Origin");}x.getResponseHeaders().set("Access-Control-Allow-Methods","GET,POST,OPTIONS");x.getResponseHeaders().set("Access-Control-Allow-Headers","Content-Type");x.getResponseHeaders().set("Access-Control-Allow-Private-Network","true");x.getResponseHeaders().set("Cache-Control","no-store");}
- static boolean preflight(HttpExchange x)throws IOException{cors(x);if("OPTIONS".equalsIgnoreCase(x.getRequestMethod())){x.sendResponseHeaders(204,-1);x.close();return true;}return false;}
- static void health(HttpExchange x)throws IOException{if(preflight(x))return;if(!allowed(x)){json(x,403,"{\"error\":\"origin blocked\"}");return;}if(!"GET".equalsIgnoreCase(x.getRequestMethod())){json(x,405,"{\"error\":\"method not allowed\"}");return;}json(x,200,"{\"ok\":true,\"service\":\"LEXOFFICE ICP-Brasil Bridge\",\"version\":\"1.3.0\",\"pkcs11\":\""+esc(DLL)+"\",\"pades\":true,\"pin_local_only\":true}");}
- static void capabilities(HttpExchange x)throws IOException{if(preflight(x))return;if(!allowed(x)){json(x,403,"{\"error\":\"origin blocked\"}");return;}json(x,200,"{\"ok\":true,\"features\":[\"health\",\"certificates\",\"pades\",\"visible_seal\"],\"pin_storage\":\"none\",\"bind\":\"127.0.0.1\"}");}
- static synchronized Provider p11()throws Exception{if(provider!=null)return provider;String cfg="name=LexofficeA3\nlibrary="+DLL.replace("\\","/")+"\n";try{java.lang.reflect.Constructor<?> c=Class.forName("sun.security.pkcs11.SunPKCS11").getConstructor(InputStream.class);provider=(Provider)c.newInstance(new ByteArrayInputStream(cfg.getBytes(StandardCharsets.UTF_8)));}catch(NoSuchMethodException ex){Provider base=Security.getProvider("SunPKCS11");if(base==null)throw new GeneralSecurityException("SunPKCS11 indisponível no Java.");java.lang.reflect.Method configure=Provider.class.getMethod("configure",String.class);File f=File.createTempFile("lexoffice-p11-",".cfg");Files.write(f.toPath(),cfg.getBytes(StandardCharsets.UTF_8));provider=(Provider)configure.invoke(base,f.getAbsolutePath());f.deleteOnExit();}Security.addProvider(provider);return provider;}
- static KeyStore store(char[] pin)throws Exception{KeyStore k=KeyStore.getInstance("PKCS11",p11());k.load(null,pin);return k;}
- static void certificates(HttpExchange x)throws IOException{if(preflight(x))return;if(!allowed(x)){json(x,403,"{\"error\":\"origin blocked\"}");return;}if(!"GET".equalsIgnoreCase(x.getRequestMethod())){json(x,405,"{\"error\":\"method not allowed\"}");return;}try{char[] pin=askPin("Para listar o certificado, informe o PIN do token A3.");if(pin==null)throw new IllegalStateException("Operação cancelada.");try{KeyStore k=store(pin);List<String> out=new ArrayList<String>();Enumeration<String> en=k.aliases();while(en.hasMoreElements()){String al=en.nextElement();Certificate c=k.getCertificate(al);if(c instanceof X509Certificate&&k.isKeyEntry(al)){X509Certificate z=(X509Certificate)c;out.add("{\"subject\":\""+esc(z.getSubjectX500Principal().getName())+"\",\"issuer\":\""+esc(z.getIssuerX500Principal().getName())+"\",\"fingerprint\":\""+fingerprint(z)+"\",\"notBefore\":\""+z.getNotBefore().getTime()+"\",\"notAfter\":\""+z.getNotAfter().getTime()+"\"}");}}json(x,200,"{\"certificates\":["+join(out)+"]}");}finally{Arrays.fill(pin,'\0');}}catch(Exception e){json(x,500,"{\"error\":\""+esc(msg(e))+"\"}");}}
- static void sign(HttpExchange x)throws IOException{if(preflight(x))return;if(!allowed(x)){json(x,403,"{\"error\":\"origin blocked\"}");return;}if(!"POST".equalsIgnoreCase(x.getRequestMethod())){json(x,405,"{\"error\":\"method not allowed\"}");return;}try{Parts p=Parts.parse(x);if(p.file==null||p.file.length<5)throw new IllegalArgumentException("PDF não recebido.");char[] pin=askPin("Confirme o PIN para assinar este PDF com seu A3.");if(pin==null)throw new IllegalStateException("Assinatura cancelada.");try{KeyStore k=store(pin);String alias=findAlias(k,p.fingerprint);if(alias==null)throw new GeneralSecurityException("Certificado selecionado não encontrado.");PrivateKey key=(PrivateKey)k.getKey(alias,pin);Certificate[] chain=k.getCertificateChain(alias);if(chain==null||chain.length==0)throw new GeneralSecurityException("Cadeia do certificado não encontrada.");X509Certificate cert=(X509Certificate)chain[0];cert.checkValidity();byte[] out=signPdf(p.file,key,chain,cert,p.visibleSeal,p.sealText);x.getResponseHeaders().set("Content-Type","application/pdf");x.getResponseHeaders().set("Content-Disposition","attachment; filename=lexoffice-icpbr.pdf");cors(x);x.sendResponseHeaders(200,out.length);OutputStream os=x.getResponseBody();os.write(out);os.close();}finally{Arrays.fill(pin,'\0');}}catch(Exception e){json(x,500,"{\"error\":\""+esc(msg(e))+"\"}");}}
- static byte[] signPdf(byte[] input,final PrivateKey key,final Certificate[] chain,final X509Certificate cert,boolean seal,String sealText)throws Exception{PDDocument doc=PDDocument.load(input);ByteArrayOutputStream out=new ByteArrayOutputStream();try{if(seal&&doc.getNumberOfPages()>0)addSeal(doc,cert,sealText);PDSignature sig=new PDSignature();sig.setFilter(PDSignature.FILTER_ADOBE_PPKLITE);sig.setSubFilter(PDSignature.SUBFILTER_ETSI_CADES_DETACHED);sig.setName(cn(cert));sig.setReason("Assinatura digital ICP-Brasil");sig.setLocation("Brasil");sig.setSignDate(Calendar.getInstance());SignatureOptions opts=new SignatureOptions();opts.setPreferredSignatureSize(SignatureOptions.DEFAULT_SIGNATURE_SIZE*3);doc.addSignature(sig,new SignatureInterface(){public byte[] sign(InputStream content)throws IOException{return cms(content,key,chain,cert);}},opts);doc.saveIncremental(out);opts.close();return out.toByteArray();}finally{doc.close();}}
- static byte[] cms(final InputStream content,PrivateKey key,Certificate[] chain,X509Certificate cert)throws IOException{try{CMSSignedDataGenerator gen=new CMSSignedDataGenerator();String alg="EC".equalsIgnoreCase(key.getAlgorithm())?"SHA256withECDSA":"SHA256withRSA";ContentSigner signer=new JcaContentSignerBuilder(alg).setProvider(p11()).build(key);gen.addSignerInfoGenerator(new JcaSignerInfoGeneratorBuilder(new JcaDigestCalculatorProviderBuilder().setProvider("BC").build()).build(signer,cert));gen.addCertificates(new JcaCertStore(Arrays.asList(chain)));CMSTypedData data=new CMSProcessableInputStream(content);return gen.generate(data,false).getEncoded();}catch(Exception e){throw new IOException("Falha criptográfica no token: "+msg(e),e);}}
- static void addSeal(PDDocument doc,X509Certificate cert,String custom)throws IOException{PDPage page=doc.getPage(doc.getNumberOfPages()-1);PDPageContentStream cs=new PDPageContentStream(doc,page,PDPageContentStream.AppendMode.APPEND,true,true);try{float x=42,y=42;String header=custom==null||custom.trim().isEmpty()?"VALIDADO COM CERTIFICADO ICP-BRASIL":custom.trim();cs.setLineWidth(.8f);cs.addRect(x,y,320,54);cs.stroke();cs.beginText();cs.setFont(PDType1Font.HELVETICA_BOLD,9);cs.newLineAtOffset(x+8,y+38);cs.showText(safe(header));cs.setFont(PDType1Font.HELVETICA,8);cs.newLineAtOffset(0,-13);cs.showText(safe(cn(cert)));cs.newLineAtOffset(0,-11);cs.showText(safe("Emissor: "+issuer(cert)+" | "+new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new Date())));cs.endText();}finally{cs.close();}}
- static char[] askPin(final String title)throws Exception{final JPasswordField field=new JPasswordField(18);final int[] r=new int[1];SwingUtilities.invokeAndWait(new Runnable(){public void run(){r[0]=JOptionPane.showConfirmDialog(null,new Object[]{title,"O PIN permanece somente neste computador e não é enviado ao LEXOFFICE.",field},"LEXOFFICE - ICP-Brasil",JOptionPane.OK_CANCEL_OPTION,JOptionPane.PLAIN_MESSAGE);}});return r[0]==JOptionPane.OK_OPTION?field.getPassword():null;}
- static String findAlias(KeyStore k,String fp)throws Exception{Enumeration<String> en=k.aliases();while(en.hasMoreElements()){String a=en.nextElement();Certificate c=k.getCertificate(a);if(c instanceof X509Certificate&&k.isKeyEntry(a)){String h=fingerprint((X509Certificate)c);if(fp==null||fp.trim().isEmpty()||h.equalsIgnoreCase(fp))return a;}}return null;}static String fingerprint(X509Certificate c)throws Exception{return hex(MessageDigest.getInstance("SHA-256").digest(c.getEncoded()));}static String cn(X509Certificate c){return dn(c.getSubjectX500Principal().getName());}static String issuer(X509Certificate c){return dn(c.getIssuerX500Principal().getName());}static String dn(String s){for(String p:s.split(","))if(p.trim().startsWith("CN="))return p.trim().substring(3);return s;}
- static void json(HttpExchange x,int code,String b)throws IOException{cors(x);byte[] d=b.getBytes(StandardCharsets.UTF_8);x.getResponseHeaders().set("Content-Type","application/json; charset=utf-8");x.sendResponseHeaders(code,d.length);OutputStream o=x.getResponseBody();o.write(d);o.close();}static String msg(Throwable e){Throwable t=e;while(t.getCause()!=null)t=t.getCause();return t.getMessage()!=null?t.getMessage():e.getClass().getSimpleName();}static String safe(String s){return s==null?"":s.replace('—','-').replace('•','-').replaceAll("[^\\x20-\\x7EÀ-ÿ]"," ");}static String esc(String s){return s==null?"":s.replace("\\","\\\\").replace("\"","\\\"").replace("\n"," ").replace("\r"," ");}static String hex(byte[] b){StringBuilder s=new StringBuilder();for(byte v:b)s.append(String.format("%02X",v));return s.toString();}static String join(List<String> a){StringBuilder s=new StringBuilder();for(int i=0;i<a.size();i++){if(i>0)s.append(',');s.append(a.get(i));}return s.toString();}
- static final class CMSProcessableInputStream implements CMSTypedData{private final InputStream in;CMSProcessableInputStream(InputStream in){this.in=in;}public org.bouncycastle.asn1.ASN1ObjectIdentifier getContentType(){return org.bouncycastle.asn1.cms.CMSObjectIdentifiers.data;}public Object getContent(){return in;}public void write(OutputStream o)throws IOException,CMSException{byte[] b=new byte[8192];int n;while((n=in.read(b))!=-1)o.write(b,0,n);}}
- static byte[] all(InputStream in)throws IOException{ByteArrayOutputStream o=new ByteArrayOutputStream();byte[] b=new byte[8192];int n;while((n=in.read(b))!=-1)o.write(b,0,n);return o.toByteArray();}
- static final class Parts{byte[] file;String fingerprint;String sealText;boolean visibleSeal=true;static Parts parse(HttpExchange x)throws IOException{String ct=x.getRequestHeaders().getFirst("Content-Type");if(ct==null||!ct.contains("boundary="))throw new IOException("multipart/form-data inválido");String boundary=ct.substring(ct.indexOf("boundary=")+9).replace("\"","").trim();byte[] raw=all(x.getRequestBody());String text=new String(raw,StandardCharsets.ISO_8859_1),marker="--"+boundary;Parts out=new Parts();int pos=0;while((pos=text.indexOf(marker,pos))>=0){int hs=text.indexOf("\r\n\r\n",pos);if(hs<0)break;int start=hs+4,end=text.indexOf("\r\n"+marker,start);if(end<0)break;String h=text.substring(pos,hs),name=attr(h,"name");byte[] data=Arrays.copyOfRange(raw,start,end);if("file".equals(name))out.file=data;else{String v=new String(data,StandardCharsets.UTF_8).trim();if("certificateFingerprint".equals(name))out.fingerprint=v;else if("visibleSeal".equals(name))out.visibleSeal=Boolean.parseBoolean(v);else if("sealText".equals(name))out.sealText=v;}pos=end+2;}return out;}static String attr(String h,String n){String q=n+"=\"";int a=h.indexOf(q);if(a<0)return null;int b=h.indexOf('"',a+q.length());return b<0?null:h.substring(a+q.length(),b);}}
+
+    // Tipo de keystore usado para acessar o certificado:
+    // "PKCS11"     -> certificado A3 em token fisico (SafeSign + DLL)
+    // "WINDOWS-MY" -> certificado em nuvem (ex.: Certisign remoteID via DesktopID),
+    //                 que o Windows enxerga como certificado do repositorio "Pessoal"
+    //                 (acessado via provider SunMSCAPI). PIN/codigo dinamico sao
+    //                 pedidos pelo proprio Windows/DesktopID, nunca por este programa.
+    static final String KEYSTORE_TYPE = env("LEXOFFICE_KEYSTORE_TYPE", "PKCS11");
+     static final String DLL = env("LEXOFFICE_PKCS11_DLL", "C:\\Windows\\System32\\aetpkss1.dll");
+     static volatile Provider pkcs11Provider;
+
+    public static void main(String[] a) throws Exception {
+             System.setProperty("java.awt.headless", "false");
+             Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+             HttpServer s = HttpServer.create(new InetSocketAddress("127.0.0.1", 17681), 0);
+             s.createContext("/health", x -> health(x));
+             s.createContext("/capabilities", x -> capabilities(x));
+             s.createContext("/certificates", x -> certificates(x));
+             s.createContext("/sign/pades", x -> sign(x));
+             s.setExecutor(java.util.concurrent.Executors.newCachedThreadPool());
+             s.start();
+             System.out.println("LEXOFFICE ICP-Brasil Bridge ativo em http://127.0.0.1:17681 (keystore=" + KEYSTORE_TYPE + ")");
+    }
+
+    static String env(String n, String d) {
+             String v = System.getenv(n);
+             return v == null || v.trim().isEmpty() ? d : v;
+    }
+
+    static boolean isCloud() {
+             return "WINDOWS-MY".equalsIgnoreCase(KEYSTORE_TYPE);
+    }
+
+    static boolean allowed(HttpExchange x) {
+             String o = x.getRequestHeaders().getFirst("Origin");
+             if (o == null) return true;
+             return "https://lexoffice-ashy.vercel.app".equals(o)
+                          || "https://lexoffice-alexandreeulampio-2265.vercel.app".equals(o)
+                          || "https://lexoffice-git-main-alexandreeulampio-2265.vercel.app".equals(o)
+                          || o.startsWith("http://localhost:")
+                          || o.startsWith("http://127.0.0.1:");
+    }
+
+    static void cors(HttpExchange x) {
+             String o = x.getRequestHeaders().getFirst("Origin");
+             if (o != null && allowed(x)) {
+                          x.getResponseHeaders().set("Access-Control-Allow-Origin", o);
+                          x.getResponseHeaders().set("Vary", "Origin");
+             }
+             x.getResponseHeaders().set("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+             x.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type");
+             x.getResponseHeaders().set("Access-Control-Allow-Private-Network", "true");
+             x.getResponseHeaders().set("Cache-Control", "no-store");
+    }
+
+    static boolean preflight(HttpExchange x) throws IOException {
+             cors(x);
+             if ("OPTIONS".equalsIgnoreCase(x.getRequestMethod())) {
+                          x.sendResponseHeaders(204, -1);
+                          x.close();
+                          return true;
+             }
+             return false;
+    }
+
+    static void health(HttpExchange x) throws IOException {
+             if (preflight(x)) return;
+             if (!allowed(x)) { json(x, 403, "{\"error\":\"origin blocked\"}"); return; }
+             if (!"GET".equalsIgnoreCase(x.getRequestMethod())) { json(x, 405, "{\"error\":\"method not allowed\"}"); return; }
+             json(x, 200, "{\"ok\":true,\"service\":\"LEXOFFICE ICP-Brasil Bridge\",\"version\":\"1.4.0\",\"keystore\":\""
+                              + esc(KEYSTORE_TYPE) + "\",\"pkcs11\":\"" + esc(DLL) + "\",\"pades\":true,\"pin_local_only\":true}");
+    }
+
+    static void capabilities(HttpExchange x) throws IOException {
+             if (preflight(x)) return;
+             if (!allowed(x)) { json(x, 403, "{\"error\":\"origin blocked\"}"); return; }
+             json(x, 200, "{\"ok\":true,\"features\":[\"health\",\"certificates\",\"pades\",\"visible_seal\"],\"keystore\":\""
+                              + esc(KEYSTORE_TYPE) + "\",\"pin_storage\":\"none\",\"bind\":\"127.0.0.1\"}");
+    }
+
+    static synchronized Provider pkcs11() throws Exception {
+             if (pkcs11Provider != null) return pkcs11Provider;
+             String cfg = "name=LexofficeA3\nlibrary=" + DLL.replace("\\", "/") + "\n";
+             try {
+                          java.lang.reflect.Constructor<?> c = Class.forName("sun.security.pkcs11.SunPKCS11").getConstructor(InputStream.class);
+                          pkcs11Provider = (Provider) c.newInstance(new ByteArrayInputStream(cfg.getBytes(StandardCharsets.UTF_8)));
+             } catch (NoSuchMethodException ex) {
+                          Provider base = Security.getProvider("SunPKCS11");
+                          if (base == null) throw new GeneralSecurityException("SunPKCS11 indisponivel no Java.");
+                          java.lang.reflect.Method configure = Provider.class.getMethod("configure", String.class);
+                          File f = File.createTempFile("lexoffice-p11-", ".cfg");
+                          Files.write(f.toPath(), cfg.getBytes(StandardCharsets.UTF_8));
+                          pkcs11Provider = (Provider) configure.invoke(base, f.getAbsolutePath());
+                          f.deleteOnExit();
+             }
+             Security.addProvider(pkcs11Provider);
+             return pkcs11Provider;
+    }
+
+    // Provider criptografico usado para a operacao de assinatura em si.
+    static Provider signingProvider() throws Exception {
+             if (isCloud()) {
+                          Provider p = Security.getProvider("SunMSCAPI");
+                          if (p == null) {
+                                           p = (Provider) Class.forName("sun.security.mscapi.SunMSCAPI").getDeclaredConstructor().newInstance();
+                                           Security.addProvider(p);
+                          }
+                          return p;
+             }
+             return pkcs11();
+    }
+
+    static KeyStore store(char[] pin) throws Exception {
+             if (isCloud()) {
+                          KeyStore k = KeyStore.getInstance("Windows-MY", signingProvider());
+                          k.load(null, null);
+                          return k;
+             }
+             KeyStore k = KeyStore.getInstance("PKCS11", pkcs11());
+             k.load(null, pin);
+             return k;
+    }
+
+    static void certificates(HttpExchange x) throws IOException {
+             if (preflight(x)) return;
+             if (!allowed(x)) { json(x, 403, "{\"error\":\"origin blocked\"}"); return; }
+             if (!"GET".equalsIgnoreCase(x.getRequestMethod())) { json(x, 405, "{\"error\":\"method not allowed\"}"); return; }
+             try {
+                          char[] pin = isCloud() ? new char[0] : askPin("Para listar o certificado, informe o PIN do token A3.");
+                                       if (!isCloud() && pin == null) throw new IllegalStateException("Operacao cancelada.");
+                          try {
+                                           KeyStore k = store(pin);
+                                           List<String> out = new ArrayList<String>();
+                                           Enumeration<String> en = k.aliases();
+                                           while (en.hasMoreElements()) {
+                                                                String al = en.nextElement();
+                                                                Certificate c = k.getCertificate(al);
+                                                                if (c instanceof X509Certificate && k.isKeyEntry(al)) {
+                                                                                         X509Certificate z = (X509Certificate) c;
+                                                                                         out.add("{\"subject\":\"" + esc(z.getSubjectX500Principal().getName())
+                                                                                                                                 + "\",\"issuer\":\"" + esc(z.getIssuerX500Principal().getName())
+                                                                                                                                 + "\",\"fingerprint\":\"" + fingerprint(z)
+                                                                                                                                 + "\",\"notBefore\":\"" + z.getNotBefore().getTime()
+                                                                                                                                 + "\",\"notAfter\":\"" + z.getNotAfter().getTime() + "\"}");
+                                                                }
+                                           }
+                                           json(x, 200, "{\"certificates\":[" + join(out) + "]}");
+                          } finally {
+                                           if (pin != null) Arrays.fill(pin, '\0');
+                          }
+             } catch (Exception e) {
+                          json(x, 500, "{\"error\":\"" + esc(msg(e)) + "\"}");
+             }
+    }
+
+    static void sign(HttpExchange x) throws IOException {
+             if (preflight(x)) return;
+             if (!allowed(x)) { json(x, 403, "{\"error\":\"origin blocked\"}"); return; }
+             if (!"POST".equalsIgnoreCase(x.getRequestMethod())) { json(x, 405, "{\"error\":\"method not allowed\"}"); return; }
+             try {
+                          Parts p = Parts.parse(x);
+                          if (p.file == null || p.file.length < 5) throw new IllegalArgumentException("PDF nao recebido.");
+                          char[] pin = isCloud() ? new char[0] : askPin("Confirme o PIN para assinar este PDF com seu A3.");
+                          if (!isCloud() && pin == null) throw new IllegalStateException("Assinatura cancelada.");
+                          try {
+                                           KeyStore k = store(pin);
+                                           String alias = findAlias(k, p.fingerprint);
+                                           if (alias == null) throw new GeneralSecurityException("Certificado selecionado nao encontrado.");
+                                           PrivateKey key = (PrivateKey) k.getKey(alias, pin);
+                                           Certificate[] chain = k.getCertificateChain(alias);
+                                           if (chain == null || chain.length == 0) throw new GeneralSecurityException("Cadeia do certificado nao encontrada.");
+                                           X509Certificate cert = (X509Certificate) chain[0];
+                                           cert.checkValidity();
+                                           byte[] out = signPdf(p.file, key, chain, cert, p.visibleSeal, p.sealText);
+                                           x.getResponseHeaders().set("Content-Type", "application/pdf");
+                                           x.getResponseHeaders().set("Content-Disposition", "attachment; filename=lexoffice-icpbr.pdf");
+                                           cors(x);
+                                           x.sendResponseHeaders(200, out.length);
+                                           OutputStream os = x.getResponseBody();
+                                           os.write(out);
+                                           os.close();
+                          } finally {
+                                           if (pin != null) Arrays.fill(pin, '\0');
+                          }
+             } catch (Exception e) {
+                          json(x, 500, "{\"error\":\"" + esc(msg(e)) + "\"}");
+             }
+    }
+
+    static byte[] signPdf(byte[] input, final PrivateKey key, final Certificate[] chain, final X509Certificate cert,
+                                                     boolean seal, String sealText) throws Exception {
+             PDDocument doc = PDDocument.load(input);
+             ByteArrayOutputStream out = new ByteArrayOutputStream();
+             try {
+                          if (seal && doc.getNumberOfPages() > 0) addSeal(doc, cert, sealText);
+                          PDSignature sig = new PDSignature();
+                          sig.setFilter(PDSignature.FILTER_ADOBE_PPKLITE);
+                          sig.setSubFilter(PDSignature.SUBFILTER_ETSI_CADES_DETACHED);
+                          sig.setName(cn(cert));
+                          sig.setReason("Assinatura digital ICP-Brasil");
+                          sig.setLocation("Brasil");
+                          sig.setSignDate(Calendar.getInstance());
+                          SignatureOptions opts = new SignatureOptions();
+                          opts.setPreferredSignatureSize(SignatureOptions.DEFAULT_SIGNATURE_SIZE * 3);
+                          doc.addSignature(sig, new SignatureInterface() {
+                                           public byte[] sign(InputStream content) throws IOException {
+                                                                return cms(content, key, chain, cert);
+                                           }
+                          }, opts);
+                          doc.saveIncremental(out);
+                          opts.close();
+                          return out.toByteArray();
+             } finally {
+                          doc.close();
+             }
+    }
+
+    static byte[] cms(final InputStream content, PrivateKey key, Certificate[] chain, X509Certificate cert) throws IOException {
+             try {
+                          CMSSignedDataGenerator gen = new CMSSignedDataGenerator();
+                          String alg = "EC".equalsIgnoreCase(key.getAlgorithm()) ? "SHA256withECDSA" : "SHA256withRSA";
+                          ContentSigner signer = new JcaContentSignerBuilder(alg).setProvider(signingProvider()).build(key);
+                          gen.addSignerInfoGenerator(new JcaSignerInfoGeneratorBuilder(
+                                               new JcaDigestCalculatorProviderBuilder().setProvider("BC").build()).build(signer, cert));
+                          gen.addCertificates(new JcaCertStore(Arrays.asList(chain)));
+                          CMSTypedData data = new CMSProcessableInputStream(content);
+                          return gen.generate(data, false).getEncoded();
+             } catch (Exception e) {
+                          throw new IOException("Falha criptografica no certificado: " + msg(e), e);
+             }
+    }
+
+    static void addSeal(PDDocument doc, X509Certificate cert, String custom) throws IOException {
+             PDPage page = doc.getPage(doc.getNumberOfPages() - 1);
+             PDPageContentStream cs = new PDPageContentStream(doc, page, PDPageContentStream.AppendMode.APPEND, true, true);
+             try {
+                          float x = 42, y = 42;
+                          String header = custom == null || custom.trim().isEmpty() ? "VALIDADO COM CERTIFICADO ICP-BRASIL" : custom.trim();
+                          cs.setLineWidth(.8f);
+                          cs.addRect(x, y, 320, 54);
+                          cs.stroke();
+                          cs.beginText();
+                          cs.setFont(PDType1Font.HELVETICA_BOLD, 9);
+                          cs.newLineAtOffset(x + 8, y + 38);
+                          cs.showText(safe(header));
+                          cs.setFont(PDType1Font.HELVETICA, 8);
+                          cs.newLineAtOffset(0, -13);
+                          cs.showText(safe(cn(cert)));
+                          cs.newLineAtOffset(0, -11);
+                          cs.showText(safe("Emissor: " + issuer(cert) + " | " + new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new Date())));
+                          cs.endText();
+             } finally {
+                          cs.close();
+             }
+    }
+
+    static char[] askPin(final String title) throws Exception {
+             final JPasswordField field = new JPasswordField(18);
+             final int[] r = new int[1];
+             SwingUtilities.invokeAndWait(new Runnable() {
+                          public void run() {
+                                           r[0] = JOptionPane.showConfirmDialog(null,
+                                                                                                        new Object[]{title, "O PIN permanece somente neste computador e nao e enviado ao LEXOFFICE.", field},
+                                                                                                        "LEXOFFICE - ICP-Brasil", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+                          }
+             });
+             return r[0] == JOptionPane.OK_OPTION ? field.getPassword() : null;
+    }
+
+    static String findAlias(KeyStore k, String fp) throws Exception {
+             Enumeration<String> en = k.aliases();
+             while (en.hasMoreElements()) {
+                          String a = en.nextElement();
+                          Certificate c = k.getCertificate(a);
+                          if (c instanceof X509Certificate && k.isKeyEntry(a)) {
+                                           String h = fingerprint((X509Certificate) c);
+                                           if (fp == null || fp.trim().isEmpty() || h.equalsIgnoreCase(fp)) return a;
+                          }
+             }
+             return null;
+    }
+
+    static String fingerprint(X509Certificate c) throws Exception {
+             return hex(MessageDigest.getInstance("SHA-256").digest(c.getEncoded()));
+    }
+
+    static String cn(X509Certificate c) { return dn(c.getSubjectX500Principal().getName()); }
+     static String issuer(X509Certificate c) { return dn(c.getIssuerX500Principal().getName()); }
+     static String dn(String s) {
+              for (String p : s.split(",")) if (p.trim().startsWith("CN=")) return p.trim().substring(3);
+              return s;
+     }
+
+    static void json(HttpExchange x, int code, String b) throws IOException {
+             cors(x);
+             byte[] d = b.getBytes(StandardCharsets.UTF_8);
+             x.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
+             x.sendResponseHeaders(code, d.length);
+             OutputStream o = x.getResponseBody();
+             o.write(d);
+             o.close();
+    }
+
+    static String msg(Throwable e) {
+             Throwable t = e;
+             while (t.getCause() != null) t = t.getCause();
+             return t.getMessage() != null ? t.getMessage() : e.getClass().getSimpleName();
+    }
+
+    static String safe(String s) {
+             return s == null ? "" : s.replace('\u2014', '-').replace('\u2022', '-').replaceAll("[^\\x20-\\x7E\u00C0-\\u00FF]", " ");
+    }
+
+    static String esc(String s) {
+             return s == null ? "" : s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", " ").replace("\r", " ");
+    }
+
+    static String hex(byte[] b) {
+             StringBuilder s = new StringBuilder();
+             for (byte v : b) s.append(String.format("%02X", v));
+             return s.toString();
+    }
+
+    static String join(List<String> a) {
+             StringBuilder s = new StringBuilder();
+             for (int i = 0; i < a.size(); i++) {
+                          if (i > 0) s.append(',');
+                          s.append(a.get(i));
+             }
+             return s.toString();
+    }
+
+    static final class CMSProcessableInputStream implements CMSTypedData {
+             private final InputStream in;
+             CMSProcessableInputStream(InputStream in) { this.in = in; }
+             public org.bouncycastle.asn1.ASN1ObjectIdentifier getContentType() { return org.bouncycastle.asn1.cms.CMSObjectIdentifiers.data; }
+             public Object getContent() { return in; }
+             public void write(OutputStream o) throws IOException, CMSException {
+                          byte[] b = new byte[8192];
+                          int n;
+                          while ((n = in.read(b)) != -1) o.write(b, 0, n);
+             }
+    }
+
+    static byte[] all(InputStream in) throws IOException {
+             ByteArrayOutputStream o = new ByteArrayOutputStream();
+             byte[] b = new byte[8192];
+             int n;
+             while ((n = in.read(b)) != -1) o.write(b, 0, n);
+             return o.toByteArray();
+    }
+
+    static final class Parts {
+             byte[] file;
+             String fingerprint;
+             String sealText;
+             boolean visibleSeal = true;
+
+         static Parts parse(HttpExchange x) throws IOException {
+                      String ct = x.getRequestHeaders().getFirst("Content-Type");
+                      if (ct == null || !ct.contains("boundary=")) throw new IOException("multipart/form-data invalido");
+                      String boundary = ct.substring(ct.indexOf("boundary=") + 9).replace("\"", "").trim();
+                      byte[] raw = all(x.getRequestBody());
+                      String text = new String(raw, StandardCharsets.ISO_8859_1), marker = "--" + boundary;
+                      Parts out = new Parts();
+                      int pos = 0;
+                      while ((pos = text.indexOf(marker, pos)) >= 0) {
+                                       int hs = text.indexOf("\r\n\r\n", pos);
+                                       if (hs < 0) break;
+                                       int start = hs + 4, end = text.indexOf("\r\n" + marker, start);
+                                       if (end < 0) break;
+                                       String h = text.substring(pos, hs), name = attr(h, "name");
+                                       byte[] data = Arrays.copyOfRange(raw, start, end);
+                                       if ("file".equals(name)) out.file = data;
+                                       else {
+                                                            String v = new String(data, StandardCharsets.UTF_8).trim();
+                                                            if ("certificateFingerprint".equals(name)) out.fingerprint = v;
+                                                            else if ("visibleSeal".equals(name)) out.visibleSeal = Boolean.parseBoolean(v);
+                                                            else if ("sealText".equals(name)) out.sealText = v;
+                                       }
+                                       pos = end + 2;
+                      }
+                      return out;
+         }
+
+         static String attr(String h, String n) {
+                      String q = n + "=\"";
+                      int a = h.indexOf(q);
+                      if (a < 0) return null;
+                      int b = h.indexOf('"', a + q.length());
+                      return b < 0 ? null : h.substring(a + q.length(), b);
+         }
+    }
 }
