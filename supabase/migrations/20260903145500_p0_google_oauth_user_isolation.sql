@@ -1,0 +1,10 @@
+alter table public.integration_oauth_tokens add column if not exists owner_user_id uuid references auth.users(id) on delete restrict;
+update public.integration_oauth_tokens t set owner_user_id=public.lexoffice_default_owner_for_org(t.org_id) where owner_user_id is null;
+alter table public.integration_oauth_tokens alter column owner_user_id set not null;
+create index if not exists integration_oauth_tokens_org_owner_idx on public.integration_oauth_tokens(org_id,owner_user_id,provider);
+drop trigger if exists lexoffice_assign_owner on public.integration_oauth_tokens;
+create trigger lexoffice_assign_owner before insert on public.integration_oauth_tokens for each row execute function public.lexoffice_assign_record_owner();
+alter table public.integration_oauth_tokens enable row level security;
+do $$ declare pol record; begin for pol in select policyname from pg_policies where schemaname='public' and tablename='integration_oauth_tokens' loop execute format('drop policy if exists %I on public.integration_oauth_tokens',pol.policyname); end loop; end $$;
+revoke all on table public.integration_oauth_tokens from anon,authenticated;
+grant all on table public.integration_oauth_tokens to service_role;
