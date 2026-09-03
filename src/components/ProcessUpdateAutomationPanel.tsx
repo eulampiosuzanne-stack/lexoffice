@@ -3,188 +3,43 @@ import {BellRing,Clock3,MessageSquare,Save,ShieldCheck,Sparkles,Workflow,Activit
 import {supabase} from '../lib/supabase';
 
 type Props={orgId:string};
-
-type ProcessSettings={
-  proactive_updates_enabled:boolean;
-  ai_summary_enabled:boolean;
-  require_approval_for_sensitive:boolean;
-  default_channel:string;
-  hearing_7_days_enabled:boolean;
-  hearing_3_days_enabled:boolean;
-  hearing_1_day_enabled:boolean;
-  hearing_same_day_enabled:boolean;
-};
-
-type RuntimeStatus={
-  activeAgents:number;
-  botsOn:number;
-  humanTakeovers:number;
-  latestImportedAt:string|null;
-  latestMovementDate:string|null;
-  latestMovementTitle:string|null;
-};
-
-const defaults:ProcessSettings={
-  proactive_updates_enabled:true,
-  ai_summary_enabled:true,
-  require_approval_for_sensitive:true,
-  default_channel:'whatsapp',
-  hearing_7_days_enabled:true,
-  hearing_3_days_enabled:true,
-  hearing_1_day_enabled:true,
-  hearing_same_day_enabled:true,
-};
-
+type ProcessSettings={proactive_updates_enabled:boolean;ai_summary_enabled:boolean;require_approval_for_sensitive:boolean;default_channel:string;hearing_7_days_enabled:boolean;hearing_3_days_enabled:boolean;hearing_1_day_enabled:boolean;hearing_same_day_enabled:boolean};
+type RuntimeStatus={activeAgents:number;botsOn:number;humanTakeovers:number;latestImportedAt:string|null;latestMovementDate:string|null;latestMovementTitle:string|null};
+const defaults:ProcessSettings={proactive_updates_enabled:true,ai_summary_enabled:true,require_approval_for_sensitive:true,default_channel:'whatsapp',hearing_7_days_enabled:true,hearing_3_days_enabled:true,hearing_1_day_enabled:true,hearing_same_day_enabled:true};
 const emptyRuntime:RuntimeStatus={activeAgents:0,botsOn:0,humanTakeovers:0,latestImportedAt:null,latestMovementDate:null,latestMovementTitle:null};
+const css=`
+.proc-auto{display:grid;gap:16px}.proc-auto-card{border:1px solid rgba(217,164,65,.20);border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.018),rgba(255,255,255,.006));padding:18px;min-width:0}.proc-auto-title{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:14px}.proc-auto-title h3{margin:0;display:flex;align-items:center;gap:8px;font-size:17px}.proc-auto-title p{margin:5px 0 0;color:var(--muted,#938b80);font-size:13px;line-height:1.45}.proc-rules{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.proc-rule{border:1px solid rgba(217,164,65,.18);border-radius:15px;background:#101316;padding:16px;min-width:0}.proc-rule>h3{margin:0 0 5px;display:flex;align-items:center;gap:8px;font-size:16px}.proc-rule>p{margin:0 0 12px;color:var(--muted,#938b80);font-size:12px}.proc-rule .setting-row{margin:0!important;padding:12px 0!important;border-bottom:1px solid rgba(217,164,65,.10)!important;min-height:62px}.proc-rule .setting-row:last-of-type{border-bottom:0!important}.proc-rule .setting-copy{min-width:0;padding-right:14px}.proc-rule .setting-copy b{font-size:14px}.proc-rule .setting-copy small{font-size:12px;line-height:1.35}.proc-rule .switch{flex:0 0 auto}.proc-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.proc-kpi{border:1px solid rgba(217,164,65,.16);border-radius:12px;padding:12px;background:#0d1013}.proc-kpi b{display:block;font-size:22px;color:#f1d48d}.proc-kpi small{display:block;margin-top:3px;color:#9d958a}.proc-status{display:flex;gap:8px;flex-wrap:wrap}.proc-status span{display:flex;align-items:center;gap:6px;padding:7px 9px;border-radius:999px;border:1px solid rgba(72,153,111,.32);background:rgba(36,92,65,.16);color:#9ce1bb;font-size:12px;font-weight:700}.proc-sync-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.proc-sync-box{border:1px solid rgba(217,164,65,.14);border-radius:12px;padding:12px;background:#0d1013}.proc-sync-box small{display:block;color:#968e82;margin-bottom:5px}.proc-hours{display:grid;grid-template-columns:1fr 150px 150px;gap:12px;align-items:end}.proc-prompt textarea{min-height:190px!important;max-height:340px;resize:vertical}.proc-save{display:flex;justify-content:flex-end;position:sticky;bottom:10px;z-index:3;padding-top:4px}.proc-save button{min-height:46px}.proc-warning{margin-top:12px}.proc-auto .integration-notice{margin:0}.proc-auto .integration-form label,.proc-auto .agent-form label{min-width:0}
+@media(max-width:1050px){.proc-rules{grid-template-columns:1fr}.proc-hours{grid-template-columns:1fr 1fr}.proc-hours .setting-row{grid-column:1/-1}.proc-kpis{grid-template-columns:1fr}.proc-sync-grid{grid-template-columns:1fr}}
+@media(max-width:640px){.proc-auto-card,.proc-rule{padding:14px}.proc-hours{grid-template-columns:1fr}.proc-rule .setting-row{align-items:flex-start}.proc-auto-title{flex-direction:column}.proc-save{position:static}.proc-save button{width:100%}}
+`;
 
 export default function ProcessUpdateAutomationPanel({orgId}:Props){
-  const [settings,setSettings]=useState<ProcessSettings>(defaults);
-  const [hoursEnabled,setHoursEnabled]=useState(false);
-  const [start,setStart]=useState('08:00');
-  const [end,setEnd]=useState('18:00');
-  const [prompt,setPrompt]=useState('');
-  const [runtime,setRuntime]=useState<RuntimeStatus>(emptyRuntime);
-  const [loading,setLoading]=useState(true);
-  const [saving,setSaving]=useState(false);
-  const [runtimeLoading,setRuntimeLoading]=useState(false);
-  const [notice,setNotice]=useState('');
+ const[settings,setSettings]=useState<ProcessSettings>(defaults),[hoursEnabled,setHoursEnabled]=useState(false),[start,setStart]=useState('08:00'),[end,setEnd]=useState('18:00'),[prompt,setPrompt]=useState(''),[runtime,setRuntime]=useState<RuntimeStatus>(emptyRuntime),[loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[runtimeLoading,setRuntimeLoading]=useState(false),[notice,setNotice]=useState('');
+ async function loadRuntime(){if(!supabase||!orgId)return;setRuntimeLoading(true);const[agents,bots,human,lastMovement]=await Promise.all([supabase.from('ai_agent_policies').select('id',{count:'exact',head:true}).eq('org_id',orgId).eq('active',true),supabase.from('whatsapp_conversations').select('id',{count:'exact',head:true}).eq('org_id',orgId).eq('bot_ativo',true),supabase.from('ai_conversation_controls').select('id',{count:'exact',head:true}).eq('org_id',orgId).eq('human_takeover',true),supabase.from('process_movements').select('movement_date,created_at,title').eq('org_id',orgId).order('created_at',{ascending:false}).limit(1).maybeSingle()]);setRuntime({activeAgents:Number(agents.count||0),botsOn:Number(bots.count||0),humanTakeovers:Number(human.count||0),latestImportedAt:(lastMovement.data as any)?.created_at||null,latestMovementDate:(lastMovement.data as any)?.movement_date||null,latestMovementTitle:(lastMovement.data as any)?.title||null});setRuntimeLoading(false)}
+ async function load(){if(!supabase||!orgId)return;setLoading(true);setNotice('');const[{data:s,error:se},{data:p,error:pe}]=await Promise.all([supabase.from('process_notification_settings').select('*').eq('org_id',orgId).maybeSingle(),supabase.from('ai_agent_policies').select('business_hours_enabled,business_hours,system_prompt').eq('org_id',orgId).eq('agent_key','client_process_updates').maybeSingle()]);if(s)setSettings({...defaults,...(s as any)});if(p){setHoursEnabled(p.business_hours_enabled===true);setStart(String((p.business_hours as any)?.start||'08:00').slice(0,5));setEnd(String((p.business_hours as any)?.end||'18:00').slice(0,5));setPrompt(String(p.system_prompt||''))}if(se||pe)setNotice((se||pe)?.message||'Não foi possível carregar a programação.');await loadRuntime();setLoading(false)}
+ useEffect(()=>{void load()},[orgId]);
+ async function save(){if(!supabase)return;setSaving(true);setNotice('');const now=new Date().toISOString();const{error:se}=await supabase.from('process_notification_settings').upsert({org_id:orgId,...settings,updated_at:now},{onConflict:'org_id'});if(se){setSaving(false);setNotice(se.message);return}const{error:pe}=await supabase.from('ai_agent_policies').update({business_hours_enabled:hoursEnabled,business_hours:{start,end,timezone:'America/Sao_Paulo',outside_window:'next_day_start'},system_prompt:prompt.trim()||null,updated_at:now}).eq('org_id',orgId).eq('agent_key','client_process_updates');setSaving(false);if(pe){setNotice(pe.message);return}setNotice('Configuração do agente de andamento salva.');await loadRuntime()}
+ const set=(patch:Partial<ProcessSettings>)=>setSettings(v=>({...v,...patch}));
+ const fmt=(v:string|null)=>v?new Date(v).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}):'—';
+ const importedHistorical=!!runtime.latestImportedAt&&!!runtime.latestMovementDate&&new Date(runtime.latestImportedAt).getTime()-new Date(runtime.latestMovementDate).getTime()>86400000;
+ if(loading)return <section className="integration-panel"><p>Carregando programação de envio aos clientes...</p></section>;
+ return <section className="integration-panel" style={{marginBottom:18}}><style>{css}</style><div className="doc-section-title" style={{marginBottom:14}}><div className="doc-section-icon"><BellRing size={20}/></div><div><h2 style={{margin:0}}>Automação de andamentos e audiências</h2><p style={{margin:'4px 0 0'}}>As duas réguas do agente ficam separadas, visíveis e controladas no mesmo lugar.</p></div></div>{notice&&<div className="integration-notice" style={{marginBottom:14}}>{notice}</div>}
+ <div className="proc-auto">
+  <div className="proc-auto-card"><div className="proc-auto-title"><div><h3><Workflow size={18}/> Estado do orquestrador</h3><p>Mostra se a IA pode falar e quantas conversas estão sob atendimento humano.</p></div><button type="button" className="integration-action" onClick={loadRuntime} disabled={runtimeLoading}><RefreshCw size={15}/>{runtimeLoading?'Atualizando...':'Atualizar status'}</button></div><div className="proc-status"><span><ShieldCheck size={14}/> Orquestrador central</span><span><UserRoundCheck size={14}/> Hard stop humano</span><span><MessageSquare size={14}/> Um agente por mensagem</span></div><div className="proc-kpis" style={{marginTop:12}}><div className="proc-kpi"><b>{runtime.activeAgents}</b><small>agentes ativos</small></div><div className="proc-kpi"><b>{runtime.botsOn}</b><small>conversas liberadas para IA</small></div><div className="proc-kpi"><b>{runtime.humanTakeovers}</b><small>conversas em atendimento humano</small></div></div></div>
 
-  async function loadRuntime(){
-    if(!supabase||!orgId)return;
-    setRuntimeLoading(true);
-    const [agents,bots,human,lastMovement]=await Promise.all([
-      supabase.from('ai_agent_policies').select('id',{count:'exact',head:true}).eq('org_id',orgId).eq('active',true),
-      supabase.from('whatsapp_conversations').select('id',{count:'exact',head:true}).eq('org_id',orgId).eq('bot_ativo',true),
-      supabase.from('ai_conversation_controls').select('id',{count:'exact',head:true}).eq('org_id',orgId).eq('human_takeover',true),
-      supabase.from('process_movements').select('movement_date,created_at,title').eq('org_id',orgId).order('created_at',{ascending:false}).limit(1).maybeSingle(),
-    ]);
-    setRuntime({
-      activeAgents:Number(agents.count||0),
-      botsOn:Number(bots.count||0),
-      humanTakeovers:Number(human.count||0),
-      latestImportedAt:(lastMovement.data as any)?.created_at||null,
-      latestMovementDate:(lastMovement.data as any)?.movement_date||null,
-      latestMovementTitle:(lastMovement.data as any)?.title||null,
-    });
-    setRuntimeLoading(false);
-  }
+  <div className="proc-rules">
+   <div className="proc-rule"><h3><Activity size={18}/> Régua 1 — Andamentos processuais</h3><p>Controla o envio de novas movimentações processuais ao cliente.</p><Toggle title="Enviar novos andamentos automaticamente" desc="Envia somente novos andamentos elegíveis." value={settings.proactive_updates_enabled} onChange={v=>set({proactive_updates_enabled:v})}/><Toggle title="Explicar em linguagem simples com IA" desc="Transforma o texto técnico em mensagem curta e clara." value={settings.ai_summary_enabled} onChange={v=>set({ai_summary_enabled:v})}/><Toggle title="Revisar movimentos sensíveis" desc="Decisões e movimentos sensíveis aguardam revisão quando necessário." value={settings.require_approval_for_sensitive} onChange={v=>set({require_approval_for_sensitive:v})}/><div className="agent-form" style={{marginTop:12}}><label>Canal<select value={settings.default_channel} onChange={e=>set({default_channel:e.target.value})}><option value="whatsapp">WhatsApp</option></select></label></div></div>
+   <div className="proc-rule"><h3><BellRing size={18}/> Régua 2 — Avisos de audiência</h3><p>Controla exatamente quando o cliente recebe cada lembrete.</p><Toggle title="7 dias antes" desc="Primeiro lembrete da audiência." value={settings.hearing_7_days_enabled} onChange={v=>set({hearing_7_days_enabled:v})}/><Toggle title="3 dias antes" desc="Segundo lembrete da audiência." value={settings.hearing_3_days_enabled} onChange={v=>set({hearing_3_days_enabled:v})}/><Toggle title="1 dia antes" desc="Lembrete no dia anterior." value={settings.hearing_1_day_enabled} onChange={v=>set({hearing_1_day_enabled:v})}/><Toggle title="No dia da audiência" desc="Último aviso no próprio dia." value={settings.hearing_same_day_enabled} onChange={v=>set({hearing_same_day_enabled:v})}/></div>
+  </div>
 
-  async function load(){
-    if(!supabase||!orgId)return;
-    setLoading(true);setNotice('');
-    const [{data:s,error:se},{data:p,error:pe}]=await Promise.all([
-      supabase.from('process_notification_settings').select('*').eq('org_id',orgId).maybeSingle(),
-      supabase.from('ai_agent_policies').select('business_hours_enabled,business_hours,system_prompt').eq('org_id',orgId).eq('agent_key','client_process_updates').maybeSingle(),
-    ]);
-    if(s)setSettings({...defaults,...(s as any)});
-    if(p){
-      setHoursEnabled(p.business_hours_enabled===true);
-      setStart(String((p.business_hours as any)?.start||'08:00').slice(0,5));
-      setEnd(String((p.business_hours as any)?.end||'18:00').slice(0,5));
-      setPrompt(String(p.system_prompt||''));
-    }
-    if(se||pe)setNotice((se||pe)?.message||'Não foi possível carregar a programação.');
-    await loadRuntime();
-    setLoading(false);
-  }
+  <div className="proc-auto-card"><div className="proc-auto-title"><div><h3><Clock3 size={18}/> Horário permitido para as duas réguas</h3><p>Fora dessa janela, os disparos ficam aguardando o próximo horário permitido.</p></div></div><div className="proc-hours"><Toggle title="Restringir por horário" desc="Aplica a janela abaixo aos envios automáticos." value={hoursEnabled} onChange={setHoursEnabled}/><label>Início<input type="time" value={start} onChange={e=>setStart(e.target.value)}/></label><label>Fim<input type="time" value={end} onChange={e=>setEnd(e.target.value)}/></label></div></div>
 
-  useEffect(()=>{load()},[orgId]);
+  <div className="proc-auto-card"><div className="proc-auto-title"><div><h3><Activity size={18}/> Sincronização processual</h3><p>Compara quando o registro entrou no LEXOFFICE com a data real do andamento.</p></div></div><div className="proc-sync-grid"><div className="proc-sync-box"><small>Último registro importado</small><b>{fmt(runtime.latestImportedAt)}</b></div><div className="proc-sync-box"><small>Data real do andamento</small><b>{fmt(runtime.latestMovementDate)}</b></div></div>{runtime.latestMovementTitle&&<p><b>Último título:</b> {runtime.latestMovementTitle}</p>}<div className="integration-notice proc-warning">{importedHistorical?<><Clock3 size={15}/> Registro histórico detectado: não deve ser tratado como novidade de hoje.</>:<><ShieldCheck size={15}/> Último registro importado é compatível com uma movimentação recente.</>}</div></div>
 
-  async function save(){
-    if(!supabase)return;
-    setSaving(true);setNotice('');
-    const now=new Date().toISOString();
-    const {error:se}=await supabase.from('process_notification_settings').upsert({
-      org_id:orgId,
-      ...settings,
-      updated_at:now,
-    },{onConflict:'org_id'});
-    if(se){setSaving(false);setNotice(se.message);return}
-    const {error:pe}=await supabase.from('ai_agent_policies').update({
-      business_hours_enabled:hoursEnabled,
-      business_hours:{start,end,timezone:'America/Sao_Paulo',outside_window:'next_day_start'},
-      system_prompt:prompt.trim()||null,
-      updated_at:now,
-    }).eq('org_id',orgId).eq('agent_key','client_process_updates');
-    setSaving(false);
-    if(pe){setNotice(pe.message);return}
-    setNotice('Programação, régua de audiências, horário e prompt salvos.');
-    await loadRuntime();
-  }
+  <div className="proc-auto-card proc-prompt"><div className="proc-auto-title"><div><h3><Sparkles size={18}/> Prompt usado no envio de andamento</h3><p>Este texto é a regra oficial do agente para explicar movimentações ao cliente.</p></div></div><div className="agent-form"><label className="wide">Prompt<textarea className="instructions" value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="Defina como o agente deve interpretar e explicar os andamentos..."/></label></div><div className="integration-notice proc-warning"><ShieldCheck size={15}/> O worker deve usar este prompt salvo em ai_agent_policies.system_prompt e considerar a data real do andamento.</div></div>
 
-  const set=(patch:Partial<ProcessSettings>)=>setSettings(v=>({...v,...patch}));
-  const fmt=(v:string|null)=>v?new Date(v).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}):'—';
-  const importedHistorical=!!runtime.latestImportedAt&&!!runtime.latestMovementDate&&new Date(runtime.latestImportedAt).getTime()-new Date(runtime.latestMovementDate).getTime()>24*60*60*1000;
-
-  if(loading)return <section className="integration-panel"><p>Carregando programação de envio aos clientes...</p></section>;
-
-  return <section className="integration-panel" style={{marginBottom:18}}>
-    <div className="doc-section-title" style={{marginBottom:14}}><div className="doc-section-icon"><BellRing size={20}/></div><div><h2 style={{margin:0}}>Envio de processos aos clientes</h2><p style={{margin:'4px 0 0'}}>Configure aqui o que o Agente de Andamento Processual envia, quando envia e como explica ao cliente.</p></div></div>
-    {notice&&<div className="integration-notice">{notice}</div>}
-
-    <div className="advanced-section" style={{border:'1px solid var(--border)',borderRadius:12,padding:16,marginBottom:16}}>
-      <div style={{display:'flex',justifyContent:'space-between',gap:12,alignItems:'flex-start',flexWrap:'wrap'}}>
-        <div><h3 style={{marginTop:0}}><Workflow size={18}/> Orquestrador central e travas</h3><p className="section-note">O WhatsApp passa primeiro por um único orquestrador. Ele escolhe apenas um dos 5 agentes e faz uma segunda checagem antes de qualquer envio.</p></div>
-        <button type="button" className="integration-action" onClick={loadRuntime} disabled={runtimeLoading}><RefreshCw size={15}/>{runtimeLoading?'Atualizando...':'Atualizar status'}</button>
-      </div>
-      <div className="provider-status-row" style={{marginBottom:12}}>
-        <span className="ok"><ShieldCheck size={15}/> Orquestrador ATIVO</span>
-        <span className="ok"><UserRoundCheck size={15}/> Hard stop humano</span>
-        <span className="ok"><MessageSquare size={15}/> 1 mensagem = 1 agente</span>
-      </div>
-      <div className="advanced-grid">
-        <div className="integration-notice"><b>{runtime.activeAgents}</b><br/>agentes ativos</div>
-        <div className="integration-notice"><b>{runtime.botsOn}</b><br/>conversas com IA liberada</div>
-        <div className="integration-notice"><b>{runtime.humanTakeovers}</b><br/>conversas em atendimento humano</div>
-      </div>
-      <div className="integration-notice" style={{marginTop:12}}><ShieldCheck size={15}/> Ao assumir uma conversa manualmente, a IA deve ficar bloqueada até liberação explícita. Não há retomada automática por tempo.</div>
-    </div>
-
-    <div className="advanced-section" style={{border:'1px solid var(--border)',borderRadius:12,padding:16,marginBottom:16}}>
-      <h3 style={{marginTop:0}}><Activity size={18}/> Sincronização processual agora</h3>
-      <div className="advanced-grid">
-        <div><small>Último registro importado</small><br/><b>{fmt(runtime.latestImportedAt)}</b></div>
-        <div><small>Data real do andamento</small><br/><b>{fmt(runtime.latestMovementDate)}</b></div>
-      </div>
-      {runtime.latestMovementTitle&&<p style={{marginBottom:8}}><b>Último título:</b> {runtime.latestMovementTitle}</p>}
-      {importedHistorical?<div className="integration-notice"><Clock3 size={15}/> O sincronizador está recebendo registros históricos. Eles aparecem como importados agora, mas não são andamentos novos de hoje e não devem ser enviados ao cliente como novidade.</div>:<div className="integration-notice"><ShieldCheck size={15}/> O registro mais recente importado também é recente na data real do processo.</div>}
-    </div>
-
-    <div className="advanced-section">
-      <h3><MessageSquare size={18}/> Andamentos processuais</h3>
-      <Toggle title="Enviar novos andamentos automaticamente" desc="Quando um novo andamento elegível chegar, o agente prepara a explicação e envia pelo canal configurado." value={settings.proactive_updates_enabled} onChange={v=>set({proactive_updates_enabled:v})}/>
-      <Toggle title="Explicar em linguagem simples com IA" desc="O cliente recebe uma explicação clara em vez do texto bruto do tribunal." value={settings.ai_summary_enabled} onChange={v=>set({ai_summary_enabled:v})}/>
-      <Toggle title="Revisar andamentos sensíveis antes do envio" desc="Andamentos marcados como sensíveis ficam aguardando sua aprovação." value={settings.require_approval_for_sensitive} onChange={v=>set({require_approval_for_sensitive:v})}/>
-      <div className="agent-form"><label>Canal de envio<select value={settings.default_channel} onChange={e=>set({default_channel:e.target.value})}><option value="whatsapp">WhatsApp</option></select></label></div>
-    </div>
-
-    <div className="advanced-section">
-      <h3><BellRing size={18}/> Régua de avisos de audiência</h3>
-      <p className="section-note">Marque em quais momentos o cliente deve receber lembrete de audiência.</p>
-      <Toggle title="Avisar 7 dias antes" desc="Envia lembrete sete dias antes da audiência." value={settings.hearing_7_days_enabled} onChange={v=>set({hearing_7_days_enabled:v})}/>
-      <Toggle title="Avisar 3 dias antes" desc="Envia novo lembrete três dias antes." value={settings.hearing_3_days_enabled} onChange={v=>set({hearing_3_days_enabled:v})}/>
-      <Toggle title="Avisar 1 dia antes" desc="Envia lembrete no dia anterior." value={settings.hearing_1_day_enabled} onChange={v=>set({hearing_1_day_enabled:v})}/>
-      <Toggle title="Avisar no dia" desc="Envia o último lembrete no próprio dia da audiência." value={settings.hearing_same_day_enabled} onChange={v=>set({hearing_same_day_enabled:v})}/>
-    </div>
-
-    <div className="advanced-section">
-      <h3><Clock3 size={18}/> Horário permitido para envio</h3>
-      <Toggle title="Restringir os envios ao horário configurado" desc="Andamentos e avisos de audiência que vencerem fora da janela ficam para o próximo horário permitido." value={hoursEnabled} onChange={setHoursEnabled}/>
-      <div className="agent-form"><label>Início<input type="time" value={start} onChange={e=>setStart(e.target.value)}/></label><label>Fim<input type="time" value={end} onChange={e=>setEnd(e.target.value)}/></label></div>
-      <div className="integration-notice"><Clock3 size={15}/> Fora do horário, o envio é transferido para o dia seguinte no horário inicial configurado.</div>
-    </div>
-
-    <div className="advanced-section">
-      <h3><Sparkles size={18}/> Prompt do Agente de Andamento Processual</h3>
-      <p className="section-note">Este é o texto que orienta a IA na explicação de andamentos e na comunicação processual com o cliente.</p>
-      <div className="agent-form"><label className="wide">Prompt<textarea className="instructions" style={{minHeight:220}} value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="Defina como o agente deve interpretar e explicar os andamentos..."/></label></div>
-      <div className="integration-notice"><ShieldCheck size={15}/> O worker atual usa este prompt diretamente de ai_agent_policies.system_prompt e filtra pelo movement_date real. Registros históricos sincronizados hoje não são tratados como novos andamentos.</div>
-    </div>
-
-    <div className="agent-save"><button className="primary" disabled={saving} onClick={save}><Save size={15}/>{saving?'Salvando...':'Salvar programação de envio'}</button></div>
-  </section>
+  <div className="proc-save"><button className="primary" disabled={saving} onClick={save}><Save size={15}/>{saving?'Salvando...':'Salvar as duas réguas'}</button></div>
+ </div></section>
 }
 
-function Toggle({title,desc,value,onChange}:{title:string;desc:string;value:boolean;onChange:(v:boolean)=>void}){
-  return <div className="setting-row"><div className="setting-copy"><b>{title}</b><small>{desc}</small></div><button type="button" className={`switch ${value?'on':''}`} aria-pressed={value} onClick={()=>onChange(!value)}/></div>
-}
+function Toggle({title,desc,value,onChange}:{title:string;desc:string;value:boolean;onChange:(v:boolean)=>void}){return <div className="setting-row"><div className="setting-copy"><b>{title}</b><small>{desc}</small></div><button type="button" className={`switch ${value?'on':''}`} aria-pressed={value} onClick={()=>onChange(!value)}/></div>}
