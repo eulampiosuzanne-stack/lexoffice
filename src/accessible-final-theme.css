@@ -1,4 +1,54 @@
-/* LEXOFFICE — camada de acessibilidade (carregar por último, depois de reference-ui.css) */
+/* LEXOFFICE — brilho 3D nas bordas dos itens clicáveis e selecionados */
+
+.app .card,
+.app .integration-panel,
+.app .dashboard-kpi,
+.app .primary,
+.app .integration-action,
+.app .nav-group a.active {
+  position: relative !important;
+}
+
+.app .card.selected::before,
+.app .card.active::before,
+.app .dashboard-kpi:first-child::before,
+.app .primary::before,
+.app .integration-action::before,
+.app .nav-group a.active::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 18px;
+  padding: 2px;
+  background: linear-gradient(135deg, #f4cf78, #9d2748, #d9a441);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.app .card,
+.app .integration-panel,
+.app .dashboard-kpi,
+.app .primary,
+.app .integration-action {
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.app .card:hover,
+.app .integration-panel:hover,
+.app .dashboard-kpi:hover,
+.app .primary:hover,
+.app .integration-action:hover {
+  transform: translateY(-4px) !important;
+}
+
+.app .card:active,
+.app .integration-panel:active,
+.app .primary:active,
+.app .integration-action:active {
+  transform: translateY(1px) !important;
+}
 
 .app, .app p, .app label, .app td, .app th,
 .app input, .app select, .app textarea, .app button,
@@ -8,20 +58,11 @@
   line-height: 1.7 !important;
 }
 
-.app h1, .app h2, .app h3 {
-  letter-spacing: 0.02em !important;
-}
-
-.app input, .app select, .app textarea, .app .input-search {
-  min-height: 48px !important;
+.app input, .app select, .app textarea {
   box-shadow: inset 2px 2px 6px rgba(0,0,0,0.5) !important;
 }
 
 .app *:focus-visible {
   outline: 3px solid #f4cf78 !important;
   outline-offset: 2px !important;
-}
-
-.app button, .app a, .app .primary, .app .secondary {
-  min-height: 44px !important;
 }
