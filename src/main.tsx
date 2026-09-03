@@ -26,6 +26,7 @@ import './mobile-vision-3d.css';
 import './reference-ui.css';
 import './accessibility-vision.css';
 import './accessible-final-theme.css';
+import './ux-maturity.css';
 
 const RootApp=window.location.pathname.startsWith('/admin')?PlatformAdminEntry:App;
 ReactDOM.createRoot(document.getElementById('root')!).render(
