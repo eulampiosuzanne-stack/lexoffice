@@ -1,0 +1,12 @@
+alter table public.whatsapp_conversations add column if not exists conversation_owner text not null default 'CLARA';
+alter table public.whatsapp_conversations add column if not exists owner_agent_key text;
+alter table public.whatsapp_conversations add column if not exists owner_changed_at timestamptz not null default now();
+alter table public.whatsapp_conversations add column if not exists last_human_outbound_at timestamptz;
+alter table public.whatsapp_conversations drop constraint if exists whatsapp_conversations_owner_check;
+alter table public.whatsapp_conversations add constraint whatsapp_conversations_owner_check check (conversation_owner in ('HUMAN','CLARA','SALES','BILLING','SCHEDULING','PROCESS'));
+create table if not exists public.ai_orchestrator_events (id uuid primary key default gen_random_uuid(),org_id uuid not null,conversation_id uuid,event_type text not null,agent_key text,decision text not null,reason text,metadata jsonb not null default '{}'::jsonb,created_at timestamptz not null default now());
+create index if not exists ai_orchestrator_events_conversation_created_idx on public.ai_orchestrator_events(conversation_id,created_at desc);
+create index if not exists ai_orchestrator_events_org_created_idx on public.ai_orchestrator_events(org_id,created_at desc);
+create table if not exists public.whatsapp_outbound_gate_log (id uuid primary key default gen_random_uuid(),org_id uuid not null,conversation_id uuid,agent_key text,allowed boolean not null,reason text not null,body_preview text,created_at timestamptz not null default now());
+create index if not exists whatsapp_outbound_gate_log_conversation_created_idx on public.whatsapp_outbound_gate_log(conversation_id,created_at desc);
+update public.whatsapp_conversations set conversation_owner='HUMAN',owner_agent_key=null,owner_changed_at=now() where bot_ativo=false or human_takeover_at is not null;
