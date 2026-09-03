@@ -37,3 +37,12 @@ O frontend conversa somente com `http://127.0.0.1:17681`.
 ## Motor
 
 A implementação Java deve usar Demoiselle Signer com política PAdES e cadeia ICP-Brasil, conectando ao SafeSign por PKCS#11. Antes de distribuir o executável, validar o PDF de teste em validador ICP-Brasil e Adobe Acrobat Reader.
+
+
+## Certificado em nuvem (Certisign remoteID / DesktopID)
+
+A partir da versao 1.4.0 a ponte tambem suporta certificado em nuvem (ex.: Certisign remoteID, usado via o aplicativo DesktopID). Nesse caso o Windows enxerga o certificado como se fosse um certificado comum instalado no repositorio "Pessoal" do usuario, entao a ponte acessa ele pelo keystore nativo do Windows (Windows-MY, via provider SunMSCAPI) em vez do PKCS#11 usado para token fisico A3.
+
+A variavel de ambiente LEXOFFICE_KEYSTORE_TYPE controla o modo. O valor WINDOWS-MY (padrao nos scripts start-windows.bat e run-bridge.bat atuais) usa o certificado em nuvem via DesktopID: o PIN e o codigo dinamico do app da Certisign sao pedidos pelo proprio Windows/DesktopID na hora de assinar, e a ponte nunca ve nem pede essas informacoes. O valor PKCS11 e o modo antigo, para quem ainda usa token fisico A3 com o SafeSign.
+
+Pre-requisito: o DesktopID da Certisign precisa estar aberto e com o certificado sincronizado, aparecendo na lista de Certificados do proprio DesktopID, antes de iniciar a ponte.
