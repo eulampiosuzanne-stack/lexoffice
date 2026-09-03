@@ -11,7 +11,6 @@ import './office-brand.css';
 import './module-fixes.css';
 import './screen-fixes.css';
 import './pages/whatsapp-conversations.css';
-import './pages/whatsapp-connection-relocation.css';
 import './pages/agent-advanced.css';
 import './pages/investigation.css';
 import './pages/client-cards.css';
