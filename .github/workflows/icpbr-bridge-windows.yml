@@ -26,10 +26,12 @@ jobs:
           New-Item -ItemType Directory -Force dist | Out-Null
           Copy-Item target/lexoffice-icpbr-bridge.jar dist/
           '@echo off' | Set-Content dist/iniciar-lexoffice-icpbr.bat
+          'set LEXOFFICE_KEYSTORE_TYPE=WINDOWS-MY' | Add-Content dist/iniciar-lexoffice-icpbr.bat
           'set LEXOFFICE_PKCS11_DLL=C:\Windows\System32\aetpkss1.dll' | Add-Content dist/iniciar-lexoffice-icpbr.bat
           'java -jar lexoffice-icpbr-bridge.jar' | Add-Content dist/iniciar-lexoffice-icpbr.bat
           'pause' | Add-Content dist/iniciar-lexoffice-icpbr.bat
       - uses: actions/upload-artifact@v4
+      'set LEXOFFICE_KEYSTORE_TYPE=WINDOWS-MY' | Add-Content dist/iniciar-lexoffice-icpbr.bat
         with:
           name: lexoffice-icpbr-bridge-windows
           path: tools/icpbr-bridge/dist/*
