@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
+import PlatformAdminEntry from './pages/PlatformAdminEntry';
 import OfficeBrandBridge from './OfficeBrandBridge';
 import './styles.css';
 import './legacy-auth.css';
@@ -27,10 +28,11 @@ import './reference-ui.css';
 import './accessibility-vision.css';
 import './accessible-final-theme.css';
 
+const RootApp=window.location.pathname.startsWith('/admin')?PlatformAdminEntry:App;
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <OfficeBrandBridge><App /></OfficeBrandBridge>
+      <OfficeBrandBridge><RootApp /></OfficeBrandBridge>
     </BrowserRouter>
   </React.StrictMode>
 );
