@@ -1,0 +1,16 @@
+-- Extend strict per-user isolation to operational child/support tables that previously exposed all same-org rows.
+-- The live migration adds owner_user_id, backfills from secured parents/explicit users,
+-- extends lexoffice_assign_record_owner(), and replaces organization-wide RLS with owner-user RLS
+-- for: ai_orchestrator_events, ai_process_access_log, calculation_runs, client_events,
+-- client_notification_preferences, collection_messages, djen_monitors, djen_publications,
+-- extraction_jobs, financial_entry_payments, hearing_reminders, import_jobs, import_rows,
+-- marketing_contacts, marketing_campaign_deliveries, monitoring_simulation_runs, notification_queue,
+-- process_client_notification_settings, process_client_updates, process_intelligent_rule_runs,
+-- process_lawyer_assignments, process_notification_queue, process_update_approvals,
+-- service_tickets, service_messages, signature_biometric_sessions, tribunal_monitored_processes,
+-- tribunal_sync_logs, whatsapp_connections, whatsapp_events, whatsapp_followups,
+-- whatsapp_outbound_gate_log, whatsapp_qr_sessions, whatsapp_response_cycles and whatsapp_settings.
+--
+-- NOTE: This repository marker documents the production migration. The database migration history
+-- in Supabase is the canonical executed SQL for this operation and was applied as
+-- p0_strict_user_isolation_operational_children on 2026-09-03.
