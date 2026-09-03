@@ -1,5 +1,5 @@
 import {useEffect,useState} from 'react';
-import {BellRing,Clock3,MessageSquare,Save,ShieldCheck,Sparkles} from 'lucide-react';
+import {BellRing,Clock3,MessageSquare,Save,ShieldCheck,Sparkles,Workflow,Activity,UserRoundCheck,RefreshCw} from 'lucide-react';
 import {supabase} from '../lib/supabase';
 
 type Props={orgId:string};
@@ -15,6 +15,15 @@ type ProcessSettings={
   hearing_same_day_enabled:boolean;
 };
 
+type RuntimeStatus={
+  activeAgents:number;
+  botsOn:number;
+  humanTakeovers:number;
+  latestImportedAt:string|null;
+  latestMovementDate:string|null;
+  latestMovementTitle:string|null;
+};
+
 const defaults:ProcessSettings={
   proactive_updates_enabled:true,
   ai_summary_enabled:true,
@@ -26,15 +35,39 @@ const defaults:ProcessSettings={
   hearing_same_day_enabled:true,
 };
 
+const emptyRuntime:RuntimeStatus={activeAgents:0,botsOn:0,humanTakeovers:0,latestImportedAt:null,latestMovementDate:null,latestMovementTitle:null};
+
 export default function ProcessUpdateAutomationPanel({orgId}:Props){
   const [settings,setSettings]=useState<ProcessSettings>(defaults);
   const [hoursEnabled,setHoursEnabled]=useState(false);
   const [start,setStart]=useState('08:00');
   const [end,setEnd]=useState('18:00');
   const [prompt,setPrompt]=useState('');
+  const [runtime,setRuntime]=useState<RuntimeStatus>(emptyRuntime);
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
+  const [runtimeLoading,setRuntimeLoading]=useState(false);
   const [notice,setNotice]=useState('');
+
+  async function loadRuntime(){
+    if(!supabase||!orgId)return;
+    setRuntimeLoading(true);
+    const [agents,bots,human,lastMovement]=await Promise.all([
+      supabase.from('ai_agent_policies').select('id',{count:'exact',head:true}).eq('org_id',orgId).eq('active',true),
+      supabase.from('whatsapp_conversations').select('id',{count:'exact',head:true}).eq('org_id',orgId).eq('bot_ativo',true),
+      supabase.from('ai_conversation_controls').select('id',{count:'exact',head:true}).eq('org_id',orgId).eq('human_takeover',true),
+      supabase.from('process_movements').select('movement_date,created_at,title').eq('org_id',orgId).order('created_at',{ascending:false}).limit(1).maybeSingle(),
+    ]);
+    setRuntime({
+      activeAgents:Number(agents.count||0),
+      botsOn:Number(bots.count||0),
+      humanTakeovers:Number(human.count||0),
+      latestImportedAt:(lastMovement.data as any)?.created_at||null,
+      latestMovementDate:(lastMovement.data as any)?.movement_date||null,
+      latestMovementTitle:(lastMovement.data as any)?.title||null,
+    });
+    setRuntimeLoading(false);
+  }
 
   async function load(){
     if(!supabase||!orgId)return;
@@ -51,6 +84,7 @@ export default function ProcessUpdateAutomationPanel({orgId}:Props){
       setPrompt(String(p.system_prompt||''));
     }
     if(se||pe)setNotice((se||pe)?.message||'Não foi possível carregar a programação.');
+    await loadRuntime();
     setLoading(false);
   }
 
@@ -75,15 +109,46 @@ export default function ProcessUpdateAutomationPanel({orgId}:Props){
     setSaving(false);
     if(pe){setNotice(pe.message);return}
     setNotice('Programação, régua de audiências, horário e prompt salvos.');
+    await loadRuntime();
   }
 
   const set=(patch:Partial<ProcessSettings>)=>setSettings(v=>({...v,...patch}));
+  const fmt=(v:string|null)=>v?new Date(v).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}):'—';
+  const importedHistorical=!!runtime.latestImportedAt&&!!runtime.latestMovementDate&&new Date(runtime.latestImportedAt).getTime()-new Date(runtime.latestMovementDate).getTime()>24*60*60*1000;
 
   if(loading)return <section className="integration-panel"><p>Carregando programação de envio aos clientes...</p></section>;
 
   return <section className="integration-panel" style={{marginBottom:18}}>
     <div className="doc-section-title" style={{marginBottom:14}}><div className="doc-section-icon"><BellRing size={20}/></div><div><h2 style={{margin:0}}>Envio de processos aos clientes</h2><p style={{margin:'4px 0 0'}}>Configure aqui o que o Agente de Andamento Processual envia, quando envia e como explica ao cliente.</p></div></div>
     {notice&&<div className="integration-notice">{notice}</div>}
+
+    <div className="advanced-section" style={{border:'1px solid var(--border)',borderRadius:12,padding:16,marginBottom:16}}>
+      <div style={{display:'flex',justifyContent:'space-between',gap:12,alignItems:'flex-start',flexWrap:'wrap'}}>
+        <div><h3 style={{marginTop:0}}><Workflow size={18}/> Orquestrador central e travas</h3><p className="section-note">O WhatsApp passa primeiro por um único orquestrador. Ele escolhe apenas um dos 5 agentes e faz uma segunda checagem antes de qualquer envio.</p></div>
+        <button type="button" className="integration-action" onClick={loadRuntime} disabled={runtimeLoading}><RefreshCw size={15}/>{runtimeLoading?'Atualizando...':'Atualizar status'}</button>
+      </div>
+      <div className="provider-status-row" style={{marginBottom:12}}>
+        <span className="ok"><ShieldCheck size={15}/> Orquestrador ATIVO</span>
+        <span className="ok"><UserRoundCheck size={15}/> Hard stop humano</span>
+        <span className="ok"><MessageSquare size={15}/> 1 mensagem = 1 agente</span>
+      </div>
+      <div className="advanced-grid">
+        <div className="integration-notice"><b>{runtime.activeAgents}</b><br/>agentes ativos</div>
+        <div className="integration-notice"><b>{runtime.botsOn}</b><br/>conversas com IA liberada</div>
+        <div className="integration-notice"><b>{runtime.humanTakeovers}</b><br/>conversas em atendimento humano</div>
+      </div>
+      <div className="integration-notice" style={{marginTop:12}}><ShieldCheck size={15}/> Ao assumir uma conversa manualmente, a IA deve ficar bloqueada até liberação explícita. Não há retomada automática por tempo.</div>
+    </div>
+
+    <div className="advanced-section" style={{border:'1px solid var(--border)',borderRadius:12,padding:16,marginBottom:16}}>
+      <h3 style={{marginTop:0}}><Activity size={18}/> Sincronização processual agora</h3>
+      <div className="advanced-grid">
+        <div><small>Último registro importado</small><br/><b>{fmt(runtime.latestImportedAt)}</b></div>
+        <div><small>Data real do andamento</small><br/><b>{fmt(runtime.latestMovementDate)}</b></div>
+      </div>
+      {runtime.latestMovementTitle&&<p style={{marginBottom:8}}><b>Último título:</b> {runtime.latestMovementTitle}</p>}
+      {importedHistorical?<div className="integration-notice"><Clock3 size={15}/> O sincronizador está recebendo registros históricos. Eles aparecem como importados agora, mas não são andamentos novos de hoje e não devem ser enviados ao cliente como novidade.</div>:<div className="integration-notice"><ShieldCheck size={15}/> O registro mais recente importado também é recente na data real do processo.</div>}
+    </div>
 
     <div className="advanced-section">
       <h3><MessageSquare size={18}/> Andamentos processuais</h3>
@@ -113,7 +178,7 @@ export default function ProcessUpdateAutomationPanel({orgId}:Props){
       <h3><Sparkles size={18}/> Prompt do Agente de Andamento Processual</h3>
       <p className="section-note">Este é o texto que orienta a IA na explicação de andamentos e na comunicação processual com o cliente.</p>
       <div className="agent-form"><label className="wide">Prompt<textarea className="instructions" style={{minHeight:220}} value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="Defina como o agente deve interpretar e explicar os andamentos..."/></label></div>
-      <div className="integration-notice"><ShieldCheck size={15}/> O motor usa este prompt e os dados reais do processo. Ele não deve inventar prazo, audiência, decisão ou providência.</div>
+      <div className="integration-notice"><ShieldCheck size={15}/> O worker atual usa este prompt diretamente de ai_agent_policies.system_prompt e filtra pelo movement_date real. Registros históricos sincronizados hoje não são tratados como novos andamentos.</div>
     </div>
 
     <div className="agent-save"><button className="primary" disabled={saving} onClick={save}><Save size={15}/>{saving?'Salvando...':'Salvar programação de envio'}</button></div>
