@@ -27,6 +27,8 @@ import './reference-ui.css';
 import './accessibility-vision.css';
 import './accessible-final-theme.css';
 import './ux-maturity.css';
+import './pwa-fix.css';
+import './pwa-install';
 
 const RootApp=window.location.pathname.startsWith('/admin')?PlatformAdminEntry:App;
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -39,7 +41,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch((error) => {
+    navigator.serviceWorker.register('/sw.js').then((registration) => {
+      registration.update().catch(()=>undefined);
+    }).catch((error) => {
       console.error('LEXOFFICE service worker registration failed:', error);
     });
   });
