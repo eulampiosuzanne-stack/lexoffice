@@ -2,6 +2,7 @@
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ],
+  "regions": ["gru1"],
   "headers": [
     {
       "source": "/index.html",
