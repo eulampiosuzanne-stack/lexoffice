@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import PlatformAdminEntry from './pages/PlatformAdminEntry';
+import PublicClientForm from './pages/PublicClientForm';
+import ClientFormShareAction from './components/ClientFormShareAction';
 import OfficeBrandBridge from './OfficeBrandBridge';
 import './styles.css';
 import './legacy-auth.css';
@@ -28,13 +30,20 @@ import './accessibility-vision.css';
 import './accessible-final-theme.css';
 import './ux-maturity.css';
 import './pwa-fix.css';
+import './client-intake.css';
 import './pwa-install';
 
+const intakePrefix='/formulario-cliente/';
+const isPublicIntake=window.location.pathname.startsWith(intakePrefix);
+const intakeToken=isPublicIntake?decodeURIComponent(window.location.pathname.slice(intakePrefix.length).split('/')[0]||''):'';
 const RootApp=window.location.pathname.startsWith('/admin')?PlatformAdminEntry:App;
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <OfficeBrandBridge><RootApp /></OfficeBrandBridge>
+      {isPublicIntake
+        ? <PublicClientForm token={intakeToken}/>
+        : <OfficeBrandBridge><><RootApp/><ClientFormShareAction/></></OfficeBrandBridge>}
     </BrowserRouter>
   </React.StrictMode>
 );
