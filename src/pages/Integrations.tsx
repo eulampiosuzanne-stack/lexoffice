@@ -2,6 +2,7 @@ import { useEffect,useState } from 'react';
 import { Plug,MessageCircle,CalendarDays,PenTool,Gavel,Bot,CheckCircle2,RefreshCw,QrCode,AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import WhatsAppAdminSettings from './WhatsAppAdminSettings';
+import MetaPartnerConnect from './MetaPartnerConnect';
 import './integrations.css';
 
 type Conn={provider?:string;status?:string;name?:string;updated_at?:string};
@@ -30,6 +31,7 @@ export default function Integrations({embedded=false}:{embedded?:boolean}){
   <div style={{display:'flex',gap:10,flexWrap:'wrap'}}><button className="integration-action" onClick={waConnected?()=>checkWhatsapp(false):generateQr} disabled={waLoading}>{waConnected?<RefreshCw size={15}/>:<QrCode size={15}/>} {waLoading?'Aguarde...':waConnected?'Atualizar status':'Conectar por QR Code'}</button>{qr&&!waConnected&&<button className="secondary" onClick={generateQr} disabled={waLoading}>Gerar novo QR Code</button>}</div>
   {error&&<div className="status-message error"><AlertCircle size={16}/>{error}</div>}{notice&&<div className="status-message success"><CheckCircle2 size={16}/>{notice}</div>}</section>
   <WhatsAppAdminSettings/>
+  <MetaPartnerConnect/>
   <div className="connections-grid">{catalog.map(item=>{const Icon=item.icon;const s=state(item.key);const active=s&&['active','connected','online','ok'].includes(s.toLowerCase());return <a className="connection-card" href={item.path} key={item.key}><div className="connection-top"><div className="integration-icon"><Icon/></div><span className={active?'conn-status on':'conn-status'}>{active?<CheckCircle2 size={13}/>:<RefreshCw size={13}/>} {loading?'Verificando':active?'Conectado':s||'Configurar'}</span></div><h2>{item.name}</h2><p>{item.desc}</p><div className="connection-action">Abrir configuração</div></a>})}</div>
   {!embedded&&<div className="module-box"><h3>Arquitetura integrada</h3><p>As conexões são reutilizadas pelos módulos e pelos agentes de IA. Credenciais sensíveis não são exibidas nesta central.</p></div>}
  </div>
