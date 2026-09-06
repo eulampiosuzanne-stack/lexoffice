@@ -34,7 +34,7 @@ import './client-intake.css';
 import './legal-office-identity.css';
 import './table-interaction-fix.css';
 import './theme-modes.css';
-import './layout-finish.css';
+import './glass-premium.css';
 import './pwa-install';
 
 const intakePrefix='/formulario-cliente/';
