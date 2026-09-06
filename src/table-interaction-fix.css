@@ -1,0 +1,96 @@
+/* LEXOFFICE — correção global de interação em tabelas.
+   Evita estados brancos herdados em hover/focus/active/seleção e preserva contraste. */
+.app table tbody tr,
+.app [role="row"] {
+  transition: background .15s ease, box-shadow .15s ease, border-color .15s ease, transform .15s ease !important;
+}
+
+.app table tbody tr:hover,
+.app table tbody tr:focus,
+.app table tbody tr:focus-within,
+.app table tbody tr:active,
+.app [role="row"]:hover,
+.app [role="row"]:focus,
+.app [role="row"]:focus-within,
+.app [role="row"]:active {
+  background: linear-gradient(180deg,#21191b 0%,#181516 100%) !important;
+  color: var(--legal-text) !important;
+  box-shadow: inset 3px 0 0 rgba(93,24,39,.92), inset 0 1px 0 rgba(229,212,191,.035), 0 4px 12px rgba(0,0,0,.16) !important;
+  outline: none !important;
+}
+
+/* Estados de seleção usados por diferentes componentes/bibliotecas. */
+.app table tbody tr.selected,
+.app table tbody tr.active,
+.app table tbody tr.is-selected,
+.app table tbody tr[aria-selected="true"],
+.app [role="row"].selected,
+.app [role="row"].active,
+.app [role="row"].is-selected,
+.app [role="row"][aria-selected="true"],
+.app .data-row.selected,
+.app .data-row.active,
+.app .table-row.selected,
+.app .table-row.active {
+  background: linear-gradient(180deg,#26191d 0%,#1b1517 100%) !important;
+  color: var(--legal-text) !important;
+  box-shadow: inset 3px 0 0 var(--legal-wine), inset 0 1px 0 rgba(229,212,191,.04), 0 5px 14px rgba(0,0,0,.18) !important;
+  outline: none !important;
+}
+
+/* Garante que células e conteúdo interno não herdem fundo branco ou texto ilegível. */
+.app table tbody tr:hover > td,
+.app table tbody tr:focus > td,
+.app table tbody tr:focus-within > td,
+.app table tbody tr:active > td,
+.app table tbody tr.selected > td,
+.app table tbody tr.active > td,
+.app table tbody tr.is-selected > td,
+.app table tbody tr[aria-selected="true"] > td,
+.app [role="row"]:hover > [role="cell"],
+.app [role="row"]:focus-within > [role="cell"],
+.app [role="row"][aria-selected="true"] > [role="cell"] {
+  background: transparent !important;
+  color: #e7e0d8 !important;
+  border-color: #332b2a !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+.app table tbody tr:hover a,
+.app table tbody tr:focus-within a,
+.app table tbody tr.selected a,
+.app table tbody tr.active a,
+.app table tbody tr[aria-selected="true"] a,
+.app [role="row"]:hover a,
+.app [role="row"][aria-selected="true"] a {
+  color: var(--legal-ivory) !important;
+  -webkit-text-fill-color: var(--legal-ivory) !important;
+}
+
+/* Números/identificadores em destaque continuam bronze, sem perder contraste. */
+.app table tbody tr:hover strong,
+.app table tbody tr:focus-within strong,
+.app table tbody tr.selected strong,
+.app table tbody tr.active strong,
+.app table tbody tr[aria-selected="true"] strong,
+.app [role="row"]:hover strong,
+.app [role="row"][aria-selected="true"] strong {
+  color: #c7aa83 !important;
+  -webkit-text-fill-color: #c7aa83 !important;
+}
+
+/* Neutraliza utilitários claros que possam ser aplicados dinamicamente ao estado da linha. */
+.app table tbody tr:hover[class*="bg-white"],
+.app table tbody tr:focus-within[class*="bg-white"],
+.app table tbody tr[class*="bg-white"].selected,
+.app table tbody tr[class*="bg-white"].active,
+.app table tbody tr[class*="bg-gray-50"].selected,
+.app [role="row"][class*="bg-white"]:hover,
+.app [role="row"][class*="bg-white"][aria-selected="true"] {
+  background: linear-gradient(180deg,#21191b 0%,#181516 100%) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app table tbody tr,
+  .app [role="row"] { transition: none !important; }
+}
