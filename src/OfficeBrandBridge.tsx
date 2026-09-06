@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
  * acessibilidade visual (tema e escala de leitura) sem alterar os dados do sistema.
  */
 export default function OfficeBrandBridge({children}:{children:React.ReactNode}){
-  const [dark,setDark]=useState(true);
+  const [dark,setDark]=useState(()=>localStorage.getItem('lexoffice-theme')==='dark');
   const [scale,setScale]=useState(()=>Math.min(1.25,Math.max(1,Number(localStorage.getItem('lexoffice-font-scale')||1))));
 
   useEffect(()=>{
@@ -16,8 +16,6 @@ export default function OfficeBrandBridge({children}:{children:React.ReactNode})
     root.style.removeProperty('--office-primary');
     root.style.removeProperty('--office-secondary');
     root.classList.toggle('dark',dark);
-    root.dataset.lexTheme=dark?'dark':'light';
-    root.style.colorScheme=dark?'dark':'light';
     root.style.setProperty('--vision-scale',String(scale));
     localStorage.setItem('lexoffice-theme',dark?'dark':'light');
     localStorage.setItem('lexoffice-font-scale',String(scale));
@@ -32,7 +30,7 @@ export default function OfficeBrandBridge({children}:{children:React.ReactNode})
       <button type="button" onClick={smaller} disabled={scale<=1} aria-label="Diminuir tamanho do texto">A−</button>
       <span aria-live="polite">{Math.round(scale*100)}%</span>
       <button type="button" onClick={larger} disabled={scale>=1.25} aria-label="Aumentar tamanho do texto">A+</button>
-      <button type="button" className="vision-theme" onClick={()=>setDark(v=>!v)} aria-label={dark?'Ativar modo claro':'Ativar modo escuro'} aria-pressed={dark}>{dark?'☀ Claro':'☾ Escuro'}</button>
+      <button type="button" className="vision-theme" onClick={()=>setDark(v=>!v)} aria-label={dark?'Ativar modo claro':'Ativar modo escuro'}>{dark?'☀ Claro':'☾ Escuro'}</button>
     </div>
   </>;
 }
