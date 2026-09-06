@@ -6,6 +6,7 @@ import PlatformAdminEntry from './pages/PlatformAdminEntry';
 import PublicClientForm from './pages/PublicClientForm';
 import ClientFormShareAction from './components/ClientFormShareAction';
 import OfficeBrandBridge from './OfficeBrandBridge';
+import ThemeController from './ThemeController';
 import './styles.css';
 import './legacy-auth.css';
 import './interaction-feedback.css';
@@ -34,7 +35,6 @@ import './client-intake.css';
 import './legal-office-identity.css';
 import './table-interaction-fix.css';
 import './theme-modes.css';
-import './glass-premium.css';
 import './pwa-install';
 
 const intakePrefix='/formulario-cliente/';
@@ -47,7 +47,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       {isPublicIntake
         ? <PublicClientForm token={intakeToken}/>
-        : <OfficeBrandBridge><><RootApp/><ClientFormShareAction/></></OfficeBrandBridge>}
+        : <OfficeBrandBridge><><RootApp/><ClientFormShareAction/><ThemeController/></></OfficeBrandBridge>}
     </BrowserRouter>
   </React.StrictMode>
 );
