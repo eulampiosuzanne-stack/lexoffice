@@ -1,0 +1,16 @@
+{
+  "projectRef": "dcpwcuototomxoiszukt",
+  "purpose": "Edge Functions invoked by the frontend that are active in Supabase but whose source still needs to be recovered into this repository.",
+  "remoteOnly": [
+    "client-cpf-lookup",
+    "document-generate",
+    "google-calendar-oauth-start",
+    "legal-calculators",
+    "marketing-campaign-run",
+    "meta-whatsapp-oauth",
+    "whatsapp-release-agent",
+    "whatsapp-waha-connect",
+    "zapsign-configure",
+    "zapsign-send-signature"
+  ]
+}
