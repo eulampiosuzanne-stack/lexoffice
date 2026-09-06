@@ -31,6 +31,7 @@ import './accessible-final-theme.css';
 import './ux-maturity.css';
 import './pwa-fix.css';
 import './client-intake.css';
+import './legal-office-identity.css';
 import './pwa-install';
 
 const intakePrefix='/formulario-cliente/';
@@ -48,9 +49,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>
 );
 
-// Dashboard executive cards must behave as navigation shortcuts.
-// The current Dashboard component renders visual cards as divs, so this keeps
-// them keyboard/mouse accessible without changing its data-loading behavior.
 const dashboardTargets=['/processos','/crm','/clientes','/agenda','/agenda','/andamentos','/assinaturas','/agentes-ia'];
 document.addEventListener('click',(event)=>{
   const el=(event.target as HTMLElement | null)?.closest?.('.dashboard-kpi') as HTMLElement | null;
