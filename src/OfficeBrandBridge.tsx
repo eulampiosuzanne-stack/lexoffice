@@ -6,11 +6,7 @@ import { useEffect, useState } from 'react';
  * acessibilidade visual (tema e escala de leitura) sem alterar os dados do sistema.
  */
 export default function OfficeBrandBridge({children}:{children:React.ReactNode}){
-  const [dark,setDark]=useState(()=>{
-    const saved=localStorage.getItem('lexoffice-theme');
-    if(saved==='dark'||saved==='light')return saved==='dark';
-    return !window.matchMedia?.('(prefers-color-scheme: light)').matches;
-  });
+  const [dark,setDark]=useState(true);
   const [scale,setScale]=useState(()=>Math.min(1.25,Math.max(1,Number(localStorage.getItem('lexoffice-font-scale')||1))));
 
   useEffect(()=>{
