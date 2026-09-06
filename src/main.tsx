@@ -32,6 +32,7 @@ import './ux-maturity.css';
 import './pwa-fix.css';
 import './client-intake.css';
 import './legal-office-identity.css';
+import './table-interaction-fix.css';
 import './pwa-install';
 
 const intakePrefix='/formulario-cliente/';
