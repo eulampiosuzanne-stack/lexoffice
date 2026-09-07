@@ -35,57 +35,16 @@ import './client-intake.css';
 import './legal-office-identity.css';
 import './table-interaction-fix.css';
 import './theme-modes.css';
+import './lexoffice-reference-layout.css';
 import './pwa-install';
 
 const intakePrefix='/formulario-cliente/';
 const isPublicIntake=window.location.pathname.startsWith(intakePrefix);
 const intakeToken=isPublicIntake?decodeURIComponent(window.location.pathname.slice(intakePrefix.length).split('/')[0]||''):'';
 const RootApp=window.location.pathname.startsWith('/admin')?PlatformAdminEntry:App;
-
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      {isPublicIntake
-        ? <PublicClientForm token={intakeToken}/>
-        : <OfficeBrandBridge><><RootApp/><ClientFormShareAction/><ThemeController/></></OfficeBrandBridge>}
-    </BrowserRouter>
-  </React.StrictMode>
-);
-
+ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><BrowserRouter>{isPublicIntake?<PublicClientForm token={intakeToken}/>:<OfficeBrandBridge><><RootApp/><ClientFormShareAction/><ThemeController/></></OfficeBrandBridge>}</BrowserRouter></React.StrictMode>);
 const dashboardTargets=['/processos','/crm','/clientes','/agenda','/agenda','/andamentos','/assinaturas','/agentes-ia'];
-document.addEventListener('click',(event)=>{
-  const el=(event.target as HTMLElement | null)?.closest?.('.dashboard-kpi') as HTMLElement | null;
-  if(!el)return;
-  const cards=Array.from(document.querySelectorAll('.dashboard-kpi'));
-  const index=cards.indexOf(el);
-  const target=dashboardTargets[index];
-  if(target)window.location.assign(target);
-});
-document.addEventListener('keydown',(event)=>{
-  if(event.key!=='Enter'&&event.key!==' ')return;
-  const el=(event.target as HTMLElement | null)?.closest?.('.dashboard-kpi') as HTMLElement | null;
-  if(!el)return;
-  event.preventDefault();
-  el.click();
-});
-const decorateDashboardCards=()=>{
-  document.querySelectorAll<HTMLElement>('.dashboard-kpi').forEach((el,index)=>{
-    if(!dashboardTargets[index])return;
-    el.tabIndex=0;
-    el.setAttribute('role','link');
-    el.setAttribute('aria-label',`Abrir ${el.innerText.replace(/\s+/g,' ').trim()}`);
-    el.style.cursor='pointer';
-  });
-};
-new MutationObserver(decorateDashboardCards).observe(document.documentElement,{childList:true,subtree:true});
-decorateDashboardCards();
-
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').then((registration) => {
-      registration.update().catch(()=>undefined);
-    }).catch((error) => {
-      console.error('LEXOFFICE service worker registration failed:', error);
-    });
-  });
-}
+document.addEventListener('click',(event)=>{const el=(event.target as HTMLElement|null)?.closest?.('.dashboard-kpi') as HTMLElement|null;if(!el)return;const cards=Array.from(document.querySelectorAll('.dashboard-kpi'));const target=dashboardTargets[cards.indexOf(el)];if(target)window.location.assign(target)});
+document.addEventListener('keydown',(event)=>{if(event.key!=='Enter'&&event.key!==' ')return;const el=(event.target as HTMLElement|null)?.closest?.('.dashboard-kpi') as HTMLElement|null;if(!el)return;event.preventDefault();el.click()});
+const decorateDashboardCards=()=>{document.querySelectorAll<HTMLElement>('.dashboard-kpi').forEach((el,index)=>{if(!dashboardTargets[index])return;el.tabIndex=0;el.setAttribute('role','link');el.setAttribute('aria-label',`Abrir ${el.innerText.replace(/\s+/g,' ').trim()}`);el.style.cursor='pointer'})};new MutationObserver(decorateDashboardCards).observe(document.documentElement,{childList:true,subtree:true});decorateDashboardCards();
+if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').then(r=>r.update().catch(()=>undefined)).catch(error=>console.error('LEXOFFICE service worker registration failed:',error))})}
