@@ -1,0 +1,138 @@
+/* LEXOFFICE Visual System — preview branch only. Keep as the final CSS import. */
+:root {
+  --lx-bg-image: url('/assets/lexoffice-office-background.webp');
+  --lx-wine: #c82d55;
+  --lx-wine-deep: #8f1738;
+  --lx-cyan: #35b9e8;
+  --lx-text: #f4f6f9;
+  --lx-muted: #98a1ae;
+  --lx-glass: rgba(31, 40, 53, .70);
+  --lx-glass-strong: rgba(18, 24, 33, .82);
+  --lx-line: rgba(214, 225, 239, .16);
+  --lx-highlight: rgba(255, 255, 255, .12);
+  --lx-shadow: 0 22px 55px rgba(0, 0, 0, .28);
+  --lx-radius: 14px;
+  --vision-scale: 1;
+  color-scheme: dark;
+}
+
+html, body, #root { min-height: 100%; background: #111820 !important; color: var(--lx-text) !important; }
+html { font-size: calc(16px * var(--vision-scale)); }
+body {
+  margin: 0;
+  background-image: linear-gradient(115deg, rgba(8, 13, 19, .72), rgba(12, 18, 26, .58)), var(--lx-bg-image) !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-attachment: fixed !important;
+  overflow-x: hidden;
+}
+
+.app {
+  display: grid !important;
+  grid-template-columns: 78px minmax(0, 1fr) !important;
+  min-height: 100dvh !important;
+  padding: 18px !important;
+  gap: 14px !important;
+  background: linear-gradient(90deg, rgba(7, 12, 18, .20), rgba(7, 12, 18, .06)) !important;
+}
+
+.app > aside,
+.app > main {
+  position: relative !important;
+  inset: auto !important;
+  margin: 0 !important;
+  min-width: 0 !important;
+  height: calc(100dvh - 36px) !important;
+  border: 1px solid var(--lx-line) !important;
+  background: linear-gradient(155deg, var(--lx-highlight), transparent 34%), var(--lx-glass-strong) !important;
+  box-shadow: var(--lx-shadow), inset 0 1px 0 rgba(255,255,255,.08) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(125%) !important;
+  backdrop-filter: blur(24px) saturate(125%) !important;
+}
+.app > aside { display: flex !important; width: 78px !important; min-width: 78px !important; border-radius: 0 !important; overflow: hidden !important; }
+.app > main { width: auto !important; border-radius: 18px !important; overflow: auto !important; }
+
+.app > aside .brand { height: 76px !important; justify-content: center !important; padding: 0 !important; }
+.app > aside .brand > div:last-child,
+.app > aside .nav-group > small,
+.app > aside .profile-copy,
+.app > aside .logout { display: none !important; }
+.app > aside .logo { width: 30px !important; height: 30px !important; border-radius: 9px !important; background: linear-gradient(145deg, #d2355c, #8f1737) !important; color: #fff !important; box-shadow: 0 8px 22px rgba(173, 31, 70, .28) !important; }
+.app > aside nav { min-height: 0 !important; overflow-y: auto !important; scrollbar-width: none; padding: 8px 0 80px !important; }
+.app > aside nav::-webkit-scrollbar { display: none; }
+.app > aside .nav-group { margin: 5px 0 !important; }
+.app > aside .nav-group a { display: flex !important; width: 42px !important; min-width: 42px !important; height: 42px !important; min-height: 42px !important; margin: 4px auto !important; padding: 0 !important; justify-content: center !important; gap: 0 !important; font-size: 0 !important; color: #8993a0 !important; border: 1px solid transparent !important; border-radius: 11px !important; }
+.app > aside .nav-group a svg { width: 17px !important; height: 17px !important; }
+.app > aside .nav-group a:hover,
+.app > aside .nav-group a.active { color: #fff !important; background: linear-gradient(145deg, rgba(210, 45, 84, .28), rgba(109, 21, 47, .18)) !important; border-color: rgba(218, 51, 91, .42) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 8px 20px rgba(0,0,0,.16) !important; }
+.app > aside .profile { position: absolute !important; left: 0 !important; right: 0 !important; bottom: 0 !important; min-height: 62px !important; justify-content: center !important; padding: 0 !important; background: rgba(8,12,17,.30) !important; border-top: 1px solid rgba(255,255,255,.07) !important; }
+.app > aside .avatar { width: 28px !important; height: 28px !important; font-size: .65rem !important; background: linear-gradient(145deg,#d2355c,#8f1737) !important; }
+
+.app > main > header { min-height: 66px !important; height: 66px !important; margin: 0 !important; padding: 0 26px !important; border: 0 !important; border-bottom: 1px solid rgba(255,255,255,.07) !important; border-radius: 0 !important; background: linear-gradient(180deg,rgba(255,255,255,.035),transparent) !important; box-shadow: none !important; }
+.app .crumb { color: #cdd2da !important; font-size: .82rem !important; font-weight: 750 !important; }
+.app .tools { color: var(--lx-muted) !important; }
+.app .search, .app .tools button { background: rgba(255,255,255,.05) !important; color: #bdc4ce !important; border: 1px solid rgba(255,255,255,.09) !important; border-radius: 999px !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.05) !important; }
+.app .content { width: 100% !important; max-width: 1500px !important; margin: 0 auto !important; padding: 26px clamp(18px,2.5vw,38px) 90px !important; }
+
+.app h1, .app h2, .app h3, .app strong { color: var(--lx-text) !important; }
+.app .page-title h1, .app .page-head h1, .app .module h1 { font: 750 clamp(1.65rem,2vw,2rem)/1.15 Inter,system-ui,sans-serif !important; letter-spacing: -.025em !important; }
+.app .page-title p, .app .page-head p, .app .module > p { color: var(--lx-muted) !important; font-size: .92rem !important; }
+
+.app .dashboard-kpi,
+.app .dashboard-panel,
+.app .card,
+.app .module-box,
+.app .table-panel,
+.app .smart-panel,
+.app .smart-card,
+.app .integration-panel,
+.app .integration-card,
+.app .connection-card,
+.app .agent-console,
+.app .agent-item,
+.app .permission,
+.app .settings-panel,
+.app .report-card,
+.app .lane,
+.app .lead-card,
+.app .rule-modal,
+.app .movement-feed-panel,
+.app .movement-card,
+.app .wa-panel,
+.app .wa-kpi {
+  position: relative;
+  color: var(--lx-text) !important;
+  background: linear-gradient(150deg, rgba(83, 96, 114, .64), rgba(29, 38, 50, .74)) !important;
+  border: 1px solid var(--lx-line) !important;
+  border-radius: var(--lx-radius) !important;
+  box-shadow: var(--lx-shadow), inset 0 1px 0 rgba(255,255,255,.11) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(120%) !important;
+  backdrop-filter: blur(20px) saturate(120%) !important;
+}
+.app .dashboard-kpi::before, .app .dashboard-panel::before, .app .card::before, .app .module-box::before, .app .table-panel::before, .app .integration-panel::before, .app .agent-console::before, .app .settings-panel::before {
+  content: "" !important; position: absolute !important; left: 9% !important; right: 9% !important; top: 0 !important; height: 1px !important; background: linear-gradient(90deg,transparent,rgba(255,255,255,.30),transparent) !important; pointer-events: none;
+}
+.app .dashboard-kpis, .app .cards, .app .dashboard-grid-main, .app .dashboard-grid-bottom, .app .smart-grid, .app .report-grid { gap: 14px !important; }
+.app .dashboard-kpi, .app .card { min-height: 124px !important; padding: 18px !important; }
+.app .dashboard-kpi strong, .app .card strong { font: 760 1.65rem/1.1 Inter,system-ui,sans-serif !important; }
+.app .dashboard-kpi span, .app .card span { color: #a3abb6 !important; }
+
+.app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), .app select, .app textarea, .app .input-search {
+  min-height: 46px !important; color: #f5f7fa !important; background: rgba(7, 12, 18, .44) !important; border: 1px solid rgba(215,225,238,.16) !important; border-radius: 10px !important; box-shadow: inset 0 1px 3px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.035) !important;
+}
+.app input:focus, .app select:focus, .app textarea:focus { border-color: rgba(211,49,88,.62) !important; box-shadow: 0 0 0 3px rgba(200,45,85,.14), inset 0 1px 3px rgba(0,0,0,.28) !important; }
+.app .primary, .app .integration-action, .app [type="submit"] { color:#fff !important; background: linear-gradient(135deg,var(--lx-wine),var(--lx-wine-deep)) !important; border: 1px solid rgba(255,255,255,.10) !important; box-shadow: 0 10px 25px rgba(155,24,59,.25), inset 0 1px 0 rgba(255,255,255,.13) !important; }
+.app .secondary, .app button:not(.primary):not(.integration-action):not([type="submit"]) { color:#dce1e8 !important; background: rgba(255,255,255,.055) !important; border-color: rgba(255,255,255,.11) !important; }
+.app table { width:100% !important; color:#dce1e8 !important; }.app th { color:#8f99a7 !important; border-bottom-color:rgba(255,255,255,.10) !important; }.app td { color:#d0d6de !important; border-bottom-color:rgba(255,255,255,.065) !important; }.app tbody tr:hover { background:rgba(255,255,255,.045) !important; }
+.app .online, .app .agent-online { color:#6adbb2 !important; }.app .badge.active, .app .permission.allowed, .app .power.active { color:#6adbb2 !important; background:rgba(45,112,86,.20) !important; border-color:rgba(106,219,178,.25) !important; }
+
+.vision-dock { right:18px !important; bottom:18px !important; left:auto !important; z-index:13000 !important; background:rgba(16,22,30,.82) !important; border:1px solid var(--lx-line) !important; border-radius:12px !important; -webkit-backdrop-filter:blur(20px) !important; backdrop-filter:blur(20px) !important; }
+.vision-dock button { min-height:40px !important; background:rgba(255,255,255,.08) !important; color:#fff !important; border:1px solid rgba(255,255,255,.12) !important; }
+
+@media (hover:hover) and (prefers-reduced-motion:no-preference) { .app .dashboard-kpi:hover,.app .card:hover,.app .smart-card:hover,.app .agent-item:hover,.app .integration-card:hover { transform:translateY(-2px) !important; border-color:rgba(217,69,105,.28) !important; } }
+@media (max-width:1100px) { .app .dashboard-kpis,.app .cards { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }.app .dashboard-grid-main,.app .dashboard-grid-bottom { grid-template-columns:1fr !important; }.app .search { display:none !important; } }
+@media (max-width:680px) { .app { padding:8px !important; grid-template-columns:64px minmax(0,1fr) !important; gap:8px !important; }.app > aside { width:64px !important; min-width:64px !important; height:calc(100dvh - 16px) !important; }.app > main { height:calc(100dvh - 16px) !important; }.app > main > header { padding:0 12px !important; }.app .content { padding:18px 12px 88px !important; }.app .dashboard-kpis,.app .cards,.app .smart-grid,.app .report-grid { grid-template-columns:1fr !important; }.app .tools > button,.app .tools > svg { display:none !important; } }
+@media (prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto !important; animation-duration:.01ms !important; transition-duration:.01ms !important; } }
+
+/* Login remains intentionally independent from the internal glass workspace. */
+.legacy-auth,.legacy-auth * { -webkit-backdrop-filter:none !important; backdrop-filter:none !important; }
