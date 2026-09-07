@@ -35,6 +35,7 @@ import './client-intake.css';
 import './legal-office-identity.css';
 import './table-interaction-fix.css';
 import './theme-modes.css';
+import './lexoffice-visual-system.css';
 import './pwa-install';
 
 const intakePrefix='/formulario-cliente/';
