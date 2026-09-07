@@ -1,10 +1,13 @@
 name: Build ICP-Brasil Bridge
 on:
   push:
+    branches: [main]
     paths:
       - 'tools/icpbr-bridge/**'
       - '.github/workflows/build-icpbr-bridge.yml'
   workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   build:
     runs-on: windows-latest
@@ -18,15 +21,38 @@ jobs:
       - name: Build bridge
         working-directory: tools/icpbr-bridge
         run: mvn -B clean package
-      - name: Prepare package
+      - name: Prepare Windows physical A3 package
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           Copy-Item tools/icpbr-bridge/target/lexoffice-icpbr-bridge.jar dist/lexoffice-icpbr-bridge.jar
-          '@echo off`r`ntitle LEXOFFICE ICP-Brasil Bridge`r`njava -jar "%~dp0lexoffice-icpbr-bridge.jar"`r`npause' | Set-Content -Encoding ascii dist/Iniciar-LEXOFFICE-ICPBR.bat
-          'A ponte abre somente em 127.0.0.1:17681. Conecte o token A3 e execute Iniciar-LEXOFFICE-ICPBR.bat. O PIN e a chave privada nunca saem do computador.' | Set-Content -Encoding utf8 dist/LEIA-ME.txt
+          Copy-Item tools/icpbr-bridge/README.md dist/LEIA-ME.txt
+          @'
+          @echo off
+          setlocal
+          chcp 65001 >nul
+          title LEXOFFICE - ICP-Brasil A3
+          cd /d "%~dp0"
+          set "LEXOFFICE_KEYSTORE_TYPE=PKCS11"
+          set "LEXOFFICE_PKCS11_DLL=C:\Windows\System32\aetpkss1.dll"
+          if not exist "%LEXOFFICE_PKCS11_DLL%" (
+            echo ERRO: SafeSign nao encontrado em %LEXOFFICE_PKCS11_DLL%
+            pause
+            exit /b 1
+          )
+          where java >nul 2>nul || (
+            echo ERRO: Java nao encontrado.
+            pause
+            exit /b 1
+          )
+          echo Iniciando ponte LEXOFFICE em 127.0.0.1:17681...
+          echo O PIN fica somente neste computador.
+          java -jar "%~dp0lexoffice-icpbr-bridge.jar"
+          pause
+          '@ | Set-Content -Encoding ascii dist/INICIAR-LEXOFFICE-ICP.bat
       - uses: actions/upload-artifact@v4
         with:
-          name: lexoffice-icpbr-bridge-windows
+          name: LEXOFFICE-ICP-Brasil-A3-Windows
           path: dist/*
           if-no-files-found: error
+          retention-days: 30
