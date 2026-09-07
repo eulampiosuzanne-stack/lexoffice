@@ -12,6 +12,9 @@
   --lx-highlight: rgba(255, 255, 255, .12);
   --lx-shadow: 0 22px 55px rgba(0, 0, 0, .28);
   --lx-radius: 14px;
+  --sf-gold: var(--lx-wine);
+  --sf-gold-light: #e45b7c;
+  --sf-border: rgba(200,45,85,.28);
   --vision-scale: 1;
   color-scheme: dark;
 }
@@ -64,7 +67,7 @@ body {
 .app > aside .nav-group a { display: flex !important; width: 42px !important; min-width: 42px !important; height: 42px !important; min-height: 42px !important; margin: 4px auto !important; padding: 0 !important; justify-content: center !important; gap: 0 !important; font-size: 0 !important; color: #8993a0 !important; border: 1px solid transparent !important; border-radius: 11px !important; }
 .app > aside .nav-group a svg { width: 17px !important; height: 17px !important; }
 .app > aside .nav-group a:hover,
-.app > aside .nav-group a.active { color: #d8dde5 !important; background: linear-gradient(145deg, rgba(194, 38, 75, .30), rgba(112, 21, 47, .20)) !important; border-color: rgba(218, 51, 91, .42) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 8px 20px rgba(0,0,0,.16) !important; }
+.app > aside .nav-group a.active { color: #8993a0 !important; background: linear-gradient(145deg, rgba(194, 38, 75, .30), rgba(112, 21, 47, .20)) !important; border-color: rgba(218, 51, 91, .42) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 8px 20px rgba(0,0,0,.16) !important; }
 .app > aside .profile { position: absolute !important; left: 0 !important; right: 0 !important; bottom: 0 !important; min-height: 62px !important; justify-content: center !important; padding: 0 !important; background: rgba(8,12,17,.30) !important; border-top: 1px solid rgba(255,255,255,.07) !important; }
 .app > aside .avatar { width: 28px !important; height: 28px !important; font-size: .65rem !important; background: linear-gradient(145deg,#d2355c,#8f1737) !important; }
 
@@ -113,6 +116,12 @@ body {
   content: "" !important; position: absolute !important; left: 9% !important; right: 9% !important; top: 0 !important; height: 1px !important; background: linear-gradient(90deg,transparent,rgba(255,255,255,.30),transparent) !important; pointer-events: none;
 }
 .app .dashboard-kpis, .app .cards, .app .dashboard-grid-main, .app .dashboard-grid-bottom, .app .smart-grid, .app .report-grid { gap: 14px !important; }
++.app .system-bar { color:#9099a6 !important; background:rgba(20,28,38,.42) !important; border-color:rgba(210,222,237,.13) !important; box-shadow:inset 0 1px 0 rgba(255,255,255,.05) !important; }
++.app .card-icon, .app .dashboard-kpi-icon, .app .smart-card > svg, .app .agent-icon, .app .report-card-head svg { color:#a7b0bc !important; background:rgba(255,255,255,.045) !important; border-color:rgba(255,255,255,.10) !important; box-shadow:none !important; }
++.app > aside .nav-group a.active svg, .app > aside .nav-group a:hover svg { color:#8993a0 !important; }
++.app .brand b, .app .brand b span, .app .brand small { color:#d8dde5 !important; }
++.app .badge:not(.active), .app .status-badge { color:#cbd1d9 !important; border-color:rgba(255,255,255,.12) !important; background:rgba(255,255,255,.05) !important; }
++.app [style*="#d9a441"], .app [style*="#c9a24a"] { color:var(--lx-wine) !important; }
 .app .dashboard-kpi, .app .card { min-height: 124px !important; padding: 18px !important; }
 .app .dashboard-kpi strong, .app .card strong { font: 760 1.65rem/1.1 Inter,system-ui,sans-serif !important; }
 .app .dashboard-kpi span, .app .card span { color: #a3abb6 !important; }
