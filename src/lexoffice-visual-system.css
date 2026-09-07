@@ -39,7 +39,25 @@ body {
   background: rgba(7, 12, 18, .05) !important;
 }
 
-.app > aside,
+.app::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(rgba(122,147,174,.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(122,147,174,.045) 1px, transparent 1px),
+    radial-gradient(ellipse 46% 42% at 4% 72%, rgba(38,150,181,.30), transparent 70%),
+    radial-gradient(ellipse 44% 38% at 94% 18%, rgba(150,31,66,.28), transparent 72%),
+    radial-gradient(ellipse 42% 34% at 72% 92%, rgba(35,111,153,.20), transparent 72%);
+  background-size: 54px 54px, 54px 54px, auto, auto, auto;
+  mix-blend-mode: screen;
+  opacity: .78;
+}
++.app > aside, .app > main { z-index: 1 !important; }
++
++.app > aside,
 .app > main {
   position: relative !important;
   inset: auto !important;
