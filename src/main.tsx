@@ -27,8 +27,10 @@ import './reference-ui.css';
 import './ux-maturity.css';
 import './client-intake.css';
 import './table-interaction-fix.css';
-/* Single authoritative visual layer: approved LEXOFFICE layout. */
+/* Approved LEXOFFICE base reference. */
 import './lexoffice-reference-layout.css';
+/* Final authority for color and typography across every module. */
+import './lexoffice-final-system.css';
 
 const intakePrefix='/formulario-cliente/';
 const isPublicIntake=window.location.pathname.startsWith(intakePrefix);
