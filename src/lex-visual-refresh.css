@@ -23,3 +23,10 @@ html:not([data-lex-theme="light"]) .legacy-card{background:linear-gradient(180de
 html:not([data-lex-theme="light"]) .legacy-logo{background:var(--lex-accent)!important}
 html:not([data-lex-theme="light"]) .legacy-enter{background:linear-gradient(135deg,var(--lex-accent),var(--lex-accent-dark))!important}
 @media(max-width:700px){html:not([data-lex-theme="light"]) body{background-attachment:scroll!important}}
+
+/* Sidebar compacta: neutraliza a tipografia global de acessibilidade sem perder os rótulos acessíveis. */
+.app>aside{overflow:hidden!important}
+.app>aside nav{overflow-y:auto!important;overflow-x:hidden!important;scrollbar-width:none!important}
+.app>aside nav::-webkit-scrollbar{display:none!important}
+.app .nav-group a{width:42px!important;min-width:42px!important;max-width:42px!important;height:42px!important;margin:3px auto!important;padding:0!important;gap:0!important;justify-content:center!important;font-size:0!important;line-height:1!important;letter-spacing:0!important;white-space:nowrap!important;overflow:hidden!important}
+.app .nav-group a svg{width:17px!important;height:17px!important;min-width:17px!important;flex:0 0 17px!important;margin:0!important}
