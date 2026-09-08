@@ -125,3 +125,7 @@ html:not([data-lex-theme="light"]) .app [class*="action"]{
   white-space:normal!important;
   overflow-wrap:anywhere;
 }
+
+
+/* Neutraliza a ampliação legada de 18px sem interferir no tema claro. */
+html:not([data-lex-theme="light"]){font-size:16px!important}
