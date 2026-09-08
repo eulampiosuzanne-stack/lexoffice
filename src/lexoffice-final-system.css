@@ -1,140 +1,263 @@
-/* FINAL LEXOFFICE DESIGN SYSTEM
-   Authoritative last-pass stylesheet. Keeps every module in the approved visual language. */
+/* ============================================================
+   LEXOFFICE — FINAL DESIGN SYSTEM
+   Single authority for color, typography and surface treatment
+   across every module of the app. Loaded last on purpose so it
+   wins the cascade over any legacy per-page stylesheet.
+   Palette: graphite/navy background, one accent (wine/crimson),
+   cyan for informational states, green for positive/online states,
+   amber for warnings. One approved typeface: Inter.
+   ============================================================ */
 :root{
-  --lx-bg:#15191e;
-  --lx-bg-2:#11161b;
-  --lx-sidebar:#181e24;
-  --lx-surface:#222b35;
-  --lx-surface-2:#2a3440;
-  --lx-surface-3:#303b47;
-  --lx-border:rgba(255,255,255,.10);
+  --lx-bg:#0a0d13;
+  --lx-bg-2:#0e131b;
+  --lx-sidebar:#0b0f16;
+  --lx-surface:#121722;
+  --lx-surface-2:#171d29;
+  --lx-surface-3:#1d2431;
+  --lx-border:rgba(255,255,255,.09);
   --lx-border-strong:rgba(255,255,255,.16);
-  --lx-text:#f4f6f8;
-  --lx-text-2:#d9dee4;
-  --lx-muted:#9ca5b1;
-  --lx-subtle:#77818c;
-  --lx-accent:#b92749;
-  --lx-accent-dark:#8e1835;
-  --lx-accent-soft:rgba(185,39,73,.14);
-  --lx-info:#27a8d5;
-  --lx-info-soft:rgba(39,168,213,.12);
-  --lx-radius:12px;
+  --lx-text:#f3f5f8;
+  --lx-text-2:#d7dce4;
+  --lx-muted:#8b93a3;
+  --lx-subtle:#6b7383;
+  --lx-accent:#c62b50;
+  --lx-accent-2:#e0395c;
+  --lx-accent-dark:#8e1837;
+  --lx-accent-soft:rgba(198,43,80,.14);
+  --lx-info:#3aa8dc;
+  --lx-info-soft:rgba(58,168,220,.12);
+  --lx-success:#3ecf8e;
+  --lx-success-soft:rgba(62,207,142,.12);
+  --lx-warning:#e2924a;
+  --lx-warning-soft:rgba(226,146,74,.12);
+  --lx-radius:14px;
+  --lx-radius-sm:10px;
   --lx-font:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
 }
 
-html,body,#root,.app{background:var(--lx-bg)!important;color:var(--lx-text)!important;font-family:var(--lx-font)!important}
-body{font-size:14px!important;line-height:1.45!important;letter-spacing:0!important}
+/* ---- Global reset: one background, one text color, one font ---- */
+html,body,#root{background:var(--lx-bg)!important;color:var(--lx-text)!important}
+body{font-family:var(--lx-font)!important;font-size:14px!important;line-height:1.45!important;letter-spacing:0!important}
+*,*:before,*:after{font-family:inherit}
 .app,.app *:not(svg):not(path){font-family:var(--lx-font)!important}
+.app{background:var(--lx-bg)!important}
 
-/* TYPOGRAPHY */
-.app h1,.app .page-title h1{font-size:24px!important;line-height:1.2!important;font-weight:700!important;letter-spacing:-.02em!important;color:var(--lx-text)!important;margin-top:0!important}
-.app h2{font-size:18px!important;line-height:1.3!important;font-weight:700!important;letter-spacing:-.01em!important;color:var(--lx-text)!important}
-.app h3{font-size:15px!important;line-height:1.35!important;font-weight:700!important;color:var(--lx-text)!important}
-.app h4,.app h5,.app h6{font-size:13px!important;line-height:1.35!important;font-weight:700!important;color:var(--lx-text)!important}
-.app p,.app label,.app small,.app .muted,.app [class*="subtitle"],.app [class*="description"]{font-size:12px!important;line-height:1.45!important;color:var(--lx-muted)!important}
-.app strong,.app b{font-weight:700!important;color:var(--lx-text)!important}
+/* Also apply outside the authenticated shell: login, admin login,
+   public intake form and the client-share modal all render before
+   `.app` exists, so they need the same reset explicitly. */
+.legacy-auth,.legacy-auth *:not(svg):not(path),
+.public-intake-page,.public-intake-page *:not(svg):not(path),
+.public-intake-state,.public-intake-state *:not(svg):not(path),
+.client-share-modal,.client-share-modal *:not(svg):not(path),
+.client-share-trigger{font-family:var(--lx-font)!important}
+.auth-loading{background:var(--lx-bg)!important;color:var(--lx-accent)!important;font-family:var(--lx-font)!important;font-weight:700!important;letter-spacing:.3em!important}
+
+/* ---- Typography ----
+   `.app.app` repeats the same class on purpose: it does not change which
+   elements match, only raises specificity, so these rules keep winning
+   over any leftover two-class legacy selector (e.g. `.module .page-head h1`)
+   without hunting down every offending file individually. */
+.app h1,.app.app h1,.app .page-title h1,.legacy-copy h1,.legacy-card h2,.public-intake-card header h1{font-size:24px!important;line-height:1.2!important;font-weight:700!important;letter-spacing:-.02em!important;color:var(--lx-text)!important;font-family:var(--lx-font)!important;margin-top:0!important}
+.app h2,.app.app h2,.public-intake-card h2{font-size:17px!important;line-height:1.3!important;font-weight:700!important;letter-spacing:-.01em!important;color:var(--lx-text)!important;font-family:var(--lx-font)!important}
+.app h3,.app.app h3{font-size:15px!important;line-height:1.35!important;font-weight:700!important;color:var(--lx-text)!important}
+.app h4,.app h5,.app h6,.app.app h4,.app.app h5,.app.app h6{font-size:13px!important;line-height:1.35!important;font-weight:700!important;color:var(--lx-text)!important}
+.app p,.app label,.app small,.app .muted,.app [class*="subtitle"],.app [class*="description"],
+.app.app p,.app.app label,.app.app small{font-size:12px!important;line-height:1.45!important;color:var(--lx-muted)!important}
+.app strong,.app b,.app.app strong,.app.app b{font-weight:700!important;color:var(--lx-text)!important;font-family:var(--lx-font)!important;font-size:inherit!important}
 .app button,.app input,.app select,.app textarea,.app table,.app th,.app td,.app a{font-size:13px!important;line-height:1.35!important}
-.app th{font-size:11px!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.04em!important}
+.app th{font-size:10px!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.06em!important}
 .app td{font-weight:450!important}
-.app .page-title p{font-size:12px!important;margin-top:4px!important}
+.app .page-title p,.app .page-head p{font-size:12px!important;margin-top:4px!important;color:var(--lx-muted)!important}
+.app .eyebrow{color:var(--lx-accent-2)!important;font-family:var(--lx-font)!important}
 
-/* CORE SURFACES */
-.app main,.app .main,.app [class*="page"]{color:var(--lx-text)}
-.app .card,.app [class$="-card"],.app [class*="-card "],.app .panel,.app [class$="-panel"],.app [class*="-panel "],.app .modal-card,.app .lane,.app .permission,.app .smart-card,.app .connection-card,.app .agent-item,.app .agent-console,.app .table-panel,.app .settings-panel,.app .integration-panel{
+/* Every stat/emphasis number in the app (card totals, KPI values,
+   report numbers) renders the same weight/size regardless of which
+   legacy module it came from. */
+.app .card strong,.app .report-card>strong,.app .movement-number,.app .agent-console-head h2,.app .rule-head h2,.app .smart-title h2{
+  font-family:var(--lx-font)!important;font-weight:700!important;font-size:24px!important;color:var(--lx-text)!important;
+}
+
+/* ---- Core surfaces: every card/panel in the app shares one look ---- */
+.app .card,.app [class$="-card"],.app [class*="-card "],
+.app .panel,.app [class$="-panel"],.app [class*="-panel "],
+.app .modal-card,.app .lane,.app .permission,.app .smart-card,.app .smart-panel,
+.app .connection-card,.app .agent-item,.app .agent-console,.app .table-panel,
+.app .module-box,.app .settings-panel,.app .integration-panel,.app .integration-card,
+.app .rule-modal,.app .dash-panel,.app [class^="dr-card"],.app .dashboard-reference,
+.app [class^="dr-"],.app [class^="cs-panel"],.app [class^="cs-hero"],.app [class^="cs-stats"]{
   background:var(--lx-surface)!important;
   color:var(--lx-text)!important;
   border:1px solid var(--lx-border)!important;
   border-radius:var(--lx-radius)!important;
   box-shadow:none!important;
   background-image:none!important;
+  backdrop-filter:none!important;
 }
 .app [style*="linear-gradient"],.app [style*="radial-gradient"]{background-image:none!important}
+.app .dashboard-reference{border-radius:20px!important;padding:24px 26px!important}
+.app .dr-kpi,.app .dr-card{border-radius:13px!important}
+.app .dr-kpi em{color:var(--lx-accent-2)!important}
+.app .dr-user b{background:var(--lx-accent)!important}
+.app .dr-new{background:var(--lx-accent)!important}
+.app .dr-bell,.app .dr-user,.app .dr-card header>span,.app .dr-card header button{background:var(--lx-surface-2)!important;color:var(--lx-text-2)!important}
+.app .dr-ring:after{background:var(--lx-surface)!important}
 
-/* SIDEBAR AND TOP CHROME */
+/* Small circular/rounded icon badges used inside cards and list rows
+   (card-icon, agent-icon, doc-section-icon, integration-icon, etc.)
+   all get the same neutral-surface + accent-icon treatment instead of
+   each module's own random color. */
+.app [class$="-icon"]:not(svg),.app [class*="-icon "]:not(svg){
+  background:var(--lx-surface-2)!important;
+  color:var(--lx-accent-2)!important;
+  border:1px solid var(--lx-border)!important;
+  box-shadow:none!important;
+  background-image:none!important;
+}
+
+/* ---- Sidebar and top chrome ---- */
 .app aside{background:var(--lx-sidebar)!important;border-color:var(--lx-border)!important}
-.app header,.app .topbar,.app .page-header,.app .page-head{background:transparent!important;border-color:var(--lx-border)!important}
+.app header,.app .topbar,.app .page-header,.app .page-head{background:transparent!important;border-color:var(--lx-border)!important;box-shadow:none!important}
+.app .brand .logo{background:var(--lx-accent)!important;background-image:none!important;color:#fff!important;border-color:rgba(255,255,255,.14)!important;font-family:var(--lx-font)!important}
+.app .brand b,.app .brand b span{font-family:var(--lx-font)!important;color:var(--lx-text)!important}
+.app .brand b span{color:var(--lx-accent-2)!important}
 .app aside nav a{color:var(--lx-subtle)!important}
 .app aside nav a:hover{background:rgba(255,255,255,.05)!important;color:var(--lx-text-2)!important}
 .app aside nav a.active{background:var(--lx-accent-soft)!important;color:#ef6a88!important;border-color:rgba(185,39,73,.36)!important}
+.app aside nav a svg{color:inherit!important}
+.app .profile{background:var(--lx-bg-2)!important;border-color:var(--lx-border)!important}
+.app .avatar{background:var(--lx-accent)!important;background-image:none!important;color:#fff!important}
+.app .tools button,.app .input-search,.app .search{background:var(--lx-surface-2)!important;color:var(--lx-text-2)!important;border:1px solid var(--lx-border)!important}
+.app .crumb{color:var(--lx-text)!important}
 
-/* BUTTONS */
+/* ---- Buttons ---- */
 .app button,.app .secondary,.app [class*="secondary"]{
   min-height:36px!important;
   border-radius:9px!important;
-  background:#252e38!important;
+  background:var(--lx-surface-2)!important;
+  background-image:none!important;
   color:var(--lx-text-2)!important;
   border:1px solid var(--lx-border)!important;
   box-shadow:none!important;
-  font-weight:650!important;
+  font-weight:600!important;
 }
-.app button:hover,.app .secondary:hover,.app [class*="secondary"]:hover{background:#2e3944!important;border-color:var(--lx-border-strong)!important}
-.app .primary,.app [class*="primary"],.app .integration-action,.app .calculator-run,.app .doc-primary,.app .doc-refresh,.app button[type="submit"]{
+.app button:hover,.app .secondary:hover,.app [class*="secondary"]:hover{background:var(--lx-surface-3)!important;border-color:var(--lx-border-strong)!important}
+.app .primary,.app [class*="primary"],.app .integration-action,.app .calculator-run,.app .doc-primary,.app .doc-refresh,.app button[type="submit"],.app .cs-primary{
   background:var(--lx-accent)!important;
+  background-image:none!important;
   color:#fff!important;
-  border-color:#ca3d60!important;
+  border-color:var(--lx-accent-2)!important;
 }
-.app .primary:hover,.app [class*="primary"]:hover,.app button[type="submit"]:hover{background:#a41f40!important}
+.app .primary:hover,.app [class*="primary"]:hover,.app button[type="submit"]:hover{background:var(--lx-accent-dark)!important}
 .app .danger,.app [class*="danger"],.app [class*="destructive"]{background:var(--lx-accent-soft)!important;color:#ef7892!important;border-color:rgba(239,120,146,.3)!important}
+.app .power.active,.app [class*="active"].power{background:var(--lx-success-soft)!important;color:var(--lx-success)!important;border-color:rgba(62,207,142,.3)!important}
 
-/* FORMS */
-.app input,.app select,.app textarea,.app .input-search{
-  background:#171e25!important;
+/* ---- Forms ---- */
+.app input,.app select,.app textarea,.app .input-search input{
+  background:var(--lx-bg-2)!important;
   color:var(--lx-text)!important;
   border:1px solid var(--lx-border-strong)!important;
   border-radius:9px!important;
   box-shadow:none!important;
   font-weight:450!important;
 }
-.app input::placeholder,.app textarea::placeholder{color:#6f7b88!important}
-.app input:focus,.app select:focus,.app textarea:focus{outline:none!important;border-color:rgba(185,39,73,.72)!important;box-shadow:0 0 0 3px rgba(185,39,73,.10)!important}
-.app option{background:#1b222a!important;color:#fff!important}
+.app input::placeholder,.app textarea::placeholder{color:var(--lx-subtle)!important}
+.app input:focus,.app select:focus,.app textarea:focus{outline:none!important;border-color:rgba(198,43,80,.72)!important;box-shadow:0 0 0 3px rgba(198,43,80,.10)!important}
+.app option{background:var(--lx-surface-2)!important;color:#fff!important}
+.app .toggle-row input,.app input[type="checkbox"]{accent-color:var(--lx-accent)!important}
 
-/* TABLES AND LISTS */
+/* ---- Tables and lists ---- */
 .app table{background:transparent!important;color:var(--lx-text)!important}
-.app thead,.app th{background:#1b232b!important;color:#aeb7c2!important}
+.app thead,.app th{background:var(--lx-surface-2)!important;color:var(--lx-muted)!important}
 .app tbody tr{background:transparent!important}
 .app tbody tr:nth-child(even){background:rgba(255,255,255,.018)!important}
-.app tbody tr:hover,.app tbody tr.selected-row,.app .table-row.active{background:rgba(185,39,73,.075)!important}
-.app td,.app th{border-color:rgba(255,255,255,.075)!important}
+.app tbody tr:hover,.app tbody tr.selected-row,.app .table-row.active{background:var(--lx-accent-soft)!important}
+.app td,.app th{border-color:var(--lx-border)!important}
 
-/* STATUS */
-.app [class*="badge"],.app [class*="pill"],.app [class*="status"]{background:rgba(255,255,255,.055)!important;color:#b8c0ca!important;border:1px solid var(--lx-border)!important;box-shadow:none!important}
-.app [class*="connected"],.app [class*="online"],.app [class*="success"]{background:var(--lx-info-soft)!important;color:#6dc9e9!important;border-color:rgba(39,168,213,.28)!important}
-.app [class*="warning"],.app [class*="urgent"],.app [class*="overdue"],.app [class*="error"],.app [class*="failed"]{background:var(--lx-accent-soft)!important;color:#ee708c!important;border-color:rgba(185,39,73,.30)!important}
+/* ---- Status: badges/pills/notices collapse to neutral, accent, info, success or warning ---- */
+.app [class*="badge"],.app [class*="pill"],.app [class*="status"]:not(svg){background:rgba(255,255,255,.055)!important;color:#b8c0ca!important;border:1px solid var(--lx-border)!important;box-shadow:none!important}
+.app [class*="connected"],.app [class*="online"],.app [class*="success"],.app .badge.active,.app [class*="active"][class*="badge"]{background:var(--lx-success-soft)!important;color:var(--lx-success)!important;border-color:rgba(62,207,142,.28)!important}
+.app [class*="warning"],.app [class*="urgent"],.app [class*="overdue"]{background:var(--lx-warning-soft)!important;color:var(--lx-warning)!important;border-color:rgba(226,146,74,.3)!important}
+.app [class*="error"],.app [class*="failed"]{background:var(--lx-accent-soft)!important;color:#ee708c!important;border-color:rgba(185,39,73,.30)!important}
+.app [class*="notice"]{background:var(--lx-info-soft)!important;color:#8bd8f1!important;border-color:rgba(58,168,220,.24)!important}
 
-/* MODULE-SPECIFIC NORMALIZATION */
-.app .dashboard-kpi,.app .dashboard-panel,.app .wa-kpi,.app .wa-mini-card,.app .wa-connect-panel,.app .wa-side,.app .agenda-side,.app .month-card,.app .day-cell,.app .signature-row,.app .lead-card,.app .service-shell,.app .service-sidebar,.app .service-main,.app .service-chat-head,.app .service-compose,.app .service-sales-release{
+/* ---- Module-specific normalization (containers not caught above) ---- */
+.app .dashboard-kpi,.app .dashboard-panel,.app .month-card,.app .day-cell,
+.app .signature-row,.app .lead-card,.app .service-shell,.app .service-sidebar,
+.app .service-main,.app .service-chat-head,.app .service-compose,.app .service-sales-release,
+.app .crm-page,.app .crm-lane,.app .crm-editor,.app .crm-summary,.app .crm-toolbar,
+.app .investigation-page,.app .investigation-card,.app .investigation-form,.app .investigation-result,
+.app .campaign-hub,.app .campaign-list-card,.app .connections-grid,.app .connection-card,
+.app .doc-library-card,.app .doc-upload-card,.app .doc-templates-card,
+.app .movement-card,.app .movement-feed-panel,.app .movement-review-panel,
+.app .proc-auto-card,.app .proc-sync-box,.app .agenda-side,.app .agenda-sf,
+.app .settings-feature-card,.app .whatsapp-admin-settings,.app .meta-app-config,.app .meta-partner-box{
   background:var(--lx-surface)!important;
   background-image:none!important;
   border-color:var(--lx-border)!important;
   color:var(--lx-text)!important;
   box-shadow:none!important;
 }
-.app .day-cell.muted{background:#1c242c!important}
-.app .day-number.today,.app .dashboard-funnel-fill{background:var(--lx-accent)!important;color:#fff!important}
-.app .cal-event,.app .movement-ai,.app .integration-notice{background:var(--lx-info-soft)!important;color:#8bd8f1!important;border-color:rgba(39,168,213,.24)!important}
+.app .day-cell.muted{background:var(--lx-surface-2)!important}
+.app .day-number.today,.app .dashboard-funnel-fill,.app .dr-ring,.app .dashboard-donut{background:var(--lx-accent)!important;color:#fff!important}
+.app .cal-event,.app .movement-ai{background:var(--lx-info-soft)!important;color:#8bd8f1!important;border-color:rgba(58,168,220,.24)!important}
+.app .crm-chip,.app .integration-pill{background:rgba(255,255,255,.06)!important;color:var(--lx-text-2)!important;border-color:var(--lx-border)!important}
 
-/* ATENDIMENTO */
-.app .service-chat-page{font-family:var(--lx-font)!important}
-.app .service-shell{background:#0f151d!important}
-.app .service-sidebar{background:#111821!important}
-.app .service-main{background:#111821!important}
-.app .service-chat-head,.app .service-compose,.app .service-sales-release{background:#161f2a!important}
-.app .service-status{background:#121a24!important;color:var(--lx-muted)!important;border-color:var(--lx-border)!important}
+/* Kanban lanes / lead cards */
+.app .kanban .lane,.app .lane-head span{background:var(--lx-surface-2)!important;color:var(--lx-text-2)!important}
+.app .lead-card strong{color:var(--lx-success)!important}
+
+/* ---- Atendimento / WhatsApp chat ---- */
+.app .service-status{background:var(--lx-surface-2)!important;color:var(--lx-muted)!important;border-color:var(--lx-border)!important}
 .app .service-conv{background:transparent!important;color:var(--lx-text)!important;border-color:transparent!important}
-.app .service-conv:hover{background:#1d2835!important}
-.app .service-conv.active{background:#263444!important;border-color:#3c4c60!important}
-.app .service-conv strong{font-size:13px!important;font-weight:650!important}.app .service-conv small{font-size:11px!important;color:#8995a6!important}
-.app .service-bubble{border-radius:11px!important;box-shadow:none!important}.app .service-bubble.in{background:#1b2633!important;border-color:#2f3b49!important}.app .service-bubble.out{background:#4a1d2b!important;border-color:#713047!important}.app .service-bubble.aiout{background:#173028!important;border-color:#285241!important}
-.app .service-bubble b{font-size:10px!important;color:#9ca8b7!important}.app .service-bubble div{font-size:13px!important;line-height:1.42!important}
-.app .service-action,.app .service-quick{background:#222e3b!important;color:#dce3eb!important;border-color:#354458!important}.app .service-action.primary{background:var(--lx-accent)!important;color:#fff!important;border-color:#c43a5c!important}.app .service-action.ai-on{background:#18332a!important;color:#abe6ca!important;border-color:#2b5a46!important}
-.app .service-send{background:var(--lx-accent)!important;color:#fff!important;border-color:#c43a5c!important}
-.app .service-compose textarea{background:#111922!important;border-color:#354458!important;color:#fff!important}
+.app .service-conv:hover{background:var(--lx-surface-2)!important}
+.app .service-conv.active{background:var(--lx-surface-3)!important;border-color:var(--lx-border-strong)!important}
+.app .service-bubble{border-radius:11px!important;box-shadow:none!important}
+.app .service-bubble.in{background:var(--lx-surface-2)!important;border-color:var(--lx-border)!important}
+.app .service-bubble.out{background:var(--lx-accent-dark)!important;border-color:var(--lx-accent)!important}
+.app .service-bubble.aiout{background:var(--lx-success-soft)!important;border-color:rgba(62,207,142,.32)!important}
+.app .service-action,.app .service-quick{background:var(--lx-surface-2)!important;color:var(--lx-text-2)!important;border-color:var(--lx-border)!important}
+.app .service-action.ai-on{background:var(--lx-success-soft)!important;color:var(--lx-success)!important;border-color:rgba(62,207,142,.3)!important}
+.app .service-send{background:var(--lx-accent)!important;color:#fff!important;border-color:var(--lx-accent-2)!important}
+.app .service-compose textarea{background:var(--lx-bg-2)!important;border-color:var(--lx-border-strong)!important;color:#fff!important}
 
-/* REMOVE LEGACY GOLD / ORANGE / PURPLE VISUAL NOISE */
-.app [style*="#f4cf78"],.app [style*="#d9a441"],.app [style*="#e4bd66"],.app [style*="#e3b756"],.app [style*="#b27d29"],.app [style*="#7c3aed"],.app [style*="#a855f7"],.app [style*="#f59e0b"]{color:var(--lx-text)!important;border-color:var(--lx-border)!important;background:var(--lx-surface)!important}
+/* ---- Remove leftover gold/orange/purple accents from earlier drafts ---- */
+.app [style*="#f4cf78"],.app [style*="#d9a441"],.app [style*="#e4bd66"],.app [style*="#e3b756"],
+.app [style*="#b27d29"],.app [style*="#7c3aed"],.app [style*="#a855f7"],.app [style*="#f59e0b"],
+.app [style*="#f2d58e"],.app [style*="#c49a3c"],.app [style*="#bd9138"]{
+  color:var(--lx-text)!important;border-color:var(--lx-border)!important;background:var(--lx-surface)!important;
+}
+.app svg{filter:none!important}
 
-/* LOGIN */
-.legacy-auth,.legacy-card,.legacy-left,.legacy-right{font-family:var(--lx-font)!important}.legacy-auth{background:var(--lx-bg)!important}.legacy-card{background:var(--lx-surface)!important;border:1px solid var(--lx-border)!important;box-shadow:none!important}.legacy-enter,.legacy-logo{background:var(--lx-accent)!important;color:#fff!important}.legacy-card h1,.legacy-card h2,.legacy-card h3{font-family:var(--lx-font)!important;color:var(--lx-text)!important}.legacy-card p,.legacy-card label{font-family:var(--lx-font)!important;color:var(--lx-muted)!important}
+/* ---- Login (renders before `.app` exists) ---- */
+.legacy-auth{background:var(--lx-bg)!important;color:var(--lx-text)!important}
+.legacy-auth:before{background:radial-gradient(circle at 30% 40%,var(--lx-accent-soft),transparent 30%)!important}
+.legacy-left{border-color:var(--lx-border)!important}
+.legacy-logo,.legacy-card-logo{background:var(--lx-accent)!important;background-image:none!important;color:#fff!important;border-color:rgba(255,255,255,.14)!important;box-shadow:none!important}
+.legacy-brand b span{color:var(--lx-accent-2)!important}
+.legacy-copy h1 em{color:var(--lx-accent-2)!important}
+.legacy-card{background:var(--lx-surface)!important;border:1px solid var(--lx-border)!important;box-shadow:none!important}
+.legacy-card input{background:var(--lx-bg-2)!important;color:#fff!important;border-color:var(--lx-border-strong)!important}
+.legacy-enter{background:var(--lx-accent)!important;color:#fff!important}
+.legacy-enter:hover{background:var(--lx-accent-dark)!important}
+.legacy-forgot,.legacy-create button{color:var(--lx-accent-2)!important}
+.legacy-lang{background:var(--lx-bg-2)!important;border-color:var(--lx-border)!important;color:var(--lx-text)!important}
 
-@media(max-width:900px){body{font-size:13px!important}.app h1,.app .page-title h1{font-size:21px!important}.app h2{font-size:17px!important}.app button,.app input,.app select,.app textarea,.app table,.app th,.app td{font-size:12px!important}}
+/* ---- Public client intake + share modal (render outside `.app`) ---- */
+.public-intake-page,.public-intake-state{background:var(--lx-bg)!important;color:var(--lx-text)!important}
+.public-intake-card{background:var(--lx-surface)!important;border-color:var(--lx-border)!important}
+.public-intake-logo{background:var(--lx-accent)!important;background-image:none!important;border-color:rgba(255,255,255,.14)!important}
+.public-intake-card input,.public-intake-card select,.public-intake-card textarea{background:var(--lx-bg-2)!important;border-color:var(--lx-border-strong)!important;box-shadow:none!important}
+.public-intake-card input:focus,.public-intake-card select:focus,.public-intake-card textarea:focus{border-color:var(--lx-accent)!important;box-shadow:0 0 0 3px var(--lx-accent-soft)!important}
+.public-intake-submit{background:var(--lx-accent)!important;background-image:none!important;border-color:var(--lx-accent-2)!important}
+.public-intake-state svg{color:var(--lx-accent)!important}
+.public-intake-state.success svg{color:var(--lx-success)!important}
+.client-share-trigger{background:var(--lx-accent)!important;background-image:none!important;border-color:var(--lx-accent-2)!important}
+.client-share-modal{background:var(--lx-surface)!important;border-color:var(--lx-border)!important}
+.client-share-url button{background:var(--lx-accent)!important;border-color:var(--lx-accent-2)!important}
+
+@media(max-width:900px){
+  body{font-size:13px!important}
+  .app h1,.app .page-title h1{font-size:21px!important}
+  .app h2{font-size:16px!important}
+  .app button,.app input,.app select,.app textarea,.app table,.app th,.app td{font-size:12px!important}
+}

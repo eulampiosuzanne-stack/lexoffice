@@ -23,13 +23,10 @@ import './pages/settings-enhanced.css';
 import './pages/dashboard-premium.css';
 import './pages/signatures.css';
 import './pages/process-movements-premium.css';
-import './reference-ui.css';
 import './ux-maturity.css';
 import './client-intake.css';
 import './table-interaction-fix.css';
-/* Approved LEXOFFICE base reference. */
-import './lexoffice-reference-layout.css';
-/* Final authority for color and typography across every module. */
+/* Single design-system authority: tokens, typography and color for every module. */
 import './lexoffice-final-system.css';
 
 const intakePrefix='/formulario-cliente/';
