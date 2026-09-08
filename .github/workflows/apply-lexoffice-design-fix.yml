@@ -63,7 +63,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm ci
+          npm install --no-package-lock --no-audit --no-fund
           npm run build
 
       - name: Commit exact final tree to main
