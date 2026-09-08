@@ -1,5 +1,5 @@
 import { useEffect,useState } from 'react';
-import { Plug,MessageCircle,CalendarDays,PenTool,Gavel,Bot,CheckCircle2,RefreshCw,QrCode,AlertCircle } from 'lucide-react';
+import { Plug,MessageCircle,CalendarDays,PenTool,Gavel,Bot,SearchCheck,CheckCircle2,RefreshCw,QrCode,AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import WhatsAppAdminSettings from './WhatsAppAdminSettings';
 import MetaPartnerConnect from './MetaPartnerConnect';
@@ -10,6 +10,7 @@ const catalog=[
  {key:'google',name:'Google Agenda',desc:'OAuth e sincronização de compromissos do escritório.',icon:CalendarDays,path:'/agenda'},
  {key:'zapsign',name:'ZapSign',desc:'Envio e acompanhamento de assinaturas eletrônicas.',icon:PenTool,path:'/assinaturas'},
  {key:'tribunal',name:'Tribunais',desc:'Conexões processuais, sincronização e monitoramento.',icon:Gavel,path:'/processos?regra=tribunals'},
+ {key:'escavador',name:'Escavador — Monitoramento da OAB',desc:'Descubra e monitore processos vinculados à sua inscrição da OAB.',icon:SearchCheck,path:'/tribunais'},
  {key:'openai',name:'Inteligência Artificial',desc:'Modelos e agentes especializados do LEXOFFICE.',icon:Bot,path:'/agentes-ia'}
 ];
 function findImage(value:any):string|null{if(!value)return null;if(typeof value==='string'){if(value.startsWith('data:image'))return value;if(value.length>200&&/^[A-Za-z0-9+/=\s]+$/.test(value))return `data:image/png;base64,${value.replace(/\s/g,'')}`;return null}if(typeof value==='object'){for(const k of ['value','image','base64','qrCode','qrcode','qr_code','Qrcode','code']){const found=findImage(value[k]);if(found)return found}for(const v of Object.values(value)){const found=findImage(v);if(found)return found}}return null}
