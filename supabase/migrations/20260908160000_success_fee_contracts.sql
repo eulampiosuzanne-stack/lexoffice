@@ -129,6 +129,9 @@ begin
 end;
 $function$;
 
+revoke all on function public.create_fee_contract_with_financial_entries_v2(uuid,text,text,numeric,text,numeric,date,integer,date,integer,uuid,text) from public, anon;
+grant execute on function public.create_fee_contract_with_financial_entries_v2(uuid,text,text,numeric,text,numeric,date,integer,date,integer,uuid,text) to authenticated;
+
 revoke all on function public.activate_success_fee_contract(uuid,date) from public, anon;
 grant execute on function public.activate_success_fee_contract(uuid,date) to authenticated;
 notify pgrst, 'reload schema';
