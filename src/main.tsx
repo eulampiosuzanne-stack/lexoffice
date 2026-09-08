@@ -34,8 +34,9 @@ import './client-intake.css';
 import './legal-office-identity.css';
 import './table-interaction-fix.css';
 import './theme-modes.css';
-import './lexoffice-reference-layout.css';
 import './lex-visual-refresh.css';
+/* Approved visual reference MUST be last so page-specific/luxury themes cannot recolor the product. */
+import './lexoffice-reference-layout.css';
 
 const intakePrefix='/formulario-cliente/';
 const isPublicIntake=window.location.pathname.startsWith(intakePrefix);
