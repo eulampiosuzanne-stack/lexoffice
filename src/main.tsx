@@ -23,19 +23,11 @@ import './pages/settings-enhanced.css';
 import './pages/dashboard-premium.css';
 import './pages/signatures.css';
 import './pages/process-movements-premium.css';
-import './pages/luxury-modules.css';
-import './pages/luxury-admin-modules.css';
-import './mobile-vision-3d.css';
 import './reference-ui.css';
-import './accessibility-vision.css';
-import './accessible-final-theme.css';
 import './ux-maturity.css';
 import './client-intake.css';
-import './legal-office-identity.css';
 import './table-interaction-fix.css';
-import './theme-modes.css';
-import './lex-visual-refresh.css';
-/* Approved visual reference MUST be last so page-specific/luxury themes cannot recolor the product. */
+/* Single authoritative visual layer: approved LEXOFFICE layout. */
 import './lexoffice-reference-layout.css';
 
 const intakePrefix='/formulario-cliente/';
