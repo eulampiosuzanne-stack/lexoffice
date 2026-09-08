@@ -1,12 +1,25 @@
-/* LEXOFFICE — camada final: brilho 3D dourado/vinho + acessibilidade visual */
+/* LEXOFFICE — camada final de tipografia e acessibilidade visual
+   Mantém legibilidade sem alterar a escala de cada componente. */
 
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap');
+.app,
+.app button,
+.app input,
+.app select,
+.app textarea,
+.app table {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+}
 
-.app h1, .app h2, .app h3,
-.app .page-title h1, .app .page-head h1, .app .module h1 {
-  font-family: 'Playfair Display', Georgia, serif !important;
+.app h1,
+.app h2,
+.app h3,
+.app .page-title h1,
+.app .page-head h1,
+.app .module h1 {
+  font-family: inherit !important;
   font-weight: 700 !important;
-  letter-spacing: 0.01em !important;
+  letter-spacing: -0.015em !important;
+  line-height: 1.25 !important;
 }
 
 .app .card,
@@ -16,24 +29,6 @@
 .app .integration-action,
 .app .nav-group a.active {
   position: relative !important;
-}
-
-.app .card.selected::before,
-.app .card.active::before,
-.app .dashboard-kpi:first-child::before,
-.app .primary::before,
-.app .integration-action::before,
-.app .nav-group a.active::before {
-  content: "";
-  position: absolute;
-  inset: -2px;
-  border-radius: 18px;
-  padding: 2px;
-  background: linear-gradient(135deg, #f4cf78, #9d2748, #d9a441);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
 }
 
 .app .card,
@@ -49,7 +44,7 @@
 .app .dashboard-kpi:hover,
 .app .primary:hover,
 .app .integration-action:hover {
-  transform: translateY(-4px) !important;
+  transform: translateY(-2px) !important;
 }
 
 .app .card:active,
@@ -59,19 +54,13 @@
   transform: translateY(1px) !important;
 }
 
-.app, .app p, .app label, .app td, .app th,
-.app input, .app select, .app textarea, .app button,
-.app .nav-group a, .app .card span, .app .card strong {
-  font-size: 18px !important;
-  letter-spacing: 0.03em !important;
-  line-height: 1.7 !important;
-}
-
-.app input, .app select, .app textarea {
-  box-shadow: inset 2px 2px 6px rgba(0,0,0,0.5) !important;
+.app input,
+.app select,
+.app textarea {
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.32) !important;
 }
 
 .app *:focus-visible {
-  outline: 3px solid #f4cf78 !important;
+  outline: 2px solid #d64b69 !important;
   outline-offset: 2px !important;
 }
