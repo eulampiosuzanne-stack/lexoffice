@@ -129,3 +129,9 @@ html:not([data-lex-theme="light"]) .app [class*="action"]{
 
 /* Neutraliza a ampliação legada de 18px sem interferir no tema claro. */
 html:not([data-lex-theme="light"]){font-size:16px!important}
+
+
+/* Atalho sempre visível para a central de integrações. */
+.app .integration-shortcut{display:inline-flex!important;align-items:center;gap:7px;padding:8px 11px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.06);color:#eef1f5!important;font-size:12px;font-weight:700;text-decoration:none}
+.app .integration-shortcut:hover,.app .integration-shortcut.active{border-color:var(--lex-accent)!important;background:var(--lex-accent-soft)!important}
+@media(max-width:900px){.app .integration-shortcut{font-size:0!important;width:36px;height:36px;padding:0;justify-content:center}.app .integration-shortcut svg{width:16px;height:16px}}
