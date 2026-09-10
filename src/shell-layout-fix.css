@@ -1,0 +1,177 @@
+/* Final shell layout override. Loaded last on purpose. */
+
+/* Desktop/tablet landscape shell: collapsed by default, expands on hover. */
+@media (min-width:761px){
+  .app>aside{
+    width:68px!important;
+    min-width:68px!important;
+    max-width:68px!important;
+    overflow:hidden!important;
+    z-index:1200!important;
+    transition:width .2s ease,max-width .2s ease!important;
+  }
+  .app>aside:hover{
+    width:230px!important;
+    max-width:230px!important;
+    box-shadow:18px 0 42px rgba(0,0,0,.28)!important;
+  }
+  .app>main{
+    margin-left:68px!important;
+    width:calc(100% - 68px)!important;
+    max-width:none!important;
+  }
+
+  .app>aside .brand{
+    height:76px!important;
+    padding:0 16px!important;
+    gap:12px!important;
+    white-space:nowrap!important;
+  }
+  .app>aside .brand .logo{
+    width:36px!important;
+    height:36px!important;
+    min-width:36px!important;
+    flex:0 0 36px!important;
+  }
+  .app>aside .brand>div:not(.logo){
+    opacity:0!important;
+    visibility:hidden!important;
+    width:0!important;
+    overflow:hidden!important;
+    transform:translateX(-5px)!important;
+    transition:opacity .14s ease,transform .2s ease!important;
+  }
+  .app>aside:hover .brand>div:not(.logo){
+    opacity:1!important;
+    visibility:visible!important;
+    width:auto!important;
+    overflow:visible!important;
+    transform:none!important;
+  }
+
+  .app>aside nav{
+    padding:10px 7px 88px!important;
+    overflow-x:hidden!important;
+  }
+  .app>aside .nav-group{margin-bottom:12px!important}
+  .app>aside .nav-group>small{
+    display:block!important;
+    height:0!important;
+    margin:0!important;
+    padding:0 9px!important;
+    overflow:hidden!important;
+    opacity:0!important;
+    white-space:nowrap!important;
+  }
+  .app>aside:hover .nav-group>small{
+    height:28px!important;
+    padding:8px 9px 6px!important;
+    opacity:1!important;
+  }
+  .app>aside .nav-group a{
+    width:54px!important;
+    max-width:54px!important;
+    height:38px!important;
+    min-height:38px!important;
+    padding:0!important;
+    gap:10px!important;
+    justify-content:center!important;
+    overflow:hidden!important;
+    white-space:nowrap!important;
+    font-size:0!important;
+  }
+  .app>aside .nav-group a svg{
+    width:18px!important;
+    height:18px!important;
+    min-width:18px!important;
+    flex:0 0 18px!important;
+  }
+  .app>aside:hover .nav-group a{
+    width:216px!important;
+    max-width:216px!important;
+    padding:0 11px!important;
+    justify-content:flex-start!important;
+    font-size:13px!important;
+  }
+
+  .app>aside .profile{
+    min-height:78px!important;
+    padding:8px!important;
+    gap:5px!important;
+    justify-content:center!important;
+    flex-direction:column!important;
+    overflow:hidden!important;
+  }
+  .app>aside .profile-copy{display:none!important}
+  .app>aside .logout{
+    display:grid!important;
+    place-items:center!important;
+    width:34px!important;
+    height:30px!important;
+    min-height:30px!important;
+    padding:0!important;
+  }
+  .app>aside:hover .profile{
+    min-height:64px!important;
+    padding:9px!important;
+    gap:9px!important;
+    justify-content:flex-start!important;
+    flex-direction:row!important;
+  }
+  .app>aside:hover .profile-copy{display:block!important;min-width:0!important;flex:1!important}
+}
+
+/* Never allow page headings to stack into multiple lines. */
+.app .page-title,
+.app .page-head,
+.app .dr-head,
+.app .dr-head>div:first-child{
+  min-width:0!important;
+}
+.app .page-title h1,
+.app .page-head h1,
+.app .module h1,
+.app .dr-head h1{
+  display:block!important;
+  max-width:100%!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  word-break:normal!important;
+}
+
+/* Atendimento / WhatsApp: central conversation pane must consume remaining width. */
+.app .service-shell{
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  grid-template-columns:200px minmax(0,1fr) 250px!important;
+}
+.app .service-sidebar{
+  width:200px!important;
+  min-width:0!important;
+  max-width:200px!important;
+}
+.app .service-main{
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  flex:1 1 auto!important;
+}
+.app .service-messages,
+.app .service-compose,
+.app .service-compose-box{
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+}
+@media (max-width:1180px) and (min-width:761px){
+  .app .service-shell{grid-template-columns:200px minmax(0,1fr)!important}
+  .app .service-details{display:none!important}
+}
+
+/* Mobile rules remain owned by mobile-shell.css. */
+@media (max-width:760px){
+  .app .service-shell{grid-template-columns:1fr!important}
+  .app .service-sidebar,.app .service-main{width:100%!important;max-width:100%!important}
+}
