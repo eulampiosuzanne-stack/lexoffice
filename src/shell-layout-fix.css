@@ -57,6 +57,74 @@
 
 .app .agents-layout>.agents-list{position:static!important;inset:auto!important;width:auto!important;max-width:none!important}
 
+/* Process movements: compact command-center layout. */
+.app .movement-premium{max-width:none!important;width:100%!important;padding-bottom:42px!important}
+.app .movement-page-head{align-items:center!important;margin-bottom:12px!important}
+.app .movement-page-head h1{font-size:26px!important;letter-spacing:-.02em!important}
+.app .movement-page-head p{margin-top:3px!important;color:#94a3b8!important}
+.app .movement-kicker{font-size:10px!important;letter-spacing:.16em!important;color:#d7b46a!important}
+.app .movement-refresh{height:42px!important;border-radius:10px!important;padding:0 18px!important}
+.app .movement-monitor-bar{min-height:42px!important;padding:0 14px!important;border:1px solid rgba(255,255,255,.07)!important;border-radius:11px!important;background:rgba(12,18,28,.72)!important;display:flex!important;align-items:center!important;justify-content:space-between!important;margin-bottom:12px!important}
+.app .movement-monitor-bar>span{display:flex!important;align-items:center!important;gap:8px!important;font-size:11px!important;font-weight:800!important;letter-spacing:.06em!important}
+.app .movement-monitor-bar .online{color:#56d39b!important}
+.app .movement-summary-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important;margin-bottom:14px!important}
+.app .movement-stat{min-height:84px!important;padding:15px 17px!important;border-radius:13px!important;background:linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.012))!important;border:1px solid rgba(255,255,255,.08)!important;box-shadow:0 10px 24px rgba(0,0,0,.22)!important}
+.app .movement-stat strong{font-size:25px!important;line-height:1!important;margin-bottom:7px!important}
+.app .movement-stat span{font-size:11px!important;color:#9ba8ba!important;letter-spacing:.025em!important}
+.app .movement-stat-review{border-color:rgba(232,54,104,.35)!important;background:linear-gradient(145deg,rgba(177,28,72,.16),rgba(255,255,255,.012))!important}
+.app .movement-review-panel,.app .movement-feed-panel{border-radius:14px!important;border:1px solid rgba(255,255,255,.075)!important;background:#111722!important;box-shadow:0 14px 34px rgba(0,0,0,.26)!important}
+.app .movement-review-panel{padding:16px!important;margin-bottom:16px!important}
+.app .movement-section-title{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:18px!important;margin-bottom:12px!important}
+.app .movement-section-title>div{display:flex!important;align-items:center!important;gap:10px!important}
+.app .movement-section-title h2{font-size:15px!important;margin:0 0 3px!important}
+.app .movement-section-title p{font-size:11px!important;margin:0!important;color:#8290a3!important}
+.app .movement-safe-pill{font-size:10px!important;padding:8px 11px!important;border-radius:999px!important;white-space:nowrap!important}
+.app .movement-review-list{display:grid!important;gap:8px!important}
+.app .movement-review-item{display:grid!important;grid-template-columns:minmax(0,1fr) 330px!important;gap:14px!important;align-items:center!important;padding:13px 14px!important;min-height:0!important;border-radius:12px!important;border:1px solid rgba(255,255,255,.07)!important;background:rgba(7,12,20,.34)!important}
+.app .movement-client-title{font-size:13px!important;line-height:1.35!important}
+.app .movement-message-preview{margin-top:9px!important;padding:10px 12px!important;border-radius:9px!important;background:rgba(255,255,255,.025)!important;border:1px solid rgba(255,255,255,.055)!important}
+.app .movement-message-preview b{font-size:9px!important;color:#93a4ba!important;letter-spacing:.08em!important}
+.app .movement-message-preview p{font-size:12px!important;line-height:1.45!important;margin:5px 0 0!important;color:#d4dbe6!important}
+.app .movement-note{margin-top:8px!important;padding:8px 10px!important;border-radius:8px!important;font-size:11px!important;line-height:1.35!important}
+.app .movement-review-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:7px!important;align-items:stretch!important}
+.app .movement-review-actions>.movement-status{grid-column:1/-1!important;min-height:32px!important;display:flex!important;align-items:center!important;justify-content:center!important;border-radius:8px!important;font-size:10px!important;text-align:center!important}
+.app .movement-decision{min-height:48px!important;padding:8px 10px!important;border-radius:9px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:7px!important}
+.app .movement-decision svg{width:17px!important;height:17px!important}
+.app .movement-decision b{font-size:10px!important}
+.app .movement-decision small{display:block!important;font-size:9px!important;margin-top:2px!important;opacity:.62!important}
+.app .movement-feed-panel{padding:16px!important}
+.app .movement-feed-tools{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:18px!important;margin-bottom:10px!important}
+.app .movement-feed-tools h2{font-size:17px!important;margin:0 0 3px!important}
+.app .movement-feed-tools p{font-size:11px!important;margin:0!important;color:#8290a3!important}
+.app .movement-search{width:min(430px,42vw)!important;min-height:40px!important}
+.app .movement-last-update{font-size:10px!important;color:#7f8da0!important;margin:0 0 10px!important}
+.app .movement-timeline{display:grid!important;gap:8px!important}
+.app .movement-card{display:grid!important;grid-template-columns:90px minmax(0,1fr)!important;min-height:0!important;border-radius:11px!important;overflow:hidden!important;background:linear-gradient(145deg,rgba(255,255,255,.035),rgba(255,255,255,.008))!important;border:1px solid rgba(255,255,255,.065)!important;box-shadow:none!important}
+.app .movement-date-rail{padding:13px 9px!important;border-right:1px solid rgba(255,255,255,.06)!important;display:flex!important;flex-direction:column!important;align-items:center!important;gap:9px!important}
+.app .movement-date-rail span{font-size:9px!important;font-weight:800!important;text-align:center!important;color:#9daabd!important}
+.app .movement-card-body{padding:12px 14px!important;min-width:0!important}
+.app .movement-card-top{display:flex!important;justify-content:space-between!important;align-items:flex-start!important;gap:14px!important}
+.app .movement-source{font-size:9px!important;letter-spacing:.07em!important;color:#7e8da2!important}
+.app .movement-card-top h3{font-size:14px!important;line-height:1.3!important;margin:3px 0 0!important;display:flex!important;align-items:center!important;gap:7px!important}
+.app .movement-card-top h3 svg{width:17px!important;height:17px!important}
+.app .movement-badges{display:flex!important;gap:6px!important;flex-wrap:wrap!important;justify-content:flex-end!important}
+.app .movement-badges>span{font-size:9px!important;padding:5px 8px!important;border-radius:999px!important;white-space:nowrap!important}
+.app .movement-case{display:flex!important;align-items:center!important;gap:6px!important;margin-top:8px!important;font-size:11px!important;color:#aeb9c8!important}
+.app .movement-case svg{width:14px!important;height:14px!important}
+.app .movement-block{margin-top:9px!important;padding:9px 11px!important;border-radius:8px!important;background:rgba(255,255,255,.022)!important;border:1px solid rgba(255,255,255,.05)!important}
+.app .movement-block>span{font-size:9px!important;letter-spacing:.06em!important;color:#8d9cb0!important}
+.app .movement-block p{font-size:11px!important;line-height:1.45!important;margin:5px 0 0!important;display:-webkit-box!important;-webkit-line-clamp:3!important;-webkit-box-orient:vertical!important;overflow:hidden!important;color:#c8d1de!important}
+.app .movement-card-footer{display:flex!important;align-items:center!important;gap:10px!important;flex-wrap:wrap!important;margin-top:9px!important;padding-top:9px!important;border-top:1px solid rgba(255,255,255,.05)!important;font-size:9px!important;color:#7f8da0!important}
+.app .movement-card-footer>span{display:flex!important;align-items:center!important;gap:4px!important}
+.app .movement-card-footer .movement-status{font-size:9px!important;padding:5px 8px!important;border-radius:999px!important}
+
+@media (max-width:1050px){
+ .app .movement-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .app .movement-review-item{grid-template-columns:1fr!important}
+ .app .movement-review-actions{grid-template-columns:1fr 1fr!important}
+ .app .movement-search{width:100%!important}
+}
+
 @media (max-width:760px){
   .app .service-chat-page{height:calc(100dvh - 80px)!important;max-height:none!important;overflow:hidden!important}
   .app .service-shell{grid-template-columns:1fr!important;height:auto!important;max-height:none!important;min-height:0!important}
@@ -65,4 +133,15 @@
   .app .service-list{min-height:0!important;overflow-y:auto!important}
   .app .agenda-layout{grid-template-columns:1fr!important}
   .app .agenda-layout>.agenda-side{width:100%!important;max-width:100%!important}
+  .app .movement-page-head,.app .movement-section-title,.app .movement-feed-tools{align-items:flex-start!important;flex-direction:column!important}
+  .app .movement-summary-grid{grid-template-columns:1fr 1fr!important}
+  .app .movement-stat{min-height:76px!important;padding:12px!important}
+  .app .movement-review-panel,.app .movement-feed-panel{padding:11px!important}
+  .app .movement-review-actions{grid-template-columns:1fr!important}
+  .app .movement-review-actions>.movement-status{grid-column:1!important}
+  .app .movement-card{grid-template-columns:1fr!important}
+  .app .movement-date-rail{border-right:0!important;border-bottom:1px solid rgba(255,255,255,.06)!important;align-items:flex-start!important;padding:9px 12px!important}
+  .app .movement-card-top{flex-direction:column!important}
+  .app .movement-badges{justify-content:flex-start!important}
+  .app .movement-search{width:100%!important}
 }
