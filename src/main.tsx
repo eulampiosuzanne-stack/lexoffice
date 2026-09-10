@@ -32,6 +32,8 @@ import './lexoffice-final-system.css';
 import './mobile-shell.css';
 /* Final shell geometry override: must be loaded last to beat legacy width rules. */
 import './shell-layout-fix.css';
+/* Atendimento desktop: block horizontal scrollLeft drift while preserving mobile behavior. */
+import './service-scroll-guard.css';
 
 const intakePrefix='/formulario-cliente/';
 const isPublicIntake=window.location.pathname.startsWith(intakePrefix);
