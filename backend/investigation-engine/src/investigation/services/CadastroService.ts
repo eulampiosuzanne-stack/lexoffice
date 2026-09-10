@@ -4,17 +4,20 @@ export class CadastroService {
     if (![11, 14].includes(doc.length)) throw new Error('CPF/CNPJ inválido.');
 
     if (doc.length === 14) {
-      const res = await fetch(`https://publica.cnpj.ws/cnpj/${doc}`);
-      if (!res.ok) throw new Error(`CNPJ.ws respondeu ${res.status}`);
-      const data: any = await res.json();
-      const e = data?.estabelecimento || {};
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${doc}`, {headers:{Accept:'application/json'}});
+      if (!res.ok) throw new Error(`BrasilAPI CNPJ respondeu ${res.status}`);
+      const data:any = await res.json();
       return {
-        status: 'Sucesso',
-        razao_social: data?.razao_social || null,
-        situacao: e?.situacao_cadastral || null,
-        data_abertura: e?.data_inicio_atividade || null,
-        endereco: [e?.tipo_logradouro, e?.logradouro, e?.numero, e?.bairro, e?.cidade?.nome, e?.estado?.sigla].filter(Boolean).join(' '),
-        fonte: 'CNPJ.ws'
+        status:'Sucesso', cnpj:data?.cnpj||doc, razao_social:data?.razao_social||null,
+        nome_fantasia:data?.nome_fantasia||null, situacao:data?.descricao_situacao_cadastral||data?.situacao_cadastral||null,
+        data_abertura:data?.data_inicio_atividade||null, natureza_juridica:data?.natureza_juridica||null,
+        porte:data?.porte||data?.descricao_porte||null, capital_social:data?.capital_social??null,
+        matriz_filial:data?.descricao_identificador_matriz_filial||null,
+        cnae_principal:{codigo:data?.cnae_fiscal??null,descricao:data?.cnae_fiscal_descricao||null},
+        cnaes_secundarios:data?.cnaes_secundarios||[], simples_nacional:data?.opcao_pelo_simples??null, mei:data?.opcao_pelo_mei??null,
+        endereco:{logradouro:[data?.descricao_tipo_de_logradouro,data?.logradouro].filter(Boolean).join(' '),numero:data?.numero||null,complemento:data?.complemento||null,bairro:data?.bairro||null,cep:data?.cep?String(data.cep):null,municipio:data?.municipio||null,uf:data?.uf||null,codigo_ibge:data?.codigo_municipio_ibge??null},
+        telefone_1:data?.ddd_telefone_1||null, telefone_2:data?.ddd_telefone_2||null, email:data?.email||null,
+        fonte:'BrasilAPI / Receita Federal'
       };
     }
 
@@ -25,13 +28,6 @@ export class CadastroService {
     const res = await fetch(url, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } });
     if (!res.ok) throw new Error(`Provedor CPF respondeu ${res.status}`);
     const data: any = await res.json();
-    return {
-      status: 'Sucesso',
-      nome: data?.nome || data?.name || null,
-      situacao: data?.situacaoCpf || data?.situacao || null,
-      data_nascimento: data?.dataNascimento || data?.birthDate || null,
-      endereco: data?.enderecoPrincipal || data?.address || null,
-      fonte: 'bureau_contratado'
-    };
+    return {status:'Sucesso',nome:data?.nome||data?.name||null,situacao:data?.situacaoCpf||data?.situacao||null,data_nascimento:data?.dataNascimento||data?.birthDate||null,endereco:data?.enderecoPrincipal||data?.address||null,fonte:'bureau_contratado'};
   }
 }
