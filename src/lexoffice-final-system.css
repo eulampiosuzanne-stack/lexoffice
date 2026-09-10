@@ -255,6 +255,96 @@ body{font-family:var(--lx-font)!important;font-size:14px!important;line-height:1
 .client-share-modal{background:var(--lx-surface)!important;border-color:var(--lx-border)!important}
 .client-share-url button{background:var(--lx-accent)!important;border-color:var(--lx-accent-2)!important}
 
+/* ---- Desktop shell: collapsed navigation with hover expansion ---- */
+@media(min-width:901px){
+  .app>aside{
+    width:68px!important;
+    overflow:hidden!important;
+    z-index:60!important;
+    transition:width .2s ease!important;
+  }
+  .app>aside:hover{width:230px!important;box-shadow:18px 0 42px rgba(0,0,0,.28)!important}
+  .app>main{margin-left:68px!important;width:calc(100% - 68px)!important;transition:margin-left .2s ease,width .2s ease!important}
+
+  .app>aside .brand{
+    height:76px!important;
+    padding:0 16px!important;
+    gap:12px!important;
+    white-space:nowrap!important;
+  }
+  .app>aside .brand .logo{width:36px!important;height:36px!important;min-width:36px!important;flex:0 0 36px!important}
+  .app>aside .brand>div:not(.logo){opacity:0!important;visibility:hidden!important;transform:translateX(-5px)!important;transition:opacity .14s ease,transform .2s ease,visibility .14s ease!important}
+  .app>aside:hover .brand>div:not(.logo){opacity:1!important;visibility:visible!important;transform:none!important}
+
+  .app>aside nav{padding:10px 7px 88px!important;overflow-x:hidden!important}
+  .app>aside .nav-group{margin-bottom:12px!important}
+  .app>aside .nav-group>small{
+    display:block!important;
+    height:0!important;
+    margin:0!important;
+    padding:0 9px!important;
+    overflow:hidden!important;
+    opacity:0!important;
+    white-space:nowrap!important;
+    transition:opacity .14s ease,height .2s ease,padding .2s ease!important;
+  }
+  .app>aside:hover .nav-group>small{height:28px!important;padding:8px 9px 6px!important;opacity:1!important}
+  .app>aside .nav-group a{
+    width:54px!important;
+    height:38px!important;
+    padding:0!important;
+    gap:10px!important;
+    justify-content:center!important;
+    overflow:hidden!important;
+    white-space:nowrap!important;
+    font-size:0!important;
+    transition:width .2s ease,padding .2s ease,background .15s ease,color .15s ease!important;
+  }
+  .app>aside .nav-group a svg{width:18px!important;height:18px!important;min-width:18px!important;flex:0 0 18px!important}
+  .app>aside:hover .nav-group a{width:216px!important;padding:0 11px!important;justify-content:flex-start!important;font-size:13px!important}
+
+  .app>aside .profile{
+    min-height:78px!important;
+    padding:8px!important;
+    gap:5px!important;
+    justify-content:center!important;
+    flex-direction:column!important;
+    overflow:hidden!important;
+    transition:all .2s ease!important;
+  }
+  .app>aside .profile-copy{display:none!important;opacity:0!important;white-space:nowrap!important}
+  .app>aside .logout{display:grid!important;place-items:center!important;width:34px!important;height:30px!important;min-height:30px!important;padding:0!important;flex:0 0 auto!important}
+  .app>aside:hover .profile{min-height:64px!important;padding:9px!important;gap:9px!important;justify-content:flex-start!important;flex-direction:row!important}
+  .app>aside:hover .profile-copy{display:block!important;opacity:1!important}
+}
+
+/* Page titles stay on one line instead of forcing tall headers. */
+.app .page-title,
+.app .page-head{min-width:0!important}
+.app .page-title h1,
+.app .page-head h1,
+.app .module h1{
+  max-width:100%!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+
+/* Atendimento: guarantee that the conversation pane consumes the available width. */
+.app .service-shell{
+  width:100%!important;
+  min-width:0!important;
+  grid-template-columns:200px minmax(0,1fr) 250px!important;
+}
+.app .service-sidebar{width:100%!important;min-width:0!important}
+.app .service-main{width:100%!important;min-width:0!important;max-width:none!important}
+.app .service-messages,.app .service-compose,.app .service-compose-box{width:100%!important;min-width:0!important}
+
+@media(max-width:1180px) and (min-width:901px){
+  .app .service-shell{grid-template-columns:200px minmax(0,1fr)!important}
+  .app .service-details{display:none!important}
+}
+
 @media(max-width:900px){
   body{font-size:13px!important}
   .app h1,.app .page-title h1{font-size:21px!important}
