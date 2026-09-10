@@ -28,6 +28,8 @@ import './client-intake.css';
 import './table-interaction-fix.css';
 /* Single design-system authority: tokens, typography and color for every module. */
 import './lexoffice-final-system.css';
+/* Mobile-only shell. All rules are scoped to small screens, preserving desktop. */
+import './mobile-shell.css';
 
 const intakePrefix='/formulario-cliente/';
 const isPublicIntake=window.location.pathname.startsWith(intakePrefix);
