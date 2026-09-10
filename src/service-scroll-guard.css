@@ -1,0 +1,17 @@
+/* Atendimento desktop must never become a horizontal scroll container.
+   overflow-x: clip prevents scrollIntoView/programmatic calls from changing scrollLeft.
+   Mobile remains free to use its own navigation behavior. */
+@media (min-width:761px){
+  .app .service-shell{
+    overflow-x:clip!important;
+    overflow-y:hidden!important;
+    scroll-behavior:auto!important;
+    overscroll-behavior-x:none!important;
+  }
+}
+
+@media (max-width:760px){
+  .app .service-shell{
+    overflow-x:auto!important;
+  }
+}
