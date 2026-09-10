@@ -27,8 +27,8 @@ export default function ClientMessageActionBridge(){
       const listedName=clean(activeButton.querySelector('strong')?.textContent);if(listedName)contactName=listedName;
       const {data:convs}=await supabase.from('whatsapp_conversations').select('id,contact:whatsapp_contacts(client_id,name,phone)').order('last_message_at',{ascending:false,nullsFirst:false}).limit(150);
       const p=digits(phone);
-      const match=(convs||[]).find((c:any)=>digits(c.contact?.phone)===p);
-      if(match){conversationId=match.id;clientId=match.contact?.client_id||null;contactName=match.contact?.name||contactName}
+      const match=(convs||[]).find((c:any)=>{const contact=Array.isArray(c.contact)?c.contact[0]:c.contact;return digits(contact?.phone)===p;});
+      if(match){const contact=Array.isArray((match as any).contact)?(match as any).contact[0]:(match as any).contact;conversationId=(match as any).id;clientId=contact?.client_id||null;contactName=contact?.name||contactName}
     }
     setTarget({client:{id:clientId,name:contactName,phone,whatsapp:phone},conversationId,initialMessage:(document.querySelector('.service-compose textarea') as HTMLTextAreaElement|null)?.value||''});
     return;
