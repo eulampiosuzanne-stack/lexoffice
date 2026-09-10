@@ -30,6 +30,8 @@ import './table-interaction-fix.css';
 import './lexoffice-final-system.css';
 /* Mobile-only shell. All rules are scoped to small screens, preserving desktop. */
 import './mobile-shell.css';
+/* Final shell geometry override: must be loaded last to beat legacy width rules. */
+import './shell-layout-fix.css';
 
 const intakePrefix='/formulario-cliente/';
 const isPublicIntake=window.location.pathname.startsWith(intakePrefix);
