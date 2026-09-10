@@ -156,35 +156,77 @@
   z-index:auto!important;
 }
 
-/* Atendimento / WhatsApp: list + conversation + details stay in the module grid. */
-.app .service-shell{
-  width:100%!important;
-  min-width:0!important;
-  max-width:100%!important;
-  grid-template-columns:200px minmax(0,1fr) 250px!important;
-}
-.app .service-sidebar{
-  width:200px!important;
-  min-width:0!important;
-  max-width:200px!important;
-}
-.app .service-main{
-  width:100%!important;
-  min-width:0!important;
-  max-width:none!important;
-  flex:1 1 auto!important;
-}
-.app .service-details{
-  width:250px!important;
-  min-width:0!important;
-  max-width:250px!important;
-}
-.app .service-messages,
-.app .service-compose,
-.app .service-compose-box{
-  width:100%!important;
-  min-width:0!important;
-  max-width:100%!important;
+/* Atendimento / WhatsApp: list + conversation + details stay in the module grid.
+   The module has a viewport-bounded height so the conversation list scrolls inside
+   its own column instead of making the grid thousands of pixels tall. */
+@media (min-width:761px){
+  .app .service-chat-page{
+    height:calc(100vh - 94px)!important;
+    max-height:calc(100vh - 94px)!important;
+    min-height:0!important;
+    overflow:hidden!important;
+  }
+  .app .service-shell{
+    width:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+    max-width:100%!important;
+    height:calc(100vh - 166px)!important;
+    max-height:calc(100vh - 166px)!important;
+    overflow:hidden!important;
+    grid-template-columns:200px minmax(0,1fr) 250px!important;
+    align-items:stretch!important;
+  }
+  .app .service-sidebar{
+    position:static!important;
+    width:200px!important;
+    min-width:0!important;
+    max-width:200px!important;
+    height:100%!important;
+    min-height:0!important;
+    max-height:100%!important;
+    overflow:hidden!important;
+    align-self:stretch!important;
+  }
+  .app .service-sidebar-head{
+    flex:0 0 auto!important;
+  }
+  .app .service-list{
+    flex:1 1 auto!important;
+    min-height:0!important;
+    height:auto!important;
+    max-height:100%!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    overscroll-behavior:contain!important;
+  }
+  .app .service-main{
+    width:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+    max-width:none!important;
+    height:100%!important;
+    max-height:100%!important;
+    overflow:hidden!important;
+    flex:1 1 auto!important;
+  }
+  .app .service-details{
+    width:250px!important;
+    min-width:0!important;
+    min-height:0!important;
+    max-width:250px!important;
+    height:100%!important;
+    max-height:100%!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+  }
+  .app .service-messages,
+  .app .service-compose,
+  .app .service-compose-box{
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+  }
 }
 @media (max-width:1180px) and (min-width:761px){
   .app .service-shell{grid-template-columns:200px minmax(0,1fr)!important}
@@ -222,8 +264,11 @@
 
 /* Mobile rules remain owned by mobile-shell.css. */
 @media (max-width:760px){
-  .app .service-shell{grid-template-columns:1fr!important}
-  .app .service-sidebar,.app .service-main,.app .service-details{width:100%!important;max-width:100%!important}
+  .app .service-chat-page{height:calc(100dvh - 80px)!important;max-height:none!important;overflow:hidden!important}
+  .app .service-shell{grid-template-columns:1fr!important;height:auto!important;max-height:none!important;min-height:0!important}
+  .app .service-sidebar,.app .service-main,.app .service-details{width:100%!important;max-width:100%!important;height:auto!important;max-height:none!important}
+  .app .service-sidebar{overflow:hidden!important}
+  .app .service-list{min-height:0!important;overflow-y:auto!important}
   .app .agenda-layout{grid-template-columns:1fr!important}
   .app .agenda-layout>.agenda-side{width:100%!important;max-width:100%!important}
 }
