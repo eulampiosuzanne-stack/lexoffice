@@ -1,13 +1,13 @@
 /* Final shell layout override. Loaded last on purpose. */
 
-/* Approved subtle depth for dashboard KPI and content panels.
+/* Approved pronounced depth for dashboard KPI and content panels.
    Kept on the shared dr-* classes so reused dashboard surfaces inherit it. */
 .app .dr-kpi,
 .app .dr-card {
-  background: linear-gradient(155deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 35%, rgba(255,255,255,0) 60%), rgb(18,23,34)!important;
-  background-image: linear-gradient(155deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 35%, rgba(255,255,255,0) 60%)!important;
-  box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 -1px 0 rgba(0,0,0,0.4) inset, 0 10px 25px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.35)!important;
-  border:1px solid rgba(255,255,255,0.08)!important;
+  background: linear-gradient(155deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 30%, rgba(255,255,255,0) 55%), rgb(18,23,34)!important;
+  background-image: linear-gradient(155deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 30%, rgba(255,255,255,0) 55%)!important;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.12) inset, 0 -2px 0 rgba(0,0,0,0.55) inset, 0 16px 34px rgba(0,0,0,0.55), 0 4px 10px rgba(0,0,0,0.45)!important;
+  border:1px solid rgba(255,255,255,0.13)!important;
 }
 
 /* Desktop/tablet landscape shell: collapsed by default, expands on hover. */
