@@ -1,268 +1,62 @@
 /* Final shell layout override. Loaded last on purpose. */
 
+/* Approved subtle depth for dashboard KPI and content panels.
+   Kept on the shared dr-* classes so reused dashboard surfaces inherit it. */
+.app .dr-kpi,
+.app .dr-card {
+  background: linear-gradient(155deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 35%, rgba(255,255,255,0) 60%), rgb(18,23,34)!important;
+  background-image: linear-gradient(155deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 35%, rgba(255,255,255,0) 60%)!important;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 -1px 0 rgba(0,0,0,0.4) inset, 0 10px 25px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.35)!important;
+  border:1px solid rgba(255,255,255,0.08)!important;
+}
+
 /* Desktop/tablet landscape shell: collapsed by default, expands on hover. */
 @media (min-width:761px){
-  .app>aside{
-    width:68px!important;
-    min-width:68px!important;
-    max-width:68px!important;
-    overflow:hidden!important;
-    z-index:1200!important;
-    transition:width .2s ease,max-width .2s ease!important;
-  }
-  .app>aside:hover{
-    width:230px!important;
-    max-width:230px!important;
-    box-shadow:18px 0 42px rgba(0,0,0,.28)!important;
-  }
-  .app>main{
-    margin-left:68px!important;
-    width:calc(100% - 68px)!important;
-    max-width:none!important;
-  }
-
-  .app>aside .brand{
-    height:76px!important;
-    padding:0 16px!important;
-    gap:12px!important;
-    white-space:nowrap!important;
-  }
-  .app>aside .brand .logo{
-    width:36px!important;
-    height:36px!important;
-    min-width:36px!important;
-    flex:0 0 36px!important;
-  }
-  .app>aside .brand>div:not(.logo){
-    opacity:0!important;
-    visibility:hidden!important;
-    width:0!important;
-    overflow:hidden!important;
-    transform:translateX(-5px)!important;
-    transition:opacity .14s ease,transform .2s ease!important;
-  }
-  .app>aside:hover .brand>div:not(.logo){
-    opacity:1!important;
-    visibility:visible!important;
-    width:auto!important;
-    overflow:visible!important;
-    transform:none!important;
-  }
-
-  .app>aside nav{
-    padding:10px 7px 88px!important;
-    overflow-x:hidden!important;
-  }
+  .app>aside{width:68px!important;min-width:68px!important;max-width:68px!important;overflow:hidden!important;z-index:1200!important;transition:width .2s ease,max-width .2s ease!important}
+  .app>aside:hover{width:230px!important;max-width:230px!important;box-shadow:18px 0 42px rgba(0,0,0,.28)!important}
+  .app>main{margin-left:68px!important;width:calc(100% - 68px)!important;max-width:none!important}
+  .app>aside .brand{height:76px!important;padding:0 16px!important;gap:12px!important;white-space:nowrap!important}
+  .app>aside .brand .logo{width:36px!important;height:36px!important;min-width:36px!important;flex:0 0 36px!important}
+  .app>aside .brand>div:not(.logo){opacity:0!important;visibility:hidden!important;width:0!important;overflow:hidden!important;transform:translateX(-5px)!important;transition:opacity .14s ease,transform .2s ease!important}
+  .app>aside:hover .brand>div:not(.logo){opacity:1!important;visibility:visible!important;width:auto!important;overflow:visible!important;transform:none!important}
+  .app>aside nav{padding:10px 7px 88px!important;overflow-x:hidden!important}
   .app>aside .nav-group{margin-bottom:12px!important}
-  .app>aside .nav-group>small{
-    display:block!important;
-    height:0!important;
-    margin:0!important;
-    padding:0 9px!important;
-    overflow:hidden!important;
-    opacity:0!important;
-    white-space:nowrap!important;
-  }
-  .app>aside:hover .nav-group>small{
-    height:28px!important;
-    padding:8px 9px 6px!important;
-    opacity:1!important;
-  }
-  .app>aside .nav-group a{
-    width:54px!important;
-    max-width:54px!important;
-    height:38px!important;
-    min-height:38px!important;
-    padding:0!important;
-    gap:10px!important;
-    justify-content:center!important;
-    overflow:hidden!important;
-    white-space:nowrap!important;
-    font-size:0!important;
-  }
-  .app>aside .nav-group a svg{
-    width:18px!important;
-    height:18px!important;
-    min-width:18px!important;
-    flex:0 0 18px!important;
-  }
-  .app>aside:hover .nav-group a{
-    width:216px!important;
-    max-width:216px!important;
-    padding:0 11px!important;
-    justify-content:flex-start!important;
-    font-size:13px!important;
-  }
-
-  .app>aside .profile{
-    min-height:78px!important;
-    padding:8px!important;
-    gap:5px!important;
-    justify-content:center!important;
-    flex-direction:column!important;
-    overflow:hidden!important;
-  }
+  .app>aside .nav-group>small{display:block!important;height:0!important;margin:0!important;padding:0 9px!important;overflow:hidden!important;opacity:0!important;white-space:nowrap!important}
+  .app>aside:hover .nav-group>small{height:28px!important;padding:8px 9px 6px!important;opacity:1!important}
+  .app>aside .nav-group a{width:54px!important;max-width:54px!important;height:38px!important;min-height:38px!important;padding:0!important;gap:10px!important;justify-content:center!important;overflow:hidden!important;white-space:nowrap!important;font-size:0!important}
+  .app>aside .nav-group a svg{width:18px!important;height:18px!important;min-width:18px!important;flex:0 0 18px!important}
+  .app>aside:hover .nav-group a{width:216px!important;max-width:216px!important;padding:0 11px!important;justify-content:flex-start!important;font-size:13px!important}
+  .app>aside .profile{min-height:78px!important;padding:8px!important;gap:5px!important;justify-content:center!important;flex-direction:column!important;overflow:hidden!important}
   .app>aside .profile-copy{display:none!important}
-  .app>aside .logout{
-    display:grid!important;
-    place-items:center!important;
-    width:34px!important;
-    height:30px!important;
-    min-height:30px!important;
-    padding:0!important;
-  }
-  .app>aside:hover .profile{
-    min-height:64px!important;
-    padding:9px!important;
-    gap:9px!important;
-    justify-content:flex-start!important;
-    flex-direction:row!important;
-  }
+  .app>aside .logout{display:grid!important;place-items:center!important;width:34px!important;height:30px!important;min-height:30px!important;padding:0!important}
+  .app>aside:hover .profile{min-height:64px!important;padding:9px!important;gap:9px!important;justify-content:flex-start!important;flex-direction:row!important}
   .app>aside:hover .profile-copy{display:block!important;min-width:0!important;flex:1!important}
 }
 
-/* Never allow page headings to stack into multiple lines. */
-.app .page-title,
-.app .page-head,
-.app .dr-head,
-.app .dr-head>div:first-child{
-  min-width:0!important;
-}
-.app .page-title h1,
-.app .page-head h1,
-.app .module h1,
-.app .dr-head h1{
-  display:block!important;
-  max-width:100%!important;
-  white-space:nowrap!important;
-  overflow:hidden!important;
-  text-overflow:ellipsis!important;
-  word-break:normal!important;
-}
+.app .page-title,.app .page-head,.app .dr-head,.app .dr-head>div:first-child{min-width:0!important}
+.app .page-title h1,.app .page-head h1,.app .module h1,.app .dr-head h1{display:block!important;max-width:100%!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;word-break:normal!important}
 
-/* Secondary side panels live inside <main>. The legacy global `aside{position:fixed}`
-   must never turn these module panels into a second app sidebar. */
-.app>main aside{
-  position:static!important;
-  inset:auto!important;
-  left:auto!important;
-  right:auto!important;
-  top:auto!important;
-  bottom:auto!important;
-  width:auto!important;
-  min-width:0!important;
-  max-width:none!important;
-  height:auto!important;
-  z-index:auto!important;
-}
+.app>main aside{position:static!important;inset:auto!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;width:auto!important;min-width:0!important;max-width:none!important;height:auto!important;z-index:auto!important}
 
-/* Atendimento / WhatsApp: list + conversation + details stay in the module grid.
-   The module has a viewport-bounded height so the conversation list scrolls inside
-   its own column instead of making the grid thousands of pixels tall. */
 @media (min-width:761px){
-  .app .service-chat-page{
-    height:calc(100vh - 94px)!important;
-    max-height:calc(100vh - 94px)!important;
-    min-height:0!important;
-    overflow:hidden!important;
-  }
-  .app .service-shell{
-    width:100%!important;
-    min-width:0!important;
-    min-height:0!important;
-    max-width:100%!important;
-    height:calc(100vh - 166px)!important;
-    max-height:calc(100vh - 166px)!important;
-    overflow:hidden!important;
-    grid-template-columns:200px minmax(0,1fr) 250px!important;
-    align-items:stretch!important;
-  }
-  .app .service-sidebar{
-    position:static!important;
-    width:200px!important;
-    min-width:0!important;
-    max-width:200px!important;
-    height:100%!important;
-    min-height:0!important;
-    max-height:100%!important;
-    overflow:hidden!important;
-    align-self:stretch!important;
-  }
-  .app .service-sidebar-head{
-    flex:0 0 auto!important;
-  }
-  .app .service-list{
-    flex:1 1 auto!important;
-    min-height:0!important;
-    height:auto!important;
-    max-height:100%!important;
-    overflow-y:auto!important;
-    overflow-x:hidden!important;
-    overscroll-behavior:contain!important;
-  }
-  .app .service-main{
-    width:100%!important;
-    min-width:0!important;
-    min-height:0!important;
-    max-width:none!important;
-    height:100%!important;
-    max-height:100%!important;
-    overflow:hidden!important;
-    flex:1 1 auto!important;
-  }
-  .app .service-details{
-    width:250px!important;
-    min-width:0!important;
-    min-height:0!important;
-    max-width:250px!important;
-    height:100%!important;
-    max-height:100%!important;
-    overflow-y:auto!important;
-    overflow-x:hidden!important;
-  }
-  .app .service-messages,
-  .app .service-compose,
-  .app .service-compose-box{
-    width:100%!important;
-    min-width:0!important;
-    max-width:100%!important;
-  }
+  .app .service-chat-page{height:calc(100vh - 94px)!important;max-height:calc(100vh - 94px)!important;min-height:0!important;overflow:hidden!important}
+  .app .service-shell{width:100%!important;min-width:0!important;min-height:0!important;max-width:100%!important;height:calc(100vh - 166px)!important;max-height:calc(100vh - 166px)!important;overflow:hidden!important;grid-template-columns:200px minmax(0,1fr) 250px!important;align-items:stretch!important}
+  .app .service-sidebar{position:static!important;width:200px!important;min-width:0!important;max-width:200px!important;height:100%!important;min-height:0!important;max-height:100%!important;overflow:hidden!important;align-self:stretch!important}
+  .app .service-sidebar-head{flex:0 0 auto!important}
+  .app .service-list{flex:1 1 auto!important;min-height:0!important;height:auto!important;max-height:100%!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important}
+  .app .service-main{width:100%!important;min-width:0!important;min-height:0!important;max-width:none!important;height:100%!important;max-height:100%!important;overflow:hidden!important;flex:1 1 auto!important}
+  .app .service-details{width:250px!important;min-width:0!important;min-height:0!important;max-width:250px!important;height:100%!important;max-height:100%!important;overflow-y:auto!important;overflow-x:hidden!important}
+  .app .service-messages,.app .service-compose,.app .service-compose-box{width:100%!important;min-width:0!important;max-width:100%!important}
 }
-@media (max-width:1180px) and (min-width:761px){
-  .app .service-shell{grid-template-columns:200px minmax(0,1fr)!important}
-  .app .service-details{display:none!important}
-}
+@media (max-width:1180px) and (min-width:761px){.app .service-shell{grid-template-columns:200px minmax(0,1fr)!important}.app .service-details{display:none!important}}
 
-/* Agenda: calendar owns the flexible column, deadlines/hearings panel owns 320px. */
-.app .agenda-layout{
-  width:100%!important;
-  min-width:0!important;
-  grid-template-columns:minmax(0,1fr) 320px!important;
-}
-.app .agenda-layout>.month-card{
-  width:100%!important;
-  min-width:0!important;
-  max-width:100%!important;
-}
-.app .agenda-layout>.agenda-side{
-  width:320px!important;
-  min-width:0!important;
-  max-width:320px!important;
-}
-@media (max-width:1050px){
-  .app .agenda-layout{grid-template-columns:1fr!important}
-  .app .agenda-layout>.agenda-side{width:100%!important;max-width:100%!important}
-}
+.app .agenda-layout{width:100%!important;min-width:0!important;grid-template-columns:minmax(0,1fr) 320px!important}
+.app .agenda-layout>.month-card{width:100%!important;min-width:0!important;max-width:100%!important}
+.app .agenda-layout>.agenda-side{width:320px!important;min-width:0!important;max-width:320px!important}
+@media (max-width:1050px){.app .agenda-layout{grid-template-columns:1fr!important}.app .agenda-layout>.agenda-side{width:100%!important;max-width:100%!important}}
 
-/* Agents also uses a semantic <aside> as an in-module list, never as shell navigation. */
-.app .agents-layout>.agents-list{
-  position:static!important;
-  inset:auto!important;
-  width:auto!important;
-  max-width:none!important;
-}
+.app .agents-layout>.agents-list{position:static!important;inset:auto!important;width:auto!important;max-width:none!important}
 
-/* Mobile rules remain owned by mobile-shell.css. */
 @media (max-width:760px){
   .app .service-chat-page{height:calc(100dvh - 80px)!important;max-height:none!important;overflow:hidden!important}
   .app .service-shell{grid-template-columns:1fr!important;height:auto!important;max-height:none!important;min-height:0!important}
