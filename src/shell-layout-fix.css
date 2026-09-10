@@ -140,7 +140,23 @@
   word-break:normal!important;
 }
 
-/* Atendimento / WhatsApp: central conversation pane must consume remaining width. */
+/* Secondary side panels live inside <main>. The legacy global `aside{position:fixed}`
+   must never turn these module panels into a second app sidebar. */
+.app>main aside{
+  position:static!important;
+  inset:auto!important;
+  left:auto!important;
+  right:auto!important;
+  top:auto!important;
+  bottom:auto!important;
+  width:auto!important;
+  min-width:0!important;
+  max-width:none!important;
+  height:auto!important;
+  z-index:auto!important;
+}
+
+/* Atendimento / WhatsApp: list + conversation + details stay in the module grid. */
 .app .service-shell{
   width:100%!important;
   min-width:0!important;
@@ -158,6 +174,11 @@
   max-width:none!important;
   flex:1 1 auto!important;
 }
+.app .service-details{
+  width:250px!important;
+  min-width:0!important;
+  max-width:250px!important;
+}
 .app .service-messages,
 .app .service-compose,
 .app .service-compose-box{
@@ -170,8 +191,39 @@
   .app .service-details{display:none!important}
 }
 
+/* Agenda: calendar owns the flexible column, deadlines/hearings panel owns 320px. */
+.app .agenda-layout{
+  width:100%!important;
+  min-width:0!important;
+  grid-template-columns:minmax(0,1fr) 320px!important;
+}
+.app .agenda-layout>.month-card{
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+}
+.app .agenda-layout>.agenda-side{
+  width:320px!important;
+  min-width:0!important;
+  max-width:320px!important;
+}
+@media (max-width:1050px){
+  .app .agenda-layout{grid-template-columns:1fr!important}
+  .app .agenda-layout>.agenda-side{width:100%!important;max-width:100%!important}
+}
+
+/* Agents also uses a semantic <aside> as an in-module list, never as shell navigation. */
+.app .agents-layout>.agents-list{
+  position:static!important;
+  inset:auto!important;
+  width:auto!important;
+  max-width:none!important;
+}
+
 /* Mobile rules remain owned by mobile-shell.css. */
 @media (max-width:760px){
   .app .service-shell{grid-template-columns:1fr!important}
-  .app .service-sidebar,.app .service-main{width:100%!important;max-width:100%!important}
+  .app .service-sidebar,.app .service-main,.app .service-details{width:100%!important;max-width:100%!important}
+  .app .agenda-layout{grid-template-columns:1fr!important}
+  .app .agenda-layout>.agenda-side{width:100%!important;max-width:100%!important}
 }
