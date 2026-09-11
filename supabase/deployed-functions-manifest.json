@@ -8,6 +8,7 @@
     "legal-calculators",
     "marketing-campaign-run",
     "meta-whatsapp-oauth",
+    "whatsapp-operator-send",
     "whatsapp-release-agent",
     "whatsapp-waha-connect",
     "zapsign-configure",
