@@ -31,6 +31,12 @@ Deno.serve(async(req)=>{
     const b=await req.json().catch(()=>({}));
     const ctx=await authContext(req,b);
     const a=ctx.a;
+    const userAuth=req.headers.get('authorization')||'';
+    let useWaha=false;
+    if(!ctx.internal&&ctx.userId){
+      const {data:wahaConn}=await a.from('integration_connections').select('id').eq('org_id',ctx.orgId).eq('owner_user_id',ctx.userId).eq('provider','whatsapp').contains('settings',{provider:'waha'}).maybeSingle();
+      useWaha=!!wahaConn;
+    }
     const message=String(b.message||'').trim();
     const targets=Array.isArray(b.targets)?b.targets:[];
     if(!message)return json({ok:false,error:'Mensagem obrigatória'},400);
@@ -41,8 +47,15 @@ Deno.serve(async(req)=>{
     const results:any[]=[];
     for(const t of unique){
       try{
-        const d=await sendMeta(a,t.phone,message);
-        const externalId=String(d?.messages?.[0]?.id||'')||null;
+        let d:any;
+        if(useWaha){
+          const wr=await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/whatsapp-waha-connect`,{method:'POST',headers:{Authorization:userAuth,'Content-Type':'application/json'},body:JSON.stringify({action:'send',phone:t.phone,message})});
+          d=await wr.json().catch(()=>null);
+          if(!wr.ok||!d?.ok)throw new Error(d?.error||'Falha no envio via QR Code.');
+        }else{
+          d=await sendMeta(a,t.phone,message);
+        }
+        const externalId=String(d?.messages?.[0]?.id||d?.provider_response?.id||'')||null;
         if(t.conversation_id){
           await a.from('whatsapp_messages').insert({org_id:ctx.orgId,conversation_id:t.conversation_id,external_message_id:externalId,direction:'outbound',message_type:'text',body:message,status:'sent',sent_at:new Date().toISOString(),metadata:{source:'meta_operator_send',fromMe:true,sender_type:ctx.internal?'system':'human',operator_user_id:ctx.userId}});
           await a.from('whatsapp_conversations').update({last_message_at:new Date().toISOString(),last_message_preview:message,last_human_outbound_at:ctx.internal?null:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',t.conversation_id).eq('org_id',ctx.orgId);
