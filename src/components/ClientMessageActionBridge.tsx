@@ -51,5 +51,5 @@ export default function ClientMessageActionBridge(){
   return()=>document.removeEventListener('click',onClick,true)
  },[]);
  if(!target)return null;
- return <ClientMessageScheduler client={target.client} conversationId={target.conversationId} initialMessage={target.initialMessage||''} onClose={()=>setTarget(null)} onSent={()=>setTarget(null)}/>;
+ return <ClientMessageScheduler client={target.client} conversationId={target.conversationId} initialMessage={target.initialMessage||''} onClose={()=>setTarget(null)}/>;
 }
