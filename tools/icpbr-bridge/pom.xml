@@ -2,15 +2,22 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>br.com.lexoffice</groupId>
   <artifactId>icpbr-bridge</artifactId>
-  <version>1.1.1</version>
-  <properties><maven.compiler.source>8</maven.compiler.source><maven.compiler.target>8</maven.compiler.target><project.build.sourceEncoding>UTF-8</project.build.sourceEncoding></properties>
+  <version>2.0.0</version>
+  <properties>
+    <maven.compiler.source>8</maven.compiler.source>
+    <maven.compiler.target>8</maven.compiler.target>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <demoiselle.signer.version>4.6.1</demoiselle.signer.version>
+  </properties>
   <dependencies>
+    <dependency><groupId>org.demoiselle.signer</groupId><artifactId>policy-impl-pades</artifactId><version>${demoiselle.signer.version}</version></dependency>
+    <dependency><groupId>org.demoiselle.signer</groupId><artifactId>chain-icp-brasil</artifactId><version>${demoiselle.signer.version}</version></dependency>
     <dependency><groupId>org.bouncycastle</groupId><artifactId>bcprov-jdk15on</artifactId><version>1.70</version></dependency>
     <dependency><groupId>org.bouncycastle</groupId><artifactId>bcpkix-jdk15on</artifactId><version>1.70</version></dependency>
     <dependency><groupId>org.apache.pdfbox</groupId><artifactId>pdfbox</artifactId><version>2.0.32</version></dependency>
   </dependencies>
   <build><plugins>
     <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId><version>3.13.0</version><configuration><release>8</release></configuration></plugin>
-    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-shade-plugin</artifactId><version>3.6.0</version><executions><execution><phase>package</phase><goals><goal>shade</goal></goals><configuration><createDependencyReducedPom>false</createDependencyReducedPom><filters><filter><artifact>*:*</artifact><excludes><exclude>META-INF/*.SF</exclude><exclude>META-INF/*.DSA</exclude><exclude>META-INF/*.RSA</exclude></excludes></filter></filters><transformers><transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer"><mainClass>br.com.lexoffice.icpbridge.BridgeMain</mainClass></transformer></transformers><finalName>lexoffice-icpbr-bridge</finalName></configuration></execution></executions></plugin>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-shade-plugin</artifactId><version>3.6.0</version><executions><execution><phase>package</phase><goals><goal>shade</goal></goals><configuration><createDependencyReducedPom>false</createDependencyReducedPom><filters><filter><artifact>*:*</artifact><excludes><exclude>META-INF/*.SF</exclude><exclude>META-INF/*.DSA</exclude><exclude>META-INF/*.RSA</exclude></excludes></filter></filters><transformers><transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/><transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer"><mainClass>br.com.lexoffice.icpbridge.BridgeMain</mainClass></transformer></transformers><finalName>lexoffice-icpbr-bridge</finalName></configuration></execution></executions></plugin>
   </plugins></build>
 </project>
