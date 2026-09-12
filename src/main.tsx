@@ -42,7 +42,7 @@ import './service-scroll-guard.css';
 const intakePrefix='/formulario-cliente/';
 const path=window.location.pathname.replace(/\/$/,'')||'/';
 const isPublicIntake=window.location.pathname.startsWith(intakePrefix);
-const isPublicLanding=['/','/inicio','/lexoffice'].includes(path);
+const isPublicLanding=['/apresentacao','/conheca-lexoffice'].includes(path);
 const isPublicPlans=['/planos','/precos','/pricing'].includes(path);
 const intakeToken=isPublicIntake?decodeURIComponent(window.location.pathname.slice(intakePrefix.length).split('/')[0]||''):'';
 const RootApp=window.location.pathname.startsWith('/admin')?PlatformAdminEntry:App;
