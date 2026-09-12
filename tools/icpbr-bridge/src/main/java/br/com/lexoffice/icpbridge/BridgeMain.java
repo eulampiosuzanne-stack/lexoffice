@@ -16,8 +16,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.swing.*;
 
-import org.apache.pdfbox.cos.COSName;
-import org.apache.pdfbox.cos.COSString;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
@@ -28,11 +26,11 @@ import org.apache.pdfbox.pdmodel.interactive.digitalsignature.SignatureOptions;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.cms.Attribute;
+import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cms.CMSProcessableByteArray;
 import org.bouncycastle.cms.CMSSignedData;
 import org.bouncycastle.cms.SignerInformation;
-import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoVerifierBuilder;
 import org.demoiselle.signer.policy.engine.factory.PolicyFactory.Policies;
 import org.demoiselle.signer.policy.impl.pades.pkcs7.impl.PAdESSigner;
@@ -103,16 +101,10 @@ public final class BridgeMain {
 
     static boolean preflight(HttpExchange x) throws IOException {
         cors(x);
-        if ("OPTIONS".equalsIgnoreCase(x.getRequestMethod())) {
-            if (!validHost(x) || !allowedOrigin(x.getRequestHeaders().getFirst("Origin"))) {
-                json(x, 403, "{\"error\":\"origin blocked\"}");
-            } else {
-                x.sendResponseHeaders(204, -1);
-                x.close();
-            }
-            return true;
-        }
-        return false;
+        if (!"OPTIONS".equalsIgnoreCase(x.getRequestMethod())) return false;
+        if (!validHost(x) || !allowedOrigin(x.getRequestHeaders().getFirst("Origin"))) json(x, 403, "{\"error\":\"origin blocked\"}");
+        else { x.sendResponseHeaders(204, -1); x.close(); }
+        return true;
     }
 
     static void health(HttpExchange x) throws IOException {
@@ -147,7 +139,7 @@ public final class BridgeMain {
 
     static void cleanupNonces() {
         long now = System.currentTimeMillis();
-        for (Map.Entry<String, Long> e : NONCES.entrySet()) if (e.getValue() < now) NONCES.remove(e.getKey());
+        for (Map.Entry<String, Long> e : NONCES.entrySet()) if (e.getValue().longValue() < now) NONCES.remove(e.getKey());
     }
 
     static synchronized Provider pkcs11() throws Exception {
@@ -162,7 +154,8 @@ public final class BridgeMain {
             if (base == null) throw new GeneralSecurityException("SunPKCS11 indisponivel no Java.");
             File f = File.createTempFile("lexoffice-p11-", ".cfg");
             Files.write(f.toPath(), cfg.getBytes(StandardCharsets.UTF_8));
-            pkcs11Provider = base.configure(f.getAbsolutePath());
+            java.lang.reflect.Method configure = Provider.class.getMethod("configure", String.class);
+            pkcs11Provider = (Provider)configure.invoke(base, f.getAbsolutePath());
             f.deleteOnExit();
         }
         Security.addProvider(pkcs11Provider);
@@ -173,7 +166,7 @@ public final class BridgeMain {
         if (!isCloud()) return pkcs11();
         Provider p = Security.getProvider("SunMSCAPI");
         if (p == null) {
-            p = (Provider)Class.forName("sun.security.mscapi.SunMSCAPI").getDeclaredConstructor().newInstance();
+            p = (Provider)Class.forName("sun.security.mscapi.SunMSCAPI").newInstance();
             Security.addProvider(p);
         }
         return p;
@@ -224,6 +217,7 @@ public final class BridgeMain {
             Parts parts = Parts.parse(x, MAX_PDF_BYTES + 1024L * 1024L);
             fp = parts.fingerprint;
             if (parts.file == null || parts.file.length < 5 || !startsPdf(parts.file)) throw new IllegalArgumentException("PDF invalido ou nao recebido.");
+            if (parts.fingerprint == null || parts.fingerprint.trim().isEmpty()) throw new IllegalArgumentException("Certificado nao selecionado.");
             pin = isCloud() ? new char[0] : askPin("Confirme o PIN para assinar este PDF com seu certificado A3 ICP-Brasil.");
             if (!isCloud() && pin == null) throw new IllegalStateException("Assinatura cancelada.");
             KeyStore k = store(pin);
@@ -278,7 +272,9 @@ public final class BridgeMain {
                         signer.setProvider(signingProvider());
                         signer.setCertificates(chain);
                         signer.setPrivateKey(key);
-                        return signer.doDetachedSign(all(content, MAX_PDF_BYTES + 1024L * 1024L));
+                        byte[] signature = signer.doDetachedSign(all(content, MAX_PDF_BYTES + 1024L * 1024L));
+                        if (signature == null || signature.length == 0) throw new GeneralSecurityException("Demoiselle retornou assinatura vazia.");
+                        return signature;
                     } catch (Exception e) { throw new IOException("Falha ao gerar PAdES ICP-Brasil: " + msg(e), e); }
                 }
             }, opts);
@@ -339,7 +335,11 @@ public final class BridgeMain {
     static char[] askPin(final String text) throws Exception {
         final JPasswordField field = new JPasswordField(18);
         final int[] result = new int[1];
-        SwingUtilities.invokeAndWait(() -> result[0] = JOptionPane.showConfirmDialog(null, new Object[]{text, "O PIN permanece somente neste computador e nunca e enviado ao navegador, LEXOFFICE ou Supabase.", field}, "LEXOFFICE - ICP-Brasil", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE));
+        SwingUtilities.invokeAndWait(new Runnable() {
+            public void run() {
+                result[0] = JOptionPane.showConfirmDialog(null, new Object[]{text, "O PIN permanece somente neste computador e nunca e enviado ao navegador, LEXOFFICE ou Supabase.", field}, "LEXOFFICE - ICP-Brasil", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+            }
+        });
         return result[0] == JOptionPane.OK_OPTION ? field.getPassword() : null;
     }
 
@@ -370,19 +370,16 @@ public final class BridgeMain {
     static String dn(String s) { for (String p : s.split(",")) if (p.trim().startsWith("CN=")) return p.trim().substring(3); return s; }
     static void wipe(char[] c) { if (c != null) Arrays.fill(c, '\0'); }
     static long parseLong(String v) { try { return v == null ? -1L : Long.parseLong(v); } catch (Exception e) { return -1L; } }
-
-    static void json(HttpExchange x, int code, String body) throws IOException {
-        cors(x); byte[] data = body.getBytes(StandardCharsets.UTF_8); x.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8"); x.sendResponseHeaders(code, data.length); OutputStream o = x.getResponseBody(); o.write(data); o.close();
-    }
-    static String msg(Throwable e) { Throwable t=e; while (t.getCause()!=null) t=t.getCause(); return t.getMessage()!=null?t.getMessage():e.getClass().getSimpleName(); }
+    static void json(HttpExchange x, int code, String body) throws IOException { cors(x); byte[] data=body.getBytes(StandardCharsets.UTF_8); x.getResponseHeaders().set("Content-Type","application/json; charset=utf-8"); x.sendResponseHeaders(code,data.length); OutputStream o=x.getResponseBody(); o.write(data); o.close(); }
+    static String msg(Throwable e) { Throwable t=e; while(t.getCause()!=null)t=t.getCause(); return t.getMessage()!=null?t.getMessage():e.getClass().getSimpleName(); }
     static String esc(String s) { return s==null?"":s.replace("\\","\\\\").replace("\"","\\\"").replace("\n"," ").replace("\r"," "); }
     static String safe(String s) { return s==null?"":s.replace('\u2014','-').replace('\u2022','-').replaceAll("[^\\x20-\\x7E\\u00C0-\\u00FF]"," "); }
     static String hex(byte[] b) { StringBuilder s=new StringBuilder(); for(byte v:b)s.append(String.format("%02X",v)); return s.toString(); }
     static String join(List<String> a) { StringBuilder s=new StringBuilder(); for(int i=0;i<a.size();i++){if(i>0)s.append(',');s.append(a.get(i));} return s.toString(); }
 
     static byte[] all(InputStream in, long limit) throws IOException {
-        ByteArrayOutputStream out = new ByteArrayOutputStream(); byte[] buf = new byte[8192]; long total=0; int n;
-        while((n=in.read(buf))!=-1){ total+=n; if(total>limit) throw new IOException("Conteudo excede o limite permitido."); out.write(buf,0,n); } return out.toByteArray();
+        ByteArrayOutputStream out=new ByteArrayOutputStream(); byte[] buf=new byte[8192]; long total=0; int n;
+        while((n=in.read(buf))!=-1){total+=n;if(total>limit)throw new IOException("Conteudo excede o limite permitido.");out.write(buf,0,n);} return out.toByteArray();
     }
 
     static final class Validation {
@@ -392,12 +389,10 @@ public final class BridgeMain {
 
     static final class Parts {
         byte[] file; String fingerprint; String sealText; boolean visibleSeal=true;
-        static Parts parse(HttpExchange x, long max) throws IOException {
-            String ct=x.getRequestHeaders().getFirst("Content-Type"); if(ct==null||!ct.contains("boundary=")) throw new IOException("multipart/form-data invalido");
-            String boundary=ct.substring(ct.indexOf("boundary=")+9).replace("\"","").trim(); byte[] raw=all(x.getRequestBody(),max); String text=new String(raw,StandardCharsets.ISO_8859_1), marker="--"+boundary; Parts out=new Parts(); int pos=0;
-            while((pos=text.indexOf(marker,pos))>=0){ int hs=text.indexOf("\r\n\r\n",pos); if(hs<0)break; int start=hs+4,end=text.indexOf("\r\n"+marker,start); if(end<0)break; String h=text.substring(pos,hs),name=attr(h,"name"); byte[] data=Arrays.copyOfRange(raw,start,end);
-                if("file".equals(name))out.file=data; else { String v=new String(data,StandardCharsets.UTF_8).trim(); if("certificateFingerprint".equals(name))out.fingerprint=v; else if("visibleSeal".equals(name))out.visibleSeal=Boolean.parseBoolean(v); else if("sealText".equals(name))out.sealText=v; } pos=end+2; }
-            return out;
+        static Parts parse(HttpExchange x,long max)throws IOException{
+            String ct=x.getRequestHeaders().getFirst("Content-Type"); if(ct==null||!ct.contains("boundary="))throw new IOException("multipart/form-data invalido");
+            String boundary=ct.substring(ct.indexOf("boundary=")+9).replace("\"","").trim(); byte[] raw=all(x.getRequestBody(),max); String text=new String(raw,StandardCharsets.ISO_8859_1),marker="--"+boundary; Parts out=new Parts(); int pos=0;
+            while((pos=text.indexOf(marker,pos))>=0){int hs=text.indexOf("\r\n\r\n",pos);if(hs<0)break;int start=hs+4,end=text.indexOf("\r\n"+marker,start);if(end<0)break;String h=text.substring(pos,hs),name=attr(h,"name");byte[] data=Arrays.copyOfRange(raw,start,end);if("file".equals(name))out.file=data;else{String v=new String(data,StandardCharsets.UTF_8).trim();if("certificateFingerprint".equals(name))out.fingerprint=v;else if("visibleSeal".equals(name))out.visibleSeal=Boolean.parseBoolean(v);else if("sealText".equals(name))out.sealText=v;}pos=end+2;} return out;
         }
         static String attr(String h,String n){String q=n+"=\"";int a=h.indexOf(q);if(a<0)return null;int b=h.indexOf('"',a+q.length());return b<0?null:h.substring(a+q.length(),b);}
     }
