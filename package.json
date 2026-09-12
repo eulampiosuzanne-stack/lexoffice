@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "verify": "node scripts/verify-repository.mjs",
-    "test": "npm run verify"
+    "test:whatsapp-format": "node scripts/test-whatsapp-reply-format.mjs",
+    "test": "npm run test:whatsapp-format && npm run verify"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
