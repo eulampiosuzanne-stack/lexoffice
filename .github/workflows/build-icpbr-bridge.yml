@@ -5,6 +5,10 @@ on:
     paths:
       - 'tools/icpbr-bridge/**'
       - '.github/workflows/build-icpbr-bridge.yml'
+  pull_request:
+    paths:
+      - 'tools/icpbr-bridge/**'
+      - '.github/workflows/build-icpbr-bridge.yml'
   workflow_dispatch:
 permissions:
   contents: read

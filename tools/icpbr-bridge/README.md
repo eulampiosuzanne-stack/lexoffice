@@ -1,48 +1,92 @@
 # LEXOFFICE ICP-Brasil A3 Bridge
 
-Ponte local para assinatura digital PAdES com certificado A3. A chave privada permanece no token e o PIN nunca deve ser enviado ao LEXOFFICE, Supabase ou GitHub.
+Aplicação local do LEXOFFICE para aplicar a assinatura digital da Dra. Suzanne em um PDF que já foi assinado eletronicamente pelo cliente.
 
-## Ambiente identificado
+> A assinatura do cliente e a assinatura A3 são assinaturas distintas. O A3 da advogada não transforma a assinatura eletrônica do cliente em ICP-Brasil.
+
+## Ambiente Windows previsto
 
 - Windows x64
-- SafeSign IC Standard 64-bits
-- PKCS#11: `C:\Windows\System32\aetpkss1.dll`
-- Certificado ICP-Brasil AC OAB G3 reconhecido pelo Windows
+- SafeSign IC Standard 64 bits
+- Java 8 64 bits
+- PKCS#11 SafeSign: `C:\Windows\System32\aetpkss1.dll`
+- Certificado A3 ICP-Brasil em token físico
 
-## Contrato local planejado
+## O que a versão 2.0.0 faz
 
-O frontend conversa somente com `http://127.0.0.1:17681`.
+A ponte escuta exclusivamente em `127.0.0.1:17681` e expõe:
 
-- `GET /health` — estado da ponte, token e versão.
-- `GET /certificates` — lista apenas metadados públicos dos certificados disponíveis (subject, issuer, serial, validade e fingerprint), sem chave privada.
-- `POST /sign/pades` — recebe um PDF, fingerprint do certificado e configuração do selo visual; devolve o PDF PAdES assinado.
+- `GET /health` — diagnóstico sem acessar a chave privada.
+- `GET /challenge` — gera nonce aleatório, temporário e de uso único.
+- `GET /certificates` — exige nonce e exibe somente metadados públicos dos certificados com chave privada disponível no token.
+- `POST /sign/pades` — exige nonce, recebe o PDF e o fingerprint do certificado selecionado e devolve uma nova versão do PDF assinada.
 
-## Segurança obrigatória
+O motor de assinatura usa Demoiselle Signer e a política **ICP-Brasil PAdES AD-RB 1.3**, OID `2.16.76.1.7.1.11.1.3`. O PDF é assinado com a chave privada do token via PKCS#11 e, antes de ser devolvido ao navegador, a ponte verifica localmente a assinatura CMS/PAdES, o certificado utilizado, o ByteRange do PDF e a presença da política esperada.
 
-1. Bind somente em loopback (`127.0.0.1`), nunca `0.0.0.0`.
-2. CORS limitado aos domínios oficiais do LEXOFFICE em produção e localhost em desenvolvimento.
-3. O PIN é solicitado localmente no processo de assinatura e nunca persiste em arquivo, log, banco ou requisição ao backend remoto.
-4. A operação criptográfica usa PKCS#11/SafeSign; a chave privada não é exportada do token.
-5. O PDF assinado deve ser validado antes do upload de volta ao LEXOFFICE.
-6. O selo visual é aparência da assinatura; a validade é dada pela assinatura criptográfica PAdES.
+## PIN e chave privada
 
-## Selo visual padrão
+O PIN é solicitado somente por uma janela local no Windows. O navegador, o LEXOFFICE, o Supabase, o GitHub e a Vercel nunca recebem o PIN.
 
-- `Assinado digitalmente por <nome do certificado>`
-- `Certificado ICP-Brasil`
-- Emissor do certificado
-- Data/hora da assinatura
-- Identificador/fingerprint abreviado
+A ponte:
 
-## Motor
+- não grava PIN em arquivo;
+- não coloca PIN em logs;
+- sobrescreve o array de caracteres do PIN após a operação;
+- não exporta a chave privada;
+- não aceita PFX/P12 pelo navegador;
+- não transmite a chave privada para nenhum serviço remoto.
 
-A implementação Java deve usar Demoiselle Signer com política PAdES e cadeia ICP-Brasil, conectando ao SafeSign por PKCS#11. Antes de distribuir o executável, validar o PDF de teste em validador ICP-Brasil e Adobe Acrobat Reader.
+## Proteções da API local
 
+- bind exclusivo em `127.0.0.1`;
+- validação do `Host` do loopback;
+- CORS restrito aos domínios autorizados do LEXOFFICE e localhost de desenvolvimento;
+- suporte ao preflight de Private Network Access (`Access-Control-Allow-Private-Network`);
+- nonce/challenge temporário e consumido no primeiro uso;
+- limite de tamanho para o PDF recebido;
+- auditoria local sem segredo em `%LOCALAPPDATA%\LEXOFFICE\icpbr-bridge-audit.log`.
 
-## Certificado em nuvem (Certisign remoteID / DesktopID)
+## Selo visual
 
-A partir da versao 1.4.0 a ponte tambem suporta certificado em nuvem (ex.: Certisign remoteID, usado via o aplicativo DesktopID). Nesse caso o Windows enxerga o certificado como se fosse um certificado comum instalado no repositorio "Pessoal" do usuario, entao a ponte acessa ele pelo keystore nativo do Windows (Windows-MY, via provider SunMSCAPI) em vez do PKCS#11 usado para token fisico A3.
+O selo visual é opcional e informa, no mínimo:
 
-A variavel de ambiente LEXOFFICE_KEYSTORE_TYPE controla o modo. O valor WINDOWS-MY (padrao nos scripts start-windows.bat e run-bridge.bat atuais) usa o certificado em nuvem via DesktopID: o PIN e o codigo dinamico do app da Certisign sao pedidos pelo proprio Windows/DesktopID na hora de assinar, e a ponte nunca ve nem pede essas informacoes. O valor PKCS11 e o modo antigo, para quem ainda usa token fisico A3 com o SafeSign.
+- que o documento foi assinado digitalmente;
+- nome do signatário extraído do certificado;
+- ICP-Brasil;
+- data/hora local da assinatura.
 
-Pre-requisito: o DesktopID da Certisign precisa estar aberto e com o certificado sincronizado, aparecendo na lista de Certificados do proprio DesktopID, antes de iniciar a ponte.
+O selo é apenas representação visual. A validade da assinatura depende da assinatura criptográfica PAdES e do certificado ICP-Brasil.
+
+## Compilar
+
+No diretório `tools/icpbr-bridge`:
+
+```text
+mvn clean package
+```
+
+O resultado é `target/lexoffice-icpbr-bridge.jar`.
+
+O workflow `.github/workflows/build-icpbr-bridge.yml` compila em `windows-latest` com Temurin Java 8 e publica o artefato **LEXOFFICE-ICP-Brasil-A3-Windows**, contendo:
+
+- `lexoffice-icpbr-bridge.jar`
+- `INICIAR-LEXOFFICE-ICP.bat`
+- `LEIA-ME.txt`
+
+Para o token físico SafeSign, o arquivo que deve ser executado no Windows é **`INICIAR-LEXOFFICE-ICP.bat`**. Ele configura `LEXOFFICE_KEYSTORE_TYPE=PKCS11` e aponta para `C:\Windows\System32\aetpkss1.dll`.
+
+## Teste físico obrigatório
+
+Build/CI não substitui o teste com o token físico. O fluxo só deve ser considerado operacional depois de:
+
+1. iniciar `INICIAR-LEXOFFICE-ICP.bat` no Windows;
+2. o LEXOFFICE detectar `/health`;
+3. listar o certificado correto usando o PIN somente na janela local;
+4. assinar um PDF de teste que já contenha a assinatura do cliente;
+5. a ponte retornar `X-Lexoffice-Validation: valid` e a política esperada;
+6. o LEXOFFICE arquivar uma nova versão, sem sobrescrever o PDF do cliente;
+7. conferir a assinatura final também em ferramenta externa adequada à validação ICP-Brasil/PAdES.
+
+## Certificado em nuvem
+
+O código preserva o modo opcional `LEXOFFICE_KEYSTORE_TYPE=WINDOWS-MY` para certificados que o Windows exponha pelo repositório pessoal/SunMSCAPI. O pacote destinado ao cenário atual da Dra. Suzanne usa **PKCS#11 + SafeSign + A3 físico** por padrão.
