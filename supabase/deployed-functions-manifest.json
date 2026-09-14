@@ -10,7 +10,6 @@
     "meta-whatsapp-oauth",
     "whatsapp-operator-send",
     "whatsapp-release-agent",
-    "whatsapp-waha-connect",
     "zapsign-configure",
     "zapsign-send-signature"
   ]
