@@ -1,7 +1,4 @@
 {
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ],
   "regions": ["gru1"],
   "headers": [
     {
@@ -10,5 +7,9 @@
         { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }
       ]
     }
+  ],
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
