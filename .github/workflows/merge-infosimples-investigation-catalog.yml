@@ -1,0 +1,47 @@
+name: Merge Infosimples investigation catalog
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'src/data/infosimplesInvestigationCatalog.ts'
+      - '.github/workflows/merge-infosimples-investigation-catalog.yml'
+permissions:
+  contents: write
+jobs:
+  merge-catalog:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Merge catalog into Investigations page
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/pages/Consultas.tsx')
+          s=p.read_text()
+          imp="import { infosimplesInvestigationCatalog } from '../data/infosimplesInvestigationCatalog';\n"
+          if imp not in s:
+              marker="import { supabase } from '../lib/supabase';\n"
+              s=s.replace(marker,marker+imp)
+          s=s.replace("const consultas:Consulta[]=[","const consultasBase:Consulta[]=[",1)
+          marker="];\nfunction pretty"
+          if "const consultas:Consulta[]=[...consultasBase,...infosimplesInvestigationCatalog];" not in s:
+              s=s.replace(marker,"];\nconst consultas:Consulta[]=[...consultasBase,...infosimplesInvestigationCatalog];\nfunction pretty",1)
+          p.write_text(s)
+          PY
+      - name: Install and build
+        run: |
+          npm install
+          npm run build
+      - name: Commit generated merge
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/pages/Consultas.tsx
+          git diff --cached --quiet || git commit -m "feat: incluir buscas Infosimples em Investigações"
+          git push
