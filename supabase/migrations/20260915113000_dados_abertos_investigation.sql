@@ -1,0 +1,3 @@
+insert into public.investigation_catalog (slug,title,description,category,input_kind,provider_mode,enabled,novelty,sort_order)
+values ('dados-abertos-catalog','Portal Brasileiro de Dados Abertos','Pesquisa e descoberta de conjuntos de dados, organizações, temas e recursos públicos catalogados no dados.gov.br.','Dados Públicos','freeform','dados_abertos_catalog',true,true,190)
+on conflict (slug) do update set title=excluded.title,description=excluded.description,category=excluded.category,input_kind=excluded.input_kind,provider_mode=excluded.provider_mode,enabled=true,novelty=true,sort_order=excluded.sort_order;
