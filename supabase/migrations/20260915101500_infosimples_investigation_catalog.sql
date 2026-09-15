@@ -1,0 +1,51 @@
+-- Catálogo de consultas Infosimples para a aba Investigações e Consultas.
+-- A execução real deve ocorrer no backend. Nunca exponha o token Infosimples no frontend.
+
+insert into public.investigation_catalog
+  (slug,title,description,category,input_kind,provider_mode,enabled,novelty,sort_order)
+values
+  ('infosimples-caixa-regularidade','Caixa | Regularidade do Empregador (FGTS)','Emissão e consulta do CRF de regularidade do empregador perante o FGTS.','Certidões','cnpj','infosimples',true,true,200),
+  ('infosimples-correios-completa-cep','Correios | Consulta Completa de CEP','Consulta completa de CEP e área territorial brasileira.','Localização','freeform','infosimples',true,true,201),
+  ('infosimples-ibama-autuacoes','IBAMA | Autuações Ambientais','Pesquisa de autuações ambientais na fonte integrada.','Ambiental','cpf_cnpj','infosimples',true,true,202),
+  ('infosimples-ibama-certidao-debitos','IBAMA | Certidão de Débitos','Consulta e emissão de certidão de débitos ambientais.','Ambiental','cpf_cnpj','infosimples',true,true,203),
+  ('infosimples-ibama-certidao-embargos','IBAMA | Certidão de Embargos','Consulta de certidão de embargos / nada consta.','Ambiental','cpf_cnpj','infosimples',true,true,204),
+  ('infosimples-ibama-certificado-regularidade','IBAMA | Certificado de Regularidade','Consulta de certificado de regularidade ambiental.','Ambiental','cpf_cnpj','infosimples',true,true,205),
+  ('infosimples-inpi-marcas-titular','INPI | Marcas por CPF/CNPJ','Pesquisa de marcas vinculadas ao titular.','Propriedade Intelectual','cpf_cnpj','infosimples',true,true,206),
+  ('infosimples-inpi-marcas','INPI | Marcas','Pesquisa de marcas na base integrada do INPI.','Propriedade Intelectual','freeform','infosimples',true,true,207),
+  ('infosimples-inpi-patentes','INPI | Patentes','Pesquisa de patentes na base integrada do INPI.','Propriedade Intelectual','freeform','infosimples',true,true,208),
+  ('infosimples-portal-leniencia','Portal da Transparência | Acordos de Leniência','Pesquisa de acordos de leniência.','Integridade','cnpj','infosimples',true,true,209),
+  ('infosimples-portal-cnep','Portal da Transparência | Empresas Punidas (CNEP)','Pesquisa no Cadastro Nacional de Empresas Punidas.','Integridade','cnpj','infosimples',true,true,210),
+  ('infosimples-portal-ceis','Portal da Transparência | Empresas Inidôneas e Suspensas (CEIS)','Pesquisa no Cadastro de Empresas Inidôneas e Suspensas.','Integridade','cpf_cnpj','infosimples',true,true,211),
+  ('infosimples-portal-cepim','Portal da Transparência | Entidades Impedidas (CEPIM)','Pesquisa de entidades privadas sem fins lucrativos impedidas.','Integridade','cnpj','infosimples',true,true,212),
+  ('infosimples-portal-ceaf','Portal da Transparência | Expulsões da Administração Federal (CEAF)','Pesquisa no cadastro de expulsões da Administração Federal.','Integridade','freeform','infosimples',true,true,213),
+  ('infosimples-portal-convenios','Portal da Transparência | Convênios e Acordos','Pesquisa de convênios e acordos.','Integridade','cpf_cnpj','infosimples',true,true,214),
+  ('infosimples-portal-servidor','Portal da Transparência | Servidor Público','Pesquisa de servidor público na fonte integrada.','Pessoa','freeform','infosimples',true,true,215),
+  ('infosimples-receita-cnpj','Receita Federal | Consulta CNPJ','Dados cadastrais completos, atividades econômicas, endereço e quadro societário.','Empresas','cnpj','infosimples',true,true,216),
+  ('infosimples-receita-situacao','Receita Federal | Situação Fiscal','Consulta de situação fiscal na fonte integrada.','Fiscal','cpf_cnpj','infosimples',true,true,217),
+  ('infosimples-receita-simples','Receita Federal | Simples Nacional','Consulta de enquadramento e informações do Simples Nacional.','Fiscal','cnpj','infosimples',true,true,218),
+  ('infosimples-sefaz-certidao-debitos','SEFAZ | Certidão de Débitos Estaduais','Consulta e emissão de certidão estadual conforme UF e parâmetros exigidos pela fonte.','Fiscal','cnpj','infosimples',true,true,219),
+  ('infosimples-sefaz-cadastro-centralizado','SEFAZ | Cadastro Centralizado de Contribuinte (CCC)','Consulta cadastral centralizada de contribuinte.','Fiscal','cnpj','infosimples',true,true,220),
+  ('infosimples-cgu-cnc-privados','CGU | Certidão Negativa Correcional - Entes Privados','Consulta integrada ePAD, CGU-PJ, CEIS, CNEP e CEPIM.','Integridade','cnpj','infosimples',true,true,221),
+  ('infosimples-cgu-cnc-agentes','CGU | Certidão Negativa Correcional - Agentes Públicos','Consulta integrada ePAD, CGU-PAD e Banco de Sanções.','Integridade','cpf','infosimples',true,true,222),
+  ('infosimples-cenprot-protestos','CENPROT / IEPTB | Protestos','Pesquisa de protestos conforme cobertura da fonte integrada.','Patrimônio','cpf_cnpj','infosimples',true,true,223),
+  ('infosimples-cnj-improbidade','CNJ | Improbidade Administrativa e Inelegibilidade','Pesquisa na base de improbidade administrativa e inelegibilidade.','Jurídico','cpf_cnpj','infosimples',true,true,224),
+  ('infosimples-cnj-mandados-prisao','CNJ | Mandados de Prisão','Pesquisa na base pública disponibilizada pelo serviço integrado.','Jurídico','freeform','infosimples',true,true,225),
+  ('infosimples-cnj-seeu-processos','CNJ | SEEU / Processos','Pesquisa de processos do SEEU conforme parâmetros do serviço.','Jurídico','freeform','infosimples',true,true,226),
+  ('infosimples-icij-offshore','ICIJ | Offshore Leaks','Pesquisa na Offshore Leaks Database.','Integridade','freeform','infosimples',true,true,227),
+  ('infosimples-incra-sigef-parcelas','INCRA / SIGEF | Parcelas','Pesquisa de parcelas rurais no SIGEF.','Patrimônio','freeform','infosimples',true,true,228),
+  ('infosimples-incra-sigef-detalhes','INCRA / SIGEF | Detalhes de Parcela','Detalhamento de parcela rural no SIGEF.','Patrimônio','freeform','infosimples',true,true,229),
+  ('infosimples-car-imovel','Cadastro Ambiental Rural | Imóvel','Consulta de imóvel no Cadastro Ambiental Rural.','Patrimônio','freeform','infosimples',true,true,230),
+  ('infosimples-cvm-processo-sancionador','CVM | Processos Administrativos Sancionadores','Pesquisa de processos administrativos sancionadores.','Financeiro','freeform','infosimples',true,true,231),
+  ('infosimples-cvm-sancionadores','CVM | Processos Sancionadores Julgados','Pesquisa de processos sancionadores julgados.','Financeiro','freeform','infosimples',true,true,232),
+  ('infosimples-anvisa-empresas','ANVISA | Funcionamento de Empresa','Consulta de autorização e funcionamento de empresa nacional.','Empresas','cnpj','infosimples',true,true,233),
+  ('infosimples-sit-trabalho-escravo','Inspeção do Trabalho | Trabalho Escravo','Pesquisa na fonte de empregadores relacionada ao trabalho em condições análogas à escravidão.','Trabalhista','freeform','infosimples',true,true,234),
+  ('infosimples-registro-civil-validar','Registro Civil | Validar Certidão Eletrônica','Validação de certidão eletrônica de registro civil.','Documentos','freeform','infosimples',true,true,235)
+on conflict (slug) do update set
+ title=excluded.title,
+ description=excluded.description,
+ category=excluded.category,
+ input_kind=excluded.input_kind,
+ provider_mode=excluded.provider_mode,
+ enabled=excluded.enabled,
+ novelty=excluded.novelty,
+ sort_order=excluded.sort_order;
