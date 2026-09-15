@@ -1,0 +1,57 @@
+name: LexOffice Investigation Upgrade
+on:
+  push:
+    paths:
+      - '.github/workflows/lexoffice-investigation-upgrade.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Aplicar melhorias na Investigação
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('src/pages/Consultas.tsx')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace("import { Search,Filter,Star,Phone,Home,Car,Network,IdCard,Briefcase,Copyright,Scale,Landmark,Users,Building2,MapPin,DollarSign,Play,RefreshCw,Database,CheckCircle2,AlertTriangle } from 'lucide-react';", "import { Search,Filter,Star,Phone,Home,Car,Network,IdCard,Briefcase,Copyright,Scale,Landmark,Users,Building2,MapPin,DollarSign,Play,RefreshCw,Database,CheckCircle2,AlertTriangle,Download,FileText } from 'lucide-react';")
+          anchor=" {slug:'professional-data',title:'Dados profissionais',description:'Consulta de vínculos e dados profissionais disponíveis em fontes autorizadas.',icon:Briefcase,kind:'Pessoa',field:'CPF ou nome',placeholder:'Digite CPF ou nome completo'},"
+          extra=""" {slug:'rais-caged',title:'RAIS e CAGED',description:'Inteligência trabalhista com microdados públicos não identificados do MTE. Dados individualizados exigem autorização legal específica.',icon:Briefcase,kind:'Trabalhista',field:'CPF/CNPJ',placeholder:'Digite CPF ou CNPJ'},\n {slug:'cpf-light',title:'CPF Light / Cadastro Base',description:'Integração oficial do Conecta gov.br, disponível quando houver credencial e autorização compatível.',icon:IdCard,kind:'Pessoa',field:'CPF',placeholder:'Digite o CPF'},\n"""+anchor
+          if "slug:'rais-caged'" not in s: s=s.replace(anchor,extra)
+          anchor2=" {slug:'rural-properties',title:'Imóveis rurais',description:'Consulta de informações de imóveis rurais em fontes oficiais disponíveis.',icon:Landmark,kind:'Patrimônio',field:'CPF/CNPJ ou matrícula',placeholder:'CPF/CNPJ ou matrícula'},"
+          extra2=" {slug:'municipal-property',title:'Patrimônio municipal / IPTU',description:'Conectores para portais municipais e dados públicos de IPTU/patrimônio, conforme disponibilidade de cada prefeitura.',icon:Home,kind:'Patrimônio',field:'CPF/CNPJ',placeholder:'Digite CPF ou CNPJ'},\n"+anchor2
+          if "slug:'municipal-property'" not in s: s=s.replace(anchor2,extra2)
+          old="function pretty(v:any){if(v===null||v===undefined||v==='')return '—';if(Array.isArray(v))return v.length?`${v.length} registro(s)`:'Nenhum';if(typeof v==='object')return JSON.stringify(v);return String(v)}"
+          new=old+"\nfunction downloadReport(selected:Consulta|null,term:string,result:any){if(!selected||!result)return;const esc=(v:any)=>String(v??'—').replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[m]||m));const rows=Object.entries(result.result||{}).filter(([k])=>!['qsa','cnaes_secundarios'].includes(k)).map(([k,v])=>`<tr><th>${esc(k.replace(/_/g,' '))}</th><td>${esc(typeof v==='object'?JSON.stringify(v):v)}</td></tr>`).join('');const qsa=Array.isArray(result.result?.qsa)?result.result.qsa.map((x:any)=>`<li><b>${esc(x.nome_socio||x.nome)}</b> · ${esc(x.qualificacao_socio||x.qualificacao)}</li>`).join(''):'';const cnaes=Array.isArray(result.result?.cnaes_secundarios)?result.result.cnaes_secundarios.map((x:any)=>`<li>${esc(x.codigo||'')} ${esc(x.descricao||x)}</li>`).join(''):'';const html=`<!doctype html><html><head><meta charset='utf-8'><title>Relatório LEXOFFICE</title><style>body{font:14px Arial;color:#171717;margin:34px}h1{color:#8f1f3e}small{color:#666}table{width:100%;border-collapse:collapse;margin:20px 0}th,td{border:1px solid #ddd;padding:9px;text-align:left}th{width:32%;background:#f4f4f4;text-transform:capitalize}h2{margin-top:24px;font-size:17px}</style></head><body><h1>LEXOFFICE · Relatório de Investigação</h1><p><b>${esc(selected.title)}</b><br>Consulta: ${esc(term)}</p><small>Fonte: ${esc(result.source||'LEXOFFICE')} · Gerado em ${new Date().toLocaleString('pt-BR')}</small><table>${rows}</table>${qsa?`<h2>Quadro societário</h2><ul>${qsa}</ul>`:''}${cnaes?`<h2>CNAEs secundários</h2><ul>${cnaes}</ul>`:''}<script>window.onload=()=>window.print()<\/script></body></html>`;const w=window.open('','_blank');if(w){w.document.write(html);w.document.close()}}"
+          if 'function downloadReport' not in s: s=s.replace(old,new)
+          marker="{result&&<div className={`investigation-result ${result.status==='provider_required'?'provider-required':''}`}>"
+          repl="{result&&<><div className=\"investigation-report-actions\"><button type=\"button\" className=\"secondary\" onClick={()=>downloadReport(selected,term,result)}><Download size={16}/> Baixar relatório PDF</button></div><div className={`investigation-result ${result.status==='provider_required'?'provider-required':''}`}>"
+          if 'investigation-report-actions' not in s: s=s.replace(marker,repl).replace("</div>}</section>}</div>}","</div>}</>}</section>}</div>}")
+          p.write_text(s,encoding='utf-8')
+
+          f=Path('supabase/functions/investigation-search/index.ts')
+          t=f.read_text(encoding='utf-8')
+          oldbase="const base={cnpj:d.cnpj,razao_social:d.razao_social,nome_fantasia:d.nome_fantasia,situacao:d.descricao_situacao_cadastral,data_situacao:d.data_situacao_cadastral,cnae_principal:d.cnae_fiscal_descricao,endereco:{logradouro:d.logradouro,numero:d.numero,bairro:d.bairro,municipio:d.municipio,uf:d.uf,cep:d.cep},telefones:[d.ddd_telefone_1,d.ddd_telefone_2].filter(Boolean),email:d.email,capital_social:d.capital_social,qsa:d.qsa||[],cnaes_secundarios:d.cnaes_secundarios||[]};"
+          newbase="const base={cnpj:d.cnpj,razao_social:d.razao_social,nome_fantasia:d.nome_fantasia,situacao:d.descricao_situacao_cadastral,data_situacao:d.data_situacao_cadastral,motivo_situacao:d.descricao_motivo_situacao_cadastral||d.codigo_motivo_situacao_cadastral||null,data_abertura:d.data_inicio_atividade,matriz_filial:d.descricao_identificador_matriz_filial||d.identificador_matriz_filial,natureza_juridica:d.descricao_natureza_juridica||d.codigo_natureza_juridica,porte:d.porte,mei:d.opcao_pelo_mei,simples_nacional:d.opcao_pelo_simples,cnae_principal_codigo:d.cnae_fiscal,cnae_principal:d.cnae_fiscal_descricao,endereco:{logradouro:d.logradouro,numero:d.numero,complemento:d.complemento,bairro:d.bairro,municipio:d.municipio,uf:d.uf,cep:d.cep},telefones:[d.ddd_telefone_1,d.ddd_telefone_2].filter(Boolean),email:d.email,capital_social:d.capital_social,qsa:d.qsa||[],cnaes_secundarios:d.cnaes_secundarios||[]};"
+          t=t.replace(oldbase,newbase)
+          oldstatus="if(title==='Situação cadastral')return{status:'completed',source:'BrasilAPI / Receita Federal',result:{cnpj:base.cnpj,razao_social:base.razao_social,nome_fantasia:base.nome_fantasia,situacao:base.situacao,data_situacao:base.data_situacao,endereco:base.endereco}};"
+          newstatus="if(title==='Situação cadastral')return{status:'completed',source:'BrasilAPI / Receita Federal',result:base};"
+          t=t.replace(oldstatus,newstatus)
+          needle="if(def.provider_mode==='internal')return internalLookup(db,org,def,q);"
+          info="""if(def.slug==='rais-caged')return{status:'provider_required',source:'MTE / PDET · Microdados RAIS e CAGED',result:{message:'Os microdados públicos do MTE são não identificados e podem alimentar análises estatísticas internas. Consulta individualizada de vínculo por CPF exige base identificada e autorização legal específica.',pagina_oficial:'Microdados RAIS e CAGED - Ministério do Trabalho e Emprego',input_type:input}};\n if(def.slug==='cpf-light')return{status:'provider_required',source:'Conecta gov.br / Receita Federal',result:{message:'A API CPF Light exige credencial e autorização do Conecta gov.br. O LEXOFFICE mantém este conector preparado para ativação quando houver acesso válido.',input_type:input}};\n if(def.slug==='municipal-property')return{status:'provider_required',source:'Portais municipais / conectores locais',result:{message:'A disponibilidade de consulta de IPTU e patrimônio varia por município. O LEXOFFICE deve usar apenas conectores públicos/oficiais permitidos para cada prefeitura.',input_type:input}};\n """+needle
+          if "def.slug==='rais-caged'" not in t: t=t.replace(needle,info)
+          f.write_text(t,encoding='utf-8')
+
+          css=Path('src/pages/consultas.css')
+          c=css.read_text(encoding='utf-8')
+          add=".investigation-report-actions{display:flex;justify-content:flex-end;margin-top:16px}.investigation-report-actions button{display:inline-flex;align-items:center;gap:8px}"
+          if '.investigation-report-actions' not in c: css.write_text(c+'\n'+add+'\n',encoding='utf-8')
+      - name: Salvar alterações
+        run: |
+          git config user.name 'LexOffice Bot'
+          git config user.email 'actions@github.com'
+          git add src/pages/Consultas.tsx src/pages/consultas.css supabase/functions/investigation-search/index.ts
+          git diff --cached --quiet || git commit -m 'feat: enriquecer investigação cadastral e fontes oficiais'
+          git push
