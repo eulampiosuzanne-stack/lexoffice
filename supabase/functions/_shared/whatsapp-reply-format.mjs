@@ -1,8 +1,8 @@
-export const WHATSAPP_AGENT_HEADER='⚖️ *Clara | Suzanne Figueiredo Advocacia* ⚖️';
+export const WHATSAPP_AGENT_HEADER='⚖️ *Helena | Suzanne Figueiredo Advocacia* ⚖️';
 
-const HEADER_RE=/^\s*⚖️?\s*\*{0,2}\s*Clara\s*\|\s*Suzanne\s+Figueiredo\s+Advocacia\s*\*{0,2}\s*⚖️?\s*[:\-–—]?\s*/i;
+const HEADER_RE=/^\s*⚖️?\s*\*{0,2}\s*(?:Clara|Helena)\s*\|\s*Suzanne\s+Figueiredo\s+Advocacia\s*\*{0,2}\s*⚖️?\s*[:\-–—]?\s*/i;
 const SUPPORT_RE=/^\s*(suporte|support)\s*:\s*/i;
-const TRAILING_SIGNATURE_RE=/\n\s*(?:⚖️?\s*)?\*{0,2}\s*Clara\s*\|\s*Suzanne\s+Figueiredo\s+Advocacia\s*\*{0,2}\s*⚖️?\s*$/i;
+const TRAILING_SIGNATURE_RE=/\n\s*(?:⚖️?\s*)?\*{0,2}\s*(?:Clara|Helena)\s*\|\s*Suzanne\s+Figueiredo\s+Advocacia\s*\*{0,2}\s*⚖️?\s*$/i;
 
 function tryExtractJsonReply(value){
   const text=String(value??'').trim();
