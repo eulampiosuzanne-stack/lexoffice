@@ -1,98 +1,24 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2.57.4";
-
 const json=(b:any,s=200)=>new Response(JSON.stringify(b),{status:s,headers:{"Content-Type":"application/json","Cache-Control":"no-store"}});
 const digits=(v:any)=>String(v??'').replace(/\D/g,'');
 const admin=()=>createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false,autoRefreshToken:false}});
 async function secret(a:any,key:string){try{const{data}=await a.from('system_runtime_secrets').select('secret').eq('key',key).maybeSingle();return String(data?.secret||'').trim()}catch{return''}}
-async function cfg(a:any){const instance=(Deno.env.get('ZAPI_INSTANCE_ID')||await secret(a,'zapi_instance_id')||await secret(a,'ZAPI_INSTANCE_ID')).trim();const token=(Deno.env.get('ZAPI_TOKEN')||await secret(a,'zapi_token')||await secret(a,'ZAPI_TOKEN')).trim();const clientToken=(Deno.env.get('ZAPI_CLIENT_TOKEN')||await secret(a,'zapi_client_token')||await secret(a,'ZAPI_CLIENT_TOKEN')).trim();if(!instance||!token)throw new Error('Z-API não configurada');return{instance,token,clientToken}}
-
-type Opt={id:string,label:string,next?:string,agent?:string};
-type Node={message:string,options:Opt[]};
+async function cfg(a:any){const instance=(Deno.env.get('ZAPI_INSTANCE_ID')||await secret(a,'zapi_instance_id')||await secret(a,'ZAPI_INSTANCE_ID')).trim();const token=(Deno.env.get('ZAPI_TOKEN')||await secret(a,'zapi_token')||await secret(a,'ZAPI_TOKEN')||await secret(a,'zapi_instance_token')).trim();const clientToken=(Deno.env.get('ZAPI_CLIENT_TOKEN')||await secret(a,'zapi_client_token')||await secret(a,'ZAPI_CLIENT_TOKEN')).trim();if(!instance||!token)throw new Error('Z-API não configurada');return{instance,token,clientToken}}
+type Opt={id:string,label:string,next?:string,agent?:string}; type Node={message:string,options:Opt[]};
 const nodes:Record<string,Node>={
- start:{message:'Olá 👋 Seja bem-vinda ao atendimento do escritório Suzanne Figueiredo Advocacia.\n\nComo podemos ajudá-la hoje?',options:[
-  {id:'client',label:'👤 Já sou cliente',next:'client'},
-  {id:'new',label:'✨ Ainda não sou cliente',next:'new'},
-  {id:'schedule',label:'📅 Agendamento',next:'schedule'},
-  {id:'team',label:'💬 Falar com a equipe',agent:'human'}]},
- client:{message:'Que bom ter você por aqui. Escolha o assunto do atendimento:',options:[
-  {id:'process',label:'⚖️ Meu processo',next:'process'},
-  {id:'updates',label:'🔔 Andamentos',next:'updates'},
-  {id:'finance',label:'💳 Financeiro',next:'finance'},
-  {id:'docs',label:'📎 Documentos',next:'docs'},
-  {id:'schedule',label:'📅 Agendamento',next:'schedule'},
-  {id:'helena',label:'👩🏻 Helena',agent:'client_service_triage'}]},
- process:{message:'⚖️ Meu processo\n\nO que você deseja consultar?',options:[
-  {id:'last_update',label:'🔔 Último andamento',agent:'client_process_updates'},
-  {id:'deadline',label:'⏳ Prazos',agent:'client_process_updates'},
-  {id:'hearing',label:'🏛️ Audiência',agent:'client_process_updates'},
-  {id:'send_doc',label:'📤 Enviar documento',next:'docs'},
-  {id:'question',label:'❓ Tenho uma dúvida',agent:'client_process_updates'},
-  {id:'back',label:'↩️ Voltar',next:'client'}]},
- updates:{message:'🔔 Andamentos\n\nO que você quer saber?',options:[
-  {id:'latest',label:'🆕 Última movimentação',agent:'client_process_updates'},
-  {id:'meaning',label:'⚖️ O que significa?',agent:'client_process_updates'},
-  {id:'next_step',label:'⏭️ Próximo passo',agent:'client_process_updates'},
-  {id:'team',label:'💬 Falar com equipe',agent:'human'},
-  {id:'back',label:'↩️ Voltar',next:'client'}]},
- finance:{message:'💳 Financeiro\n\nEscolha uma opção:',options:[
-  {id:'installments',label:'💰 Minhas parcelas',agent:'billing'},
-  {id:'due',label:'📅 Vencimento',agent:'billing'},
-  {id:'second_copy',label:'🧾 2ª via',agent:'billing'},
-  {id:'paid',label:'✅ Informar pagamento',agent:'billing'},
-  {id:'late',label:'⚠️ Parcela em atraso',agent:'billing'},
-  {id:'back',label:'↩️ Voltar',next:'client'}]},
- docs:{message:'📎 Documentos\n\nComo podemos ajudar?',options:[
-  {id:'send',label:'📤 Enviar documento',agent:'client_service_triage'},
-  {id:'needed',label:'📥 O que preciso enviar?',agent:'client_service_triage'},
-  {id:'signature',label:'✍️ Assinatura',agent:'client_service_triage'},
-  {id:'process_doc',label:'⚖️ Documento do processo',agent:'client_process_updates'},
-  {id:'back',label:'↩️ Voltar',next:'client'}]},
- schedule:{message:'📅 Agendamento\n\nComo prefere ser atendida?',options:[
-  {id:'online',label:'💻 Consulta online',agent:'client_schedule_relationship'},
-  {id:'presential',label:'🏢 Consulta presencial',agent:'client_schedule_relationship'},
-  {id:'reschedule',label:'🔄 Remarcar',agent:'client_schedule_relationship'},
-  {id:'hours',label:'🕐 Ver horários',agent:'client_schedule_relationship'},
-  {id:'back',label:'↩️ Voltar ao início',next:'start'}]},
- new:{message:'✨ Novo atendimento\n\nEm qual área você precisa de ajuda?',options:[
-  {id:'family',label:'👨‍👩‍👧 Família',next:'family'},
-  {id:'labor',label:'👷 Trabalhista',agent:'sales'},
-  {id:'consumer',label:'🛒 Consumidor',agent:'sales'},
-  {id:'bank',label:'🏦 Bancário',agent:'sales'},
-  {id:'health',label:'💗 Saúde',agent:'sales'},
-  {id:'property',label:'🏠 Imóveis',agent:'sales'},
-  {id:'other',label:'💬 Outro assunto',agent:'sales'}]},
- family:{message:'👨‍👩‍👧 Família\n\nQual assunto mais se aproxima do seu caso?',options:[
-  {id:'support',label:'👶 Pensão alimentícia',next:'support'},
-  {id:'custody',label:'👨‍👩‍👧 Guarda e visitas',agent:'sales'},
-  {id:'divorce',label:'💔 Divórcio',agent:'sales'},
-  {id:'inventory',label:'📜 Inventário',agent:'sales'},
-  {id:'other',label:'💬 Outro assunto',agent:'sales'},
-  {id:'back',label:'↩️ Voltar',next:'new'}]},
- support:{message:'👶 Pensão alimentícia\n\nQual situação mais se aproxima da sua?',options:[
-  {id:'request',label:'➕ Quero pedir pensão',next:'support_process'},
-  {id:'unpaid',label:'🚫 Não está pagando',next:'support_process'},
-  {id:'arrears',label:'🪙 Pensão atrasada',next:'support_process'},
-  {id:'increase',label:'⬆️ Aumentar valor',next:'support_process'},
-  {id:'reduce',label:'⬇️ Reduzir valor',next:'support_process'},
-  {id:'exoneration',label:'📄 Exoneração',next:'support_process'}]},
- support_process:{message:'Só mais uma informação para direcionarmos corretamente:',options:[
-  {id:'yes',label:'📄 Já existe processo',agent:'sales'},
-  {id:'no',label:'🆕 Não existe processo',agent:'sales'},
-  {id:'unknown',label:'❓ Não sei informar',agent:'sales'}]},
- after_ai:{message:'Obrigada. O que você gostaria de fazer agora?',options:[
-  {id:'calculate',label:'🧮 Calcular valores',agent:'client_service_triage'},
-  {id:'docs',label:'📎 Enviar documentos',next:'docs'},
-  {id:'schedule',label:'📅 Agendar consulta',next:'schedule'},
-  {id:'next',label:'🧭 Próximos passos',agent:'client_service_triage'},
-  {id:'helena',label:'👩🏻 Continuar com Helena',agent:'client_service_triage'},
-  {id:'team',label:'💬 Falar com a equipe',agent:'human'}]}
-};
-
+start:{message:'Olá 👋 Seja bem-vinda ao atendimento do escritório Suzanne Figueiredo Advocacia.\n\nComo podemos ajudá-la hoje?',options:[{id:'client',label:'👤 Já sou cliente',next:'client'},{id:'new',label:'✨ Ainda não sou cliente',next:'new'},{id:'schedule',label:'📅 Agendamento',next:'schedule'},{id:'team',label:'💬 Falar com a equipe',agent:'human'}]},
+client:{message:'Que bom ter você por aqui. Escolha o assunto do atendimento:',options:[{id:'process',label:'⚖️ Meu processo',next:'process'},{id:'updates',label:'🔔 Andamentos',next:'updates'},{id:'finance',label:'💳 Financeiro',next:'finance'},{id:'docs',label:'📎 Documentos',next:'docs'},{id:'schedule',label:'📅 Agendamento',next:'schedule'},{id:'helena',label:'👩🏻 Helena',agent:'client_service_triage'}]},
+process:{message:'⚖️ Meu processo\n\nO que você deseja consultar?',options:[{id:'last_update',label:'🔔 Último andamento',agent:'client_process_updates'},{id:'deadline',label:'⏳ Prazos',agent:'client_process_updates'},{id:'hearing',label:'🏛️ Audiência',agent:'client_process_updates'},{id:'send_doc',label:'📤 Enviar documento',next:'docs'},{id:'question',label:'❓ Tenho uma dúvida',agent:'client_process_updates'},{id:'back',label:'↩️ Voltar',next:'client'}]},
+updates:{message:'🔔 Andamentos\n\nO que você quer saber?',options:[{id:'latest',label:'🆕 Última movimentação',agent:'client_process_updates'},{id:'meaning',label:'⚖️ O que significa?',agent:'client_process_updates'},{id:'next_step',label:'⏭️ Próximo passo',agent:'client_process_updates'},{id:'team',label:'💬 Falar com equipe',agent:'human'},{id:'back',label:'↩️ Voltar',next:'client'}]},
+finance:{message:'💳 Financeiro\n\nEscolha uma opção:',options:[{id:'installments',label:'💰 Minhas parcelas',agent:'billing'},{id:'due',label:'📅 Vencimento',agent:'billing'},{id:'second_copy',label:'🧾 2ª via',agent:'billing'},{id:'paid',label:'✅ Informar pagamento',agent:'billing'},{id:'late',label:'⚠️ Parcela em atraso',agent:'billing'},{id:'back',label:'↩️ Voltar',next:'client'}]},
+docs:{message:'📎 Documentos\n\nComo podemos ajudar?',options:[{id:'send',label:'📤 Enviar documento',agent:'client_service_triage'},{id:'needed',label:'📥 O que preciso enviar?',agent:'client_service_triage'},{id:'signature',label:'✍️ Assinatura',agent:'client_service_triage'},{id:'process_doc',label:'⚖️ Documento do processo',agent:'client_process_updates'},{id:'back',label:'↩️ Voltar',next:'client'}]},
+schedule:{message:'📅 Agendamento\n\nComo prefere ser atendida?',options:[{id:'online',label:'💻 Consulta online',agent:'client_schedule_relationship'},{id:'presential',label:'🏢 Consulta presencial',agent:'client_schedule_relationship'},{id:'reschedule',label:'🔄 Remarcar',agent:'client_schedule_relationship'},{id:'hours',label:'🕐 Ver horários',agent:'client_schedule_relationship'},{id:'back',label:'↩️ Voltar ao início',next:'start'}]},
+new:{message:'✨ Novo atendimento\n\nEm qual área você precisa de ajuda?',options:[{id:'family',label:'👨‍👩‍👧 Família',next:'family'},{id:'labor',label:'👷 Trabalhista',agent:'sales'},{id:'consumer',label:'🛒 Consumidor',agent:'sales'},{id:'bank',label:'🏦 Bancário',agent:'sales'},{id:'health',label:'💗 Saúde',agent:'sales'},{id:'property',label:'🏠 Imóveis',agent:'sales'},{id:'other',label:'💬 Outro assunto',agent:'sales'}]},
+family:{message:'👨‍👩‍👧 Família\n\nQual assunto mais se aproxima do seu caso?',options:[{id:'support',label:'👶 Pensão alimentícia',next:'support'},{id:'custody',label:'👨‍👩‍👧 Guarda e visitas',agent:'sales'},{id:'divorce',label:'💔 Divórcio',agent:'sales'},{id:'inventory',label:'📜 Inventário',agent:'sales'},{id:'other',label:'💬 Outro assunto',agent:'sales'},{id:'back',label:'↩️ Voltar',next:'new'}]},
+support:{message:'👶 Pensão alimentícia\n\nQual situação mais se aproxima da sua?',options:[{id:'request',label:'➕ Quero pedir pensão',next:'support_process'},{id:'unpaid',label:'🚫 Não está pagando',next:'support_process'},{id:'arrears',label:'🪙 Pensão atrasada',next:'support_process'},{id:'increase',label:'⬆️ Aumentar valor',next:'support_process'},{id:'reduce',label:'⬇️ Reduzir valor',next:'support_process'},{id:'exoneration',label:'📄 Exoneração',next:'support_process'}]},
+support_process:{message:'Só mais uma informação para direcionarmos corretamente:',options:[{id:'yes',label:'📄 Já existe processo',agent:'sales'},{id:'no',label:'🆕 Não existe processo',agent:'sales'},{id:'unknown',label:'❓ Não sei informar',agent:'sales'}]},
+after_ai:{message:'Obrigada. O que você gostaria de fazer agora?',options:[{id:'calculate',label:'🧮 Calcular valores',agent:'client_service_triage'},{id:'docs',label:'📎 Enviar documentos',next:'docs'},{id:'schedule',label:'📅 Agendar consulta',next:'schedule'},{id:'next',label:'🧭 Próximos passos',agent:'client_service_triage'},{id:'helena',label:'👩🏻 Continuar com Helena',agent:'client_service_triage'},{id:'team',label:'💬 Falar com a equipe',agent:'human'}]}};
 async function humanBlocked(a:any,orgId:string,conversationId:string|null){if(!conversationId)return false;const{data}=await a.from('whatsapp_conversations').select('bot_ativo,conversation_owner,last_human_outbound_at').eq('org_id',orgId).eq('id',conversationId).maybeSingle();if(data?.bot_ativo===false||data?.conversation_owner==='HUMAN')return true;if(data?.last_human_outbound_at){const t=new Date(data.last_human_outbound_at).getTime();if(Number.isFinite(t)&&Date.now()-t<30*60*1000)return true}return false}
 async function sendButtons(a:any,phone:string,node:Node){const c=await cfg(a);const r=await fetch(`https://api.z-api.io/instances/${encodeURIComponent(c.instance)}/token/${encodeURIComponent(c.token)}/send-button-list`,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json',...(c.clientToken?{'Client-Token':c.clientToken}:{})},body:JSON.stringify({phone:digits(phone),message:node.message,buttonList:{buttons:node.options.map(o=>({id:o.id,label:o.label}))}})});const raw=await r.text();let data:any;try{data=JSON.parse(raw)}catch{data={raw}}if(!r.ok)throw new Error(data?.message||data?.error||raw||`Z-API ${r.status}`);return data}
-
-Deno.serve(async(req)=>{if(req.method!=='POST')return json({ok:false,error:'Método inválido'},405);try{const service=(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'').trim();const auth=(req.headers.get('authorization')||'').trim();if(!service||auth!==`Bearer ${service}`)return json({ok:false,error:'Não autorizado'},401);const b=await req.json().catch(()=>({}));const orgId=String(b.org_id||'').trim(),conversationId=b.conversation_id?String(b.conversation_id):null,phone=String(b.phone||'').trim(),nodeKey=String(b.node||'start'),choice=String(b.choice||'').trim();if(!orgId||!phone)return json({ok:false,error:'org_id e phone são obrigatórios'},400);const a=admin();if(await humanBlocked(a,orgId,conversationId))return json({ok:true,blocked:true,reason:'human_takeover_or_cooldown'});
- const current=nodes[nodeKey]||nodes.start;if(choice){const opt=current.options.find(o=>o.id===choice);if(!opt)return json({ok:false,error:'Opção inválida'},400);if(opt.agent){return json({ok:true,handoff:true,agent_key:opt.agent,assistant_name:opt.agent==='human'?null:'Helena',selected:{node:nodeKey,choice,label:opt.label},next_node:'after_ai'});}if(opt.next){const provider=await sendButtons(a,phone,nodes[opt.next]);return json({ok:true,node:opt.next,provider_response:provider});}}
- const provider=await sendButtons(a,phone,current);return json({ok:true,node:nodeKey,provider_response:provider});
-}catch(e){console.error('whatsapp-chatbot-flow',e);return json({ok:false,error:e instanceof Error?e.message:String(e)},500)}});
+Deno.serve(async(req)=>{if(req.method!=='POST')return json({ok:false,error:'Método inválido'},405);try{const service=(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'').trim();const auth=(req.headers.get('authorization')||'').trim();if(!service||auth!==`Bearer ${service}`)return json({ok:false,error:'Não autorizado'},401);const b=await req.json().catch(()=>({}));const orgId=String(b.org_id||'').trim(),conversationId=b.conversation_id?String(b.conversation_id):null,phone=String(b.phone||'').trim(),nodeKey=String(b.node||'start'),choice=String(b.choice||'').trim();if(!orgId||!phone)return json({ok:false,error:'org_id e phone são obrigatórios'},400);const a=admin();if(await humanBlocked(a,orgId,conversationId))return json({ok:true,blocked:true,reason:'human_takeover_or_cooldown'});const current=nodes[nodeKey]||nodes.start;if(choice){const opt=current.options.find(o=>o.id===choice);if(!opt)return json({ok:false,error:'Opção inválida'},400);if(opt.agent)return json({ok:true,handoff:true,agent_key:opt.agent,assistant_name:opt.agent==='human'?null:'Helena',selected:{node:nodeKey,choice,label:opt.label},next_node:'after_ai'});if(opt.next){const provider=await sendButtons(a,phone,nodes[opt.next]);return json({ok:true,node:opt.next,provider_response:provider})}}const provider=await sendButtons(a,phone,current);return json({ok:true,node:nodeKey,provider_response:provider})}catch(e){console.error('whatsapp-chatbot-flow',e);return json({ok:false,error:e instanceof Error?e.message:String(e)},500)}});
