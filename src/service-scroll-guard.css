@@ -8,6 +8,9 @@
     scroll-behavior:auto!important;
     overscroll-behavior-x:none!important;
   }
+
+  /* Atendimento já concentra o canal WhatsApp. Evita dois módulos equivalentes no menu lateral. */
+  .app aside nav a[href="/whatsapp"]{display:none!important;}
 }
 
 @media (max-width:760px){
