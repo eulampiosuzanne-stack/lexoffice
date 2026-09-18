@@ -1,5 +1,6 @@
 -- Handoff humano persistente.
 -- A IA não deve retomar uma conversa somente pelo decurso de tempo.
+-- O retorno explícito para a IA tem precedência sobre tags/responsáveis antigos.
 create or replace function public.enforce_whatsapp_conversation_takeover()
 returns trigger
 language plpgsql
@@ -9,20 +10,23 @@ begin
      or new.tags is distinct from old.tags
      or new.conversation_owner is distinct from old.conversation_owner then
 
-    if new.conversation_owner = 'HUMAN'
+    -- Transição explícita HUMAN -> IA. Limpa o takeover mesmo que uma tag
+    -- de suporte antiga ainda exista na conversa.
+    if old.conversation_owner = 'HUMAN'
+       and new.conversation_owner is distinct from 'HUMAN'
+       and new.bot_ativo = true
+       and new.responsible_id is null then
+      new.human_takeover_at := null;
+      new.human_takeover_by := null;
+      new.human_takeover_reason := null;
+
+    elsif new.conversation_owner = 'HUMAN'
        or new.responsible_id is not null
        or coalesce(new.tags,'{}'::text[]) @> array['support']::text[] then
       new.bot_ativo := false;
       new.conversation_owner := 'HUMAN';
       new.human_takeover_at := coalesce(new.human_takeover_at, now());
       new.human_takeover_reason := coalesce(new.human_takeover_reason, 'operator_assignment');
-    elsif old.conversation_owner = 'HUMAN'
-          and new.conversation_owner <> 'HUMAN' then
-      -- retorno explícito para a IA
-      new.bot_ativo := true;
-      new.human_takeover_at := null;
-      new.human_takeover_by := null;
-      new.human_takeover_reason := null;
     end if;
   end if;
   return new;
