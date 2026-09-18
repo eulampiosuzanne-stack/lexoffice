@@ -43,9 +43,7 @@ function alexaResponse(text: string, history: HistoryItem[] = [], shouldEndSessi
     response: {
       outputSpeech: { type: 'PlainText', text: spoken },
       ...(shouldEndSession ? {} : {
-        reprompt: {
-          outputSpeech: { type: 'PlainText', text: 'O que você quer consultar ou recapitular?' },
-        },
+        reprompt: { outputSpeech: { type: 'PlainText', text: 'O que você quer consultar ou recapitular?' } },
       }),
       shouldEndSession,
     },
@@ -85,18 +83,8 @@ async function askLexOffice(message: string, history: HistoryItem[]) {
   try {
     const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-provider-gateway`, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        apikey: SUPABASE_ANON_KEY,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        agent_key: 'client_service_triage',
-        instructions,
-        input,
-        temperature: 0.2,
-        max_output_tokens: 240,
-      }),
+      headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agent_key: 'client_service_triage', instructions, input, temperature: 0.2, max_output_tokens: 240 }),
       signal: controller.signal,
     });
     const data = await response.json().catch(() => null);
@@ -111,39 +99,62 @@ export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') return sendJson(res, 405, { error: 'method_not_allowed' });
   if (!hasValidEndpointToken(req)) return sendJson(res, 403, { error: 'forbidden' });
 
+  let rawBody = '';
   try {
-    const rawBody = await getRawBody(req, { encoding: 'utf8', limit: '256kb' });
-    await new SkillRequestSignatureVerifier().verify(rawBody, req.headers);
-    await new TimestampVerifier().verify(rawBody);
+    rawBody = await getRawBody(req, { encoding: 'utf8', limit: '256kb' });
+  } catch (error) {
+    console.error('[alexa] raw_body_failed', error instanceof Error ? error.message : 'unknown');
+    return sendJson(res, 400, { error: 'invalid_alexa_request' });
+  }
 
-    const envelope = JSON.parse(rawBody);
+  try {
+    await new SkillRequestSignatureVerifier().verify(rawBody, req.headers);
+  } catch (error) {
+    console.error('[alexa] signature_verification_failed', error instanceof Error ? error.message : 'unknown', {
+      hasSignature: Boolean(req.headers?.signature),
+      hasCertChainUrl: Boolean(req.headers?.signaturecertchainurl),
+      contentType: req.headers?.['content-type'] || null,
+    });
+    return sendJson(res, 400, { error: 'invalid_alexa_request' });
+  }
+
+  try {
+    await new TimestampVerifier().verify(rawBody);
+  } catch (error) {
+    console.error('[alexa] timestamp_verification_failed', error instanceof Error ? error.message : 'unknown');
+    return sendJson(res, 400, { error: 'invalid_alexa_request' });
+  }
+
+  let envelope: any;
+  try {
+    envelope = JSON.parse(rawBody);
+  } catch (error) {
+    console.error('[alexa] json_parse_failed', error instanceof Error ? error.message : 'unknown');
+    return sendJson(res, 400, { error: 'invalid_alexa_request' });
+  }
+
+  try {
     const configuredSkillId = process.env.ALEXA_SKILL_ID?.trim();
     const requestSkillId = envelope?.context?.System?.application?.applicationId || envelope?.session?.application?.applicationId;
-    if (configuredSkillId && requestSkillId !== configuredSkillId) return sendJson(res, 403, { error: 'invalid_skill' });
+    if (configuredSkillId && requestSkillId !== configuredSkillId) {
+      console.error('[alexa] skill_id_mismatch');
+      return sendJson(res, 403, { error: 'invalid_skill' });
+    }
 
     const request = envelope?.request || {};
     const history = normalizeHistory(envelope?.session?.attributes?.history);
 
     if (request.type === 'LaunchRequest') {
+      console.info('[alexa] launch_request_ok');
       return sendJson(res, 200, alexaResponse('LEXOFFICE conectado. Você pode fazer uma pergunta ou dizer: resuma nossa conversa.', history));
     }
-
     if (request.type === 'SessionEndedRequest') return sendJson(res, 200, { version: '1.0', response: {} });
-
-    if (request.type !== 'IntentRequest') {
-      return sendJson(res, 200, alexaResponse('Não entendi esse pedido. Faça uma pergunta ou peça para recapitular.', history));
-    }
+    if (request.type !== 'IntentRequest') return sendJson(res, 200, alexaResponse('Não entendi esse pedido. Faça uma pergunta ou peça para recapitular.', history));
 
     const intentName = request.intent?.name;
-    if (['AMAZON.CancelIntent', 'AMAZON.StopIntent', 'AMAZON.NavigateHomeIntent'].includes(intentName)) {
-      return sendJson(res, 200, alexaResponse('Conversa encerrada com privacidade.', history, true));
-    }
-    if (intentName === 'AMAZON.HelpIntent') {
-      return sendJson(res, 200, alexaResponse('Diga, por exemplo: pergunte quais foram os pontos principais, ou: resuma nossa conversa.', history));
-    }
-    if (intentName !== 'ConversaIntent') {
-      return sendJson(res, 200, alexaResponse('Faça uma pergunta ou peça para recapitular a conversa.', history));
-    }
+    if (['AMAZON.CancelIntent', 'AMAZON.StopIntent', 'AMAZON.NavigateHomeIntent'].includes(intentName)) return sendJson(res, 200, alexaResponse('Conversa encerrada com privacidade.', history, true));
+    if (intentName === 'AMAZON.HelpIntent') return sendJson(res, 200, alexaResponse('Diga, por exemplo: pergunte quais foram os pontos principais, ou: resuma nossa conversa.', history));
+    if (intentName !== 'ConversaIntent') return sendJson(res, 200, alexaResponse('Faça uma pergunta ou peça para recapitular a conversa.', history));
 
     const message = String(request.intent?.slots?.mensagem?.value || '').trim();
     if (!message) return sendJson(res, 200, alexaResponse('O que você quer consultar ou recapitular?', history));
@@ -152,10 +163,12 @@ export default async function handler(req: any, res: any) {
       const answer = await askLexOffice(message.slice(0, 1500), history);
       const updated = [...history, { role: 'user' as const, text: message.slice(0, 900) }, { role: 'assistant' as const, text: answer }].slice(-8);
       return sendJson(res, 200, alexaResponse(answer, updated));
-    } catch {
+    } catch (error) {
+      console.error('[alexa] ai_gateway_failed', error instanceof Error ? error.message : 'unknown');
       return sendJson(res, 200, alexaResponse('A conexão de inteligência do LEXOFFICE não respondeu a tempo. Tente novamente em instantes.', history));
     }
-  } catch {
-    return sendJson(res, 400, { error: 'invalid_alexa_request' });
+  } catch (error) {
+    console.error('[alexa] handler_failed', error instanceof Error ? error.message : 'unknown');
+    return sendJson(res, 500, { error: 'alexa_handler_failed' });
   }
 }
