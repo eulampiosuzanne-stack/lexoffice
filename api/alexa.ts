@@ -11,6 +11,42 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://dcpwcuototomxoiszukt.s
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_h1gal1BQha__PKo2_wxY_Q_wZfAqoEm';
 
 type HistoryItem = { role: 'user' | 'assistant'; text: string };
+type PendingSend = { clientId: string; clientName: string; phone: string; message?: string };
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const ALEXA_ORG_ID = process.env.ALEXA_ORG_ID || '';
+
+async function db(path: string, init: RequestInit = {}) {
+  if (!SERVICE_KEY) throw new Error('alexa_service_key_missing');
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...init,
+    headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json', ...(init.headers || {}) },
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(`supabase_${response.status}`);
+  return data;
+}
+function normalizeName(v:string){return v.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim()}
+function extractSendTarget(message:string){
+  const m=message.match(/(?:envie|manda|mande|enviar|mandar)(?:\s+uma)?\s+mensagem\s+(?:para|pra|pro|à|ao)\s+(.+)/i);
+  return m?.[1]?.replace(/[.!?]+$/,'').trim()||'';
+}
+async function findClientsByName(name:string){
+  if(!ALEXA_ORG_ID) throw new Error('alexa_org_id_missing');
+  const term=encodeURIComponent(`*${name.trim()}*`);
+  const rows=await db(`clients?org_id=eq.${encodeURIComponent(ALEXA_ORG_ID)}&status=eq.active&name=ilike.${term}&select=id,name,phone,whatsapp&limit=5`);
+  return (Array.isArray(rows)?rows:[]).filter((x:any)=>String(x.whatsapp||x.phone||'').replace(/\D/g,''));
+}
+async function sendWhatsApp(p:PendingSend){
+  if(!SERVICE_KEY||!ALEXA_ORG_ID) throw new Error('alexa_actions_not_configured');
+  const response=await fetch(`${SUPABASE_URL}/functions/v1/whatsapp-operator-send`,{method:'POST',headers:{Authorization:`Bearer ${SERVICE_KEY}`,apikey:SERVICE_KEY,'Content-Type':'application/json'},body:JSON.stringify({org_id:ALEXA_ORG_ID,message:p.message,targets:[{phone:p.phone,name:p.clientName}],keep_ai_active:true})});
+  const data=await response.json().catch(()=>null);
+  if(!response.ok||!data?.ok||Number(data?.sent||0)!==1)throw new Error(data?.error||data?.results?.[0]?.error||'send_failed');
+  return data;
+}
+function pendingFromSession(envelope:any):PendingSend|null{
+  const p=envelope?.session?.attributes?.pendingSend;
+  return p&&p.clientId&&p.clientName&&p.phone?p:null;
+}
 
 function sendJson(res: any, status: number, body: unknown) {
   res.statusCode = status;
@@ -35,11 +71,11 @@ function normalizeHistory(value: unknown): HistoryItem[] {
     .slice(-8);
 }
 
-function alexaResponse(text: string, history: HistoryItem[] = [], shouldEndSession = false) {
+function alexaResponse(text: string, history: HistoryItem[] = [], shouldEndSession = false, extra: Record<string,unknown> = {}) {
   const spoken = text.trim().slice(0, 1100) || 'Não consegui responder agora.';
   return {
     version: '1.0',
-    sessionAttributes: { history: history.slice(-8) },
+    sessionAttributes: { history: history.slice(-8), ...extra },
     response: {
       outputSpeech: { type: 'PlainText', text: spoken },
       ...(shouldEndSession ? {} : {
@@ -146,7 +182,7 @@ export default async function handler(req: any, res: any) {
 
     if (request.type === 'LaunchRequest') {
       console.info('[alexa] launch_request_ok');
-      return sendJson(res, 200, alexaResponse('LEXOFFICE conectado. Você pode fazer uma pergunta ou dizer: resuma nossa conversa.', history));
+      return sendJson(res, 200, alexaResponse('LexOffice conectado. Como posso ajudar?', history));
     }
     if (request.type === 'SessionEndedRequest') return sendJson(res, 200, { version: '1.0', response: {} });
     if (request.type !== 'IntentRequest') return sendJson(res, 200, alexaResponse('Não entendi esse pedido. Faça uma pergunta ou peça para recapitular.', history));
@@ -157,7 +193,33 @@ export default async function handler(req: any, res: any) {
     if (intentName !== 'ConversaIntent') return sendJson(res, 200, alexaResponse('Faça uma pergunta ou peça para recapitular a conversa.', history));
 
     const message = String(request.intent?.slots?.mensagem?.value || '').trim();
-    if (!message) return sendJson(res, 200, alexaResponse('O que você quer consultar ou recapitular?', history));
+    const pending = pendingFromSession(envelope);
+    if (!message) return sendJson(res, 200, alexaResponse('Como posso ajudar?', history, false, pending?{pendingSend:pending}:{}));
+
+    if (/^(cancelar|cancele|não envie|nao envie|desistir)$/i.test(message)) {
+      return sendJson(res, 200, alexaResponse('Envio cancelado. Como posso ajudar?', history));
+    }
+    if (pending && !pending.message) {
+      const prepared={...pending,message:message.slice(0,4000)};
+      return sendJson(res,200,alexaResponse(`Vou enviar para ${pending.clientName} pelo WhatsApp cadastrado no LexOffice. Confirma o envio?`,history,false,{pendingSend:prepared}));
+    }
+    if (pending?.message) {
+      if (/^(confirmo|confirmar|sim confirmo|pode enviar|envie)$/i.test(normalizeName(message))) {
+        try { await sendWhatsApp(pending); return sendJson(res,200,alexaResponse('Mensagem enviada.',history)); }
+        catch(error){ console.error('[alexa] whatsapp_send_failed',error instanceof Error?error.message:'unknown'); return sendJson(res,200,alexaResponse('Não consegui enviar a mensagem pelo WhatsApp. Nenhuma nova tentativa será feita sem sua confirmação.',history)); }
+      }
+      return sendJson(res,200,alexaResponse('O envio está aguardando confirmação. Diga confirmo para enviar ou cancelar para desistir.',history,false,{pendingSend:pending}));
+    }
+    const target=extractSendTarget(message);
+    if(target){
+      try{
+        const clients=await findClientsByName(target);
+        if(!clients.length)return sendJson(res,200,alexaResponse(`Não encontrei ${target} com WhatsApp cadastrado no LexOffice.`,history));
+        if(clients.length>1)return sendJson(res,200,alexaResponse(`Encontrei mais de um cadastro para ${target}. Diga o nome completo do cliente antes de enviar.`,history));
+        const client=clients[0], phone=String(client.whatsapp||client.phone||'').replace(/\D/g,'');
+        return sendJson(res,200,alexaResponse(`Encontrei ${client.name} no LexOffice. Qual mensagem deseja enviar?`,history,false,{pendingSend:{clientId:client.id,clientName:client.name,phone}}));
+      }catch(error){console.error('[alexa] client_lookup_failed',error instanceof Error?error.message:'unknown');return sendJson(res,200,alexaResponse('A consulta de clientes do LexOffice não está disponível agora.',history));}
+    }
 
     try {
       const answer = await askLexOffice(message.slice(0, 1500), history);
