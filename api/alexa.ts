@@ -26,6 +26,7 @@ async function db(path: string, init: RequestInit = {}) {
   return data;
 }
 function normalizeName(v:string){return v.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim()}
+function looksLikeSendCommand(message:string){return /\b(envie|enviar|manda|mande|mandar|mensagem|whatsapp|avise|avisar|notifique|notificar)\b/i.test(message)}
 function extractSendTarget(message:string){
   const m=message.match(/(?:envie|manda|mande|enviar|mandar)(?:\s+uma)?\s+mensagem\s+(?:para|pra|pro|à|ao)\s+(.+)/i);
   return m?.[1]?.replace(/[.!?]+$/,'').trim()||'';
@@ -112,6 +113,7 @@ async function askLexOffice(message: string, history: HistoryItem[]) {
     'Nunca invente audiência, prazo, valor, andamento processual ou compromisso.',
     'Quando faltar um dado essencial, diga isso claramente e faça apenas uma pergunta por vez.',
     'Não use markdown, listas longas, URLs nem códigos.',
+    'Você não executa ações. Nunca diga ou sugira que enviou, mandou, disparou, notificou, agendou, alterou ou confirmou uma ação externa. Comandos de ação são tratados pelo LexOffice fora desta conversa.',
   ].join(' ');
 
   const controller = new AbortController();
@@ -205,13 +207,18 @@ export default async function handler(req: any, res: any) {
     }
     if (pending?.message) {
       if (/^(confirmo|confirmar|sim confirmo|pode enviar|envie)$/i.test(normalizeName(message))) {
-        try { await sendWhatsApp(pending); return sendJson(res,200,alexaResponse('Mensagem enviada.',history)); }
+        try { const sent=await sendWhatsApp(pending); console.info('[alexa] whatsapp_send_confirmed',{sent:Number(sent?.sent||0)}); return sendJson(res,200,alexaResponse('Mensagem enviada e confirmada pelo LexOffice.',history)); }
         catch(error){ console.error('[alexa] whatsapp_send_failed',error instanceof Error?error.message:'unknown'); return sendJson(res,200,alexaResponse('Não consegui enviar a mensagem pelo WhatsApp. Nenhuma nova tentativa será feita sem sua confirmação.',history)); }
       }
       return sendJson(res,200,alexaResponse('O envio está aguardando confirmação. Diga confirmo para enviar ou cancelar para desistir.',history,false,{pendingSend:pending}));
     }
     const target=extractSendTarget(message);
+    if(looksLikeSendCommand(message) && !target){
+      console.info('[alexa] send_command_not_parsed');
+      return sendJson(res,200,alexaResponse('Entendi que você quer enviar uma mensagem, mas não identifiquei o destinatário. Diga: envie uma mensagem para, seguido do nome do cliente.',history));
+    }
     if(target){
+      console.info('[alexa] send_flow_started');
       try{
         const clients=await findClientsByName(target);
         if(!clients.length)return sendJson(res,200,alexaResponse(`Não encontrei ${target} com WhatsApp cadastrado no LexOffice.`,history));
