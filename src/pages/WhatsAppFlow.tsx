@@ -26,6 +26,12 @@ type Conversation = {
   last_message_preview?: string | null;
   last_message_at?: string | null;
   responsible_id?: string | null;
+  priority?: string | null;
+  unread_count?: number;
+  conversation_owner?: string | null;
+  owner_agent_key?: string | null;
+  bot_ativo?: boolean;
+  human_takeover_at?: string | null;
   tags?: string[] | null;
   whatsapp_contacts?: {
     name?: string | null;
@@ -189,7 +195,7 @@ export default function WhatsAppFlow() {
       supabase
         .from("whatsapp_conversations")
         .select(
-          "id,status,last_message_preview,last_message_at,responsible_id,tags,whatsapp_contacts(name,profile_name,phone,whatsapp_id)",
+          "id,status,priority,unread_count,last_message_preview,last_message_at,responsible_id,tags,conversation_owner,owner_agent_key,bot_ativo,human_takeover_at,whatsapp_contacts(name,profile_name,phone,whatsapp_id)",
         )
         .eq("org_id", p.org_id)
         .order("last_message_at", { ascending: false, nullsFirst: false })
@@ -310,6 +316,25 @@ export default function WhatsAppFlow() {
     );
     await load();
   }
+  const lanes = [
+    { key: "entrada", title: "Entrada", match: (c: Conversation) => ["new","open","entrada"].includes(String(c.status).toLowerCase()) && !c.human_takeover_at },
+    { key: "triagem", title: "Triagem", match: (c: Conversation) => ["triage","triagem"].includes(String(c.status).toLowerCase()) || c.tags?.includes("triagem") },
+    { key: "cliente", title: "Aguardando cliente", match: (c: Conversation) => ["waiting_client","aguardando_cliente"].includes(String(c.status).toLowerCase()) || c.tags?.includes("aguardando_cliente") },
+    { key: "pagamento", title: "Aguardando pagamento", match: (c: Conversation) => ["waiting_payment","aguardando_pagamento"].includes(String(c.status).toLowerCase()) || c.tags?.includes("aguardando_pagamento") },
+    { key: "agenda", title: "Agendamento", match: (c: Conversation) => ["scheduling","agendamento"].includes(String(c.status).toLowerCase()) || c.tags?.includes("agendamento") },
+    { key: "atendimento", title: "Em atendimento", match: (c: Conversation) => ["in_progress","em_atendimento"].includes(String(c.status).toLowerCase()) && c.conversation_owner !== "HUMAN" },
+    { key: "humano", title: "Humano assumiu", match: (c: Conversation) => c.conversation_owner === "HUMAN" || !!c.human_takeover_at },
+    { key: "followup", title: "Follow-up", match: (c: Conversation) => ["follow_up","followup"].includes(String(c.status).toLowerCase()) || c.tags?.includes("follow_up") },
+    { key: "concluido", title: "Concluído", match: (c: Conversation) => ["closed","done","concluido"].includes(String(c.status).toLowerCase()) },
+  ];
+  const laneFor = (c: Conversation) => lanes.find((l) => l.match(c))?.key || "entrada";
+  const age = (iso?: string | null) => {
+    if (!iso) return "sem horário";
+    const m = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
+    if (m < 60) return `${m} min`;
+    const h = Math.floor(m / 60);
+    return h < 24 ? `${h} h` : `${Math.floor(h / 24)} d`;
+  };
   const recentForSelected = alerts
     .filter(
       (a) =>
@@ -375,6 +400,28 @@ export default function WhatsAppFlow() {
               <span style={{ opacity: 0.72, fontSize: 14 }}>{c.desc}</span>
             </div>
           ))}
+        </div>
+      </div>
+      <div className="integration-panel">
+        <div className="wa-board-head">
+          <div><span className="eyebrow">CAIXAS DO ATENDIMENTO</span><h3>Central de conversas</h3></div>
+          <span className="integration-pill">{conversations.length} conversas</span>
+        </div>
+        <div className="wa-kanban">
+          {lanes.map((lane) => {
+            const items = conversations.filter((c) => laneFor(c) === lane.key);
+            return <section className="wa-lane" key={lane.key}>
+              <header><strong>{lane.title}</strong><span>{items.length}</span></header>
+              <div className="wa-lane-body">
+                {items.slice(0,20).map((c) => <button key={c.id} className={`wa-chat-card ${selectedId===c.id?"selected":""}`} onClick={()=>setSelectedId(c.id)}>
+                  <div className="wa-chat-card-top"><strong>{label(c)}</strong>{String(c.priority).toLowerCase()==="high" && <b>URGENTE</b>}</div>
+                  <p>{c.last_message_preview || "Sem mensagem"}</p>
+                  <footer><span>{c.conversation_owner==="HUMAN"?"Humano":c.owner_agent_key || "Helena"}</span><span>{age(c.last_message_at)}</span></footer>
+                </button>)}
+                {!items.length && <div className="wa-lane-empty">Nenhuma conversa</div>}
+              </div>
+            </section>;
+          })}
         </div>
       </div>
       <div className="integration-panel">
