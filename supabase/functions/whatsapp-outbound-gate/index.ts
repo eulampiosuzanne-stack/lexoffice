@@ -196,8 +196,25 @@ async function blockedByHuman(
   automated: boolean,
 ) {
   const state = await conversationState(a, orgId, conversationId, target);
-  if (automated && state.human_cooldown_active)
+
+  // Mensagens humanas do escritório nunca podem ser bloqueadas pelo takeover.
+  // O takeover existe justamente para silenciar chatbot/agentes enquanto o humano conduz.
+  if (!automated)
+    return { blocked: false, reason: "human_operator_allowed", state };
+
+  // Toda resposta automática é bloqueada durante os 20 minutos após a última
+  // mensagem humana. Cada nova mensagem humana reinicia essa janela.
+  if (state.human_cooldown_active)
     return { blocked: true, reason: "human_cooldown_20m", state };
+
+  // Após a janela móvel, um takeover originado por mensagem manual pode liberar
+  // novamente a automação. Bloqueios administrativos/globais continuam valendo.
+  const manualTakeover =
+    state.cv?.human_takeover_reason === "manual_operator_message" &&
+    Boolean(state.last_human_outbound_at);
+  if (manualTakeover)
+    return { blocked: false, reason: "human_cooldown_elapsed", state };
+
   return {
     blocked:
       state.human_takeover ||
