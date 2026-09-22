@@ -121,7 +121,7 @@ async function askLexOffice(message: string, history: HistoryItem[]) {
   try {
     const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-provider-gateway`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      headers: { Authorization: `Bearer ${SERVICE_KEY}`, apikey: SERVICE_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({ agent_key: 'client_service_triage', instructions, input, temperature: 0.2, max_output_tokens: 240 }),
       signal: controller.signal,
     });
