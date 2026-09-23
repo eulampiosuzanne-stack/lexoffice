@@ -20,7 +20,14 @@ async function bot(a:any,p:string,ch0:string,t:string){
   if(!activeAgents&&!testMode)return false;
   const {data:fc}=await a.from('whatsapp_chatbot_flow_config').select('enabled').eq('org_id',x.v.org_id).maybeSingle();if(fc?.enabled===false)return false;
   const {data:ctl}=await a.from('ai_conversation_controls').select('ai_enabled,human_takeover,resume_at').eq('org_id',x.v.org_id).eq('contact_key',D(p)).maybeSingle();
-  if(ctl?.human_takeover===true||ctl?.ai_enabled===false){if(!ctl?.resume_at||Date.now()<new Date(ctl.resume_at).getTime())return false}
+  if(ctl?.human_takeover===true||ctl?.ai_enabled===false){
+    if(!ctl?.resume_at||Date.now()<new Date(ctl.resume_at).getTime())return false;
+    // Janela de Human Takeover terminou: reativa IA e conversa automaticamente.
+    const now=new Date().toISOString();
+    await a.from('ai_conversation_controls').update({ai_enabled:true,human_takeover:false,resume_at:null,updated_at:now}).eq('org_id',x.v.org_id).eq('contact_key',D(p));
+    await a.from('whatsapp_conversations').update({bot_ativo:true,conversation_owner:'HELENA',updated_at:now}).eq('id',x.v.id);
+    x.v.bot_ativo=true;x.v.conversation_owner='HELENA';
+  }
   if(x.v.conversation_owner==='HUMAN'||x.v.bot_ativo===false)return false;
   const {data:st}=await a.from('whatsapp_chatbot_flow_state').select('current_node,path').eq('conversation_id',x.v.id).maybeSingle();
   const node=String(st?.current_node||'start'),path=Array.isArray(st?.path)?st.path:[],svc=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
