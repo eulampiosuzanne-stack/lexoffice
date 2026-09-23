@@ -36,7 +36,7 @@ export const DEFAULT_NODES:Record<string,N>={
     {id:'property',label:'🏠 Despejo ou retirada imediata',agent:'client_service_triage'},
     {id:'deadline',label:'⏰ Prazo que vence hoje',agent:'client_service_triage'},
     {id:'other',label:'⚠️ Outra situação urgente',agent:'client_service_triage'},back]},
-  restricted:{message:'Identificamos uma pendência financeira vinculada ao seu atendimento.\n\nPara que possamos direcioná-lo adequadamente, selecione uma das opções abaixo:\n\n💳 Regularizar questão financeira\n🚨 Comunicar urgência\n\nA opção de urgência é destinada exclusivamente a situações que envolvam risco à vida ou à integridade física.',options:[
+  restricted:{message:'Identificamos uma pendência financeira vinculada ao seu atendimento.\n\nPara que possamos direcioná-lo adequadamente, selecione uma das opções abaixo:\n\n💳 Regularizar questão financeira\n🚨 Comunicar urgência',options:[
     {id:'finance',label:'💳 Regularizar questão financeira',agent:'billing',ctx:{restricted_service:true}},
     {id:'urgent',label:'🚨 Comunicar urgência',next:'restricted_urgent'}]},
   restricted_urgent:{message:'🚨 Esta opção é exclusiva para situação com risco à vida ou à integridade física.\n\nDescreva, em uma mensagem, o que está acontecendo. A informação será encaminhada para análise prioritária.',options:[]},
