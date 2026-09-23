@@ -69,6 +69,19 @@ if(!p)return J({ok:true,ignored:'phone'});
 if(b.isGroup||b.isNewsletter)return J({ok:true,ignored:'non_inbound'});
 // Z-API também envia eventos auxiliares de mensagem sem conteúdo. Eles não podem acionar a IA.
 if(!fromMe&&!t&&!ch&&!m)return J({ok:true,ignored:'empty_inbound_event'});
+// Áudios não entram na IA. Responde automaticamente pedindo mensagem digitada.
+if(!fromMe&&m?.type==='audio'){
+  const x=await context(a,p);
+  if(!x)return J({ok:true,ignored:'audio_without_context'});
+  if(inboundId){
+    const {data:seenAudio}=await a.from('whatsapp_messages').select('id').eq('external_message_id',inboundId).eq('direction','inbound').limit(1).maybeSingle();
+    if(seenAudio?.id)return J({ok:true,ignored:'duplicate_audio',external_message_id:inboundId});
+  }
+  const svc=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const msg='Não conseguimos ouvir mensagens de áudio por este canal. Por gentileza, digite sua mensagem para que possamos dar continuidade ao atendimento.';
+  await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/whatsapp-send`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${svc}`},body:JSON.stringify({org_id:x.v.org_id,conversation_id:x.v.id,phone:p,message:msg,agent_key:'system'})});
+  return J({ok:true,event:'audio_text_requested'});
+}
 // Idempotência: uma mensagem externa só pode disparar uma resposta.
 if(!fromMe&&inboundId){
   const {data:seen}=await a.from('whatsapp_messages').select('id').eq('external_message_id',inboundId).eq('direction','inbound').limit(1).maybeSingle();
