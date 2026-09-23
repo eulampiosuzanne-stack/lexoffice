@@ -63,9 +63,17 @@ async function bot(a:any,p:string,ch0:string,t:string){
   return false;
 }
 Deno.serve(async req=>{if(req.method!=='POST')return J({ok:false},405);try{const a=A(),client=await S(a,'zapi_client_token'),got=new URL(req.url).searchParams.get('key')||'';if(!client||got!==await H(client))return J({ok:false},401);const b=await req.json().catch(()=>null);if(!b)return J({ok:true,ignored:'empty'});if((await S(a,'whatsapp_active_provider')).toLowerCase()!=='zapi')return J({ok:true,ignored:'provider_disabled'});const type=String(b.type||b.event||'').toLowerCase();if(type.includes('disconnect'))return J({ok:true,event:'disconnected'});if(type.includes('connect'))return J({ok:true,event:'connected'});if(type.includes('status')){const externalId=String(b.messageId||b.zaapId||b.id||b.message?.id||b.ids?.[0]?.id||'').trim(),rawStatus=String(b.status||b.messageStatus||b.message?.status||type).toLowerCase(),now=new Date().toISOString(),isRead=/read|played|lido/.test(rawStatus),isDelivered=isRead||/delivered|received|entregue/.test(rawStatus);if(externalId&&(isDelivered||isRead)){const {data:q}=await a.from('process_notification_queue').select('id,org_id,owner_user_id,process_id,delivered_at,read_at').eq('external_message_id',externalId).limit(1).maybeSingle();const patch:any={};if(isDelivered)patch.delivered_at=now;if(isRead)patch.read_at=now;if(Object.keys(patch).length){await a.from('process_notification_queue').update(patch).eq('external_message_id',externalId);await a.from('whatsapp_messages').update({...patch,status:isRead?'read':'delivered'}).eq('external_message_id',externalId)}if(q?.owner_user_id&&isDelivered&&!q.delivered_at){const when=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',dateStyle:'short',timeStyle:'short'}).format(new Date());await a.from('notifications').insert({org_id:q.org_id,user_id:q.owner_user_id,type:'process',title:'Andamento entregue ao cliente',body:`O cliente recebeu o andamento em ${when}.`,link:q.process_id?`/processos?processo=${q.process_id}`:'/andamentos',read:false})}}return J({ok:true,event:'status',external_message_id:externalId||null,status:rawStatus,tracked:!!externalId&&(isDelivered||isRead)})}const p=D(b.phone||b.sender?.phone||b.from||b.chatId||b.participantPhone||b.senderPhone),t=text(b),ch=choice(b),m=media(b);
+const inboundId=String(b.messageId||b.zaapId||b.id||b.message?.id||'').trim();
 const fromMe=b.fromMe===true||b.from_me===true||b.fromMe==='true'||b.from_me==='true'||b.isFromMe===true||b?.message?.fromMe===true;
 if(!p)return J({ok:true,ignored:'phone'});
 if(b.isGroup||b.isNewsletter)return J({ok:true,ignored:'non_inbound'});
+// Z-API também envia eventos auxiliares de mensagem sem conteúdo. Eles não podem acionar a IA.
+if(!fromMe&&!t&&!ch&&!m)return J({ok:true,ignored:'empty_inbound_event'});
+// Idempotência: uma mensagem externa só pode disparar uma resposta.
+if(!fromMe&&inboundId){
+  const {data:seen}=await a.from('whatsapp_messages').select('id').eq('external_message_id',inboundId).eq('direction','inbound').limit(1).maybeSingle();
+  if(seen?.id)return J({ok:true,ignored:'duplicate_inbound',external_message_id:inboundId});
+}
 if(fromMe){
   const x=await context(a,p);
   if(x){
