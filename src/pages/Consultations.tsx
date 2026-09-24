@@ -9,7 +9,7 @@ type SearchResult={slug?:string;title?:string;status:string;source?:string;resul
 
 const label=(k:string)=>({phone:'Telefone',cpf:'CPF',cnpj:'CNPJ',cpf_cnpj:'CPF ou CNPJ',plate:'Placa',name_or_cpf:'Nome ou CPF',name_or_document:'Nome, CPF ou CNPJ',freeform:'Dado da consulta'} as Record<string,string>)[k]||'Dado da consulta';
 const status=(s:string)=>s==='completed'?'Concluída':s==='provider_required'?'Fonte externa não disponível':s==='not_applicable'?'Não aplicável':s==='failed'?'Falhou':s;
-const MOTOR_SLUGS=new Set(['person-location','professional-data','credit-restrictions','relationships','processes']);
+const MOTOR_SLUGS=new Set(['person-location','professional-data','processes']);
 const ready=(x:CatalogItem)=>x.provider_mode.startsWith('public_')||x.provider_mode==='motor'||x.provider_mode==='internal'||MOTOR_SLUGS.has(x.slug)||x.slug==='phone-data'||x.slug==='processes';
 const emptyInternal=(x:SearchResult)=>x.status==='completed'&&String(x.source||'').toLowerCase().includes('cadastro interno')&&Array.isArray(x.result?.matches)&&x.result.matches.length===0;
 async function fnError(error:any){try{const body=await error?.context?.clone?.().json?.();return body?.error||body?.message||error?.message||'Falha na consulta.'}catch{return error?.message||'Falha na consulta.'}}
