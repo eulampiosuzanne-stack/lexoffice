@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Clock3, FileCheck2, FileText, KeyRound, Mail, MessageCircle, Plug, RefreshCw, Send, Settings2, ShieldCheck, Upload, Usb, UserRound, Wifi, WifiOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import './signatures-clicksign.css';
+import LexSignPanel from './LexSignPanel';
 
 type Row={id:string;title?:string|null;status?:string|null;signer_name?:string|null;created_at?:string|null;sent_at?:string|null;signed_at?:string|null;provider?:string|null;document_id?:string|null;client_id?:string|null;process_id?:string|null;signed_document_id?:string|null;signed_file_captured_at?:string|null;icp_validated_document_id?:string|null;icp_validated_at?:string|null};
 type Client={id:string;name:string;email?:string|null;phone?:string|null;whatsapp?:string|null;cpf_cnpj?:string|null};
@@ -62,6 +63,7 @@ export default function Signatures(){
   <header className="cs-hero"><div><span className="cs-kicker">ZAPSIGN + ICP-BRASIL A3</span><h1>Central de Assinaturas</h1><p>Cliente assina eletronicamente pela ZapSign; depois a Dra. Suzanne assina o mesmo PDF com certificado A3 ICP-Brasil.</p></div><div className={`cs-connection ${status.configured?'ok':''}`}><span className="dot"/>ZapSign {status.configured?'configurada':'não configurada'}</div></header>
   <nav className="cs-tabs" aria-label="Central de assinaturas"><button className={tab==='send'?'active':''} onClick={()=>setTab('send')}><Upload/><span>1. Novo envio</span></button><button className={tab==='track'?'active':''} onClick={()=>setTab('track')}><FileCheck2/><span>2. Acompanhar e A3</span></button><button className={tab==='config'?'active':''} onClick={()=>setTab('config')}><Settings2/><span>3. Configuração</span></button></nav>
   {notice&&<div className="cs-notice" role="status">{notice}</div>}
+  {tab==='send'&&<LexSignPanel/>}
   {tab==='send'&&<section className="cs-panel">
    <div className="cs-progress"><span className="on">1 Cliente</span><span>2 Processo</span><span>3 Documentos</span><span>4 Envio</span></div>
    <div className="cs-step"><b>1</b><div><h2>Selecione o cliente</h2><p>Usamos automaticamente CPF, e-mail e WhatsApp já cadastrados no LEXOFFICE.</p></div></div>
