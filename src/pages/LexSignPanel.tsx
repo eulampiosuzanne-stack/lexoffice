@@ -33,6 +33,7 @@ export default function LexSignPanel() {
   const [busy, setBusy] = useState('');
   const [notice, setNotice] = useState('');
   const [link, setLink] = useState('');
+  const [file, setFile] = useState<File | null>(null);
 
   async function loadReqs() {
     if (!supabase) return;
@@ -69,6 +70,27 @@ export default function LexSignPanel() {
       const d = await invoke({ action: 'create', document_id: docId, client_id: clientId });
       setLink(d.link);
       setNotice(d.whatsapp_sent ? 'Link enviado ao cliente pelo WhatsApp.' : 'Solicitação criada, mas o WhatsApp não enviou a mensagem. Copie o link abaixo e envie manualmente.');
+      await loadReqs();
+    } catch (e: any) { setNotice(e?.message || 'Falha ao enviar.'); } finally { setBusy(''); }
+  }
+  async function sendUpload() {
+    if (!supabase || !file || !clientId) return;
+    setBusy('send'); setNotice(''); setLink('');
+    try {
+      if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') throw new Error('Escolha um arquivo PDF.');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Sessão inválida.');
+      const { data: p } = await supabase.from('profiles').select('org_id').eq('id', user.id).single();
+      if (!p?.org_id) throw new Error('Organização não encontrada.');
+      const safe = file.name.replace(/[^a-zA-Z0-9._-]+/g, '-');
+      const path = `${p.org_id}/signatures/lex/${Date.now()}-${crypto.randomUUID()}-${safe}`;
+      const { error: ue } = await supabase.storage.from('lexoffice-documents').upload(path, file, { contentType: 'application/pdf' });
+      if (ue) throw ue;
+      const { data: d, error: de } = await supabase.from('documents').insert({ org_id: p.org_id, client_id: clientId, name: file.name, file_path: path, mime_type: 'application/pdf', size_bytes: file.size, category: 'Documento para assinatura', notes: 'Enviado ao cliente para assinatura com biometria facial LEX', uploaded_by: user.id }).select('id').single();
+      if (de) throw de;
+      const r = await invoke({ action: 'create', document_id: d.id, client_id: clientId });
+      setLink(r.link); setFile(null);
+      setNotice(r.whatsapp_sent ? 'Link enviado ao cliente pelo WhatsApp.' : 'Solicitação criada, mas o WhatsApp não enviou a mensagem. Copie o link abaixo e envie manualmente.');
       await loadReqs();
     } catch (e: any) { setNotice(e?.message || 'Falha ao enviar.'); } finally { setBusy(''); }
   }
@@ -116,6 +138,11 @@ export default function LexSignPanel() {
         </label>
       </div>
       <button style={{ ...S.btn, opacity: !docId || !phone || busy ? 0.5 : 1 }} disabled={!docId || !phone || !!busy} onClick={send}>{busy === 'send' ? 'Enviando...' : 'Enviar para assinatura pelo WhatsApp'}</button>
+      <div style={S.upload}>
+        <span style={{ fontSize: 13, color: '#c7ced4' }}>Ou envie um PDF do seu computador para o cliente selecionado:</span>
+        <input type="file" accept="application/pdf,.pdf" onChange={(e) => setFile(e.target.files?.[0] || null)} disabled={!clientId} />
+        <button style={{ ...S.small, opacity: !file || !clientId || !phone || busy ? 0.5 : 1 }} disabled={!file || !clientId || !phone || !!busy} onClick={sendUpload}>Enviar este PDF para assinatura</button>
+      </div>
       {notice && <p style={S.notice}>{notice}</p>}
       {link && <div style={S.linkBox}><code style={{ wordBreak: 'break-all' }}>{link}</code><button style={S.small} onClick={() => { navigator.clipboard?.writeText(link); setNotice('Link copiado.'); }}>Copiar link</button></div>}
 
@@ -154,5 +181,6 @@ const S: Record<string, React.CSSProperties> = {
   notice: { margin: '10px 0 0', color: '#d9c38f', fontSize: 14 },
   linkBox: { display: 'flex', gap: 10, alignItems: 'center', marginTop: 10, padding: 10, borderRadius: 10, background: 'rgba(0,0,0,.25)', fontSize: 12 },
   row: { display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', padding: '10px 12px', borderRadius: 10, background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)' },
+  upload: { display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 12, padding: 12, borderRadius: 10, border: '1px dashed rgba(255,255,255,.18)' },
   status: { fontSize: 12, fontWeight: 600, border: '1px solid', borderRadius: 999, padding: '3px 10px', whiteSpace: 'nowrap' },
 };

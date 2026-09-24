@@ -9,7 +9,6 @@ import './integrations.css';
 type Conn={provider?:string;status?:string;name?:string;updated_at?:string;settings?:any};
 const catalog=[
  {key:'google',name:'Google Agenda',desc:'OAuth e sincronização de compromissos do escritório.',icon:CalendarDays,path:'/agenda'},
- {key:'zapsign',name:'ZapSign',desc:'Envio e acompanhamento de assinaturas eletrônicas.',icon:PenTool,path:'/assinaturas'},
  {key:'tribunal',name:'Tribunais',desc:'Conexões processuais, sincronização e monitoramento.',icon:Gavel,path:'/processos?regra=tribunals'},
  {key:'escavador',name:'Escavador — Monitoramento da OAB',desc:'Descubra e monitore processos vinculados à sua inscrição da OAB.',icon:SearchCheck,path:'/tribunais'},
  {key:'openai',name:'Inteligência Artificial',desc:'Modelos e agentes especializados do LEXOFFICE.',icon:Bot,path:'/agentes-ia'}
