@@ -4,11 +4,18 @@ import { supabase } from '../lib/supabase';
 // Painel de envio da assinatura biométrica própria do LEXOFFICE (gratuita).
 type Client = { id: string; name: string; whatsapp?: string | null; phone?: string | null };
 type Doc = { id: string; name: string; file_path: string; mime_type?: string | null; created_at?: string | null };
-type Req = { id: string; title: string; signer_name?: string | null; status: string; created_at: string; viewed_at?: string | null; signed_at?: string | null; signed_path?: string | null; verification_code?: string | null; face_distance?: number | null };
+type Req = { id: string; batch_id?: string | null; title: string; signer_name?: string | null; status: string; created_at: string; viewed_at?: string | null; signed_at?: string | null; signed_path?: string | null; verification_code?: string | null; face_distance?: number | null };
 
 const FN = 'signature-biometric-public';
 const STATUS: Record<string, string> = { sent: 'Enviado', viewed: 'Aberto pelo cliente', pending_review: 'Aguardando sua conferência', signed: 'Assinado', rejected: 'Recusada', cancelled: 'Cancelado', expired: 'Expirado' };
 const COLOR: Record<string, string> = { pending_review: '#e0a13a', rejected: '#b0645a', sent: '#c9a55c', viewed: '#5aa0d8', signed: '#3fae6a', cancelled: '#8c8c8c', expired: '#b0645a' };
+// Status do lote: o que ainda estiver pendente manda; se tudo acabou, vale o do principal.
+const groupStatus = (g: { status: string }[]) => {
+  const live = g.filter((x) => x.status !== 'cancelled');
+  if (!live.length) return 'cancelled';
+  for (const s of ['pending_review', 'viewed', 'sent', 'rejected', 'expired']) if (live.some((x) => x.status === s)) return s;
+  return live[0].status;
+};
 const dt = (v?: string | null) => (v ? new Date(v).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '—');
 
 async function invoke(body: Record<string, unknown>): Promise<any> {
@@ -28,18 +35,18 @@ export default function LexSignPanel() {
   const [search, setSearch] = useState('');
   const [clientId, setClientId] = useState('');
   const [docs, setDocs] = useState<Doc[]>([]);
-  const [docId, setDocId] = useState('');
+  const [docIds, setDocIds] = useState<string[]>([]);
   const [reqs, setReqs] = useState<Req[]>([]);
   const [busy, setBusy] = useState('');
   const [notice, setNotice] = useState('');
   const [link, setLink] = useState('');
-  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [review, setReview] = useState<any>(null);
   const [reviewNote, setReviewNote] = useState('');
 
   async function loadReqs() {
     if (!supabase) return;
-    const { data } = await supabase.from('lex_signature_requests').select('id,title,signer_name,status,created_at,viewed_at,signed_at,signed_path,verification_code,face_distance').order('created_at', { ascending: false }).limit(40);
+    const { data } = await supabase.from('lex_signature_requests').select('id,batch_id,title,signer_name,status,created_at,viewed_at,signed_at,signed_path,verification_code,face_distance').order('created_at', { ascending: false }).limit(80);
     setReqs((data as Req[]) || []);
   }
   useEffect(() => {
@@ -50,14 +57,16 @@ export default function LexSignPanel() {
       await loadReqs();
     })();
   }, []);
-  useEffect(() => {
-    (async () => {
-      setDocs([]); setDocId('');
-      if (!supabase || !clientId) return;
-      const { data } = await supabase.from('documents').select('id,name,file_path,mime_type,created_at').eq('client_id', clientId).order('created_at', { ascending: false }).limit(100);
-      setDocs(((data as Doc[]) || []).filter((d) => /pdf/i.test(d.mime_type || '') || /\.pdf$/i.test(d.file_path || '')).filter((d) => !/\(assinado\)/i.test(d.name)));
-    })();
-  }, [clientId]);
+  async function loadDocs(id: string) {
+    if (!supabase || !id) return [] as Doc[];
+    const { data } = await supabase.from('documents').select('id,name,file_path,mime_type,created_at').eq('client_id', id).order('created_at', { ascending: false }).limit(100);
+    const list = ((data as Doc[]) || []).filter((d) => /pdf/i.test(d.mime_type || '') || /\.pdf$/i.test(d.file_path || '')).filter((d) => !/\(assinado\)/i.test(d.name));
+    setDocs(list);
+    return list;
+  }
+  useEffect(() => { setDocs([]); setDocIds([]); if (clientId) loadDocs(clientId); }, [clientId]);
+  const toggleDoc = (id: string) => setDocIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
+  const allSelected = docs.length > 0 && docIds.length === docs.length;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -73,32 +82,43 @@ export default function LexSignPanel() {
   async function send() {
     setBusy('send'); setNotice(''); setLink('');
     try {
-      const d = await invoke({ action: 'create', document_id: docId, client_id: clientId });
+      // Todos os documentos marcados vão num único link: o cliente valida a identidade uma vez só e assina todos.
+      const ordered = docs.filter((d) => docIds.includes(d.id)).map((d) => d.id);
+      if (ordered.length > 10) throw new Error('Envie no máximo 10 documentos por vez.');
+      const d = await invoke({ action: 'create', document_ids: ordered, client_id: clientId });
       setLink(d.link);
-      setNotice(d.whatsapp_sent ? 'Link enviado ao cliente pelo WhatsApp.' : 'Solicitação criada, mas o WhatsApp não enviou a mensagem. Copie o link abaixo e envie manualmente.');
+      const what = ordered.length > 1 ? `${ordered.length} documentos enviados num único link` : 'Link enviado';
+      setNotice(d.whatsapp_sent ? `${what} ao cliente pelo WhatsApp.` : 'Solicitação criada, mas o WhatsApp não enviou a mensagem. Copie o link abaixo e envie manualmente.');
+      setDocIds([]);
       await loadReqs();
     } catch (e: any) { setNotice(e?.message || 'Falha ao enviar.'); } finally { setBusy(''); }
   }
-  async function sendUpload() {
-    if (!supabase || !file || !clientId) return;
-    setBusy('send'); setNotice(''); setLink('');
+  // Sobe um ou mais PDFs do computador para a ficha do cliente e já deixa marcados para assinatura.
+  async function addUploads(files: FileList | null) {
+    if (!supabase || !files?.length || !clientId) return;
+    setUploading(true); setNotice(''); setLink('');
     try {
-      if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') throw new Error('Escolha um arquivo PDF.');
+      const list = Array.from(files);
+      const bad = list.find((f) => !/\.pdf$/i.test(f.name) && f.type !== 'application/pdf');
+      if (bad) throw new Error(`"${bad.name}" não é PDF. Escolha apenas arquivos PDF.`);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Sessão inválida.');
       const { data: p } = await supabase.from('profiles').select('org_id').eq('id', user.id).single();
       if (!p?.org_id) throw new Error('Organização não encontrada.');
-      const safe = file.name.replace(/[^a-zA-Z0-9._-]+/g, '-');
-      const path = `${p.org_id}/signatures/lex/${Date.now()}-${crypto.randomUUID()}-${safe}`;
-      const { error: ue } = await supabase.storage.from('lexoffice-documents').upload(path, file, { contentType: 'application/pdf' });
-      if (ue) throw ue;
-      const { data: d, error: de } = await supabase.from('documents').insert({ org_id: p.org_id, client_id: clientId, name: file.name, file_path: path, mime_type: 'application/pdf', size_bytes: file.size, category: 'Documento para assinatura', notes: 'Enviado ao cliente para assinatura com biometria facial LEX', uploaded_by: user.id }).select('id').single();
-      if (de) throw de;
-      const r = await invoke({ action: 'create', document_id: d.id, client_id: clientId });
-      setLink(r.link); setFile(null);
-      setNotice(r.whatsapp_sent ? 'Link enviado ao cliente pelo WhatsApp.' : 'Solicitação criada, mas o WhatsApp não enviou a mensagem. Copie o link abaixo e envie manualmente.');
-      await loadReqs();
-    } catch (e: any) { setNotice(e?.message || 'Falha ao enviar.'); } finally { setBusy(''); }
+      const added: string[] = [];
+      for (const file of list) {
+        const safe = file.name.replace(/[^a-zA-Z0-9._-]+/g, '-');
+        const path = `${p.org_id}/signatures/lex/${Date.now()}-${crypto.randomUUID()}-${safe}`;
+        const { error: ue } = await supabase.storage.from('lexoffice-documents').upload(path, file, { contentType: 'application/pdf' });
+        if (ue) throw ue;
+        const { data: d, error: de } = await supabase.from('documents').insert({ org_id: p.org_id, client_id: clientId, name: file.name.replace(/\.pdf$/i, ''), file_path: path, mime_type: 'application/pdf', size_bytes: file.size, category: 'Documento para assinatura', notes: 'Enviado ao cliente para assinatura com biometria facial LEX', uploaded_by: user.id }).select('id').single();
+        if (de) throw de;
+        added.push(d.id);
+      }
+      await loadDocs(clientId);
+      setDocIds((cur) => Array.from(new Set([...cur, ...added])));
+      setNotice(added.length > 1 ? `${added.length} PDFs adicionados à ficha do cliente e marcados para assinatura.` : 'PDF adicionado à ficha do cliente e marcado para assinatura.');
+    } catch (e: any) { setNotice(e?.message || 'Falha ao enviar o arquivo.'); } finally { setUploading(false); }
   }
   async function resend(r: Req) {
     setBusy(r.id); setNotice(''); setLink('');
@@ -106,7 +126,8 @@ export default function LexSignPanel() {
     catch (e: any) { setNotice(e?.message || 'Falha ao reenviar.'); } finally { setBusy(''); }
   }
   async function cancel(r: Req) {
-    if (!confirm(`Cancelar a assinatura de "${r.title}"? O link enviado deixará de funcionar.`)) return;
+    const n = r.batch_id ? reqs.filter((x) => x.batch_id === r.batch_id && ['sent', 'viewed', 'pending_review'].includes(x.status)).length : 1;
+    if (!confirm(n > 1 ? `Cancelar a assinatura destes ${n} documentos? O link enviado deixará de funcionar.` : `Cancelar a assinatura de "${r.title}"? O link enviado deixará de funcionar.`)) return;
     setBusy(r.id);
     try { await invoke({ action: 'cancel', id: r.id }); await loadReqs(); } catch (e: any) { setNotice(e?.message || 'Falha ao cancelar.'); } finally { setBusy(''); }
   }
@@ -121,7 +142,7 @@ export default function LexSignPanel() {
     setBusy('review');
     try {
       await invoke({ action: approve ? 'approve' : 'reject', id: review.id, note: reviewNote });
-      setNotice(approve ? 'Assinatura aprovada. O PDF assinado foi arquivado na ficha do cliente.' : 'Assinatura recusada. O cliente foi avisado pelo WhatsApp.');
+      setNotice(approve ? ((review.documents?.length || 1) > 1 ? 'Assinatura aprovada. Os PDFs assinados foram arquivados na ficha do cliente.' : 'Assinatura aprovada. O PDF assinado foi arquivado na ficha do cliente.') : 'Assinatura recusada. O cliente foi avisado pelo WhatsApp.');
       setReview(null); await loadReqs();
     } catch (e: any) { setNotice(e?.message || 'Falha ao registrar a decisão.'); } finally { setBusy(''); }
   }
@@ -131,6 +152,13 @@ export default function LexSignPanel() {
     if (error || !data?.signedUrl) { setNotice(error?.message || 'Não foi possível abrir.'); return; }
     window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
   }
+
+  // Agrupa os documentos enviados no mesmo link (lote) num único cartão.
+  const groups = useMemo(() => {
+    const map = new Map<string, Req[]>();
+    for (const r of reqs) { const k = r.batch_id || r.id; map.set(k, [...(map.get(k) || []), r]); }
+    return Array.from(map.values()).map((g) => g.sort((a, b) => (a.id === a.batch_id ? -1 : b.id === b.batch_id ? 1 : a.created_at.localeCompare(b.created_at))));
+  }, [reqs]);
 
   return (
     <section style={S.panel}>
@@ -150,20 +178,41 @@ export default function LexSignPanel() {
           </select>
           {client && <small style={{ color: phone ? '#9fb3a6' : '#e0857a' }}>{phone ? `WhatsApp: ${phone}` : 'Este cliente não tem WhatsApp cadastrado.'}</small>}
         </label>
-        <label style={S.label}>Documento (PDF da ficha do cliente)
-          <select style={S.input} value={docId} onChange={(e) => setDocId(e.target.value)} disabled={!clientId}>
-            <option value="">{clientId ? (docs.length ? 'Selecione o documento' : 'Nenhum PDF na ficha deste cliente') : 'Escolha o cliente primeiro'}</option>
-            {docs.map((d) => <option key={d.id} value={d.id}>{d.name} — {dt(d.created_at)}</option>)}
-          </select>
-          <small style={{ color: '#9aa3ab' }}>Gere o documento na aba Documentos ou na ficha do cliente; ele aparece aqui.</small>
-        </label>
+        <div style={S.label}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+            <span>Documentos para assinar {docIds.length > 0 && <b style={{ color: '#c9a55c' }}>• {docIds.length} selecionado{docIds.length > 1 ? 's' : ''}</b>}</span>
+            {docs.length > 1 && <button type="button" style={S.small} onClick={() => setDocIds(allSelected ? [] : docs.map((d) => d.id))}>{allSelected ? 'Desmarcar todos' : 'Selecionar todos'}</button>}
+          </div>
+          <div style={S.docList}>
+            {!clientId && <p style={S.empty}>Escolha o cliente primeiro.</p>}
+            {clientId && !docs.length && <p style={S.empty}>Nenhum PDF na ficha deste cliente. Adicione abaixo.</p>}
+            {docs.map((d) => {
+              const on = docIds.includes(d.id);
+              return (
+                <label key={d.id} style={{ ...S.docItem, ...(on ? S.docOn : {}) }}>
+                  <input type="checkbox" checked={on} onChange={() => toggleDoc(d.id)} style={{ width: 18, height: 18, accentColor: '#8f1f3e', flex: 'none' }} />
+                  <span style={{ minWidth: 0, flex: 1 }}>
+                    <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#e6e9ec' }}>{d.name}</span>
+                    <small style={{ color: '#8f99a2' }}>{dt(d.created_at)}</small>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+          <small style={{ color: '#9aa3ab' }}>Marque um ou mais. Todos vão no mesmo link: o cliente valida a identidade uma vez só e assina todos juntos.</small>
+        </div>
       </div>
-      <button style={{ ...S.btn, opacity: !docId || !phone || busy ? 0.5 : 1 }} disabled={!docId || !phone || !!busy} onClick={send}>{busy === 'send' ? 'Enviando...' : 'Enviar para assinatura pelo WhatsApp'}</button>
       <div style={S.upload}>
-        <span style={{ fontSize: 13, color: '#c7ced4' }}>Ou envie um PDF do seu computador para o cliente selecionado:</span>
-        <input type="file" accept="application/pdf,.pdf" onChange={(e) => setFile(e.target.files?.[0] || null)} disabled={!clientId} />
-        <button style={{ ...S.small, opacity: !file || !clientId || !phone || busy ? 0.5 : 1 }} disabled={!file || !clientId || !phone || !!busy} onClick={sendUpload}>Enviar este PDF para assinatura</button>
+        <span style={{ fontSize: 13, color: '#c7ced4' }}>Adicionar PDFs do computador à ficha do cliente:</span>
+        <label style={{ ...S.small, opacity: !clientId || uploading ? 0.5 : 1, cursor: !clientId || uploading ? 'not-allowed' : 'pointer' }}>
+          {uploading ? 'Enviando arquivos...' : 'Escolher PDFs'}
+          <input type="file" accept="application/pdf,.pdf" multiple hidden disabled={!clientId || uploading} onChange={(e) => { addUploads(e.target.files); e.target.value = ''; }} />
+        </label>
+        <small style={{ color: '#8f99a2' }}>Pode escolher vários de uma vez; eles entram marcados na lista acima.</small>
       </div>
+      <button style={{ ...S.btn, marginTop: 14, opacity: !docIds.length || !phone || busy || uploading ? 0.5 : 1 }} disabled={!docIds.length || !phone || !!busy || uploading} onClick={send}>
+        {busy === 'send' ? 'Enviando...' : docIds.length > 1 ? `Enviar ${docIds.length} documentos para assinatura pelo WhatsApp` : 'Enviar para assinatura pelo WhatsApp'}
+      </button>
       {notice && <p style={S.notice}>{notice}</p>}
       {link && <div style={S.linkBox}><code style={{ wordBreak: 'break-all' }}>{link}</code><button style={S.small} onClick={() => { navigator.clipboard?.writeText(link); setNotice('Link copiado.'); }}>Copiar link</button></div>}
 
@@ -171,7 +220,8 @@ export default function LexSignPanel() {
         <div style={S.overlay} onClick={() => busy !== 'review' && setReview(null)}>
           <div style={S.modal} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ ...S.h3, marginTop: 0 }}>Conferência de identidade</h3>
-            <p style={S.p}><b>{review.title}</b><br />{review.signer_name} • CPF {review.signer_cpf} • WhatsApp {review.signer_phone}</p>
+            <p style={S.p}><b>{(review.documents?.length || 1) > 1 ? `${review.documents.length} documentos (um único link)` : review.title}</b><br />{review.signer_name} • CPF {review.signer_cpf} • WhatsApp {review.signer_phone}</p>
+            {(review.documents?.length || 0) > 1 && <ul style={{ ...S.p, margin: '8px 0 0', paddingLeft: 18 }}>{review.documents.map((d: any) => <li key={d.id}>{d.title}</li>)}</ul>}
             <p style={{ ...S.p, marginTop: 8 }}>O reconhecimento automático não confirmou o rosto após {review.face_attempts || 0} tentativas{typeof review.face_distance === 'number' ? ` (distância ${review.face_distance.toFixed(3)}; limite ${review.face_limit})` : ''}. A prova de vida e o código do WhatsApp foram aprovados. Compare as duas fotos:</p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, margin: '12px 0' }}>
               <figure style={{ margin: 0 }}>{review.selfie_url ? <img src={review.selfie_url} alt="Selfie" style={S.img} /> : <p style={S.p}>Selfie indisponível</p>}<figcaption style={S.cap}>Selfie (prova de vida)</figcaption></figure>
@@ -192,19 +242,37 @@ export default function LexSignPanel() {
       <h3 style={S.h3}>Acompanhamento</h3>
       {!reqs.length && <p style={S.p}>Nenhuma assinatura enviada ainda.</p>}
       <div style={{ display: 'grid', gap: 8 }}>
-        {reqs.map((r) => (
-          <div key={r.id} style={S.row}>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <b style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</b>
-              <small style={{ color: '#9aa3ab' }}>{r.signer_name} • enviado {dt(r.created_at)}{r.viewed_at ? ` • aberto ${dt(r.viewed_at)}` : ''}{r.signed_at ? ` • assinado ${dt(r.signed_at)}` : ''}{r.verification_code ? ` • código ${r.verification_code}` : ''}</small>
+        {groups.map((g) => {
+          const r = g[0];
+          const many = g.length > 1;
+          const st = groupStatus(g);
+          return (
+            <div key={r.batch_id || r.id} style={{ ...S.row, flexDirection: 'column', alignItems: 'stretch' }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <b style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{many ? `${g.length} documentos • um único link` : r.title}</b>
+                  <small style={{ color: '#9aa3ab' }}>{r.signer_name} • enviado {dt(r.created_at)}{r.viewed_at ? ` • aberto ${dt(r.viewed_at)}` : ''}{r.signed_at && st === 'signed' ? ` • assinado ${dt(r.signed_at)}` : ''}{!many && r.verification_code ? ` • código ${r.verification_code}` : ''}</small>
+                </div>
+                <span style={{ ...S.status, color: COLOR[st] || '#ccc', borderColor: COLOR[st] || '#555' }}>{STATUS[st] || st}</span>
+                {st === 'pending_review' && <button style={{ ...S.small, background: '#8f1f3e', borderColor: '#8f1f3e', color: '#fff' }} disabled={!!busy} onClick={() => openReview(r)}>{busy === r.id ? '...' : 'Conferir'}</button>}
+                {!many && r.status === 'signed' && <button style={S.small} onClick={() => openSigned(r)}>Abrir assinado</button>}
+                {['sent', 'viewed', 'expired', 'rejected'].includes(st) && <button style={S.small} disabled={!!busy} onClick={() => resend(r)}>{busy === r.id ? '...' : 'Reenviar'}</button>}
+                {['sent', 'viewed', 'pending_review'].includes(st) && <button style={{ ...S.small, background: 'transparent' }} disabled={!!busy} onClick={() => cancel(r)}>Cancelar</button>}
+              </div>
+              {many && (
+                <div style={{ display: 'grid', gap: 4, marginTop: 8, paddingLeft: 10, borderLeft: '2px solid rgba(201,165,92,.35)' }}>
+                  {g.map((m) => (
+                    <div key={m.id} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 13 }}>
+                      <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#c7ced4' }}>{m.title}{m.verification_code && m.status === 'signed' ? <small style={{ color: '#8f99a2' }}> • código {m.verification_code}</small> : null}</span>
+                      <small style={{ color: COLOR[m.status] || '#ccc' }}>{STATUS[m.status] || m.status}</small>
+                      {m.status === 'signed' && <button style={S.small} onClick={() => openSigned(m)}>Abrir assinado</button>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            <span style={{ ...S.status, color: COLOR[r.status] || '#ccc', borderColor: COLOR[r.status] || '#555' }}>{STATUS[r.status] || r.status}</span>
-            {r.status === 'pending_review' && <button style={{ ...S.small, background: '#8f1f3e', borderColor: '#8f1f3e', color: '#fff' }} disabled={!!busy} onClick={() => openReview(r)}>{busy === r.id ? '...' : 'Conferir'}</button>}
-            {r.status === 'signed' && <button style={S.small} onClick={() => openSigned(r)}>Abrir assinado</button>}
-            {['sent', 'viewed', 'expired', 'rejected'].includes(r.status) && <button style={S.small} disabled={!!busy} onClick={() => resend(r)}>{busy === r.id ? '...' : 'Reenviar'}</button>}
-            {['sent', 'viewed', 'pending_review'].includes(r.status) && <button style={{ ...S.small, background: 'transparent' }} disabled={!!busy} onClick={() => cancel(r)}>Cancelar</button>}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
@@ -230,5 +298,9 @@ const S: Record<string, React.CSSProperties> = {
   modal: { width: '100%', maxWidth: 640, maxHeight: '92vh', overflow: 'auto', background: '#1a1316', border: '1px solid rgba(201,165,92,.35)', borderRadius: 16, padding: 20 },
   img: { width: '100%', height: 240, objectFit: 'contain', background: 'rgba(0,0,0,.35)', borderRadius: 10, border: '1px solid rgba(255,255,255,.12)' },
   cap: { fontSize: 12, color: '#9aa3ab', marginTop: 4, textAlign: 'center' },
+  docList: { display: 'grid', gap: 6, maxHeight: 260, overflowY: 'auto', padding: 6, borderRadius: 10, background: 'rgba(0,0,0,.2)', border: '1px solid rgba(255,255,255,.1)' },
+  docItem: { display: 'flex', gap: 10, alignItems: 'center', padding: '8px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,.08)', background: 'rgba(255,255,255,.02)', cursor: 'pointer' },
+  docOn: { borderColor: 'rgba(201,165,92,.6)', background: 'rgba(143,31,62,.22)' },
+  empty: { margin: 0, padding: 8, color: '#8f99a2', fontSize: 13 },
   status: { fontSize: 12, fontWeight: 600, border: '1px solid', borderRadius: 999, padding: '3px 10px', whiteSpace: 'nowrap' },
 };
