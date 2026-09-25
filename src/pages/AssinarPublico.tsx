@@ -182,13 +182,39 @@ export default function AssinarPublico() {
       await new Promise((res) => setTimeout(res, 90));
     }
     if (runRef.current !== my) return;
-    setChallenge('Conferindo seu rosto...');
-    const canvas = toJpeg(v, 720);
+    // A foto final só é aceita com os olhos abertos e o rosto de frente.
+    // Se a pessoa piscar ou fechar os olhos na hora, tira outra automaticamente.
+    setChallenge('Olhe para a câmera com os olhos bem abertos');
+    const eyeMin = Math.max(0.17, openBase * 0.78);
+    const ssd = new fa.SsdMobilenetv1Options({ minConfidence: 0.4 });
+    let canvas: HTMLCanvasElement | null = null;
+    let det: any = null;
+    const shotStarted = Date.now();
+    while (runRef.current === my && Date.now() - shotStarted < 20000) {
+      const c = toJpeg(v, 720);
+      const d: any = await fa.detectSingleFace(c, ssd).withFaceLandmarks().withFaceDescriptor();
+      if (runRef.current !== my) return;
+      if (d) {
+        const eyes = (ear(d.landmarks.getLeftEye()) + ear(d.landmarks.getRightEye())) / 2;
+        const rr = (d.landmarks.positions[30].x - d.detection.box.x) / d.detection.box.width;
+        if (eyes >= eyeMin && rr > 0.4 && rr < 0.6) { canvas = c; det = d; break; }
+        setNotice(eyes < eyeMin ? 'Mantenha os olhos abertos.' : 'Olhe de frente para a câmera.');
+      } else {
+        setNotice('Posicione seu rosto dentro do círculo.');
+      }
+      await new Promise((res) => setTimeout(res, 150));
+    }
+    if (runRef.current !== my) return;
     stopCamera();
+    setNotice('');
+    if (!canvas || !det) {
+      setChallenge('');
+      setError('Não conseguimos uma foto com os olhos abertos. Toque em "Tentar de novo" e olhe para a câmera com os olhos abertos.');
+      return;
+    }
+    setChallenge('Conferindo seu rosto...');
     const jpeg = canvas.toDataURL('image/jpeg', 0.88);
     setSelfieJpeg(jpeg);
-    const det = await fa.detectSingleFace(canvas, new fa.SsdMobilenetv1Options({ minConfidence: 0.4 })).withFaceLandmarks().withFaceDescriptor();
-    if (!det) { setChallenge(''); setFaceDistance(null); await registerFaceFail(); return; }
     const distance = fa.euclideanDistance(det.descriptor, idDescriptor);
     setFaceDistance(distance);
     setChallenge('');
