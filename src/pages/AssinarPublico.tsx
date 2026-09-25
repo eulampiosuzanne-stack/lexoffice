@@ -6,7 +6,8 @@ const FACEAPI_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1/dist/fa
 const MODELS_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1/model/';
 const FACE_LIMIT = 0.55;
 
-type Info = { status: string; title: string; signer_name?: string; signer_cpf_masked?: string; phone_masked?: string; pdf_url?: string | null; otp_verified?: boolean; verification_code?: string; signed_at?: string; face_attempts?: number; review_after?: number };
+type DocItem = { id: string; title: string; status?: string; pdf_url?: string | null; verification_code?: string | null };
+type Info = { documents?: DocItem[]; status: string; title: string; signer_name?: string; signer_cpf_masked?: string; phone_masked?: string; pdf_url?: string | null; otp_verified?: boolean; verification_code?: string; signed_at?: string; face_attempts?: number; review_after?: number };
 type Step = 'loading' | 'error' | 'doc' | 'otp' | 'idphoto' | 'selfie' | 'confirm' | 'sending' | 'done' | 'review';
 
 let faceapiPromise: Promise<any> | null = null;
@@ -57,6 +58,8 @@ export default function AssinarPublico() {
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [readOk, setReadOk] = useState(false);
+  const [openDoc, setOpenDoc] = useState(0);
+  const [seen, setSeen] = useState<number[]>([0]);
   const [code, setCode] = useState('');
   const [codeSent, setCodeSent] = useState(false);
   const [idPreview, setIdPreview] = useState('');
@@ -244,7 +247,7 @@ export default function AssinarPublico() {
     try {
       const d = await call({ token, action: 'submit', manual_review: manualReview, consent_terms: consentTerms, consent_biometrics: consentBio, face_distance: faceDistance, liveness: { passed: true, steps: doneSteps }, selfie_jpeg: selfieJpeg, id_photo_jpeg: idJpeg, geo, user_agent: navigator.userAgent });
       if (d.status === 'pending_review') { setStep('review'); return; }
-      setInfo((i) => (i ? { ...i, status: 'signed', verification_code: d.verification_code, signed_at: d.signed_at } : i));
+      setInfo((i) => (i ? { ...i, status: 'signed', verification_code: d.verification_code, signed_at: d.signed_at, documents: Array.isArray(d.documents) ? d.documents : i.documents } : i));
       setStep('done');
     } catch (e: any) { setError(e.message); setStep('confirm'); } finally { setBusy(false); }
   }
@@ -252,6 +255,11 @@ export default function AssinarPublico() {
   const stepIndex: Record<string, number> = { doc: 1, otp: 2, idphoto: 3, selfie: 4, confirm: 5, sending: 5 };
   const n = stepIndex[step] || 0;
   const firstName = (info?.signer_name || '').split(' ')[0];
+  const docs: DocItem[] = info?.documents?.length ? info.documents : info ? [{ id: 'd', title: info.title, pdf_url: info.pdf_url, verification_code: info.verification_code }] : [];
+  const many = docs.length > 1;
+  const cur = docs[openDoc] || docs[0];
+  const allSeen = !many || docs.every((_, i) => seen.includes(i));
+  const pick = (i: number) => { setOpenDoc(i); setSeen((s) => (s.includes(i) ? s : [...s, i])); };
 
   return (
     <div className="lxs-page">
@@ -266,18 +274,25 @@ export default function AssinarPublico() {
         {step === 'error' && <div className="lxs-box lxs-err"><h2>Não foi possível abrir</h2><p>{error}</p><p className="lxs-muted">Em caso de dúvida, fale com o escritório pelo WhatsApp (31) 99298-4141.</p></div>}
 
         {info && n > 0 && <>
-          <h1>Assinatura de documento</h1>
+          <h1>{many ? 'Assinatura de documentos' : 'Assinatura de documento'}</h1>
           <p className="lxs-doc">{info.title}</p>
           <div className="lxs-steps">{[1, 2, 3, 4, 5].map((i) => <span key={i} className={i < n ? 'done' : i === n ? 'on' : ''} />)}</div>
         </>}
 
         {step === 'doc' && info && <div className="lxs-box">
-          <h2>1. Leia o documento</h2>
-          <p>Olá{firstName ? `, ${firstName}` : ''}! Antes de assinar, leia o documento com atenção.</p>
-          {info.pdf_url && <a className="lxs-btn lxs-ghost" href={info.pdf_url} target="_blank" rel="noreferrer">Abrir o documento (PDF)</a>}
-          {info.pdf_url && <iframe className="lxs-pdf" src={info.pdf_url} title="Documento" />}
-          <label className="lxs-check"><input type="checkbox" checked={readOk} onChange={(e) => setReadOk(e.target.checked)} /> Li o documento e concordo com o seu conteúdo.</label>
-          <button className="lxs-btn" disabled={!readOk} onClick={() => setStep(info.otp_verified ? 'idphoto' : 'otp')}>Continuar</button>
+          <h2>1. {many ? `Leia os ${docs.length} documentos` : 'Leia o documento'}</h2>
+          <p>Olá{firstName ? `, ${firstName}` : ''}! {many ? 'Você vai assinar todos de uma vez só. Toque em cada um para ler antes de assinar.' : 'Antes de assinar, leia o documento com atenção.'}</p>
+          {many && <div className="lxs-doclist">{docs.map((d, i) => (
+            <button key={d.id} type="button" className={`lxs-docbtn ${i === openDoc ? 'on' : ''}`} onClick={() => pick(i)}>
+              <span className="lxs-docnum">{seen.includes(i) ? '✓' : i + 1}</span><span className="lxs-doctitle">{d.title}</span>
+            </button>
+          ))}</div>}
+          {cur?.pdf_url && <a className="lxs-btn lxs-ghost" href={cur.pdf_url} target="_blank" rel="noreferrer">{many ? `Abrir "${cur.title}" (PDF)` : 'Abrir o documento (PDF)'}</a>}
+          {cur?.pdf_url && <iframe key={cur.id} className="lxs-pdf" src={cur.pdf_url} title={cur.title} />}
+          {many && openDoc < docs.length - 1 && <button type="button" className="lxs-btn lxs-ghost" onClick={() => pick(openDoc + 1)}>Próximo documento ({openDoc + 2} de {docs.length})</button>}
+          {many && !allSeen && <p className="lxs-muted">Abra todos os documentos da lista para poder continuar.</p>}
+          <label className="lxs-check"><input type="checkbox" checked={readOk} disabled={!allSeen} onChange={(e) => setReadOk(e.target.checked)} /> {many ? `Li os ${docs.length} documentos e concordo com o conteúdo de todos.` : 'Li o documento e concordo com o seu conteúdo.'}</label>
+          <button className="lxs-btn" disabled={!readOk || !allSeen} onClick={() => setStep(info.otp_verified ? 'idphoto' : 'otp')}>Continuar</button>
         </div>}
 
         {step === 'otp' && <div className="lxs-box">
@@ -319,23 +334,28 @@ export default function AssinarPublico() {
           {manualReview
             ? <p className="lxs-muted">As fotos serão conferidas pessoalmente pelo escritório. Você receberá a confirmação pelo WhatsApp.</p>
             : <p className="lxs-ok">✓ Identidade confirmada por reconhecimento facial</p>}
-          <label className="lxs-check"><input type="checkbox" checked={consentTerms} onChange={(e) => setConsentTerms(e.target.checked)} /> Concordo em assinar eletronicamente este documento e reconheço esta assinatura como válida, nos termos da Lei nº 14.063/2020.</label>
+          <label className="lxs-check"><input type="checkbox" checked={consentTerms} onChange={(e) => setConsentTerms(e.target.checked)} /> Concordo em assinar eletronicamente {many ? `estes ${docs.length} documentos` : 'este documento'} e reconheço esta assinatura como válida, nos termos da Lei nº 14.063/2020.</label>
           <label className="lxs-check"><input type="checkbox" checked={consentBio} onChange={(e) => setConsentBio(e.target.checked)} /> Autorizo o uso da minha imagem e dos meus dados biométricos exclusivamente para comprovar a autoria desta assinatura (LGPD, art. 11).</label>
-          <button className="lxs-btn" disabled={busy || !consentTerms || !consentBio} onClick={sign}>{step === 'sending' ? 'Enviando...' : manualReview ? 'Assinar e enviar para conferência' : 'Assinar documento'}</button>
+          <button className="lxs-btn" disabled={busy || !consentTerms || !consentBio} onClick={sign}>{step === 'sending' ? 'Enviando...' : manualReview ? 'Assinar e enviar para conferência' : many ? `Assinar os ${docs.length} documentos` : 'Assinar documento'}</button>
         </div>}
 
         {step === 'review' && <div className="lxs-box lxs-done">
           <div className="lxs-check-big" style={{ background: '#b88a3a' }}>✓</div>
           <h2>Assinatura recebida!</h2>
-          <p>Recebemos sua assinatura{info?.title ? <> em <b>{info.title}</b></> : ''}. Como a foto do documento ficou diferente da selfie, o escritório vai conferir pessoalmente.</p>
+          <p>Recebemos sua assinatura{many ? <> nos <b>{docs.length} documentos</b></> : info?.title ? <> em <b>{info.title}</b></> : ''}. Como a foto do documento ficou diferente da selfie, o escritório vai conferir pessoalmente.</p>
           <p className="lxs-muted">Você receberá a confirmação pelo WhatsApp. Já pode fechar esta página.</p>
         </div>}
 
         {step === 'done' && <div className="lxs-box lxs-done">
           <div className="lxs-check-big">✓</div>
-          <h2>Documento assinado!</h2>
-          <p>Sua assinatura em <b>{info?.title}</b> foi registrada com sucesso.</p>
-          {info?.verification_code && <p className="lxs-muted">Código de verificação: <b>{info.verification_code}</b></p>}
+          <h2>{many ? 'Documentos assinados!' : 'Documento assinado!'}</h2>
+          {many ? <>
+            <p>Sua assinatura foi registrada com sucesso em todos os documentos:</p>
+            <ul className="lxs-donelist">{docs.map((d) => <li key={d.id}><b>{d.title}</b>{d.verification_code ? <span className="lxs-muted"> • código {d.verification_code}</span> : null}</li>)}</ul>
+          </> : <>
+            <p>Sua assinatura em <b>{info?.title}</b> foi registrada com sucesso.</p>
+            {info?.verification_code && <p className="lxs-muted">Código de verificação: <b>{info.verification_code}</b></p>}
+          </>}
           <p className="lxs-muted">Você já pode fechar esta página. O escritório recebeu a via assinada.</p>
         </div>}
 
@@ -371,5 +391,12 @@ const CSS = `
 .lxs-ok{color:#1f6b38;font-weight:600;font-size:14px}.lxs-notice{color:#6b5d55;font-size:14px;margin:12px 0 0;text-align:center}
 .lxs-error,.lxs-err p{color:#a3182f;font-size:14px;margin:12px 0 0;text-align:center}.lxs-muted{color:#8a7a70;font-size:13px}
 .lxs-done{align-items:center;text-align:center;padding:12px 0}.lxs-check-big{width:64px;height:64px;border-radius:50%;background:#1f6b38;color:#fff;display:grid;place-items:center;font-size:34px}
+.lxs-doclist{display:flex;flex-direction:column;gap:6px}
+.lxs-docbtn{display:flex;gap:10px;align-items:center;text-align:left;width:100%;border:1.5px solid #e8dccb;background:#faf7f3;border-radius:12px;padding:12px;font-size:15px;color:#2a2124;cursor:pointer}
+.lxs-docbtn.on{border-color:#6e1930;background:#fff}
+.lxs-docnum{flex:none;width:28px;height:28px;border-radius:50%;background:#ece3d8;color:#6e1930;display:grid;place-items:center;font-weight:700;font-size:14px}
+.lxs-docbtn.on .lxs-docnum{background:#6e1930;color:#fff}
+.lxs-doctitle{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.lxs-donelist{text-align:left;margin:0;padding-left:18px;font-size:14px;line-height:1.6;align-self:stretch}
 .lxs-foot{margin-top:18px;border-top:1px solid #efe6da;padding-top:10px;font-size:11px;color:#9a8b80;text-align:center}
 `;
