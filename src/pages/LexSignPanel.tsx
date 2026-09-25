@@ -84,7 +84,7 @@ export default function LexSignPanel() {
     try {
       // Todos os documentos marcados vão num único link: o cliente valida a identidade uma vez só e assina todos.
       const ordered = docs.filter((d) => docIds.includes(d.id)).map((d) => d.id);
-      if (ordered.length > 10) throw new Error('Envie no máximo 10 documentos por vez.');
+      if (ordered.length > 30) throw new Error('Envie no máximo 30 documentos por vez.');
       const d = await invoke({ action: 'create', document_ids: ordered, client_id: clientId });
       setLink(d.link);
       const what = ordered.length > 1 ? `${ordered.length} documentos enviados num único link` : 'Link enviado';
