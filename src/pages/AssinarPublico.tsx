@@ -6,8 +6,8 @@ const FACEAPI_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1/dist/fa
 const MODELS_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1/model/';
 const FACE_LIMIT = 0.55;
 
-type Info = { status: string; title: string; signer_name?: string; signer_cpf_masked?: string; phone_masked?: string; pdf_url?: string | null; otp_verified?: boolean; verification_code?: string; signed_at?: string };
-type Step = 'loading' | 'error' | 'doc' | 'otp' | 'idphoto' | 'selfie' | 'confirm' | 'sending' | 'done';
+type Info = { status: string; title: string; signer_name?: string; signer_cpf_masked?: string; phone_masked?: string; pdf_url?: string | null; otp_verified?: boolean; verification_code?: string; signed_at?: string; face_attempts?: number; review_after?: number };
+type Step = 'loading' | 'error' | 'doc' | 'otp' | 'idphoto' | 'selfie' | 'confirm' | 'sending' | 'done' | 'review';
 
 let faceapiPromise: Promise<any> | null = null;
 function loadFaceApi(): Promise<any> {
@@ -69,6 +69,9 @@ export default function AssinarPublico() {
   const [consentTerms, setConsentTerms] = useState(false);
   const [consentBio, setConsentBio] = useState(false);
   const [modelsReady, setModelsReady] = useState(false);
+  const [faceAttempts, setFaceAttempts] = useState(0);
+  const [reviewAllowed, setReviewAllowed] = useState(false);
+  const [manualReview, setManualReview] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const runRef = useRef(0);
@@ -79,6 +82,8 @@ export default function AssinarPublico() {
         const d = await call({ token, action: 'open' });
         setInfo(d);
         if (d.status === 'signed') { setStep('done'); return; }
+        if (d.status === 'pending_review') { setStep('review'); return; }
+        setFaceAttempts(d.face_attempts || 0); setReviewAllowed((d.face_attempts || 0) >= (d.review_after || 2));
         setStep('doc');
         loadFaceApi().then(() => setModelsReady(true)).catch(() => undefined);
       } catch (e: any) { setError(e?.message || 'Link inválido.'); setStep('error'); }
@@ -98,9 +103,10 @@ export default function AssinarPublico() {
     try { const d = await call({ token, action: 'send_otp' }); setCodeSent(true); setNotice(`Enviamos um código de 6 números para o WhatsApp ${d.phone_masked}.`); }
     catch (e: any) { setError(e.message); } finally { setBusy(false); }
   }
-  async function verifyCode() {
+  async function verifyCode(value = code) {
+    if (value.length !== 6) return;
     setBusy(true); setError('');
-    try { await call({ token, action: 'verify_otp', code }); setNotice(''); setStep('idphoto'); }
+    try { await call({ token, action: 'verify_otp', code: value }); setNotice(''); setStep('idphoto'); }
     catch (e: any) { setError(e.message); } finally { setBusy(false); }
   }
 
@@ -182,12 +188,22 @@ export default function AssinarPublico() {
     const jpeg = canvas.toDataURL('image/jpeg', 0.88);
     setSelfieJpeg(jpeg);
     const det = await fa.detectSingleFace(canvas, new fa.SsdMobilenetv1Options({ minConfidence: 0.4 })).withFaceLandmarks().withFaceDescriptor();
-    if (!det) { setChallenge(''); setError('Não conseguimos ler seu rosto na selfie. Tente de novo em um lugar bem iluminado.'); return; }
+    if (!det) { setChallenge(''); setFaceDistance(null); await registerFaceFail(); return; }
     const distance = fa.euclideanDistance(det.descriptor, idDescriptor);
     setFaceDistance(distance);
     setChallenge('');
-    if (distance <= FACE_LIMIT) { setNotice('Identidade confirmada.'); setStep('confirm'); }
-    else setError('A selfie não ficou compatível com a foto do documento. Tente de novo com boa iluminação, ou tire outra foto do documento.');
+    if (distance <= FACE_LIMIT) { setManualReview(false); setNotice('Identidade confirmada.'); setStep('confirm'); return; }
+    await registerFaceFail();
+  }
+
+  // Selfie não bateu com a foto do documento (comum em RG antigo): conta a tentativa e,
+  // a partir da 2ª, permite mandar para a conferência manual do escritório.
+  async function registerFaceFail() {
+    let allowed = reviewAllowed;
+    try { const d = await call({ token, action: 'face_fail' }); setFaceAttempts(d.face_attempts || 0); allowed = Boolean(d.review_allowed); setReviewAllowed(allowed); } catch { /* segue */ }
+    setError(allowed
+      ? 'Não foi possível confirmar pelo reconhecimento automático. Isso é comum quando a foto do documento é antiga. Você pode tentar de novo ou enviar para o escritório conferir.'
+      : 'A selfie não ficou parecida com a foto do documento. Tente de novo em um lugar bem iluminado, olhando para a câmera.');
   }
 
   async function sign() {
@@ -200,7 +216,8 @@ export default function AssinarPublico() {
       });
     } catch { geo = null; }
     try {
-      const d = await call({ token, action: 'submit', consent_terms: consentTerms, consent_biometrics: consentBio, face_distance: faceDistance, liveness: { passed: true, steps: doneSteps }, selfie_jpeg: selfieJpeg, id_photo_jpeg: idJpeg, geo, user_agent: navigator.userAgent });
+      const d = await call({ token, action: 'submit', manual_review: manualReview, consent_terms: consentTerms, consent_biometrics: consentBio, face_distance: faceDistance, liveness: { passed: true, steps: doneSteps }, selfie_jpeg: selfieJpeg, id_photo_jpeg: idJpeg, geo, user_agent: navigator.userAgent });
+      if (d.status === 'pending_review') { setStep('review'); return; }
       setInfo((i) => (i ? { ...i, status: 'signed', verification_code: d.verification_code, signed_at: d.signed_at } : i));
       setStep('done');
     } catch (e: any) { setError(e.message); setStep('confirm'); } finally { setBusy(false); }
@@ -239,10 +256,13 @@ export default function AssinarPublico() {
 
         {step === 'otp' && <div className="lxs-box">
           <h2>2. Confirme seu WhatsApp</h2>
-          <p>Vamos enviar um código de 6 números para o WhatsApp {info?.phone_masked}.</p>
-          {!codeSent ? <button className="lxs-btn" disabled={busy} onClick={sendCode}>{busy ? 'Enviando...' : 'Enviar código'}</button> : <>
-            <input className="lxs-input" inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="000000" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />
-            <button className="lxs-btn" disabled={busy || code.length !== 6} onClick={verifyCode}>{busy ? 'Conferindo...' : 'Confirmar código'}</button>
+          {!codeSent ? <>
+            <p>Vamos mandar agora um código de 6 números para o seu WhatsApp {info?.phone_masked}.</p>
+            <button className="lxs-btn" disabled={busy} onClick={sendCode}>{busy ? 'Enviando...' : 'Receber o código no WhatsApp'}</button>
+          </> : <>
+            <p>Abra o WhatsApp, veja o código que chegou e digite os 6 números aqui. A conferência é automática.</p>
+            <input className="lxs-input" inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="000000" autoFocus value={code} onChange={(e) => { const v = e.target.value.replace(/\D/g, '').slice(0, 6); setCode(v); if (v.length === 6 && !busy) verifyCode(v); }} />
+            <button className="lxs-btn" disabled={busy || code.length !== 6} onClick={() => verifyCode()}>{busy ? 'Conferindo...' : 'Confirmar código'}</button>
             <button className="lxs-link" disabled={busy} onClick={sendCode}>Não recebi, enviar de novo</button>
           </>}
         </div>}
@@ -262,16 +282,27 @@ export default function AssinarPublico() {
           <div className="lxs-cam"><video ref={videoRef} playsInline muted />{challenge && <div className="lxs-challenge">{challenge}</div>}<div className="lxs-ring" /></div>
           {doneSteps.length > 0 && <p className="lxs-ok">✓ {doneSteps.join(' • ')}</p>}
           {!streamRef.current && <button className="lxs-btn" disabled={busy} onClick={startSelfie}>{busy ? 'Abrindo câmera...' : selfieJpeg || error ? 'Tentar de novo' : 'Abrir câmera'}</button>}
+          {error && reviewAllowed && selfieJpeg && <button className="lxs-btn lxs-ghost" onClick={() => { setError(''); setNotice(''); setManualReview(true); setStep('confirm'); }}>Enviar para o escritório conferir</button>}
           {error && <button className="lxs-link" onClick={() => { setError(''); setStep('idphoto'); }}>Tirar outra foto do documento</button>}
+          {faceAttempts > 0 && !reviewAllowed && <p className="lxs-muted">Tentativa {faceAttempts}. Se não der certo na próxima, você poderá enviar para o escritório conferir.</p>}
         </div>}
 
         {(step === 'confirm' || step === 'sending') && <div className="lxs-box">
           <h2>5. Confirmar assinatura</h2>
           <div className="lxs-faces">{selfieJpeg && <img src={selfieJpeg} alt="Selfie" />}{idPreview && <img src={idPreview} alt="Documento" />}</div>
-          <p className="lxs-ok">✓ Identidade confirmada por reconhecimento facial</p>
+          {manualReview
+            ? <p className="lxs-muted">As fotos serão conferidas pessoalmente pelo escritório. Você receberá a confirmação pelo WhatsApp.</p>
+            : <p className="lxs-ok">✓ Identidade confirmada por reconhecimento facial</p>}
           <label className="lxs-check"><input type="checkbox" checked={consentTerms} onChange={(e) => setConsentTerms(e.target.checked)} /> Concordo em assinar eletronicamente este documento e reconheço esta assinatura como válida, nos termos da Lei nº 14.063/2020.</label>
           <label className="lxs-check"><input type="checkbox" checked={consentBio} onChange={(e) => setConsentBio(e.target.checked)} /> Autorizo o uso da minha imagem e dos meus dados biométricos exclusivamente para comprovar a autoria desta assinatura (LGPD, art. 11).</label>
-          <button className="lxs-btn" disabled={busy || !consentTerms || !consentBio} onClick={sign}>{step === 'sending' ? 'Assinando...' : 'Assinar documento'}</button>
+          <button className="lxs-btn" disabled={busy || !consentTerms || !consentBio} onClick={sign}>{step === 'sending' ? 'Enviando...' : manualReview ? 'Assinar e enviar para conferência' : 'Assinar documento'}</button>
+        </div>}
+
+        {step === 'review' && <div className="lxs-box lxs-done">
+          <div className="lxs-check-big" style={{ background: '#b88a3a' }}>✓</div>
+          <h2>Assinatura recebida!</h2>
+          <p>Recebemos sua assinatura{info?.title ? <> em <b>{info.title}</b></> : ''}. Como a foto do documento ficou diferente da selfie, o escritório vai conferir pessoalmente.</p>
+          <p className="lxs-muted">Você receberá a confirmação pelo WhatsApp. Já pode fechar esta página.</p>
         </div>}
 
         {step === 'done' && <div className="lxs-box lxs-done">

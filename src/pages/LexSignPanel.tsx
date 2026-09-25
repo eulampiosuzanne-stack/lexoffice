@@ -7,8 +7,8 @@ type Doc = { id: string; name: string; file_path: string; mime_type?: string | n
 type Req = { id: string; title: string; signer_name?: string | null; status: string; created_at: string; viewed_at?: string | null; signed_at?: string | null; signed_path?: string | null; verification_code?: string | null; face_distance?: number | null };
 
 const FN = 'signature-biometric-public';
-const STATUS: Record<string, string> = { sent: 'Enviado', viewed: 'Aberto pelo cliente', signed: 'Assinado', cancelled: 'Cancelado', expired: 'Expirado' };
-const COLOR: Record<string, string> = { sent: '#c9a55c', viewed: '#5aa0d8', signed: '#3fae6a', cancelled: '#8c8c8c', expired: '#b0645a' };
+const STATUS: Record<string, string> = { sent: 'Enviado', viewed: 'Aberto pelo cliente', pending_review: 'Aguardando sua conferência', signed: 'Assinado', rejected: 'Recusada', cancelled: 'Cancelado', expired: 'Expirado' };
+const COLOR: Record<string, string> = { pending_review: '#e0a13a', rejected: '#b0645a', sent: '#c9a55c', viewed: '#5aa0d8', signed: '#3fae6a', cancelled: '#8c8c8c', expired: '#b0645a' };
 const dt = (v?: string | null) => (v ? new Date(v).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '—');
 
 async function invoke(body: Record<string, unknown>): Promise<any> {
@@ -34,6 +34,8 @@ export default function LexSignPanel() {
   const [notice, setNotice] = useState('');
   const [link, setLink] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [review, setReview] = useState<any>(null);
+  const [reviewNote, setReviewNote] = useState('');
 
   async function loadReqs() {
     if (!supabase) return;
@@ -61,6 +63,10 @@ export default function LexSignPanel() {
     const q = search.trim().toLowerCase();
     return (q ? clients.filter((c) => c.name.toLowerCase().includes(q)) : clients).slice(0, 200);
   }, [clients, search]);
+  // Se a busca deixar só um cliente, ele já fica selecionado.
+  useEffect(() => {
+    if (search.trim() && filtered.length === 1 && filtered[0].id !== clientId) setClientId(filtered[0].id);
+  }, [filtered, search, clientId]);
   const client = clients.find((c) => c.id === clientId);
   const phone = client?.whatsapp || client?.phone || '';
 
@@ -104,6 +110,21 @@ export default function LexSignPanel() {
     setBusy(r.id);
     try { await invoke({ action: 'cancel', id: r.id }); await loadReqs(); } catch (e: any) { setNotice(e?.message || 'Falha ao cancelar.'); } finally { setBusy(''); }
   }
+  async function openReview(r: Req) {
+    setBusy(r.id); setNotice(''); setReviewNote('');
+    try { const d = await invoke({ action: 'evidence', id: r.id }); setReview(d); }
+    catch (e: any) { setNotice(e?.message || 'Falha ao abrir a conferência.'); } finally { setBusy(''); }
+  }
+  async function decide(approve: boolean) {
+    if (!review) return;
+    if (!approve && !confirm('Recusar esta assinatura? O cliente será avisado pelo WhatsApp de que o escritório vai entrar em contato.')) return;
+    setBusy('review');
+    try {
+      await invoke({ action: approve ? 'approve' : 'reject', id: review.id, note: reviewNote });
+      setNotice(approve ? 'Assinatura aprovada. O PDF assinado foi arquivado na ficha do cliente.' : 'Assinatura recusada. O cliente foi avisado pelo WhatsApp.');
+      setReview(null); await loadReqs();
+    } catch (e: any) { setNotice(e?.message || 'Falha ao registrar a decisão.'); } finally { setBusy(''); }
+  }
   async function openSigned(r: Req) {
     if (!supabase || !r.signed_path) return;
     const { data, error } = await supabase.storage.from('lexoffice-documents').createSignedUrl(r.signed_path, 300);
@@ -146,6 +167,28 @@ export default function LexSignPanel() {
       {notice && <p style={S.notice}>{notice}</p>}
       {link && <div style={S.linkBox}><code style={{ wordBreak: 'break-all' }}>{link}</code><button style={S.small} onClick={() => { navigator.clipboard?.writeText(link); setNotice('Link copiado.'); }}>Copiar link</button></div>}
 
+      {review && (
+        <div style={S.overlay} onClick={() => busy !== 'review' && setReview(null)}>
+          <div style={S.modal} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ ...S.h3, marginTop: 0 }}>Conferência de identidade</h3>
+            <p style={S.p}><b>{review.title}</b><br />{review.signer_name} • CPF {review.signer_cpf} • WhatsApp {review.signer_phone}</p>
+            <p style={{ ...S.p, marginTop: 8 }}>O reconhecimento automático não confirmou o rosto após {review.face_attempts || 0} tentativas{typeof review.face_distance === 'number' ? ` (distância ${review.face_distance.toFixed(3)}; limite ${review.face_limit})` : ''}. A prova de vida e o código do WhatsApp foram aprovados. Compare as duas fotos:</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, margin: '12px 0' }}>
+              <figure style={{ margin: 0 }}>{review.selfie_url ? <img src={review.selfie_url} alt="Selfie" style={S.img} /> : <p style={S.p}>Selfie indisponível</p>}<figcaption style={S.cap}>Selfie (prova de vida)</figcaption></figure>
+              <figure style={{ margin: 0 }}>{review.id_photo_url ? <img src={review.id_photo_url} alt="Documento" style={S.img} /> : <p style={S.p}>Foto indisponível</p>}<figcaption style={S.cap}>RG / CNH apresentado</figcaption></figure>
+            </div>
+            <label style={S.label}>Observação (opcional, vai para o certificado)
+              <input style={S.input} value={reviewNote} onChange={(e) => setReviewNote(e.target.value)} placeholder="Ex.: RG de 1998, cliente conhecida do escritório" />
+            </label>
+            <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
+              <button style={S.btn} disabled={busy === 'review'} onClick={() => decide(true)}>{busy === 'review' ? 'Processando...' : 'É a mesma pessoa — aprovar'}</button>
+              <button style={{ ...S.small, padding: '12px 16px', fontSize: 14 }} disabled={busy === 'review'} onClick={() => decide(false)}>Recusar</button>
+              <button style={{ ...S.small, padding: '12px 16px', fontSize: 14, background: 'transparent' }} disabled={busy === 'review'} onClick={() => setReview(null)}>Fechar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <h3 style={S.h3}>Acompanhamento</h3>
       {!reqs.length && <p style={S.p}>Nenhuma assinatura enviada ainda.</p>}
       <div style={{ display: 'grid', gap: 8 }}>
@@ -156,9 +199,10 @@ export default function LexSignPanel() {
               <small style={{ color: '#9aa3ab' }}>{r.signer_name} • enviado {dt(r.created_at)}{r.viewed_at ? ` • aberto ${dt(r.viewed_at)}` : ''}{r.signed_at ? ` • assinado ${dt(r.signed_at)}` : ''}{r.verification_code ? ` • código ${r.verification_code}` : ''}</small>
             </div>
             <span style={{ ...S.status, color: COLOR[r.status] || '#ccc', borderColor: COLOR[r.status] || '#555' }}>{STATUS[r.status] || r.status}</span>
+            {r.status === 'pending_review' && <button style={{ ...S.small, background: '#8f1f3e', borderColor: '#8f1f3e', color: '#fff' }} disabled={!!busy} onClick={() => openReview(r)}>{busy === r.id ? '...' : 'Conferir'}</button>}
             {r.status === 'signed' && <button style={S.small} onClick={() => openSigned(r)}>Abrir assinado</button>}
-            {['sent', 'viewed', 'expired'].includes(r.status) && <button style={S.small} disabled={!!busy} onClick={() => resend(r)}>{busy === r.id ? '...' : 'Reenviar'}</button>}
-            {['sent', 'viewed'].includes(r.status) && <button style={{ ...S.small, background: 'transparent' }} disabled={!!busy} onClick={() => cancel(r)}>Cancelar</button>}
+            {['sent', 'viewed', 'expired', 'rejected'].includes(r.status) && <button style={S.small} disabled={!!busy} onClick={() => resend(r)}>{busy === r.id ? '...' : 'Reenviar'}</button>}
+            {['sent', 'viewed', 'pending_review'].includes(r.status) && <button style={{ ...S.small, background: 'transparent' }} disabled={!!busy} onClick={() => cancel(r)}>Cancelar</button>}
           </div>
         ))}
       </div>
@@ -182,5 +226,9 @@ const S: Record<string, React.CSSProperties> = {
   linkBox: { display: 'flex', gap: 10, alignItems: 'center', marginTop: 10, padding: 10, borderRadius: 10, background: 'rgba(0,0,0,.25)', fontSize: 12 },
   row: { display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', padding: '10px 12px', borderRadius: 10, background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)' },
   upload: { display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 12, padding: 12, borderRadius: 10, border: '1px dashed rgba(255,255,255,.18)' },
+  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,.65)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 },
+  modal: { width: '100%', maxWidth: 640, maxHeight: '92vh', overflow: 'auto', background: '#1a1316', border: '1px solid rgba(201,165,92,.35)', borderRadius: 16, padding: 20 },
+  img: { width: '100%', height: 240, objectFit: 'contain', background: 'rgba(0,0,0,.35)', borderRadius: 10, border: '1px solid rgba(255,255,255,.12)' },
+  cap: { fontSize: 12, color: '#9aa3ab', marginTop: 4, textAlign: 'center' },
   status: { fontSize: 12, fontWeight: 600, border: '1px solid', borderRadius: 999, padding: '3px 10px', whiteSpace: 'nowrap' },
 };
