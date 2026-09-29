@@ -8,6 +8,7 @@ export default function ClientFormShareAction(){
  const location=useLocation();
  const [signed,setSigned]=useState(false),[open,setOpen]=useState(false),[busy,setBusy]=useState(false),[url,setUrl]=useState(''),[expires,setExpires]=useState(''),[error,setError]=useState(''),[copied,setCopied]=useState(false);
  const onClients=location.pathname==='/clientes'||location.pathname.startsWith('/clientes/');
+ useEffect(()=>{const handler=()=>void generate();window.addEventListener('lexoffice:share-client-form',handler);return()=>window.removeEventListener('lexoffice:share-client-form',handler)},[]);
  useEffect(()=>{let active=true;supabase.auth.getSession().then(({data})=>{if(active)setSigned(Boolean(data.session))});const {data:{subscription}}=supabase.auth.onAuthStateChange((_e,s)=>{if(active)setSigned(Boolean(s))});return()=>{active=false;subscription.unsubscribe()}},[]);
  if(!onClients||!signed)return null;
  async function generate(){setBusy(true);setError('');setCopied(false);try{const {data,error}=await supabase.functions.invoke('client-intake-link-create',{body:{}});if(error)throw error;if(!data?.token)throw new Error(data?.error||'Não foi possível gerar o link.');const origin=window.location.hostname==='localhost'?PROD_ORIGIN:window.location.origin;setUrl(`${origin}/formulario-cliente/${encodeURIComponent(data.token)}`);setExpires(data.expires_at||'');setOpen(true)}catch(e:any){setError(e?.message||'Não foi possível gerar o link.');setOpen(true)}finally{setBusy(false)}}
