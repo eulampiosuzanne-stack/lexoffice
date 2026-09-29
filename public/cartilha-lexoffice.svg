@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1600" viewBox="0 0 1080 1600">
+<rect width="1080" height="1600" fill="#fffaf0"/><rect width="1080" height="260" fill="#080808"/>
+<text x="70" y="105" font-family="Georgia,serif" font-size="72" fill="#d4af37" font-weight="700">SF</text>
+<text x="70" y="158" font-family="Arial,sans-serif" font-size="27" fill="#d4af37">SUZANNE FIGUEIREDO</text>
+<text x="70" y="196" font-family="Arial,sans-serif" font-size="18" fill="#fff">ADVOCACIA E SOLUÇÕES JURÍDICAS</text>
+<text x="420" y="95" font-family="Arial,sans-serif" font-size="48" fill="#fff" font-weight="700">ÁREA DO CLIENTE</text>
+<text x="420" y="150" font-family="Arial,sans-serif" font-size="26" fill="#d4af37">Como instalar o LexOffice no celular</text>
+<text x="420" y="200" font-family="Arial,sans-serif" font-size="22" fill="#fff">Guarde o CPF e o código recebidos na mensagem.</text>
+<rect x="55" y="300" rx="28" width="970" height="110" fill="#17130b" stroke="#d4af37" stroke-width="3"/>
+<text x="90" y="348" font-family="Arial,sans-serif" font-size="27" fill="#d4af37" font-weight="700">1. ABRA O LINK OFICIAL</text>
+<text x="90" y="386" font-family="Arial,sans-serif" font-size="25" fill="#fff">lexoffice.univittagroup.com.br/cliente</text>
+<rect x="55" y="450" rx="30" width="970" height="455" fill="#eef8ed"/>
+<text x="90" y="510" font-family="Arial,sans-serif" font-size="36" fill="#176b27" font-weight="700">ANDROID • CHROME</text>
+<g font-family="Arial,sans-serif" font-size="26" fill="#101010">
+<circle cx="115" cy="585" r="30" fill="#176b27"/><text x="106" y="595" fill="#fff" font-weight="700">1</text><text x="165" y="595">Abra o link no navegador Chrome.</text>
+<circle cx="115" cy="670" r="30" fill="#176b27"/><text x="106" y="680" fill="#fff" font-weight="700">2</text><text x="165" y="680">Toque nos três pontinhos ⋮ no canto superior.</text>
+<circle cx="115" cy="755" r="30" fill="#176b27"/><text x="106" y="765" fill="#fff" font-weight="700">3</text><text x="165" y="765">Escolha “Adicionar à tela inicial” ou “Instalar”.</text>
+<circle cx="115" cy="840" r="30" fill="#176b27"/><text x="106" y="850" fill="#fff" font-weight="700">4</text><text x="165" y="850">Confirme em “Adicionar”. O ícone aparecerá na tela.</text></g>
+<rect x="55" y="945" rx="30" width="970" height="455" fill="#edf5ff"/>
+<text x="90" y="1005" font-family="Arial,sans-serif" font-size="36" fill="#145b9c" font-weight="700">IPHONE • SAFARI</text>
+<g font-family="Arial,sans-serif" font-size="26" fill="#101010">
+<circle cx="115" cy="1080" r="30" fill="#145b9c"/><text x="106" y="1090" fill="#fff" font-weight="700">1</text><text x="165" y="1090">Abra o link no navegador Safari.</text>
+<circle cx="115" cy="1165" r="30" fill="#145b9c"/><text x="106" y="1175" fill="#fff" font-weight="700">2</text><text x="165" y="1175">Toque no botão Compartilhar ⬆.</text>
+<circle cx="115" cy="1250" r="30" fill="#145b9c"/><text x="106" y="1260" fill="#fff" font-weight="700">3</text><text x="165" y="1260">Escolha “Adicionar à Tela de Início”.</text>
+<circle cx="115" cy="1335" r="30" fill="#145b9c"/><text x="106" y="1345" fill="#fff" font-weight="700">4</text><text x="165" y="1345">Toque em “Adicionar”. O LexOffice ficará na tela.</text></g>
+<rect x="55" y="1440" rx="28" width="970" height="110" fill="#17130b"/>
+<text x="90" y="1488" font-family="Arial,sans-serif" font-size="28" fill="#d4af37" font-weight="700">PRONTO!</text>
+<text x="90" y="1528" font-family="Arial,sans-serif" font-size="23" fill="#fff">Abra o LexOffice e entre com seu CPF e o código recebido.</text>
+</svg>
