@@ -1,8 +1,9 @@
 {
-  "name": "LEXOFFICE",
-  "short_name": "LEXOFFICE",
-  "description": "Ecossistema de gestão jurídica inteligente",
-  "start_url": "/",
+  "name": "LexOffice Cliente",
+  "short_name": "Lex Cliente",
+  "description": "Área exclusiva do cliente - Suzanne Figueiredo Advocacia e Soluções Jurídicas",
+  "id": "/cliente",
+  "start_url": "/cliente",
   "scope": "/",
   "display": "standalone",
   "background_color": "#2A0009",
