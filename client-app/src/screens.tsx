@@ -271,10 +271,20 @@ const p = StyleSheet.create({
 
 /* ---------------------------------------------------------------- recados */
 
-export function Messages() {
+function msgCategory(c: any): {label: string; tone: Tone; icon: any; bg: string} {
+  const s = norm(c);
+  if (/import|urgen|alert|audi/.test(s)) return {label: "IMPORTANTE", tone: "danger", icon: "alert-circle", bg: "#FDF1EF"};
+  if (/doc/.test(s)) return {label: "DOCUMENTOS", tone: "info", icon: "document-text", bg: "#F1F5FC"};
+  if (/finan|pag|parcel|cobr/.test(s)) return {label: "FINANCEIRO", tone: "warning", icon: "wallet", bg: "#FDF5EA"};
+  return {label: c ? String(c).toUpperCase() : "INFORMATIVO", tone: "info", icon: "information-circle", bg: "#F3F2FB"};
+}
+
+export function Messages({navigation}: any) {
   const x = useCtx();
   const {refresh} = useUnread();
   const [rows, setRows] = useState<any[] | undefined>();
+  const [filter, setFilter] = useState<"all" | "unread" | "important">("all");
+  const [open, setOpen] = useState<string | null>(null);
   const load = useCallback(() => {
     if (!x?.client_id) return;
     supabase
@@ -309,34 +319,90 @@ export function Messages() {
   }
 
   if (rows === undefined) return <Loading />;
+  const unread = (r: any) => (r.requires_ack && !r.acknowledged_at) || r.read_at === null;
+  const important = (r: any) => msgCategory(r.category).label === "IMPORTANTE";
+  const nUnread = rows.filter(unread).length;
+  const list = rows.filter(r => (filter === "unread" ? unread(r) : filter === "important" ? important(r) : true));
+
   return (
     <Screen lead="Informações importantes sobre o seu atendimento.">
-      {rows.length ? (
-        rows.map(r => {
+      <View style={rc.filters}>
+        {([
+          ["all", "Todos"],
+          ["unread", nUnread ? `Não lidos (${nUnread})` : "Não lidos"],
+          ["important", "Importantes"],
+        ] as const).map(([k, label]) => (
+          <Pressable key={k} onPress={() => setFilter(k)} style={[rc.chip, filter === k && rc.chipOn]}>
+            <Text style={[rc.chipText, filter === k && rc.chipTextOn]}>{label}</Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {list.length ? (
+        list.map(r => {
+          const cat = msgCategory(r.category);
           const pending = r.requires_ack && !r.acknowledged_at;
+          const long = String(r.body || "").length > 160;
+          const expanded = open === r.id;
           return (
-            <Card key={r.id} style={pending ? {borderColor: C.gold} : undefined}>
-              <View style={{flexDirection: "row", justifyContent: "space-between", alignItems: "center"}}>
-                {r.category ? <Pill label={r.category} tone="neutral" /> : <View />}
-                <Text style={u.small}>{date(r.sent_at)}</Text>
+            <View key={r.id} style={[rc.card, {backgroundColor: cat.bg, borderColor: pending ? C[cat.tone] : C.line}]}>
+              <View style={{flexDirection: "row", alignItems: "center", gap: 8}}>
+                <Ionicons name={cat.icon} size={18} color={C[cat.tone]} />
+                <Pill label={cat.label} tone={cat.tone} />
+                <Text style={[u.small, {marginLeft: "auto", marginTop: 0}]}>{date(r.sent_at)}</Text>
               </View>
               <Text style={[u.title, {marginTop: 10}]}>{r.title}</Text>
-              <Text style={[u.body, {marginTop: 6}]}>{r.body}</Text>
-              {pending ? <Button label="Li e estou ciente" onPress={() => ack(r)} /> : null}
+              <Text style={[u.body, {marginTop: 6}]} numberOfLines={long && !expanded ? 3 : undefined}>
+                {r.body}
+              </Text>
+              <View style={rc.actions}>
+                {long ? (
+                  <Pressable style={rc.btn} onPress={() => setOpen(expanded ? null : r.id)}>
+                    <Text style={rc.btnText}>{expanded ? "Ver menos" : "Ver detalhes"}</Text>
+                  </Pressable>
+                ) : null}
+                {cat.label === "DOCUMENTOS" ? (
+                  <Pressable style={rc.btn} onPress={() => navigation.navigate("Início", {screen: "Documentos"})}>
+                    <Text style={rc.btnText}>Enviar documento</Text>
+                  </Pressable>
+                ) : null}
+                {pending ? (
+                  <Pressable style={[rc.btn, rc.btnOutline]} onPress={() => ack(r)}>
+                    <Text style={[rc.btnText, {color: C.brown}]}>Li e estou ciente</Text>
+                  </Pressable>
+                ) : null}
+              </View>
               {r.acknowledged_at ? (
                 <View style={{marginTop: 10}}>
                   <Pill label="Ciência confirmada" tone="success" icon="checkmark" />
                 </View>
               ) : null}
-            </Card>
+            </View>
           );
         })
       ) : (
-        <Empty>Nenhum recado por enquanto. Quando o escritório enviar uma informação, ela aparece aqui.</Empty>
+        <Empty>
+          {filter === "all"
+            ? "Nenhum recado por enquanto. Quando o escritório enviar uma informação, ela aparece aqui."
+            : "Nenhum recado neste filtro."}
+        </Empty>
       )}
     </Screen>
   );
 }
+
+const rc = StyleSheet.create({
+  filters: {flexDirection: "row", gap: 8, marginBottom: 16, flexWrap: "wrap"},
+  chip: {paddingHorizontal: 14, paddingVertical: 8, borderRadius: R.pill, borderWidth: 1, borderColor: C.line, backgroundColor: C.card},
+  chipOn: {backgroundColor: C.night, borderColor: C.night},
+  chipText: {color: C.brown, fontWeight: "600", fontSize: 13},
+  chipTextOn: {color: C.gold2},
+  card: {borderWidth: 1, borderRadius: R.md, padding: 16, marginBottom: 14},
+  actions: {flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 4},
+  btn: {backgroundColor: C.brown, borderRadius: R.sm, paddingVertical: 10, paddingHorizontal: 14, marginTop: 8},
+  btnOutline: {backgroundColor: "transparent", borderWidth: 1.5, borderColor: C.brown},
+  btnText: {color: "#fff", fontWeight: "700", fontSize: 13},
+});
 
 /* --------------------------------------------------------------- documentos */
 
