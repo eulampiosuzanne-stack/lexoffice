@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, CheckCircle2, ClipboardList, Clock3, FileSignature, Pause, Plus, RefreshCw, Save, Scale, XCircle } from 'lucide-react';
+import { BarChart3, CheckCircle2, ClipboardList, Clock3, FileSignature, Pencil, Pause, Plus, RefreshCw, Save, Scale, XCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import './jornada.css';
 
@@ -61,6 +61,8 @@ function Proposals({ orgId, flash, fail }: { orgId: string; flash: (m: string) =
   const [showNew, setShowNew] = useState(false);
   const [draft, setDraft] = useState({ ...emptyDraft });
   const [filter, setFilter] = useState<'ativas' | 'todas'>('ativas');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState({ ...emptyDraft });
   async function load() {
     setLoading(true);
     const [p, f, l, w] = await Promise.all([
@@ -93,6 +95,27 @@ function Proposals({ orgId, flash, fail }: { orgId: string; flash: (m: string) =
     setDraft({ ...emptyDraft, valid_until: plusDays(7), sent_at: new Date().toISOString().slice(0, 16) }); setShowNew(false);
     flash('Proposta registrada. O follow-up dos dias 2, 5, 7 e 30 foi agendado e para sozinho se o lead responder.');
     load();
+  }
+  function startEdit(p: Proposal) {
+    setEditingId(p.id);
+    setEditDraft({
+      lead_id: p.lead_id || '', contact_name: p.contact_name || '', phone: p.phone || '', area: p.area || 'Cível',
+      title: p.title || '', amount: p.amount == null ? '' : String(p.amount), valid_until: p.valid_until || '',
+      sent_at: p.sent_at ? new Date(p.sent_at).toISOString().slice(0, 16) : '', notes: p.notes || ''
+    });
+  }
+  async function saveEdit(p: Proposal) {
+    const digits = editDraft.phone.replace(/\D/g, '');
+    if (!editDraft.contact_name.trim() || digits.length < 10 || !editDraft.title.trim()) { fail('Informe nome, WhatsApp (com DDD) e objeto da proposta.'); return; }
+    const { error } = await supabase.from('commercial_proposals').update({
+      lead_id: editDraft.lead_id || null, contact_name: editDraft.contact_name.trim(),
+      phone: digits.startsWith('55') ? digits : '55' + digits, area: editDraft.area || null, title: editDraft.title.trim(),
+      amount: editDraft.amount ? Number(editDraft.amount) : null, valid_until: editDraft.valid_until || null,
+      sent_at: editDraft.sent_at ? new Date(editDraft.sent_at).toISOString() : p.sent_at, notes: editDraft.notes.trim() || null,
+      updated_at: new Date().toISOString()
+    }).eq('id', p.id).eq('org_id', orgId);
+    if (error) { fail(error.message); return; }
+    setEditingId(null); flash('Proposta atualizada.'); load();
   }
   async function setStatus(p: Proposal, status: string) {
     const msg = status === 'contratada' ? 'Marcar como CONTRATADA? O follow-up será encerrado.' : status === 'recusada' ? 'Marcar como SEM INTERESSE? O follow-up será encerrado.' : 'Cancelar esta proposta? O follow-up será encerrado.';
@@ -150,11 +173,22 @@ function Proposals({ orgId, flash, fail }: { orgId: string; flash: (m: string) =
         const steps = fus.filter(f => f.proposal_id === p.id);
         return <article className="jornada-card" key={p.id}>
           <header><div><b>{p.contact_name}</b><small>{p.phone} · {p.area || 'Área não informada'}</small></div><span className={`jornada-status s-${p.status}`}>{statusLabel[p.status] || p.status}</span></header>
-          <p className="jornada-title">{p.title}</p>
+          {editingId === p.id ? <div className="integration-form crm-editor">
+            <label>Nome<input value={editDraft.contact_name} onChange={e => setEditDraft({ ...editDraft, contact_name: e.target.value })} /></label>
+            <label>WhatsApp<input value={editDraft.phone} onChange={e => setEditDraft({ ...editDraft, phone: e.target.value })} /></label>
+            <label>Área<select value={editDraft.area} onChange={e => setEditDraft({ ...editDraft, area: e.target.value })}>{AREAS.map(a => <option key={a}>{a}</option>)}</select></label>
+            <label>Objeto da proposta<input value={editDraft.title} onChange={e => setEditDraft({ ...editDraft, title: e.target.value })} /></label>
+            <label>Honorários propostos (R$)<input type="number" min="0" step="0.01" value={editDraft.amount} onChange={e => setEditDraft({ ...editDraft, amount: e.target.value })} /></label>
+            <label>Enviada em<input type="datetime-local" value={editDraft.sent_at} onChange={e => setEditDraft({ ...editDraft, sent_at: e.target.value })} /></label>
+            <label>Válida até<input type="date" value={editDraft.valid_until} onChange={e => setEditDraft({ ...editDraft, valid_until: e.target.value })} /></label>
+            <label className="wide">Observações internas<textarea value={editDraft.notes} onChange={e => setEditDraft({ ...editDraft, notes: e.target.value })} /></label>
+            <div className="wide crm-editor-actions"><button className="integration-action" onClick={() => saveEdit(p)}><Save size={14} />Salvar alterações</button><button className="secondary" onClick={() => setEditingId(null)}>Cancelar</button></div>
+          </div> : <p className="jornada-title">{p.title}</p>}
           <div className="jornada-meta"><span>Honorários: <b>{money(p.amount)}</b></span><span>Enviada: {dateTimeBR(p.sent_at)}</span><span>Validade: {dateBR(p.valid_until)}</span></div>
           <div className="jornada-steps">{[2, 5, 7, 30].map(d => { const s = steps.find(x => x.step_day === d); return <div key={d} className={`jornada-step st-${s?.status || 'none'}`} title={s?.error_message || ''}><b>Dia {d}</b><small>{s ? fuLabel[s.status] || s.status : '—'}</small><small>{s ? (s.sent_at ? dateTimeBR(s.sent_at) : dateTimeBR(s.scheduled_at)) : ''}</small></div>; })}</div>
           {!p.followup_active && p.stop_reason && <small className="jornada-stop">Follow-up encerrado: {stopLabel[p.stop_reason] || p.stop_reason}</small>}
           {p.status === 'respondida' && <small className="jornada-stop warn">O lead respondeu — a Dra. Gláucia deve dar sequência à conversa.</small>}
+          <div className="jornada-card-actions"><button className="secondary" onClick={() => startEdit(p)}><Pencil size={14} />Editar proposta</button></div>
           {['enviada', 'respondida'].includes(p.status) && <div className="jornada-card-actions">
             <button className="integration-action" onClick={() => setStatus(p, 'contratada')}><CheckCircle2 size={14} />Contratou</button>
             <button className="secondary" onClick={() => setStatus(p, 'recusada')}><XCircle size={14} />Sem interesse</button>
