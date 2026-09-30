@@ -159,13 +159,19 @@ export default function PetitionAssistant() {
   }
 
   async function draft() {
-    setBusy('draft'); setNotice({ kind: 'info', text: 'Redigindo a petição inicial. Pode levar até 2 minutos.' });
+    setBusy('draft'); setPetition('');
+    const parts = ['abertura e fatos', 'direito', 'pedidos e fechamento'];
+    let text = '';
     try {
-      const r = await invoke({ action: 'draft', run_id: runId, area, dossier, calculation: memorial, instructions, office: { name: 'Suzanne Figueiredo — Advocacia e Soluções Jurídicas', lawyer: 'Suzanne Figueiredo' } });
-      setPetition(r.petition);
+      for (let i = 0; i < parts.length; i++) {
+        setNotice({ kind: 'info', text: `Redigindo a petição (${i + 1} de ${parts.length}: ${parts[i]}). Cada parte leva cerca de 1 minuto.` });
+        const r = await invoke({ action: 'draft', part: i + 1, previous: text, run_id: runId, area, dossier, calculation: memorial, instructions, office: { name: 'Suzanne Figueiredo — Advocacia e Soluções Jurídicas', lawyer: 'Suzanne Figueiredo' } });
+        text = `${text}\n\n${String(r.petition || '').trim()}`.trim();
+        setPetition(text);
+      }
       setNotice({ kind: 'ok', text: 'Rascunho pronto. Os pontos marcados com [PREENCHER] precisam da sua revisão.' });
       loadBase();
-    } catch (e: any) { setNotice({ kind: 'error', text: e.message }); }
+    } catch (e: any) { setNotice({ kind: 'error', text: `${e.message}${text ? ' O que já foi redigido ficou na tela.' : ''}` }); }
     finally { setBusy(''); }
   }
 
