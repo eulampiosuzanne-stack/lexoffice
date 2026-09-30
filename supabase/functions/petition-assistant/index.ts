@@ -57,11 +57,11 @@ async function maritacaKey(a: any, orgId: string) {
   return (Deno.env.get("MARITACA_API_KEY") || "").trim();
 }
 
-// Maritaca (Sabiá, brasileira, paga em reais): redige textos; não lê PDF/imagem.
-async function maritaca(key: string, prompt: string, maxTokens: number, json = false, timeoutMs = 100000) {
+// Maritaca (Sabiá-4, brasileira, paga em reais): redige e também lê PDF/imagem (com OCR) enviados em base64.
+async function maritaca(key: string, prompt: string | any[], maxTokens: number, json = false, timeoutMs = 100000) {
   const model = (Deno.env.get("MARITACA_MODEL") || "sabia-4").trim();
   try {
-    const r = await fetch("https://chat.maritaca.ai/api/chat/completions", { signal: AbortSignal.timeout(timeoutMs), method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify({ model, messages: [{ role: "system", content: "Você é advogado(a) brasileiro(a) sênior. Responda somente em português do Brasil." }, { role: "user", content: prompt }], temperature: json ? 0.1 : 0.3, max_tokens: maxTokens }) });
+    const r = await fetch("https://chat.maritaca.ai/api/chat/completions", { signal: AbortSignal.timeout(timeoutMs), method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify({ model, messages: [{ role: "system", content: "Você é advogado(a) brasileiro(a) sênior. Responda somente em português do Brasil." }, { role: "user", content: prompt }], temperature: json ? 0.1 : 0.3, max_tokens: maxTokens, ...(Array.isArray(prompt) ? { extraction_effort: "medium" } : {}) }) });
     const out = await r.json().catch(() => null);
     const text = String(out?.choices?.[0]?.message?.content || "").trim();
     if (r.ok && text) return { ok: true as const, text, model: `maritaca/${model}` };
@@ -107,10 +107,10 @@ function toBase64(bytes: Uint8Array) {
 }
 
 async function loadFiles(a: any, orgId: string, ids: string[]) {
-  if (!ids.length) return { parts: [] as any[], names: [] as string[], skipped: [] as string[] };
+  if (!ids.length) return { parts: [] as any[], mparts: [] as any[], names: [] as string[], skipped: [] as string[] };
   const { data: docs, error } = await a.from("documents").select("id,org_id,name,file_path,mime_type,size_bytes,category").in("id", ids.slice(0, 12)).eq("org_id", orgId);
   if (error) throw new Error("Não foi possível localizar os documentos enviados.");
-  const parts: any[] = [], names: string[] = [], skipped: string[] = [];
+  const parts: any[] = [], mparts: any[] = [], names: string[] = [], skipped: string[] = [];
   let total = 0;
   for (const d of docs || []) {
     const mime = String(d.mime_type || (/\.pdf$/i.test(d.file_path) ? "application/pdf" : "")).toLowerCase();
@@ -121,10 +121,13 @@ async function loadFiles(a: any, orgId: string, ids: string[]) {
     if (total + bytes.length > MAX_TOTAL_BYTES) { skipped.push(`${d.name} (limite de tamanho do lote)`); continue; }
     total += bytes.length;
     parts.push({ text: `--- Documento: ${d.name} (categoria: ${d.category || "não informada"}) ---` });
-    parts.push({ inline_data: { mime_type: mime === "image/jpg" ? "image/jpeg" : mime, data: toBase64(bytes) } });
+    const m = mime === "image/jpg" ? "image/jpeg" : mime, b64 = toBase64(bytes);
+    parts.push({ inline_data: { mime_type: m, data: b64 } });
+    mparts.push({ type: "text", text: `--- Documento: ${d.name} (categoria: ${d.category || "não informada"}) ---` });
+    mparts.push(m === "application/pdf" ? { type: "file", file: { filename: d.name, file_data: `data:${m};base64,${b64}` } } : { type: "image_url", image_url: { url: `data:${m};base64,${b64}` } });
     names.push(d.name);
   }
-  return { parts, names, skipped };
+  return { parts, mparts, names, skipped };
 }
 
 function analyzePrompt(area: string, caseInfo: any, notes: string) {
@@ -207,12 +210,15 @@ Deno.serve(async (req) => {
       if (!ids.length && notes.trim().length < 40) return json({ ok: false, error: "Envie ao menos um documento ou descreva o caso com mais detalhes." }, 400);
       const files = await loadFiles(a, orgId, ids);
       const payload = { contents: [{ role: "user", parts: [{ text: analyzePrompt(area, b.case_info || {}, notes) }, ...files.parts] }], generationConfig: { temperature: 0.1, maxOutputTokens: 8192, responseMimeType: "application/json" } };
-      let r: any = key ? await gemini(key, models, payload) : { ok: false, status: 503, detail: "Gemini não configurado" };
-      // Sem documentos para ler, a Maritaca faz a análise só com o relato.
-      if (!r.ok && !files.parts.length && mKey) r = await maritaca(mKey, analyzePrompt(area, b.case_info || {}, notes), 6000, true);
+      const started = Date.now();
+      // Sabiá-4 (Maritaca) lê os documentos primeiro; o Gemini fica de reserva.
+      let r: any = mKey ? await maritaca(mKey, files.mparts.length ? [...files.mparts, { type: "text", text: analyzePrompt(area, b.case_info || {}, notes) }] : analyzePrompt(area, b.case_info || {}, notes), 6000, true, 110000) : { ok: false, status: 503, detail: "Maritaca não configurada" };
+      const firstTry = r;
+      if (!r.ok && key) r = await gemini(key, models, payload, started + 140000);
+      if (!r.ok) r = { ...r, detail: `${firstTry.detail || firstTry.status} | ${r.detail || r.status}` };
       if (!r.ok) {
         const quota = [429, 503].includes(r.status);
-        return json({ ok: false, error: quota ? `A leitura de documentos usa o Google Gemini, que está sem cota no momento (${String(r.detail || r.status).slice(0, 160)}). Tente de novo em alguns minutos. Se acontecer sempre, a cota gratuita do Gemini acabou.` : `A IA não conseguiu ler os documentos (${r.status}${r.detail ? ": " + r.detail : ""}).` }, 502);
+        return json({ ok: false, error: quota ? `A IA não conseguiu ler os documentos agora (${String(r.detail || r.status).slice(0, 220)}). Tente de novo em alguns minutos.` : `A IA não conseguiu ler os documentos (${r.status}${r.detail ? ": " + r.detail : ""}).` }, 502);
       }
       let dossier: any;
       try { dossier = JSON.parse(stripFence(r.text)); } catch { return json({ ok: false, error: "A IA devolveu um dossiê em formato inválido. Tente novamente." }, 422); }
