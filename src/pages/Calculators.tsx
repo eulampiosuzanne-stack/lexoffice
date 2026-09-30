@@ -97,7 +97,7 @@ export default function Calculators(){
    storagePath=`${profile.org_id}/calculator-imports/${user.id}/${Date.now()}-${safeName}`;
    const {error:uploadError}=await supabase.storage.from('lexoffice-documents').upload(storagePath,file,{contentType:'application/pdf',upsert:false});
    if(uploadError)throw Error(`Falha ao enviar o PDF: ${uploadError.message}`);
-   const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error('A leitura automática excedeu 45 segundos. Tente novamente.')),45000));
+   const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error('Falha técnica: o leitor de PDF excedeu 45 segundos.')),45000));
    const r=await Promise.race([invokeCalculator({mode:'extract_pdf',calculator:calc,pdf:{name:file.name,mime_type:file.type,storage_path:storagePath},fields:fs.map(f=>({key:f.key,label:f.label,type:f.type||'text'}))}),timeout]);
    const extracted=(r as any)?.extractedData||{};
    setD(current=>({...current,...extracted}));
