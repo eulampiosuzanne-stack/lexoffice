@@ -26,7 +26,20 @@ async function geminiKey(a:any,orgId:string){
   return (Deno.env.get('GEMINI_API_KEY')||Deno.env.get('GOOGLE_GEMINI_API_KEY')||'').trim();
 }
 
-function stripFence(s:string){return s.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim()}
+function stripFence(s:string){return s.trim().replace(/^\`\`\`(?:json)?\\s*/i,'').replace(/\\s*\`\`\`$/,'').trim()}
+const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
+async function callGemini(key:string,model:string,payload:any){
+  let last:any=null;
+  for(let attempt=0;attempt<3;attempt++){
+    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const out=await r.json().catch(()=>null);
+    if(r.ok)return {r,out};
+    last={r,out};
+    if(![429,500,502,503,504].includes(r.status))break;
+    await sleep(700*(attempt+1));
+  }
+  return last;
+}
 
 Deno.serve(async(req)=>{
   if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
@@ -47,13 +60,16 @@ Deno.serve(async(req)=>{
     const prompt=`Você é um extrator de dados jurídicos para preenchimento de calculadoras do LEXOFFICE. Leia o PDF e preencha SOMENTE informações explicitamente presentes no documento. Não invente, não estime e não complete lacunas.\n\nCalculadora: ${calculator}\nArquivo: ${fileName}\nCampos disponíveis: ${JSON.stringify(fields)}\n\nRetorne APENAS JSON válido no formato {"values":{"RÓTULO_EXATO":"valor"},"found":0,"notes":""}. Regras: use exatamente os rótulos recebidos; omita campos não encontrados; números sem R$ e sem separador de milhar, usando ponto decimal; datas em YYYY-MM-DD; para select use exatamente um dos optionValue fornecidos; preserve texto útil em campos text/textarea. Se houver valores conflitantes, omita o campo e explique em notes.`;
 
     const model=(Deno.env.get('GEMINI_MODEL')||'gemini-2.5-flash').trim();
-    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({contents:[{role:'user',parts:[{text:prompt},{inline_data:{mime_type:'application/pdf',data:pdfBase64}}]}],generationConfig:{temperature:0,maxOutputTokens:2200,responseMimeType:'application/json'}})
-    });
-    const out=await r.json().catch(()=>null);
-    if(!r.ok)return json({ok:false,error:`Falha ao ler o PDF (${r.status}).`,detail:out?.error?.message||null},502);
+    const payload={contents:[{role:'user',parts:[{text:prompt},{inline_data:{mime_type:'application/pdf',data:pdfBase64}}]}],generationConfig:{temperature:0,maxOutputTokens:2200,responseMimeType:'application/json'}};
+    let {r,out}=await callGemini(key,model,payload);
+    if(!r?.ok && [429,500,502,503,504].includes(r?.status)){
+      const fallback=(Deno.env.get('GEMINI_FALLBACK_MODEL')||'gemini-2.5-flash-lite').trim();
+      if(fallback&&fallback!==model)({r,out}=await callGemini(key,fallback,payload));
+    }
+    if(!r?.ok){
+      const temporary=[429,500,502,503,504].includes(r?.status);
+      return json({ok:false,error:temporary?'O leitor do PDF está temporariamente ocupado. A LexOffice tentou novamente automaticamente. Aguarde alguns segundos e reenvie o arquivo.':`Não foi possível ler o PDF (${r?.status||'erro'}).`},temporary?503:502);
+    }
     const text=String(out?.candidates?.[0]?.content?.parts?.map((p:any)=>p.text||'').join('')||'').trim();
     if(!text)return json({ok:false,error:'Nenhum dado foi extraído do PDF.'},422);
 
