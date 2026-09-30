@@ -49,6 +49,11 @@ async function maritacaKey(a: any, orgId: string) {
       if (key) return key;
     } catch { /* tenta o próximo */ }
   }
+  try {
+    const { data } = await a.from("system_runtime_secrets").select("secret").eq("key", "maritaca_api_key").maybeSingle();
+    const key = String(data?.secret || "").trim();
+    if (key) return key;
+  } catch { /* segue para variável de ambiente */ }
   return (Deno.env.get("MARITACA_API_KEY") || "").trim();
 }
 
