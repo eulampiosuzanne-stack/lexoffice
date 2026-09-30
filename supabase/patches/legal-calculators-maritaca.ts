@@ -1,5 +1,6 @@
 // Trecho aplicado em 30/09/2026 no fim de supabase/functions/legal-calculators/index.ts (versão publicada).
 // Como aplicar: renomeie a função original 'async function extractPdf(req: Request, body: Payload)' para 'extractPdfGemini' e cole este trecho no final do arquivo.
+// Aceita um PDF (pdf) ou o processo completo (pdfs + full_process: true).
 
 // ===== Leitura de PDF pela Maritaca (Sabiá-4), com o Gemini de reserva — 30/09/2026 =====
 async function extractPdf(req: Request, body: Payload) {
@@ -9,6 +10,7 @@ async function extractPdf(req: Request, body: Payload) {
   } catch (e) {
     console.log("maritaca extract_pdf falhou, usando Gemini:", e instanceof Error ? e.message : String(e));
   }
+  if ((body as any)?.full_process) return { ok: false, error: "Não foi possível ler o processo completo agora. Tente de novo em alguns minutos ou envie só a peça principal.", extractedData: {}, notes: [] };
   return await extractPdfGemini(req, body);
 }
 
@@ -27,8 +29,10 @@ async function mtExtractPdf(req: Request, body: Payload): Promise<Record<string,
   const orgId = String(prof?.org_id || "");
   if (!orgId) return null;
   const b: any = body as any;
-  const path = String(b?.pdf?.storage_path || "");
-  if (!path || !path.startsWith(`${orgId}/`)) return null;
+  const full = Boolean(b?.full_process);
+  const list: any[] = (Array.isArray(b?.pdfs) && b.pdfs.length ? b.pdfs : [b?.pdf]).filter(Boolean).slice(0, 20);
+  const paths = list.map((x) => ({ name: String(x?.name || "documento.pdf"), path: String(x?.storage_path || "") }));
+  if (!paths.length || paths.some((x) => !x.path || !x.path.startsWith(`${orgId}/`))) return null;
 
   let mkey = "";
   for (const provider of ["maritaca_api", "maritaca_api_key"]) {
@@ -43,32 +47,32 @@ async function mtExtractPdf(req: Request, body: Payload): Promise<Record<string,
   if (!mkey) mkey = String(Deno.env.get("MARITACA_API_KEY") || "").trim();
   if (!mkey) return null;
 
-  const f = await fetch(`${base}/storage/v1/object/lexoffice-documents/${path.split("/").map(encodeURIComponent).join("/")}`, { headers: sh });
-  if (!f.ok) return null;
-  const bytes = new Uint8Array(await f.arrayBuffer());
-  let bin = "";
-  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  const b64 = btoa(bin);
+  const content: any[] = [];
+  for (const p of paths) {
+    const f = await fetch(`${base}/storage/v1/object/lexoffice-documents/${p.path.split("/").map(encodeURIComponent).join("/")}`, { headers: sh });
+    if (!f.ok) return null;
+    const bytes = new Uint8Array(await f.arrayBuffer());
+    let bin = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    content.push({ type: "file", file: { filename: p.name, file_data: `data:application/pdf;base64,${btoa(bin)}` } });
+  }
 
   const fields = Array.isArray(b?.fields) ? b.fields : [];
-  const prompt = `Você é um extrator de dados jurídicos para a calculadora "${String(b?.calculator || "")}" da LexOffice. Leia o PDF e preencha SOMENTE informações explicitamente presentes no documento. Não invente, não estime e não complete lacunas.
+  const prompt = `Você é um extrator de dados jurídicos para a calculadora "${String(b?.calculator || "")}" da LexOffice. Leia o PDF e preencha SOMENTE informações explicitamente presentes no documento. Não invente, não estime e não complete lacunas.${full ? "\nOs arquivos são o PROCESSO COMPLETO. Procure em todas as peças: data da citação (certidão/AR/mandado), sentença, acórdão, trânsito em julgado, valores homologados, cálculos e índices fixados. Havendo decisões diferentes, use a mais recente (acórdão prevalece sobre sentença) e explique em notes de onde tirou cada dado (peça e página, se possível)." : ""}
 Campos disponíveis (use a chave "key"): ${JSON.stringify(fields)}
 Responda APENAS com JSON válido: {"values":{"CHAVE":"valor"},"notes":["observação"]}.
 Regras: números sem R$ e sem separador de milhar, com ponto decimal (ex.: 15230.45); percentuais só o número; datas no formato AAAA-MM-DD; omita campos não encontrados; se houver valores conflitantes, omita e explique em notes.`;
   const model = String(Deno.env.get("MARITACA_MODEL") || "sabia-4").trim();
   const r = await fetch("https://chat.maritaca.ai/api/chat/completions", {
     method: "POST",
-    signal: AbortSignal.timeout(38000),
+    signal: AbortSignal.timeout(full ? 130000 : 38000),
     headers: { Authorization: `Bearer ${mkey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model,
       temperature: 0,
-      max_tokens: 2500,
+      max_tokens: full ? 4000 : 2500,
       extraction_effort: "medium",
-      messages: [{ role: "user", content: [
-        { type: "file", file: { filename: String(b?.pdf?.name || "documento.pdf"), file_data: `data:application/pdf;base64,${b64}` } },
-        { type: "text", text: prompt },
-      ] }],
+      messages: [{ role: "user", content: [...content, { type: "text", text: prompt }] }],
     }),
   });
   const out = await r.json().catch(() => null);
