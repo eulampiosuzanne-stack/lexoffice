@@ -12,5 +12,8 @@
     "whatsapp-release-agent",
     "zapsign-configure",
     "zapsign-send-signature"
-  ]
+  ],
+  "notes": {
+    "legal-calculators": "30/09/2026: a versão publicada no Supabase lê o PDF das calculadoras pela Maritaca (Sabiá-4), com o Gemini de reserva. O trecho está em supabase/patches/legal-calculators-maritaca.ts. Antes de publicar outra versão desta função, baixe a versão atual (supabase functions download legal-calculators) ou reaplique esse trecho, senão a leitura pela Maritaca some."
+  }
 }
