@@ -153,3 +153,5 @@
   .mobile-bottom-nav svg{width:18px!important;height:18px!important}
   .app .content{padding-left:9px!important;padding-right:9px!important}
 }
+
+@media(max-width:760px){.client-share-trigger{position:fixed!important;right:16px!important;bottom:86px!important;z-index:1200!important;display:flex!important;align-items:center!important;gap:7px!important;max-width:calc(100vw - 32px)!important;padding:12px 15px!important;border-radius:999px!important;background:#b89245!important;color:#111!important;border:1px solid rgba(255,255,255,.18)!important;font-weight:800!important;box-shadow:0 10px 28px rgba(0,0,0,.3)!important}.client-share-overlay{z-index:1400!important}.client-share-modal{width:calc(100vw - 24px)!important;max-width:520px!important;max-height:86vh!important;overflow:auto!important}.client-share-url{display:grid!important;grid-template-columns:1fr!important}.client-share-url input,.client-share-url button{width:100%!important;min-width:0!important}}
