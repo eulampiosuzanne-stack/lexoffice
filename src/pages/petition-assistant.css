@@ -30,3 +30,31 @@
 .petition-page .pa-runs span{color:#a8afbb;font-size:12px}
 .petition-page .pa-runs small{color:#6b7383;font-size:11px}
 @media (max-width:900px){.petition-page .pa-grid-3,.petition-page .pa-cols{grid-template-columns:1fr}.petition-page .doc-upload-grid{grid-template-columns:1fr}.petition-page .doc-primary{min-width:0;width:100%}}
+/* Estratégia Processual */
+.petition-page .pa-box{border:1px solid #2c313b;border-radius:12px;background:#0c0f15;padding:14px 16px}
+.petition-page .pa-box h3{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.petition-page .pa-box ul{margin:4px 0 8px}
+.petition-page .pa-box p{margin:0 0 6px}
+.petition-page .pa-box.high{border-color:rgba(226,74,74,.55);background:rgba(226,74,74,.07)}
+.petition-page .pa-box.mid{border-color:rgba(226,146,74,.45)}
+.petition-page .pa-box.low{border-color:rgba(62,207,142,.4)}
+.petition-page .pa-pill{font-size:12px;font-weight:800;padding:2px 9px;border-radius:999px;border:1px solid #3b424d;color:#c9ced6;white-space:nowrap;text-transform:none;letter-spacing:0}
+.petition-page .pa-pill.high{color:#ffb4b4;border-color:rgba(226,74,74,.6);background:rgba(226,74,74,.12)}
+.petition-page .pa-pill.mid{color:#ffd6a8;border-color:rgba(226,146,74,.5);background:rgba(226,146,74,.1)}
+.petition-page .pa-pill.low{color:#bff0d7;border-color:rgba(62,207,142,.45);background:rgba(62,207,142,.1)}
+.petition-page .pa-items{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.petition-page .pa-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid #2c313b;border-radius:10px;background:#0c0f15;color:#c9ced6;min-width:0}
+.petition-page .pa-item.on{border-color:#a82b50;background:rgba(143,35,68,.1)}
+.petition-page .pa-item-title{flex:1;min-width:0;border:1px solid #3b424d;border-radius:8px;background:#0b0e14;color:#f1f3f5;padding:7px 10px;font:inherit;font-size:13px}
+.petition-page span.pa-item-title{border:0;background:none;padding:0}
+.petition-page .pa-item small{color:#e0a9ba;font-size:11px;font-weight:700}
+.petition-page .pa-check{display:flex;align-items:center;gap:6px;color:#c9ced6;font-size:13px}
+.petition-page .pa-sub{margin:10px 0 8px;font-size:13px;color:#f3f4f6;text-transform:uppercase;letter-spacing:.04em}
+.petition-page .pa-juris{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.petition-page .pa-juris label{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid #2c313b;border-radius:10px;background:#0c0f15;color:#c9ced6;font-size:13px;line-height:1.5}
+.petition-page .pa-juris label.on{border-color:#a82b50;background:rgba(143,35,68,.1)}
+.petition-page .pa-links{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 8px}
+.petition-page .pa-links b{font-size:13px;color:#e8e9ec}
+.petition-page .pa-links a{color:#e0a9ba;font-size:12px;font-weight:700;text-decoration:none;border:1px solid #3b424d;border-radius:999px;padding:3px 10px}
+.petition-page .pa-links a:hover{border-color:#a82b50}
+@media (max-width:900px){.petition-page .pa-item{flex-wrap:wrap}}

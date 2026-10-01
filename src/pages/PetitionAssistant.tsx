@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { WandSparkles, Upload, FileText, Loader2, Calculator, ScrollText, Save, Copy, Download, History, AlertTriangle, CheckCircle2, ExternalLink, X } from 'lucide-react';
+import { WandSparkles, Upload, FileText, Loader2, Calculator, ScrollText, Save, Copy, Download, History, AlertTriangle, CheckCircle2, ExternalLink, X, Scale, Search, Gauge, FileSignature, FileCheck2, Send, Plus, Trash2, Hourglass } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { fields as calcFields, localOnly } from './Calculators';
 import './integrations.css';
@@ -9,7 +9,9 @@ import './petition-assistant.css';
 type Client = { id: string; name: string; cpf_cnpj?: string | null };
 type Proc = { id: string; client_id?: string | null; cnj_number?: string | null; internal_number?: string | null; subject?: string | null };
 type Doc = { id: string; client_id?: string | null; name: string; file_path: string; mime_type?: string | null; category?: string | null; created_at: string };
-type Run = { id: string; area: string; status: string; client_id?: string | null; process_id?: string | null; notes?: string | null; instructions?: string | null; document_ids?: string[]; dossier?: any; calculation?: string | null; petition?: string | null; created_at: string };
+type Item = { title: string; description?: string; essential?: boolean; on?: boolean };
+type Req = { id: string; title: string; status: string };
+type Run = { id: string; area: string; status: string; opinion?: string | null; client_id?: string | null; process_id?: string | null; notes?: string | null; instructions?: string | null; document_ids?: string[]; dossier?: any; calculation?: string | null; petition?: string | null; created_at: string };
 
 const AREAS = [
   ['familia', 'Família'],
@@ -24,6 +26,13 @@ const safe = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/
 const lines = (v: any) => (Array.isArray(v) ? v : []).map((x: any) => String(typeof x === 'string' ? x : x?.fato || x?.nome || '')).filter(Boolean);
 const areaLabel = (k: string) => AREAS.find(a => a[0] === k)?.[1] || k;
 const dt = (v: string) => new Date(v).toLocaleString('pt-BR');
+const received = (s: string) => /receiv|approv|complet|accept|done|recebid|aprovad|conclu/i.test(s || '');
+const CHANCE: Record<string, string> = { alta: 'Alta', moderada: 'Moderada', media: 'Moderada', média: 'Moderada', baixa: 'Baixa' };
+const chanceCls = (n?: string) => { const k = String(n || '').toLowerCase(); return k.startsWith('alt') ? 'low' : k.startsWith('baix') ? 'high' : 'mid'; };
+const brDate = (iso?: string | null) => (iso && /^\d{4}-\d{2}-\d{2}/.test(iso) ? iso.slice(0, 10).split('-').reverse().join('/') : '');
+const daysTo = (iso?: string | null) => (iso && /^\d{4}-\d{2}-\d{2}/.test(iso) ? Math.ceil((new Date(`${iso.slice(0, 10)}T12:00:00-03:00`).getTime() - Date.now()) / 86400000) : null);
+const toItems = (v: any): Item[] => (Array.isArray(v) ? v : []).map((i: any) => (typeof i === 'string' ? { title: i, on: true } : { title: String(i?.titulo || i?.title || ''), description: String(i?.descricao || i?.description || ''), essential: i?.essencial !== false, on: true })).filter((i: Item) => i.title);
+const OFFICE = { name: 'Suzanne Figueiredo — Advocacia e Soluções Jurídicas', lawyer: 'Suzanne Figueiredo' };
 
 async function invoke(body: Record<string, unknown>) {
   if (!supabase) throw new Error('Backend indisponível.');
@@ -70,13 +79,23 @@ export default function PetitionAssistant() {
   const [busy, setBusy] = useState<'' | 'upload' | 'analyze' | 'calc' | 'draft' | 'save'>('');
   const [notice, setNotice] = useState<{ kind: 'ok' | 'error' | 'info'; text: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [opinion, setOpinion] = useState('');
+  const [items, setItems] = useState<Item[]>([]);
+  const [reqs, setReqs] = useState<Req[]>([]);
+  const [sendWhats, setSendWhats] = useState(true);
+  const [reminders, setReminders] = useState(true);
+  const [juris, setJuris] = useState<{ teses: string[]; buscas: { termo: string; links: { fonte: string; url: string }[] }[] } | null>(null);
+  const [jurisText, setJurisText] = useState('');
+  const [julgados, setJulgados] = useState<any[]>([]);
+  const [jurisPick, setJurisPick] = useState<number[]>([]);
+  const [extraBusy, setExtraBusy] = useState<'' | 'opinion' | 'docs' | 'terms' | 'filter'>('');
 
   async function loadBase() {
     if (!supabase) return;
     const [{ data: c }, { data: p }, { data: r }] = await Promise.all([
       supabase.from('clients').select('id,name,cpf_cnpj').order('name').limit(2000),
       supabase.from('processes').select('id,client_id,cnj_number,internal_number,subject').order('updated_at', { ascending: false }).limit(2000),
-      supabase.from('petition_assistant_runs').select('id,area,status,client_id,process_id,notes,instructions,document_ids,dossier,calculation,petition,created_at').order('created_at', { ascending: false }).limit(20),
+      supabase.from('petition_assistant_runs').select('id,area,status,client_id,process_id,notes,instructions,document_ids,dossier,calculation,petition,opinion,created_at').order('created_at', { ascending: false }).limit(20),
     ]);
     setClients((c || []) as Client[]);
     setProcesses((p || []) as Proc[]);
@@ -87,7 +106,13 @@ export default function PetitionAssistant() {
     const { data } = await supabase.from('documents').select('id,client_id,name,file_path,mime_type,category,created_at').eq('client_id', cid).order('created_at', { ascending: false }).limit(300);
     setDocs(((data || []) as Doc[]).filter(d => READABLE.test(d.file_path) || /pdf|image/.test(d.mime_type || '')));
   }
+  async function loadReqs(id: string | null) {
+    if (!supabase || !id) { setReqs([]); return; }
+    const { data } = await supabase.from('client_document_requests').select('id,title,status').eq('petition_run_id', id).order('created_at');
+    setReqs((data || []) as Req[]);
+  }
   useEffect(() => { loadBase(); }, []);
+  useEffect(() => { loadReqs(runId); }, [runId]);
   useEffect(() => { loadDocs(clientId); setSelected([]); setProcessId(''); }, [clientId]);
 
   const client = clients.find(c => c.id === clientId);
@@ -128,6 +153,7 @@ export default function PetitionAssistant() {
       const caseInfo = { cliente: client?.name || null, cpf_cnpj: client?.cpf_cnpj || null, processo: proc?.cnj_number || proc?.internal_number || null, assunto: proc?.subject || null };
       const r = await invoke({ action: 'analyze', area, notes, document_ids: selected, client_id: clientId || null, process_id: processId || null, case_info: caseInfo });
       setRunId(r.run_id); setDossier(r.dossier); setReadInfo({ read: r.read || [], skipped: r.skipped || [] });
+      setOpinion(''); setItems(toItems(r.dossier?.documentos_solicitar)); setJuris(null); setJulgados([]); setJurisPick([]);
       const c = r.dossier?.calculo;
       setCalcName(c?.necessario && c?.calculadora ? c.calculadora : '');
       setCalcValues(c?.valores || {});
@@ -165,7 +191,7 @@ export default function PetitionAssistant() {
     try {
       for (let i = 0; i < parts.length; i++) {
         setNotice({ kind: 'info', text: `Redigindo a petição (${i + 1} de ${parts.length}: ${parts[i]}). Cada parte leva cerca de 1 minuto.` });
-        const r = await invoke({ action: 'draft', part: i + 1, previous: text, run_id: runId, area, dossier, calculation: memorial, instructions, office: { name: 'Suzanne Figueiredo — Advocacia e Soluções Jurídicas', lawyer: 'Suzanne Figueiredo' } });
+        const r = await invoke({ action: 'draft', part: i + 1, previous: text, run_id: runId, area, dossier, calculation: memorial, jurisprudence: jurisprudenceText(), instructions, office: OFFICE });
         text = `${text}\n\n${String(r.petition || '').trim()}`.trim();
         setPetition(text);
       }
@@ -173,6 +199,89 @@ export default function PetitionAssistant() {
       loadBase();
     } catch (e: any) { setNotice({ kind: 'error', text: `${e.message}${text ? ' O que já foi redigido ficou na tela.' : ''}` }); }
     finally { setBusy(''); }
+  }
+
+  async function makeOpinion() {
+    setExtraBusy('opinion'); setNotice({ kind: 'info', text: 'Redigindo o parecer jurídico. Leva cerca de 1 minuto.' });
+    try {
+      const r = await invoke({ action: 'opinion', run_id: runId, area, dossier, office: OFFICE, client_name: client?.name || '' });
+      setOpinion(String(r.opinion || '')); setNotice({ kind: 'ok', text: 'Parecer pronto. Revise antes de enviar ao cliente.' });
+    } catch (e: any) { setNotice({ kind: 'error', text: e.message }); }
+    finally { setExtraBusy(''); }
+  }
+  const opinionTitle = `Parecer jurídico - ${dossier?.tipo_acao || areaLabel(area)} - ${client?.name || 'cliente'}`;
+  async function saveOpinion() {
+    if (!supabase || !clientId || !opinion) return;
+    setExtraBusy('opinion'); setNotice(null);
+    try {
+      const { data: org } = await supabase.rpc('current_org_id');
+      const { data: u } = await supabase.auth.getUser();
+      if (!org || !u?.user) throw new Error('Sessão expirada.');
+      const blob = new Blob(['\ufeff', wordHtml(opinionTitle, opinion)], { type: 'application/msword' });
+      const path = `${org}/documents/${crypto.randomUUID()}-${safe(opinionTitle)}.doc`;
+      const { error: ue } = await supabase.storage.from('lexoffice-documents').upload(path, blob, { contentType: 'application/msword' });
+      if (ue) throw ue;
+      const { error: ie } = await supabase.from('documents').insert({ org_id: org, client_id: clientId, process_id: processId || null, name: `${opinionTitle}.doc`, file_path: path, mime_type: 'application/msword', size_bytes: blob.size, category: 'Parecer', notes: 'Parecer gerado pela Estratégia Processual — revisar antes de enviar', uploaded_by: u.user.id });
+      if (ie) { await supabase.storage.from('lexoffice-documents').remove([path]); throw ie; }
+      if (runId) await invoke({ action: 'save_opinion', run_id: runId, opinion });
+      setNotice({ kind: 'ok', text: 'Parecer salvo na pasta do cliente, em Documentos.' });
+    } catch (e: any) { setNotice({ kind: 'error', text: e.message || 'Falha ao salvar.' }); }
+    finally { setExtraBusy(''); }
+  }
+  function downloadOpinion() {
+    const blob = new Blob(['\ufeff', wordHtml(opinionTitle, opinion)], { type: 'application/msword' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${safe(opinionTitle)}.doc`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }
+
+  async function requestDocs() {
+    if (!supabase || !runId) return;
+    if (!clientId) { setNotice({ kind: 'error', text: 'Escolha o cliente do caso antes de pedir documentos.' }); return; }
+    const chosen = items.filter(i => i.on && i.title.trim()).map(({ title, description }) => ({ title, description }));
+    if (!chosen.length) { setNotice({ kind: 'error', text: 'Marque ao menos um documento.' }); return; }
+    setExtraBusy('docs'); setNotice(null);
+    try {
+      const r = await invoke({ action: 'request_docs', run_id: runId, items: chosen, reminders });
+      const parts = [`${r.created} documento(s) na lista do app do cliente.`];
+      if (sendWhats) {
+        if (!r.phone) parts.push('O cliente não tem WhatsApp cadastrado, então a mensagem não foi enviada.');
+        else {
+          const { data, error } = await supabase.functions.invoke('whatsapp-operator-send', { body: { message: r.message, targets: [{ phone: r.phone, name: r.client_name }] } });
+          if (error || Number((data as any)?.sent || 0) !== 1) parts.push(`A mensagem de WhatsApp não saiu (${(data as any)?.results?.[0]?.error || error?.message || 'sem confirmação'}).`);
+          else parts.push('Mensagem enviada no WhatsApp.');
+        }
+      }
+      if (reminders && r.reminders) parts.push('Lembretes programados para 3 e 7 dias úteis, às 10h. Somem sozinhos quando tudo chegar.');
+      if (r.reminder_errors?.length) parts.push(`Lembretes não programados: ${r.reminder_errors[0]}`);
+      setNotice({ kind: 'ok', text: parts.join(' ') });
+      loadReqs(runId);
+    } catch (e: any) { setNotice({ kind: 'error', text: e.message }); }
+    finally { setExtraBusy(''); }
+  }
+  async function markReceived(r: Req) {
+    if (!supabase) return;
+    let { error } = await supabase.from('client_document_requests').update({ status: 'received' }).eq('id', r.id);
+    if (error) ({ error } = await supabase.from('client_document_requests').update({ status: 'approved' }).eq('id', r.id));
+    if (error) setNotice({ kind: 'error', text: error.message }); else loadReqs(runId);
+  }
+  const setItem = (idx: number, patch: Partial<Item>) => setItems(xs => xs.map((x, i) => (i === idx ? { ...x, ...patch } : x)));
+
+  async function jurisTerms() {
+    setExtraBusy('terms');
+    try { const r = await invoke({ action: 'juris_terms', area, dossier }); setJuris({ teses: r.teses || [], buscas: r.buscas || [] }); }
+    catch (e: any) { setNotice({ kind: 'error', text: e.message }); }
+    finally { setExtraBusy(''); }
+  }
+  async function jurisFilter() {
+    setExtraBusy('filter');
+    try {
+      const r = await invoke({ action: 'juris_filter', area, dossier, text: jurisText });
+      const js = r.julgados || [];
+      setJulgados(js); setJurisPick(js.map((j: any, i: number) => (j.favoravel && j.conferido ? i : -1)).filter((i: number) => i >= 0));
+    } catch (e: any) { setNotice({ kind: 'error', text: e.message }); }
+    finally { setExtraBusy(''); }
+  }
+  function jurisprudenceText() {
+    return jurisPick.map(i => julgados[i]).filter(Boolean).map((j: any) => `${[j.tribunal, j.processo, j.relator && `Rel. ${j.relator}`, j.data].filter(Boolean).join(', ')}: "${j.trecho_util}"`).join('\n\n');
   }
 
   const title = `Petição inicial - ${dossier?.tipo_acao || areaLabel(area)} - ${client?.name || 'cliente'}`;
@@ -203,6 +312,7 @@ export default function PetitionAssistant() {
   function reopen(r: Run) {
     setRunId(r.id); setArea(r.area); setClientId(r.client_id || ''); setNotes(r.notes || ''); setInstructions(r.instructions || '');
     setDossier(r.dossier || null); setMemorial(r.calculation || ''); setPetition(r.petition || ''); setReadInfo(null);
+    setOpinion(r.opinion || ''); setItems(toItems(r.dossier?.documentos_solicitar)); setJuris(null); setJulgados([]); setJurisPick([]);
     const c = r.dossier?.calculo; setCalcName(c?.necessario && c?.calculadora ? c.calculadora : ''); setCalcValues(c?.valores || {});
     setTimeout(() => { setProcessId(r.process_id || ''); setSelected(r.document_ids || []); }, 50);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -214,8 +324,8 @@ export default function PetitionAssistant() {
     <div className="documents-v2-page petition-page">
       <header className="documents-v2-header">
         <div>
-          <h1>Petição com IA</h1>
-          <p>Junte a documentação do cliente. A IA lê tudo, monta o dossiê, indica o cálculo e redige a petição inicial para a sua revisão.</p>
+          <h1>Estratégia Processual</h1>
+          <p>Envie o caso. A IA analisa, aponta a chance de êxito, emite o parecer ao cliente, pede os documentos que faltam, indica o cálculo e monta a petição inicial para a sua revisão.</p>
         </div>
       </header>
 
@@ -251,8 +361,29 @@ export default function PetitionAssistant() {
 
       {dossier && (
         <section className="doc-library-card">
-          <div className="doc-section-title"><span className="doc-section-icon"><ScrollText size={20} /></span><div><h2>2. Dossiê do caso</h2><p>Confira o que a IA extraiu. O que você corrigir aqui é o que vai para a petição.</p></div></div>
+          <div className="doc-section-title"><span className="doc-section-icon"><ScrollText size={20} /></span><div><h2>2. Análise do caso</h2><p>Confira o que a IA extraiu. O que você corrigir aqui é o que vai para o parecer e para a petição.</p></div></div>
           {readInfo && (readInfo.read.length > 0 || readInfo.skipped.length > 0) && <p className="pa-muted">Lidos: {readInfo.read.join(', ') || 'nenhum'}{readInfo.skipped.length ? ` · Não lidos: ${readInfo.skipped.join(', ')}` : ''}</p>}
+          {dossier.chance_exito?.nivel && (() => {
+            const ch = dossier.chance_exito; const d = daysTo(dossier.prazo?.data_limite); const pr = dossier.prazo || {};
+            const prCls = d !== null ? (d <= 90 ? 'high' : d <= 365 ? 'mid' : 'low') : pr.risco === 'alto' ? 'high' : 'none';
+            return (
+              <div className="pa-cols">
+                <div className={`pa-box pa-chance ${chanceCls(ch.nivel)}`}>
+                  <h3><Gauge size={14} /> Chance de êxito: <b className={`pa-pill ${chanceCls(ch.nivel)}`}>{CHANCE[String(ch.nivel).toLowerCase()] || ch.nivel}</b></h3>
+                  {ch.motivo && <p>{ch.motivo}</p>}
+                  {lines(ch.pontos_fortes).length > 0 && <><small>Pontos fortes</small><ul>{lines(ch.pontos_fortes).map((x, i) => <li key={i}>{x}</li>)}</ul></>}
+                  {lines(ch.pontos_fracos).length > 0 && <><small>Pontos fracos</small><ul>{lines(ch.pontos_fracos).map((x, i) => <li key={i}>{x}</li>)}</ul></>}
+                </div>
+                <div className={`pa-box pa-deadline ${prCls}`}>
+                  <h3><Hourglass size={14} /> Prazo para entrar com a ação</h3>
+                  <p>{pr.fundamento || 'Sem fundamento indicado.'}</p>
+                  {pr.termo_inicial && <p><small>Início da contagem: {pr.termo_inicial}</small></p>}
+                  <p>{pr.data_limite ? <>Data-limite estimada: <b>{brDate(pr.data_limite)}</b> {d !== null && <b className={`pa-pill ${prCls}`}>{d < 0 ? `possivelmente vencido há ${Math.abs(d)} dia(s)` : `faltam ${d} dia(s)`}</b>}</> : <small>Sem data de início nos documentos — confira.</small>}</p>
+                  {pr.observacao && <p><small>{pr.observacao}</small></p>}
+                </div>
+              </div>
+            );
+          })()}
           <div className="doc-upload-grid pa-grid-3">
             <label><span>Ação sugerida</span><input value={dossier.tipo_acao || ''} onChange={e => setField('tipo_acao', e.target.value)} /></label>
             <label><span>Competência</span><input value={dossier.competencia || ''} onChange={e => setField('competencia', e.target.value)} /></label>
@@ -279,7 +410,49 @@ export default function PetitionAssistant() {
 
       {dossier && (
         <section className="doc-library-card">
-          <div className="doc-section-title"><span className="doc-section-icon"><Calculator size={20} /></span><div><h2>3. Cálculos</h2><p>{dossier.calculo?.necessario ? `A IA indicou cálculo: ${dossier.calculo.motivo || ''}` : 'A IA não viu necessidade de cálculo. Se precisar, escolha a calculadora.'}</p></div></div>
+          <div className="doc-section-title"><span className="doc-section-icon"><FileSignature size={20} /></span><div><h2>3. Parecer jurídico ao cliente</h2><p>Linguagem clara para o cliente, sem prometer resultado e sem falar em honorários. Revise antes de enviar.</p></div></div>
+          <div className="pa-row end"><button className="doc-primary" onClick={makeOpinion} disabled={busy !== '' || extraBusy !== ''}>{extraBusy === 'opinion' ? <Loader2 size={17} className="spin" /> : <FileSignature size={17} />} {opinion ? 'Refazer parecer' : 'Emitir parecer'}</button></div>
+          {opinion && (<>
+            <textarea className="pa-petition" style={{ minHeight: 380 }} value={opinion} onChange={e => setOpinion(e.target.value)} spellCheck />
+            <div className="pa-row">
+              <button className="doc-refresh" onClick={() => navigator.clipboard.writeText(opinion).then(() => setNotice({ kind: 'ok', text: 'Parecer copiado.' }))}><Copy size={17} /> Copiar</button>
+              <button className="doc-refresh" onClick={downloadOpinion}><Download size={17} /> Baixar Word</button>
+              <button className="doc-primary" onClick={saveOpinion} disabled={busy !== '' || extraBusy !== '' || !clientId}><Save size={17} /> Salvar na pasta do cliente</button>
+            </div>
+          </>)}
+        </section>
+      )}
+
+      {dossier && (
+        <section className="doc-library-card">
+          <div className="doc-section-title"><span className="doc-section-icon"><FileCheck2 size={20} /></span><div><h2>4. Documentos a pedir ao cliente</h2><p>Os marcados vão para o app do cliente e para o WhatsApp. Se faltar algo, o cliente é lembrado sozinho (dias úteis, 10h). O que chegar fica na aba Documentos.</p></div></div>
+          {items.length === 0 && <p className="pa-muted">A IA não apontou documentos faltando. Se quiser pedir algum, adicione abaixo.</p>}
+          <div className="pa-items">{items.map((it, i) => (
+            <div key={i} className={`pa-item ${it.on ? 'on' : ''}`}>
+              <input type="checkbox" checked={!!it.on} onChange={e => setItem(i, { on: e.target.checked })} aria-label="Pedir este documento" />
+              <input className="pa-item-title" value={it.title} onChange={e => setItem(i, { title: e.target.value })} />
+              {it.essential && <small>essencial</small>}
+              <button className="pa-x" onClick={() => setItems(xs => xs.filter((_, j) => j !== i))} aria-label="Remover"><Trash2 size={14} /></button>
+            </div>
+          ))}</div>
+          <div className="pa-row">
+            <button className="doc-refresh" onClick={() => setItems(xs => [...xs, { title: '', on: true }])}><Plus size={15} /> Adicionar documento</button>
+            <label className="pa-check"><input type="checkbox" checked={sendWhats} onChange={e => setSendWhats(e.target.checked)} /> Enviar a lista agora no WhatsApp</label>
+            <label className="pa-check"><input type="checkbox" checked={reminders} onChange={e => setReminders(e.target.checked)} /> Lembrar o cliente automaticamente</label>
+          </div>
+          <div className="pa-row end"><button className="doc-primary" onClick={requestDocs} disabled={busy !== '' || extraBusy !== '' || !clientId || !runId}>{extraBusy === 'docs' ? <Loader2 size={17} className="spin" /> : <Send size={17} />} Pedir documentos ao cliente</button></div>
+          {reqs.length > 0 && (<>
+            <h3 className="pa-sub">Situação ({reqs.filter(r => received(r.status)).length} de {reqs.length} recebidos)</h3>
+            <div className="pa-items">{reqs.map(r => (
+              <div key={r.id} className="pa-item"><span className="pa-item-title">{r.title}</span>{received(r.status) ? <b className="pa-pill low">Recebido</b> : <><b className="pa-pill mid">{/review|analis|submit|sent|enviad/i.test(r.status) ? 'Em análise' : 'Pendente'}</b><button className="doc-refresh" onClick={() => markReceived(r)}>Marcar recebido</button></>}</div>
+            ))}</div>
+          </>)}
+        </section>
+      )}
+
+      {dossier && (
+        <section className="doc-library-card">
+          <div className="doc-section-title"><span className="doc-section-icon"><Calculator size={20} /></span><div><h2>5. Cálculos</h2><p>{dossier.calculo?.necessario ? `A IA indicou cálculo: ${dossier.calculo.motivo || ''}` : 'A IA não viu necessidade de cálculo. Se precisar, escolha a calculadora.'}</p></div></div>
           <div className="doc-upload-grid pa-grid-3">
             <label><span>Calculadora</span><select value={calcName} onChange={e => setCalcName(e.target.value)}><option value="">Sem cálculo</option>{Object.keys(calcFields).map(n => <option key={n}>{n}</option>)}</select></label>
             {calcFieldList.map(f => (
@@ -296,7 +469,30 @@ export default function PetitionAssistant() {
 
       {dossier && (
         <section className="doc-library-card">
-          <div className="doc-section-title"><span className="doc-section-icon"><WandSparkles size={20} /></span><div><h2>4. Petição inicial</h2><p>Rascunho para revisão. Nada é protocolado automaticamente.</p></div></div>
+          <div className="doc-section-title"><span className="doc-section-icon"><Scale size={20} /></span><div><h2>6. Jurisprudência (opcional)</h2><p>A IA sugere as buscas e abre os sites oficiais. Cole as ementas que achar: ela separa as favoráveis e a petição cita só essas, exatamente como estão.</p></div></div>
+          <div className="pa-row"><button className="doc-refresh" onClick={jurisTerms} disabled={busy !== '' || extraBusy !== ''}>{extraBusy === 'terms' ? <Loader2 size={16} className="spin" /> : <Search size={16} />} Sugerir buscas</button></div>
+          {juris && (<>
+            {juris.teses.length > 0 && <p className="pa-muted">Teses a sustentar: {juris.teses.join(' · ')}</p>}
+            {juris.buscas.map(b => (
+              <div key={b.termo} className="pa-links"><b>{b.termo}</b>{b.links.map(l => <a key={l.fonte} href={l.url} target="_blank" rel="noreferrer">{l.fonte} <ExternalLink size={11} /></a>)}</div>
+            ))}
+          </>)}
+          <label className="pa-block"><span>Ementas encontradas (cole uma ou várias)</span><textarea rows={5} value={jurisText} onChange={e => setJurisText(e.target.value)} placeholder="Cole o texto das ementas, com tribunal, número do processo, relator e data." /></label>
+          <div className="pa-row end"><button className="doc-refresh" onClick={jurisFilter} disabled={busy !== '' || extraBusy !== '' || jurisText.trim().length < 80}>{extraBusy === 'filter' ? <Loader2 size={16} className="spin" /> : <Scale size={16} />} Separar as favoráveis</button></div>
+          {julgados.length > 0 && (
+            <div className="pa-juris">{julgados.map((j, i) => (
+              <label key={i} className={jurisPick.includes(i) ? 'on' : ''}>
+                <input type="checkbox" checked={jurisPick.includes(i)} disabled={!j.conferido} onChange={() => setJurisPick(p => (p.includes(i) ? p.filter(x => x !== i) : [...p, i]))} />
+                <span><b>{j.favoravel ? 'Favorável' : 'Desfavorável'}</b> · {[j.tribunal, j.processo, j.data].filter(Boolean).join(', ') || 'dados não identificados'}<br /><small>{j.motivo}</small>{!j.conferido && <><br /><small>Trecho não conferido no texto colado — não será citado.</small></>}</span>
+              </label>
+            ))}</div>
+          )}
+        </section>
+      )}
+
+      {dossier && (
+        <section className="doc-library-card">
+          <div className="doc-section-title"><span className="doc-section-icon"><WandSparkles size={20} /></span><div><h2>7. Petição inicial</h2><p>Rascunho para revisão. Nada é protocolado automaticamente.</p></div></div>
           <label className="pa-block"><span>Instruções para a redação (opcional)</span><textarea rows={3} value={instructions} onChange={e => setInstructions(e.target.value)} placeholder="Ex.: pedir tutela de urgência, justiça gratuita, dano moral de R$ 20.000, foro de Belo Horizonte..." /></label>
           <div className="pa-row end"><button className="doc-primary" onClick={draft} disabled={busy !== ''}>{busy === 'draft' ? <Loader2 size={17} className="spin" /> : <ScrollText size={17} />} {petition ? 'Redigir de novo' : 'Redigir petição inicial'}</button></div>
           {petition && (<>
@@ -311,7 +507,7 @@ export default function PetitionAssistant() {
       )}
 
       <section className="doc-library-card">
-        <div className="doc-section-title"><span className="doc-section-icon"><History size={20} /></span><div><h2>Últimos casos preparados</h2><p>Clique para reabrir um dossiê ou rascunho.</p></div></div>
+        <div className="doc-section-title"><span className="doc-section-icon"><History size={20} /></span><div><h2>Últimos casos</h2><p>Clique para reabrir um caso.</p></div></div>
         {runs.length === 0 ? <div className="doc-empty"><b>Nenhum caso ainda</b><span>Os casos analisados aparecem aqui.</span></div> : (
           <div className="pa-runs">{runs.map(r => (
             <button key={r.id} onClick={() => reopen(r)}><b>{r.dossier?.tipo_acao || areaLabel(r.area)}</b><span>{clients.find(c => c.id === r.client_id)?.name || 'Sem cliente'} · {areaLabel(r.area)} · {r.status}</span><small>{dt(r.created_at)}</small></button>
