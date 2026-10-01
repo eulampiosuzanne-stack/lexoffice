@@ -1,5 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2.57.4";
+// v16 — a cartilha antiga (cartilha-lexoffice.png, que o painel ainda manda) é trocada pela cartilha oficial publicada no Storage
+//        (bucket chatbot-assets, arquivo mais recente começando com "cartilha"). Sem a imagem publicada, a cartilha não é enviada e o painel mostra o motivo.
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -30,6 +32,17 @@ function admin() {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
+}
+async function guideUrl(a: any) {
+  try {
+    const { data } = await a.storage.from("chatbot-assets").list("", { limit: 20, search: "cartilha", sortBy: { column: "created_at", order: "desc" } });
+    const f = (data || []).find((o: any) => /^cartilha.*\.(png|jpe?g|webp)$/i.test(o.name) && Number(o?.metadata?.size || 0) > 20000);
+    if (!f) return null;
+    return a.storage.from("chatbot-assets").getPublicUrl(f.name).data.publicUrl as string;
+  } catch (e) {
+    console.error("guideUrl", e);
+    return null;
+  }
 }
 async function authContext(req: Request, body: any) {
   const auth = req.headers.get("authorization") || "";
@@ -68,6 +81,8 @@ async function sendViaGate(
   message: string,
   key: string,
   agentKey: string,
+  image: string | null = null,
+  caption: string | null = null,
 ) {
   const u = Deno.env.get("SUPABASE_URL")!,
     sk = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -86,6 +101,8 @@ async function sendViaGate(
       idempotency_key: key,
       message,
       format_agent_reply: false,
+      image,
+      caption,
     }),
   });
   const d = await r.json().catch(() => null);
@@ -183,6 +200,15 @@ Deno.serve(async (req) => {
     const ctx = await authContext(req, b);
     const a = ctx.a;
     const message = String(b.message || "").trim();
+    let image = b.image ? String(b.image) : null;
+    let caption = b.caption ? String(b.caption) : null;
+    if (image && /cartilha-lexoffice\.(png|svg)/i.test(image)) {
+      const g = await guideUrl(a);
+      if (!g)
+        return json({ ok: false, failed: 1, error: "A cartilha nova não está publicada (Storage > chatbot-assets > arquivo começando com \"cartilha\")." });
+      image = g;
+      caption = "Passo a passo para instalar a Área do Cliente no seu celular.";
+    }
     const targets = Array.isArray(b.targets) ? b.targets : [];
     const requestedAgent = String(b.agent_key || "").trim();
     const nextAgentRaw = String(
@@ -193,8 +219,8 @@ Deno.serve(async (req) => {
       typeof b.keep_ai_active === "boolean" ? b.keep_ai_active : null;
     const keepAiActive =
       explicitKeep !== null ? explicitKeep : ctx.internal || Boolean(nextAgent);
-    if (!message)
-      return json({ ok: false, error: "Mensagem obrigatória" }, 400);
+    if (!message && !image)
+      return json({ ok: false, error: "Mensagem ou imagem obrigatória" }, 400);
     if (!targets.length)
       return json(
         { ok: false, error: "Selecione ao menos um destinatário" },
@@ -215,6 +241,7 @@ Deno.serve(async (req) => {
       .filter(
         (x: any) => x.phone && !seen.has(x.phone) && (seen.add(x.phone), true),
       );
+    const mirrorToApp = typeof b.mirror_to_app === "boolean" ? b.mirror_to_app : Boolean(requestedAgent && AGENTS.has(requestedAgent));
     const results: any[] = [];
     for (const t of unique) {
       try {
@@ -225,6 +252,8 @@ Deno.serve(async (req) => {
           message,
           `operator:${ctx.orgId}:${t.phone}:${crypto.randomUUID()}`,
           requestedAgent,
+          image,
+          caption,
         );
         const externalId =
           String(
@@ -239,8 +268,8 @@ Deno.serve(async (req) => {
               conversation_id: t.conversation_id,
               external_message_id: externalId,
               direction: "outbound",
-              message_type: "text",
-              body: message,
+              message_type: image ? "image" : "text",
+              body: caption || message,
               status: "sent",
               sent_at: now,
               metadata: {
@@ -273,6 +302,18 @@ Deno.serve(async (req) => {
             nextAgent,
             ctx.userId,
           );
+        }
+        if (mirrorToApp && message) {
+          const localPhone = t.phone.startsWith("55") ? t.phone.slice(2) : t.phone;
+          const { data: clientRows } = await a.from("clients").select("id,name,phone,whatsapp").eq("org_id", ctx.orgId).eq("status","active");
+          const client = (clientRows || []).find((row:any) => {
+            const wp = digits(row.whatsapp); const ph = digits(row.phone);
+            return [t.phone,localPhone].some(v => v && (wp===v || ph===v || wp.endsWith(v) || ph.endsWith(v) || v.endsWith(wp) || v.endsWith(ph)));
+          });
+          if (client?.id) {
+            const { data: appAccess } = await a.from("client_app_access").select("status").eq("client_id", client.id).maybeSingle();
+            if (appAccess?.status === "active") await a.from("client_office_messages").insert({org_id:ctx.orgId,client_id:client.id,title:"Atualização do escritório",body:message,category:"informativo",priority:"normal",requires_ack:false,source_channel:"whatsapp",metadata:{agent_key:requestedAgent,mirrored_to_app:true,conversation_id:t.conversation_id}});
+          }
         }
         results.push({
           phone: t.phone,
