@@ -43,6 +43,9 @@ export default function LexSignPanel() {
   const [uploading, setUploading] = useState(false);
   const [review, setReview] = useState<any>(null);
   const [reviewNote, setReviewNote] = useState('');
+  // Lista de documentos de cada envio: começa recolhida; clique para abrir/fechar.
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const toggleGroup = (k: string) => setOpenGroups((o) => ({ ...o, [k]: !o[k] }));
 
   async function loadReqs() {
     if (!supabase) return;
@@ -246,6 +249,8 @@ export default function LexSignPanel() {
           const r = g[0];
           const many = g.length > 1;
           const st = groupStatus(g);
+          const gk = r.batch_id || r.id;
+          const isOpen = !!openGroups[gk];
           return (
             <div key={r.batch_id || r.id} style={{ ...S.row, flexDirection: 'column', alignItems: 'stretch' }}>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -258,8 +263,9 @@ export default function LexSignPanel() {
                 {!many && r.status === 'signed' && <button style={S.small} onClick={() => openSigned(r)}>Abrir assinado</button>}
                 {['sent', 'viewed', 'expired', 'rejected'].includes(st) && <button style={S.small} disabled={!!busy} onClick={() => resend(r)}>{busy === r.id ? '...' : 'Reenviar'}</button>}
                 {['sent', 'viewed', 'pending_review'].includes(st) && <button style={{ ...S.small, background: 'transparent' }} disabled={!!busy} onClick={() => cancel(r)}>Cancelar</button>}
+                {many && <button type="button" style={S.small} aria-expanded={isOpen} onClick={() => toggleGroup(gk)}>{isOpen ? 'Recolher ▲' : `Ver documentos (${g.length}) ▼`}</button>}
               </div>
-              {many && (
+              {many && isOpen && (
                 <div style={{ display: 'grid', gap: 4, marginTop: 8, paddingLeft: 10, borderLeft: '2px solid rgba(201,165,92,.35)' }}>
                   {g.map((m) => (
                     <div key={m.id} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 13 }}>
