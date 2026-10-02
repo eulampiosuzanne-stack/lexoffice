@@ -3,27 +3,27 @@
    Single authority for color, typography and surface treatment
    across every module of the app. Loaded last on purpose so it
    wins the cascade over any legacy per-page stylesheet.
-   Palette: graphite/navy background, one accent (wine/crimson),
-   cyan for informational states, green for positive/online states,
-   amber for warnings. One approved typeface: Inter.
+   Palette: deep black and espresso surfaces, restrained antique-gold accents,
+   warm ivory typography, green for positive states, amber for warnings and red for critical states.
+   One approved typeface: Inter.
    ============================================================ */
 :root{
-  --lx-bg:#0a0d13;
-  --lx-bg-2:#0e131b;
-  --lx-sidebar:#0b0f16;
-  --lx-surface:#121722;
-  --lx-surface-2:#171d29;
-  --lx-surface-3:#1d2431;
-  --lx-border:rgba(255,255,255,.09);
-  --lx-border-strong:rgba(255,255,255,.16);
-  --lx-text:#f3f5f8;
-  --lx-text-2:#d7dce4;
-  --lx-muted:#8b93a3;
-  --lx-subtle:#6b7383;
-  --lx-accent:#c62b50;
-  --lx-accent-2:#e0395c;
-  --lx-accent-dark:#8e1837;
-  --lx-accent-soft:rgba(198,43,80,.14);
+  --lx-bg:#080705;
+  --lx-bg-2:#100c08;
+  --lx-sidebar:#0b0805;
+  --lx-surface:#17110c;
+  --lx-surface-2:#20170f;
+  --lx-surface-3:#2a1d12;
+  --lx-border:rgba(201,148,67,.16);
+  --lx-border-strong:rgba(242,197,109,.28);
+  --lx-text:#f5f1e8;
+  --lx-text-2:#e2d8c8;
+  --lx-muted:#bdb4a6;
+  --lx-subtle:#8f8374;
+  --lx-accent:#c99443;
+  --lx-accent-2:#f2c56d;
+  --lx-accent-dark:#8a5726;
+  --lx-accent-soft:rgba(201,148,67,.14);
   --lx-info:#3aa8dc;
   --lx-info-soft:rgba(58,168,220,.12);
   --lx-success:#3ecf8e;
@@ -122,7 +122,7 @@ body{font-family:var(--lx-font)!important;font-size:14px!important;line-height:1
 .app .brand b span{color:var(--lx-accent-2)!important}
 .app aside nav a{color:var(--lx-subtle)!important}
 .app aside nav a:hover{background:rgba(255,255,255,.05)!important;color:var(--lx-text-2)!important}
-.app aside nav a.active{background:var(--lx-accent-soft)!important;color:#ef6a88!important;border-color:rgba(185,39,73,.36)!important}
+.app aside nav a.active{background:var(--lx-accent-soft)!important;color:var(--lx-accent-2)!important;border-color:rgba(201,148,67,.36)!important}
 .app aside nav a svg{color:inherit!important}
 .app .profile{background:var(--lx-bg-2)!important;border-color:var(--lx-border)!important}
 .app .avatar{background:var(--lx-accent)!important;background-image:none!important;color:#fff!important}
@@ -161,7 +161,7 @@ body{font-family:var(--lx-font)!important;font-size:14px!important;line-height:1
   font-weight:450!important;
 }
 .app input::placeholder,.app textarea::placeholder{color:var(--lx-subtle)!important}
-.app input:focus,.app select:focus,.app textarea:focus{outline:none!important;border-color:rgba(198,43,80,.72)!important;box-shadow:0 0 0 3px rgba(198,43,80,.10)!important}
+.app input:focus,.app select:focus,.app textarea:focus{outline:none!important;border-color:rgba(242,197,109,.72)!important;box-shadow:0 0 0 3px rgba(201,148,67,.12)!important}
 .app option{background:var(--lx-surface-2)!important;color:#fff!important}
 .app .toggle-row input,.app input[type="checkbox"]{accent-color:var(--lx-accent)!important}
 
