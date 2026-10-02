@@ -220,11 +220,9 @@ body{font-family:var(--lx-font)!important;font-size:14px!important;line-height:1
 .app .service-send{background:var(--lx-accent)!important;color:#fff!important;border-color:var(--lx-accent-2)!important}
 .app .service-compose textarea{background:var(--lx-bg-2)!important;border-color:var(--lx-border-strong)!important;color:#fff!important}
 
-/* ---- Remove leftover gold/orange/purple accents from earlier drafts ---- */
-.app [style*="#f4cf78"],.app [style*="#d9a441"],.app [style*="#e4bd66"],.app [style*="#e3b756"],
-.app [style*="#b27d29"],.app [style*="#7c3aed"],.app [style*="#a855f7"],.app [style*="#f59e0b"],
-.app [style*="#f2d58e"],.app [style*="#c49a3c"],.app [style*="#bd9138"]{
-  color:var(--lx-text)!important;border-color:var(--lx-border)!important;background:var(--lx-surface)!important;
+/* ---- Normalize obsolete purple/orange accents while preserving the approved gold identity ---- */
+.app [style*="#7c3aed"],.app [style*="#a855f7"],.app [style*="#f59e0b"]{
+  color:var(--lx-accent-2)!important;border-color:var(--lx-border-strong)!important;background:var(--lx-surface)!important;
 }
 .app svg{filter:none!important}
 
@@ -368,3 +366,14 @@ body{font-family:var(--lx-font)!important;font-size:14px!important;line-height:1
 .app .dashboard-kpi:hover{border-color:rgba(242,197,109,.28)!important}
 .app .dashboard-kpi strong{color:var(--lx-text)!important}
 .app .dashboard-kpi svg{color:var(--lx-accent-2)!important}
+
+
+/* ---- Brand atmosphere: mirrors the approved SF artwork without sacrificing readability ---- */
+.app:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:
+ radial-gradient(circle at 88% 8%,rgba(242,197,109,.09),transparent 24%),
+ radial-gradient(circle at 12% 92%,rgba(138,87,38,.08),transparent 28%);}
+.app>aside,.app>main,.app>.content{position:relative;z-index:1}
+.app .brand .logo{background:linear-gradient(145deg,#F2C56D,#C99443 48%,#8A5726)!important;color:#080705!important;box-shadow:0 0 24px rgba(201,148,67,.12)!important}
+.app .primary,.app [class*="primary"],.app button[type="submit"]{background:linear-gradient(145deg,#C99443,#8A5726)!important}
+.app .page-title h1,.app .page-head h1{color:#F5F1E8!important}
+.app .dashboard-kpi,.app .integration-panel,.app .card{box-shadow:inset 0 1px 0 rgba(242,197,109,.035)!important}
