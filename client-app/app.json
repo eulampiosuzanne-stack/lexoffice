@@ -22,6 +22,9 @@
     "owner": "lexoffice",
     "plugins": [
       "expo-font"
-    ]
+    ],
+    "web": {
+      "lang": "pt-BR"
+    }
   }
 }
