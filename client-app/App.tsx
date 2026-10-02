@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from "react";
 import {ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View} from "react-native";
-import {NavigationContainer, getFocusedRouteNameFromRoute} from "@react-navigation/native";
+import {NavigationContainer, createNavigationContainerRef, getFocusedRouteNameFromRoute} from "@react-navigation/native";
+import * as Notifications from "expo-notifications";
 import {createBottomTabNavigator} from "@react-navigation/bottom-tabs";
 import {createNativeStackNavigator} from "@react-navigation/native-stack";
 import {SafeAreaProvider} from "react-native-safe-area-context";
@@ -15,6 +16,7 @@ import {
 } from "./src/screens";
 
 const Tab = createBottomTabNavigator();
+const navRef = createNavigationContainerRef<any>();
 const Stack = createNativeStackNavigator();
 
 /* ------------------------------------------------------------------ login */
@@ -171,6 +173,18 @@ export default function App() {
     if (session) registerPush().catch(() => {});
   }, [session?.user?.id]);
 
+  // Tocar na notificação abre os Recados (também quando o app estava fechado).
+  useEffect(() => {
+    if (!session) return;
+    const go = () => {
+      if (navRef.isReady()) navRef.navigate("Notificações");
+      else setTimeout(go, 300);
+    };
+    Notifications.getLastNotificationResponseAsync().then(r => r && go()).catch(() => {});
+    const sub = Notifications.addNotificationResponseReceivedListener(() => go());
+    return () => sub.remove();
+  }, [session?.user?.id]);
+
   if (session === undefined)
     return (
       <View style={s.loading}>
@@ -187,7 +201,7 @@ export default function App() {
         </>
       ) : (
         <UnreadProvider key={session?.user?.id || "demo"}>
-          <NavigationContainer>
+          <NavigationContainer ref={navRef}>
             <StatusBar style="auto" />
             <Tabs />
           </NavigationContainer>
