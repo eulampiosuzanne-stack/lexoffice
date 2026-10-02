@@ -154,41 +154,73 @@ export default function AssinarPublico() {
   async function runLiveness(fa: any, v: HTMLVideoElement) {
     const my = ++runRef.current;
     const order = Math.random() < 0.5 ? ['blink', 'turn'] : ['turn', 'blink'];
-    const labels: Record<string, string> = { blink: 'Pisque os olhos devagar', turn: 'Vire devagar o rosto para um dos lados', front: 'Agora olhe de frente para a câmera' };
-    const names: Record<string, string> = { blink: 'piscar os olhos', turn: 'virar o rosto', front: 'olhar de frente' };
+    const labels: Record<string, string> = {
+      blink: 'Feche os olhos por um segundo e abra de novo',
+      turn: 'Vire devagar o rosto para um dos lados',
+      turn2: 'Agora vire devagar o rosto para o outro lado',
+      front: 'Agora olhe de frente para a câmera',
+    };
+    const names: Record<string, string> = { blink: 'piscar os olhos', turn: 'virar o rosto', turn2: 'virar o rosto para o outro lado', front: 'olhar de frente' };
     const queue = [...order, 'front'];
     const passed: string[] = [];
-    let idx = 0, closedSeen = false, frontFrames = 0, openBase = 0;
-    const opts = new fa.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.45 });
+    let idx = 0, frontFrames = 0, turnSide = 0, closedAt = 0, stepStarted = Date.now();
+    // Referência de "olho aberto": mediana das últimas medições com o rosto DE FRENTE.
+    // (Antes usava o maior valor já visto; ao virar o rosto esse valor disparava e
+    // depois nenhuma piscada era reconhecida.)
+    const samples: number[] = [];
+    const baseline = () => { if (!samples.length) return 0; const s = [...samples].sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; };
+    const opts = new fa.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.4 });
     const started = Date.now();
     setChallenge(labels[queue[0]]);
     while (runRef.current === my && idx < queue.length) {
-      if (Date.now() - started > 90000) { stopCamera(); setChallenge(''); setError('O tempo acabou. Toque em "Tentar de novo".'); return; }
+      if (Date.now() - started > 120000) { stopCamera(); setChallenge(''); setError('O tempo acabou. Toque em "Tentar de novo".'); return; }
+      const cur = queue[idx];
+      // Se a piscada não for reconhecida em 20s (óculos, pouca luz, pálpebra caída),
+      // troca por virar o rosto para o outro lado — continua sendo prova de vida.
+      if (cur === 'blink' && Date.now() - stepStarted > 20000) {
+        queue.splice(idx, 1);
+        const t = queue.indexOf('turn');
+        queue.splice(t >= 0 ? t + 1 : idx, 0, 'turn2');
+        stepStarted = Date.now(); closedAt = 0;
+        setChallenge(labels[queue[idx]]);
+        continue;
+      }
       const dets: any[] = await fa.detectAllFaces(v, opts).withFaceLandmarks();
       if (runRef.current !== my) return;
-      if (dets.length !== 1) { setNotice(dets.length ? 'Apenas uma pessoa deve aparecer na câmera.' : 'Posicione seu rosto dentro do círculo.'); await new Promise((r) => setTimeout(r, 120)); continue; }
-      setNotice('');
+      if (dets.length !== 1) { setNotice(dets.length ? 'Apenas uma pessoa deve aparecer na câmera.' : 'Posicione seu rosto dentro do círculo.'); await new Promise((r) => setTimeout(r, 100)); continue; }
       const d = dets[0], lm = d.landmarks, pts = lm.positions, box = d.detection.box;
       const e = (ear(lm.getLeftEye()) + ear(lm.getRightEye())) / 2;
       const r = (pts[30].x - box.x) / box.width;
-      const cur = queue[idx];
+      const frontal = r > 0.4 && r < 0.6;
+      const base = baseline();
+      // Só alimenta a referência com olho aberto e rosto de frente.
+      if (frontal && (samples.length < 5 || e > base * 0.85)) { samples.push(e); if (samples.length > 25) samples.shift(); }
       let ok = false;
-      openBase = Math.max(openBase * 0.985, e);
-      if (cur === 'blink') { if (openBase > 0.18 && e < openBase * 0.72) closedSeen = true; else if (closedSeen && e > openBase * 0.88) ok = true; }
-      if (cur === 'turn') ok = r < 0.38 || r > 0.62;
-      if (cur === 'front') { if (r > 0.42 && r < 0.58 && e > openBase * 0.8 && box.width > v.videoWidth * 0.2) frontFrames++; else frontFrames = 0; ok = frontFrames >= 4; }
+      if (cur === 'blink') {
+        if (!frontal) setNotice('Olhe de frente para a câmera.');
+        else if (samples.length < 5) setNotice('');
+        else {
+          setNotice('');
+          if (e < base * 0.8) { if (!closedAt) closedAt = Date.now(); }
+          else if (closedAt && e > base * 0.9) { ok = Date.now() - closedAt < 4000; closedAt = 0; }
+        }
+      } else setNotice('');
+      if (cur === 'turn') { if (r < 0.38) { ok = true; turnSide = -1; } else if (r > 0.62) { ok = true; turnSide = 1; } }
+      if (cur === 'turn2') ok = turnSide === 0 ? (r < 0.38 || r > 0.62) : turnSide < 0 ? r > 0.62 : r < 0.38;
+      if (cur === 'front') { if (frontal && (samples.length < 5 || e > base * 0.8) && box.width > v.videoWidth * 0.2) frontFrames++; else frontFrames = 0; ok = frontFrames >= 4; }
       if (ok) {
-        passed.push(names[cur]); idx++; closedSeen = false;
+        passed.push(names[cur]); idx++; closedAt = 0; stepStarted = Date.now();
         setDoneSteps([...passed]);
         if (idx < queue.length) setChallenge(labels[queue[idx]]);
       }
-      await new Promise((res) => setTimeout(res, 90));
+      // Na piscada não espera entre quadros, para não perder o momento do olho fechado.
+      if (cur !== 'blink') await new Promise((res) => setTimeout(res, 80));
     }
     if (runRef.current !== my) return;
     // A foto final só é aceita com os olhos abertos e o rosto de frente.
     // Se a pessoa piscar ou fechar os olhos na hora, tira outra automaticamente.
     setChallenge('Olhe para a câmera com os olhos bem abertos');
-    const eyeMin = Math.max(0.17, openBase * 0.78);
+    const eyeMin = samples.length >= 5 ? Math.max(0.15, baseline() * 0.8) : 0.18;
     const ssd = new fa.SsdMobilenetv1Options({ minConfidence: 0.4 });
     let canvas: HTMLCanvasElement | null = null;
     let det: any = null;
