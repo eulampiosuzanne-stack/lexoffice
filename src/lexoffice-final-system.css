@@ -351,3 +351,20 @@ body{font-family:var(--lx-font)!important;font-size:14px!important;line-height:1
   .app h2{font-size:16px!important}
   .app button,.app input,.app select,.app textarea,.app table,.app th,.app td{font-size:12px!important}
 }
+
+/* ---- Premium black + antique gold final sweep ---- */
+.app .system-bar,.app [class*="toolbar"],.app [class*="header"]{border-color:var(--lx-border)!important}
+.app a{color:var(--lx-accent-2)}
+.app a:hover{color:#ffe0a0}
+.app ::selection{background:rgba(201,148,67,.32);color:var(--lx-text)}
+.app ::-webkit-scrollbar-thumb{background:#5f4324;border-radius:999px}
+.app ::-webkit-scrollbar-track{background:var(--lx-bg)}
+.app [aria-selected="true"],.app [aria-current="page"]{border-color:rgba(242,197,109,.34)!important}
+.app progress{accent-color:var(--lx-accent)}
+.app input[type="radio"]{accent-color:var(--lx-accent)!important}
+.app .integration-notice{background:rgba(201,148,67,.08)!important;color:var(--lx-text-2)!important;border-color:rgba(201,148,67,.22)!important}
+.app .integration-pill{color:var(--lx-accent-2)!important}
+.app .dashboard-kpi{background:linear-gradient(145deg,#17110c,#100c08)!important;border-color:rgba(201,148,67,.16)!important}
+.app .dashboard-kpi:hover{border-color:rgba(242,197,109,.28)!important}
+.app .dashboard-kpi strong{color:var(--lx-text)!important}
+.app .dashboard-kpi svg{color:var(--lx-accent-2)!important}
