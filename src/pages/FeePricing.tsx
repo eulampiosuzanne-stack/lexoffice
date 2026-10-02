@@ -3,30 +3,36 @@ import { AlertTriangle,Calculator,FileText,RefreshCw,Scale,ShieldCheck,TrendingU
 
 const money=(v:number)=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const areas:any={Familia:5000,Civel:5000,Consumidor:4000,Saude:6000,Bancario:5500,Trabalhista:5000,Previdenciario:4500,Empresarial:7000,Outro:5000};
+const niveis=(v:number)=>v<=2?'BAIXA':v<=3?'MODERADA':v<=4?'ALTA':'MUITO ALTA';
 
 export default function FeePricing(){
- const initial={nome:'',demanda:'',area:'Familia',fase:'Inicial',complexidade:3,urgencia:2,documentos:2,audiencias:1,processos:1,pericia:false,recurso:false,valorCausa:0,proveitoEconomico:0,pisoReferencia:0,horas:20,entrada:20,parcelas:10};
+ const initial={nome:'',demanda:'',area:'Familia',fase:'Em andamento',complexidade:3,urgencia:2,documentos:2,trabalhoRestante:3,riscoProcessual:2,audiencias:1,processos:1,pericia:false,recurso:false,valorCausa:0,proveitoEconomico:0,pisoReferencia:0,horas:20,entrada:20,parcelas:10};
  const [f,setF]=useState(initial);
  const set=(k:string,v:any)=>setF(x=>({...x,[k]:v}));
 
  const calc=useMemo(()=>{
   const base=areas[f.area]||5000;
-  const fator=1+(f.complexidade-1)*.16+(f.urgencia-1)*.09+(f.documentos-1)*.05+Math.max(0,f.audiencias-1)*.06+Math.max(0,f.processos-1)*.22+(f.pericia?.18:0)+(f.recurso?.22:0)+(f.fase==='Recursal'?.2:f.fase==='Execução'?.12:0);
+  const fator=1+(f.complexidade-1)*.10+(f.urgencia-1)*.06+(f.documentos-1)*.04+(f.trabalhoRestante-1)*.08+(f.riscoProcessual-1)*.06+Math.max(0,f.audiencias-1)*.05+Math.max(0,f.processos-1)*.18+(f.pericia?.15:0)+(f.fase==='Recursal'?.18:f.fase==='Execução'?.10:0);
   const horas=Math.max(0,f.horas)*180;
   const referenciaEconomica=Math.max(0,f.proveitoEconomico||f.valorCausa);
   const componenteEconomico=referenciaEconomica*.05;
-  const tecnico=Math.max(base*fator,horas,componenteEconomico);
+  const tecnico=Math.max(base*.55*fator,horas,componenteEconomico);
   const piso=Math.max(0,f.pisoReferencia);
-  const percentualAlvo=Math.min(.45,.25+(f.complexidade-1)*.04+(f.urgencia-1)*.02);
-  const limiteComercial=referenciaEconomica>0?referenciaEconomica*percentualAlvo:tecnico;
-  const comercial=Math.max(piso,Math.min(tecnico,limiteComercial));
+  const faixaPctMin=Math.min(.42,.22+(f.complexidade-1)*.025+(f.trabalhoRestante-1)*.025+(f.urgencia-1)*.0125);
+  const faixaPctMax=Math.min(.55,faixaPctMin+.10);
+  const faixaMin=referenciaEconomica>0?referenciaEconomica*faixaPctMin:tecnico*.85;
+  const faixaMax=referenciaEconomica>0?referenciaEconomica*faixaPctMax:tecnico;
+  const comercial=Math.max(piso,Math.min(tecnico,(faixaMin+faixaMax)/2));
   const proporcao=referenciaEconomica>0?comercial/referenciaEconomica:0;
   const proporcaoTecnica=referenciaEconomica>0?tecnico/referenciaEconomica:0;
+  const gap=tecnico>0?(tecnico-comercial)/tecnico:0;
   const alerta=referenciaEconomica>0&&proporcaoTecnica>=.5;
-  const pisoIncompativel=referenciaEconomica>0&&piso>limiteComercial;
+  const sugerirFases=referenciaEconomica>0&&proporcaoTecnica>=.75&&gap>=.30&&f.trabalhoRestante>=4;
+  const pisoIncompativel=referenciaEconomica>0&&piso>faixaMax;
   const entrada=comercial*(Math.min(100,Math.max(0,f.entrada))/100);
   const saldo=Math.max(0,comercial-entrada);
-  return{tecnico,comercial,referenciaEconomica,percentualAlvo,proporcao,proporcaoTecnica,alerta,pisoIncompativel,entrada,parcela:saldo/Math.max(1,f.parcelas),score:Math.min(10,Math.max(1,Math.round(fator*4.2)))};
+  const score=Math.min(10,Math.max(1,Math.round((fator-1)*5+3)));
+  return{tecnico,comercial,referenciaEconomica,faixaMin,faixaMax,proporcao,proporcaoTecnica,alerta,sugerirFases,pisoIncompativel,entrada,parcela:saldo/Math.max(1,f.parcelas),score};
  },[f]);
 
  function reset(){setF(initial)}
@@ -47,6 +53,8 @@ export default function FeePricing(){
  <label>Complexidade (1–5)<input type="number" min="1" max="5" value={f.complexidade} onChange={e=>set('complexidade',Math.min(5,Math.max(1,+e.target.value||1)))}/></label>
  <label>Urgência (1–5)<input type="number" min="1" max="5" value={f.urgencia} onChange={e=>set('urgencia',Math.min(5,Math.max(1,+e.target.value||1)))}/></label>
  <label>Volume documental (1–5)<input type="number" min="1" max="5" value={f.documentos} onChange={e=>set('documentos',Math.min(5,Math.max(1,+e.target.value||1)))}/></label>
+ <label>Trabalho restante (1–5)<input type="number" min="1" max="5" value={f.trabalhoRestante} onChange={e=>set('trabalhoRestante',Math.min(5,Math.max(1,+e.target.value||1)))}/></label>
+ <label>Risco processual atual (1–5)<input type="number" min="1" max="5" value={f.riscoProcessual} onChange={e=>set('riscoProcessual',Math.min(5,Math.max(1,+e.target.value||1)))}/></label>
  <label>Audiências estimadas<input type="number" min="0" value={f.audiencias} onChange={e=>set('audiencias',Math.max(0,+e.target.value||0))}/></label>
  <label>Atuações/processos<input type="number" min="1" value={f.processos} onChange={e=>set('processos',Math.max(1,+e.target.value||1))}/></label>
  <label>Horas estimadas<input type="number" min="0" value={f.horas} onChange={e=>set('horas',Math.max(0,+e.target.value||0))}/></label>
@@ -54,20 +62,22 @@ export default function FeePricing(){
  <label>Proveito econômico estimado (R$)<input type="number" min="0" value={f.proveitoEconomico} onChange={e=>set('proveitoEconomico',Math.max(0,+e.target.value||0))} placeholder="Se conhecido"/></label>
  <label>Referência mínima aplicável (R$)<input type="number" min="0" value={f.pisoReferencia} onChange={e=>set('pisoReferencia',Math.max(0,+e.target.value||0))} placeholder="Tabela aplicável / validação humana"/></label>
  <label><span>Perícia</span><input type="checkbox" checked={f.pericia} onChange={e=>set('pericia',e.target.checked)}/></label>
- <label><span>Provável recurso</span><input type="checkbox" checked={f.recurso} onChange={e=>set('recurso',e.target.checked)}/></label>
+ <label><span>Recurso incluído no escopo</span><input type="checkbox" checked={f.recurso} onChange={e=>set('recurso',e.target.checked)}/></label>
  </div></div>
 
  <div className="dashboard-kpis" style={{marginTop:16}}>
  <div className="dashboard-kpi"><div className="dashboard-kpi-head"><Scale size={18}/></div><strong>{money(calc.tecnico)}</strong><span>Valor técnico do trabalho</span></div>
- <div className="dashboard-kpi"><div className="dashboard-kpi-head"><TrendingUp size={18}/></div><strong>{money(calc.comercial)}</strong><span>Valor comercial sugerido</span></div>
+ <div className="dashboard-kpi"><div className="dashboard-kpi-head"><TrendingUp size={18}/></div><strong>{money(calc.comercial)}</strong><span>Valor comercial sugerido · faixa {money(calc.faixaMin)}–{money(calc.faixaMax)}</span></div>
  <div className="dashboard-kpi"><div className="dashboard-kpi-head"><ShieldCheck size={18}/></div><strong>{calc.referenciaEconomica?Math.round(calc.proporcao*100)+'%':'—'}</strong><span>Honorários / referência econômica</span></div>
  <div className="dashboard-kpi"><strong>{calc.score}/10</strong><span>Índice de esforço Lex</span></div></div>
 
- {calc.alerta&&<div className="integration-notice" style={{marginTop:16}}><AlertTriangle size={16}/> <strong>Alerta de proporcionalidade:</strong> o valor técnico representa {Math.round(calc.proporcaoTecnica*100)}% da referência econômica. A Lex ajustou a sugestão comercial para {Math.round(calc.percentualAlvo*100)}%, sem tratar esse percentual como teto jurídico. Considere contratação por fase, fixo + êxito, redefinição de escopo ou revisão manual.</div>}
+ {calc.alerta&&<div className="integration-notice" style={{marginTop:16}}><AlertTriangle size={16}/> <strong>Alerta de proporcionalidade:</strong> o valor técnico representa {Math.round(calc.proporcaoTecnica*100)}% da referência econômica. A Lex preserva o valor técnico e apresenta uma faixa comercial para decisão da advogada, sem tratar percentuais como teto jurídico.</div>}
+ {calc.sugerirFases?<div className="integration-notice" style={{marginTop:12}}><AlertTriangle size={16}/> <strong>Considerar contratação por fase:</strong> a carga de trabalho remanescente é alta e a distância entre o valor técnico e a faixa comercial é relevante. O fracionamento é apenas uma alternativa de viabilidade e não altera automaticamente o escopo.</div>:calc.alerta&&<div className="integration-notice" style={{marginTop:12}}><ShieldCheck size={16}/> <strong>Contrato integral preservado:</strong> não há gatilho suficiente para recomendar fracionamento por fases neste cenário.</div>}
  {calc.pisoIncompativel&&<div className="integration-notice" style={{marginTop:12}}><AlertTriangle size={16}/> <strong>Revisão obrigatória:</strong> a referência mínima informada supera o ajuste comercial calculado. Não reduzir automaticamente. Validar tabela aplicável, escopo e modelo de contratação.</div>}
 
  <div className="integration-panel" style={{marginTop:16}}><div className="integration-head"><div><h2>Condição de pagamento</h2><p>Simulação calculada sobre o valor comercial sugerido, não sobre o custo técnico bruto.</p></div></div><div className="advanced-grid"><label>Entrada (%)<input type="number" min="0" max="100" value={f.entrada} onChange={e=>set('entrada',+e.target.value||0)}/></label><label>Parcelas do saldo<input type="number" min="1" max="60" value={f.parcelas} onChange={e=>set('parcelas',Math.min(60,Math.max(1,+e.target.value||1)))}/></label><label>Entrada sugerida<input disabled value={money(calc.entrada)}/></label><label>Valor da parcela<input disabled value={money(calc.parcela)}/></label></div><button className="primary" onClick={proposal}><FileText size={16}/> Gerar proposta</button></div>
 
- <div className="integration-notice" style={{marginTop:16}}>A referência econômica usa primeiro o proveito econômico estimado e, na ausência dele, o valor da causa. Percentuais são indicadores internos de proporcionalidade, não limites jurídicos. Antes da contratação, valide a tabela de honorários aplicável, o escopo, as fases incluídas e as particularidades do caso.</div>
+ <div className="integration-panel" style={{marginTop:16}}><div className="integration-head"><div><h2>Diagnóstico Lex</h2><p>Leitura conjunta do trabalho, risco e dimensão econômica.</p></div></div><div className="advanced-grid"><label>Complexidade<input disabled value={niveis(f.complexidade)}/></label><label>Trabalho remanescente<input disabled value={niveis(f.trabalhoRestante)}/></label><label>Urgência<input disabled value={niveis(f.urgencia)}/></label><label>Risco processual<input disabled value={niveis(f.riscoProcessual)}/></label><label>Escopo<input disabled value={f.recurso?'Fase selecionada + recurso':'Fase selecionada; recurso fora do escopo'}/></label><label>Viabilidade<input disabled value={calc.sugerirFases?'AVALIAR CONTRATAÇÃO POR FASE':'CONTRATO INTEGRAL ADEQUADO'}/></label></div></div>
+ <div className="integration-notice" style={{marginTop:16}}>A Lex calcula primeiro o valor técnico do trabalho e só depois testa a proporcionalidade econômica. O proveito econômico estimado tem prioridade sobre o valor da causa quando informado. A contratação por fase só é sugerida quando houver carga remanescente alta e diferença relevante entre valor técnico e viabilidade comercial. Percentuais são indicadores internos, nunca limites jurídicos. A decisão final permanece da advogada.</div>
  </div>
 }
