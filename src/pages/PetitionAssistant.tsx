@@ -57,6 +57,20 @@ function wordHtml(title: string, text: string) {
   return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>${esc(title)}</title><style>@page{size:A4;margin:3cm 2cm 2cm 3cm}body{font-family:"Times New Roman",serif;font-size:12pt;line-height:1.5}p{text-align:justify;text-indent:2cm;margin:0 0 10pt}p.h{text-indent:0;font-weight:bold;text-align:left}</style></head><body>${body}</body></html>`;
 }
 
+
+// Word no timbrado do escritório (gerado no servidor). Se falhar, cai no formato antigo (.doc sem timbrado).
+const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+async function wordFile(title: string, text: string): Promise<{ blob: Blob; ext: string; mime: string }> {
+  try {
+    if (!supabase) throw new Error('sem conexão');
+    const { data, error } = await supabase.functions.invoke('document-generate', { body: { action: 'timbrado_docx', text } });
+    if (error || !(data instanceof Blob) || data.size < 2000) throw error || new Error('resposta inválida');
+    return { blob: new Blob([data], { type: DOCX_MIME }), ext: 'docx', mime: DOCX_MIME };
+  } catch {
+    return { blob: new Blob(['\ufeff', wordHtml(title, text)], { type: 'application/msword' }), ext: 'doc', mime: 'application/msword' };
+  }
+}
+
 export default function PetitionAssistant() {
   const [clients, setClients] = useState<Client[]>([]);
   const [processes, setProcesses] = useState<Proc[]>([]);
@@ -217,20 +231,20 @@ export default function PetitionAssistant() {
       const { data: org } = await supabase.rpc('current_org_id');
       const { data: u } = await supabase.auth.getUser();
       if (!org || !u?.user) throw new Error('Sessão expirada.');
-      const blob = new Blob(['\ufeff', wordHtml(opinionTitle, opinion)], { type: 'application/msword' });
-      const path = `${org}/documents/${crypto.randomUUID()}-${safe(opinionTitle)}.doc`;
-      const { error: ue } = await supabase.storage.from('lexoffice-documents').upload(path, blob, { contentType: 'application/msword' });
+      const { blob, ext, mime } = await wordFile(opinionTitle, opinion);
+      const path = `${org}/documents/${crypto.randomUUID()}-${safe(opinionTitle)}.${ext}`;
+      const { error: ue } = await supabase.storage.from('lexoffice-documents').upload(path, blob, { contentType: mime });
       if (ue) throw ue;
-      const { error: ie } = await supabase.from('documents').insert({ org_id: org, client_id: clientId, process_id: processId || null, name: `${opinionTitle}.doc`, file_path: path, mime_type: 'application/msword', size_bytes: blob.size, category: 'Parecer', notes: 'Parecer gerado pela Estratégia Processual — revisar antes de enviar', uploaded_by: u.user.id });
+      const { error: ie } = await supabase.from('documents').insert({ org_id: org, client_id: clientId, process_id: processId || null, name: `${opinionTitle}.${ext}`, file_path: path, mime_type: mime, size_bytes: blob.size, category: 'Parecer', notes: 'Parecer gerado pela Estratégia Processual — revisar antes de enviar', uploaded_by: u.user.id });
       if (ie) { await supabase.storage.from('lexoffice-documents').remove([path]); throw ie; }
       if (runId) await invoke({ action: 'save_opinion', run_id: runId, opinion });
       setNotice({ kind: 'ok', text: 'Parecer salvo na pasta do cliente, em Documentos.' });
     } catch (e: any) { setNotice({ kind: 'error', text: e.message || 'Falha ao salvar.' }); }
     finally { setExtraBusy(''); }
   }
-  function downloadOpinion() {
-    const blob = new Blob(['\ufeff', wordHtml(opinionTitle, opinion)], { type: 'application/msword' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${safe(opinionTitle)}.doc`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  async function downloadOpinion() {
+    const { blob, ext } = await wordFile(opinionTitle, opinion);
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${safe(opinionTitle)}.${ext}`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }
 
   async function requestDocs() {
@@ -285,9 +299,9 @@ export default function PetitionAssistant() {
   }
 
   const title = `Petição inicial - ${dossier?.tipo_acao || areaLabel(area)} - ${client?.name || 'cliente'}`;
-  function downloadWord() {
-    const blob = new Blob(['﻿', wordHtml(title, petition)], { type: 'application/msword' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${safe(title)}.doc`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  async function downloadWord() {
+    const { blob, ext } = await wordFile(title, petition);
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${safe(title)}.${ext}`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }
   async function saveToClient() {
     if (!supabase || !clientId || !petition) return;
@@ -296,11 +310,11 @@ export default function PetitionAssistant() {
       const { data: org } = await supabase.rpc('current_org_id');
       const { data: u } = await supabase.auth.getUser();
       if (!org || !u?.user) throw new Error('Sessão expirada.');
-      const blob = new Blob(['﻿', wordHtml(title, petition)], { type: 'application/msword' });
-      const path = `${org}/documents/${crypto.randomUUID()}-${safe(title)}.doc`;
-      const { error: ue } = await supabase.storage.from('lexoffice-documents').upload(path, blob, { contentType: 'application/msword' });
+      const { blob, ext, mime } = await wordFile(title, petition);
+      const path = `${org}/documents/${crypto.randomUUID()}-${safe(title)}.${ext}`;
+      const { error: ue } = await supabase.storage.from('lexoffice-documents').upload(path, blob, { contentType: mime });
       if (ue) throw ue;
-      const { data: row, error: ie } = await supabase.from('documents').insert({ org_id: org, client_id: clientId, process_id: processId || null, name: `${title}.doc`, file_path: path, mime_type: 'application/msword', size_bytes: blob.size, category: 'Petição', notes: 'Rascunho gerado pelo Assistente de Petição (IA) — revisar antes de protocolar', uploaded_by: u.user.id }).select('id').single();
+      const { data: row, error: ie } = await supabase.from('documents').insert({ org_id: org, client_id: clientId, process_id: processId || null, name: `${title}.${ext}`, file_path: path, mime_type: mime, size_bytes: blob.size, category: 'Petição', notes: 'Rascunho gerado pelo Assistente de Petição (IA) — revisar antes de protocolar', uploaded_by: u.user.id }).select('id').single();
       if (ie) { await supabase.storage.from('lexoffice-documents').remove([path]); throw ie; }
       if (runId) await invoke({ action: 'save', run_id: runId, petition, status: 'salvo', document_id: row?.id || null });
       setNotice({ kind: 'ok', text: 'Petição salva na pasta do cliente, em Documentos, na categoria Petição.' });
