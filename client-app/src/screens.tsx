@@ -151,6 +151,7 @@ export function Process({navigation}: any) {
   const [picking, setPicking] = useState(false);
   const [mv, setMv] = useState<any[]>([]);
   const [timeline, setTimeline] = useState<any[]>([]);
+  const [line, setLine] = useState<any[]>([]);
   const [all, setAll] = useState(false);
 
   useEffect(() => {
@@ -165,9 +166,11 @@ export function Process({navigation}: any) {
     Promise.all([
       supabase.rpc("client_app_movements", {p_process_id: sel.id}),
       supabase.rpc("client_app_timeline", {p_process_id: sel.id}),
-    ]).then(([m, t]) => {
+      supabase.rpc("client_app_case_line", {p_process_id: sel.id}),
+    ]).then(([m, t, l]) => {
       setMv(m.data || []);
       setTimeline(t.data || []);
+      setLine(l.data || []);
     });
   }, [sel]);
 
@@ -181,6 +184,7 @@ export function Process({navigation}: any) {
 
   const st = processTone(sel?.status);
   const current = timeline.find(r => r.status === "current");
+  const step = line.find(r => r.status === "current");
   const [last, ...older] = mv;
   const shown = all ? older : older.slice(0, 3);
 
@@ -209,8 +213,16 @@ export function Process({navigation}: any) {
 
       <View style={{flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 14, flexWrap: "wrap"}}>
         <Pill label={st.label} tone={st.tone} icon="checkmark-circle" />
-        {current ? <Pill label={`Fase: ${current.phase_label}`} tone="neutral" /> : null}
+        {step ? <Pill label={`Etapa ${step.step_order} de ${line.length}: ${step.label}`} tone="info" /> : current ? <Pill label={`Fase: ${current.phase_label}`} tone="neutral" /> : null}
       </View>
+
+      {line.length ? (
+        <Card>
+          <Text style={u.title}>Linha do processo</Text>
+          <Text style={u.small}>Onde o seu processo está agora.</Text>
+          <CaseLine rows={line} compact />
+        </Card>
+      ) : null}
 
       {last ? (
         <View style={p.tl}>
@@ -251,7 +263,7 @@ export function Process({navigation}: any) {
       ))}
 
       {older.length > 3 ? <Button variant="outline" label={all ? "Mostrar menos" : "Ver histórico completo"} onPress={() => setAll(!all)} /> : null}
-      <Button variant="outline" label="Ver etapas do meu caso" icon="git-network-outline" onPress={() => navigation.navigate("Passos")} />
+      <Button variant="outline" label="Ver todas as etapas" icon="git-network-outline" onPress={() => navigation.navigate("Passos", {processId: sel?.id, cnj: sel?.cnj_number})} />
     </Screen>
   );
 }
@@ -560,50 +572,75 @@ const BASE_STEPS: [string, string][] = [
 ];
 const STEP_TEXT = Object.fromEntries(BASE_STEPS.map(([a, b]) => [norm(a), b]));
 
-export function Steps() {
+/** Linha processual (10 etapas) — usada no Meu Processo (resumida) e em Próximos Passos (completa). */
+function CaseLine({rows, compact}: {rows: any[]; compact?: boolean}) {
+  const curIdx = rows.findIndex(r => r.status === "current");
+  // resumida: mostra a etapa anterior, a atual e as duas próximas
+  const list = compact && curIdx >= 0 ? rows.slice(Math.max(0, curIdx - 1), curIdx + 3) : rows;
+  return (
+    <View style={{marginTop: 12}}>
+      {list.map((r: any, i: number) => {
+        const done = r.status === "completed";
+        const cur = r.status === "current";
+        const skip = r.status === "skipped";
+        const color = done ? C.success : cur ? C.info : C.neutralBg;
+        return (
+          <View key={r.step_key || r.id || r.label} style={s.step}>
+            <View style={p.rail}>
+              <View style={[s.num, {backgroundColor: color}]}>
+                {done ? <Ionicons name="checkmark" size={16} color="#fff" /> : <Text style={[s.numText, !cur && {color: C.muted}]}>{r.step_order || r.position || i + 1}</Text>}
+              </View>
+              {i < list.length - 1 ? <View style={[p.line, done && {backgroundColor: C.success}]} /> : null}
+            </View>
+            <View style={{flex: 1, paddingBottom: 16, opacity: skip ? 0.55 : 1}}>
+              <Text style={[u.title, {fontSize: 16}, cur && {color: C.info}]}>{r.label}</Text>
+              <Text style={u.small}>{skip ? "Sem registro nesta etapa (nem todo processo passa por ela)." : r.description || STEP_TEXT[norm(r.label)] || ""}</Text>
+              {cur ? (
+                <View style={{marginTop: 6}}>
+                  <Pill label="Etapa atual" tone="info" />
+                  {r.summary ? (
+                    <View style={p.simple}>
+                      <Text style={p.simpleTitle}>Em linguagem simples</Text>
+                      <Text style={u.body}>{r.summary}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+export function Steps({route}: any) {
   const x = useCtx();
   const [rows, setRows] = useState<any[] | undefined>();
+  const [cnj, setCnj] = useState<string>(route?.params?.cnj || "");
   useEffect(() => {
     if (x === null) setRows([]);
-    if (x?.client_id)
-      supabase
-        .from("client_case_steps")
-        .select("*")
-        .eq("client_id", x.client_id)
-        .order("position")
-        .then(({data}) => setRows(data || []));
-  }, [x?.client_id, x]);
+    if (!x?.client_id) return;
+    (async () => {
+      let pid = route?.params?.processId;
+      if (!pid) {
+        const {data} = await supabase.rpc("client_app_processes");
+        pid = data?.[0]?.id;
+        setCnj(data?.[0]?.cnj_number || "");
+      }
+      if (!pid) return setRows([]);
+      const {data} = await supabase.rpc("client_app_case_line", {p_process_id: pid});
+      setRows(data || []);
+    })();
+  }, [x?.client_id, x, route?.params?.processId]);
 
   if (rows === undefined) return <Loading />;
-  const list = rows.length ? rows : BASE_STEPS.map(([label], i) => ({id: label, label, position: i + 1, status: "pending"}));
+  const list = rows.length ? rows : BASE_STEPS.map(([label], i) => ({id: label, label, step_order: i + 1, status: "pending"}));
 
   return (
-    <Screen lead="Entenda as principais etapas do seu caso.">
+    <Screen lead={cnj ? `Etapas do processo ${cnj}.` : "Entenda as principais etapas do seu caso."}>
       <Card>
-        {list.map((r: any, i: number) => {
-          const done = r.status === "completed";
-          const cur = r.status === "current";
-          const color = done ? C.success : cur ? C.info : C.neutralBg;
-          return (
-            <View key={r.id} style={s.step}>
-              <View style={p.rail}>
-                <View style={[s.num, {backgroundColor: color}]}>
-                  {done ? <Ionicons name="checkmark" size={16} color="#fff" /> : <Text style={[s.numText, !cur && {color: C.muted}]}>{i + 1}</Text>}
-                </View>
-                {i < list.length - 1 ? <View style={[p.line, done && {backgroundColor: C.success}]} /> : null}
-              </View>
-              <View style={{flex: 1, paddingBottom: 16}}>
-                <Text style={[u.title, {fontSize: 16}, cur && {color: C.info}]}>{r.label}</Text>
-                <Text style={u.small}>{r.description || STEP_TEXT[norm(r.label)] || ""}</Text>
-                {cur ? (
-                  <View style={{marginTop: 6}}>
-                    <Pill label="Etapa atual" tone="info" />
-                  </View>
-                ) : null}
-              </View>
-            </View>
-          );
-        })}
+        <CaseLine rows={list} />
       </Card>
       <Note>
         Cada processo possui dinâmica própria. Os prazos dos atos do Poder Judiciário não são controlados pelo escritório, mas acompanhamos cada movimentação e avisamos você.
@@ -645,6 +682,8 @@ export function Calendar() {
                   {r.location ? <Text style={u.small}>{r.location}</Text> : null}
                 </View>
               </View>
+              {r.description ? <Text style={[u.small, {marginTop: 10}]}>{r.description}</Text> : null}
+              {r.meeting_url ? <Button label="Entrar na reunião" icon="videocam-outline" onPress={() => open(r.meeting_url)} /> : null}
             </Card>
           );
         })
