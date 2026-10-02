@@ -1,6 +1,6 @@
 .petition-page .pa-block{display:flex;flex-direction:column;gap:7px;margin:0 0 14px}
 .petition-page .pa-block>span{color:#d8dbe0;font-size:12px;font-weight:800}
-.petition-page textarea{width:100%;border:1px solid #3b424d;border-radius:10px;background:#0b0e14;color:#f1f3f5;padding:11px 12px;font:inherit;font-size:14px;line-height:1.55;resize:vertical;box-sizing:border-box}
+.petition-page textarea{width:100%;border:1px solid #3b424d;border-radius:10px;background:#080705;color:#f1f3f5;padding:11px 12px;font:inherit;font-size:14px;line-height:1.55;resize:vertical;box-sizing:border-box}
 .petition-page textarea:focus{outline:none;border-color:#a82b50;box-shadow:0 0 0 3px rgba(168,43,80,.18)}
 .petition-page .pa-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:6px 0 12px}
 .petition-page .pa-row.end{justify-content:flex-end}
@@ -45,7 +45,7 @@
 .petition-page .pa-items{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
 .petition-page .pa-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid #2c313b;border-radius:10px;background:#0c0f15;color:#c9ced6;min-width:0}
 .petition-page .pa-item.on{border-color:#a82b50;background:rgba(143,35,68,.1)}
-.petition-page .pa-item-title{flex:1;min-width:0;border:1px solid #3b424d;border-radius:8px;background:#0b0e14;color:#f1f3f5;padding:7px 10px;font:inherit;font-size:13px}
+.petition-page .pa-item-title{flex:1;min-width:0;border:1px solid #3b424d;border-radius:8px;background:#080705;color:#f1f3f5;padding:7px 10px;font:inherit;font-size:13px}
 .petition-page span.pa-item-title{border:0;background:none;padding:0}
 .petition-page .pa-item small{color:#e0a9ba;font-size:11px;font-weight:700}
 .petition-page .pa-check{display:flex;align-items:center;gap:6px;color:#c9ced6;font-size:13px}
