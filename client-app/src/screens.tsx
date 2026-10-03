@@ -233,7 +233,7 @@ export function Process({navigation}: any) {
             {older.length ? <View style={p.line} /> : null}
           </View>
           <Card style={{flex: 1}}>
-            <Text style={u.small}>Último andamento em {date(last.movement_date)}</Text>
+            <View style={p.datePill}><Text style={p.datePillText}>{date(last.movement_date)}</Text></View>
             <Text style={[u.title, {marginTop: 4}]}>{last.title || "Atualização processual"}</Text>
             {last.client_message || last.description ? (
               <View style={p.simple}>
@@ -255,9 +255,10 @@ export function Process({navigation}: any) {
             {i < shown.length - 1 ? <View style={p.line} /> : null}
           </View>
           <View style={p.item}>
-            <Text style={u.title}>{m.title || "Atualização processual"}</Text>
-            <Text style={u.small}>{date(m.movement_date)}</Text>
-            {m.client_message ? <Text style={[u.body, {marginTop: 6}]}>{m.client_message}</Text> : null}
+            <View style={p.datePill}><Text style={p.datePillText}>{date(m.movement_date)}</Text></View>
+            <Text style={[u.title,{marginTop:8}]}>{m.title || "Atualização processual"}</Text>
+            {m.client_message || m.description ? <View style={p.explain}><Text style={p.explainLabel}>O que aconteceu</Text><Text style={u.body}>{m.client_message || m.description}</Text></View> : null}
+            {m.document_url ? <Pressable style={p.documentLink} onPress={()=>open(m.document_url)}><Ionicons name="document-text-outline" size={16} color={C.brown}/><Text style={p.documentLinkText}>Ver movimentação original</Text></Pressable> : null}
           </View>
         </View>
       ))}
@@ -273,10 +274,16 @@ const p = StyleSheet.create({
   cnj: {fontSize: 16, fontWeight: "700", color: C.ink},
   option: {paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderColor: C.line},
   tl: {flexDirection: "row", gap: 12},
-  rail: {width: 24, alignItems: "center"},
-  dot: {width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center", marginTop: 16},
-  line: {flex: 1, width: 2, backgroundColor: C.line, marginTop: 2},
-  item: {flex: 1, paddingTop: 14, paddingBottom: 18},
+  rail: {width: 26, alignItems: "center"},
+  dot: {width: 16, height: 16, borderRadius: 8, alignItems: "center", justifyContent: "center", marginTop: 20, borderWidth: 3, borderColor: C.gold2},
+  line: {flex: 1, width: 2, backgroundColor: C.gold, marginTop: 2, opacity: .55},
+  item: {flex: 1, paddingTop: 14, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: C.line},
+  datePill: {alignSelf:"flex-start", backgroundColor:C.cardHead, borderRadius:999, paddingHorizontal:10, paddingVertical:4, borderWidth:1, borderColor:C.gold},
+  datePillText: {fontSize:12, fontWeight:"800", color:C.brown},
+  explain: {backgroundColor:C.cardHead, borderRadius:R.sm, padding:11, marginTop:8},
+  explainLabel: {fontSize:11, fontWeight:"800", textTransform:"uppercase", letterSpacing:.5, color:C.brown, marginBottom:4},
+  documentLink: {flexDirection:"row", alignItems:"center", gap:6, alignSelf:"flex-start", marginTop:9, paddingVertical:7, paddingHorizontal:10, borderWidth:1, borderColor:C.line, borderRadius:R.sm},
+  documentLinkText: {fontSize:12, fontWeight:"700", color:C.brown},
   simple: {backgroundColor: C.cardHead, borderRadius: R.sm, padding: 12, marginTop: 12},
   simpleTitle: {fontFamily: SERIF, fontWeight: "700", color: C.brown, marginBottom: 4},
 });
