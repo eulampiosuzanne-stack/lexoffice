@@ -1,5 +1,5 @@
 import { useMemo,useState } from 'react';
-import { AlertTriangle,Calculator,FileText,RefreshCw,Scale,ShieldCheck,TrendingUp } from 'lucide-react';
+import { AlertTriangle,Calculator,FileText,RefreshCw,Scale,ShieldCheck,TrendingUp,Upload,Paperclip,X } from 'lucide-react';
 
 const money=(v:number)=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const areas:any={Familia:5000,Civel:5000,Consumidor:4000,Saude:6000,Bancario:5500,Trabalhista:5000,Previdenciario:4500,Empresarial:7000,Outro:5000};
@@ -8,7 +8,10 @@ const niveis=(v:number)=>v<=2?'BAIXA':v<=3?'MODERADA':v<=4?'ALTA':'MUITO ALTA';
 export default function FeePricing(){
  const initial={nome:'',demanda:'',area:'Familia',fase:'Em andamento',complexidade:3,urgencia:2,documentos:2,trabalhoRestante:3,riscoProcessual:2,audiencias:1,processos:1,pericia:false,recurso:false,valorCausa:0,proveitoEconomico:0,pisoReferencia:0,horas:20,entrada:20,parcelas:10};
  const [f,setF]=useState(initial);
+ const [arquivos,setArquivos]=useState<File[]>([]);
  const set=(k:string,v:any)=>setF(x=>({...x,[k]:v}));
+ const addFiles=(list:FileList|null)=>{if(!list)return;setArquivos(prev=>{const next=[...prev];for(const file of Array.from(list)){if(!next.some(x=>x.name===file.name&&x.size===file.size))next.push(file)}return next.slice(0,20)})};
+ const removeFile=(i:number)=>setArquivos(x=>x.filter((_,idx)=>idx!==i));
 
  const calc=useMemo(()=>{
   const base=areas[f.area]||5000;
@@ -35,7 +38,7 @@ export default function FeePricing(){
   return{tecnico,comercial,referenciaEconomica,faixaMin,faixaMax,proporcao,proporcaoTecnica,alerta,sugerirFases,pisoIncompativel,entrada,parcela:saldo/Math.max(1,f.parcelas),score};
  },[f]);
 
- function reset(){setF(initial)}
+ function reset(){setF(initial);setArquivos([])}
  function proposal(){
   const txt=`PROPOSTA DE HONORÁRIOS ADVOCATÍCIOS\n\nSuzanne Figueiredo Advocacia e Soluções Jurídicas\n\nInteressado(a): ${f.nome||'A definir'}\nDemanda: ${f.demanda||f.area}\n\nHonorários propostos: ${money(calc.comercial)}\nEntrada: ${money(calc.entrada)}\nSaldo: ${f.parcelas} parcela(s) de ${money(calc.parcela)}.\n\nEscopo e eventuais fases posteriores devem ser definidos no contrato. O valor foi submetido à análise de esforço técnico e proporcionalidade econômica e permanece sujeito à validação da advogada responsável.`;
   const w=window.open('','_blank');
@@ -45,10 +48,21 @@ export default function FeePricing(){
  return <div className="module"><div className="page-title"><h1>Honorários & Propostas</h1><p>Precificação estratégica com esforço técnico, proveito econômico e proporcionalidade comercial.</p></div>
  <div className="system-bar"><span>⚖ INTELIGÊNCIA DE PRECIFICAÇÃO</span><span className="online">● SIMULAÇÃO INTERNA</span></div>
  <div className="integration-panel"><div className="integration-head"><div><span className="integration-pill"><Calculator size={14}/> NOVA PRECIFICAÇÃO</span><h2>Demanda, esforço e dimensão econômica</h2><p>A Lex calcula o custo técnico e depois testa a viabilidade econômica da proposta. A decisão final é da advogada.</p></div><button className="secondary" onClick={reset}><RefreshCw size={16}/> Limpar</button></div>
+ <div className="fee-case-workspace">
+  <label className="fee-case-label">Relato completo do caso
+   <textarea className="fee-case-textarea" value={f.demanda} onChange={e=>set('demanda',e.target.value)} placeholder="Cole ou escreva aqui o relato do caso, histórico, pedidos, fase processual, riscos, urgências e tudo o que a Lex deve considerar na precificação."/>
+  </label>
+  <div className="fee-upload-zone">
+   <div><Paperclip size={18}/><strong>Documentos do caso</strong><span>PDF, Word e imagens para compor a análise de honorários</span></div>
+   <label className="primary fee-upload-btn"><Upload size={16}/> Anexar arquivos<input type="file" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*" hidden onChange={e=>{addFiles(e.target.files);e.currentTarget.value=''}}/></label>
+  </div>
+  {arquivos.length>0&&<div className="fee-file-list">{arquivos.map((a,i)=><div className="fee-file-chip" key={a.name+a.size}><FileText size={14}/><span>{a.name}</span><small>{(a.size/1024/1024).toFixed(2)} MB</small><button type="button" onClick={()=>removeFile(i)} title="Remover"><X size={13}/></button></div>)}</div>}
+  <div className="fee-analysis-note"><ShieldCheck size={15}/><span><b>Base da análise:</b> relato + documentos anexados + parâmetros abaixo. Os arquivos ficam preparados nesta simulação para a etapa de leitura inteligente.</span></div>
+ </div>
  <div className="advanced-grid">
  <label>Nome / lead<input value={f.nome} onChange={e=>set('nome',e.target.value)} placeholder="Opcional"/></label>
  <label>Área<select value={f.area} onChange={e=>set('area',e.target.value)}>{Object.keys(areas).map(x=><option key={x}>{x}</option>)}</select></label>
- <label className="wide">Demanda<input value={f.demanda} onChange={e=>set('demanda',e.target.value)} placeholder="Ex.: ação consumerista já ajuizada"/></label>
+ <label className="wide">Resumo / identificação da demanda<input value={f.demanda.split('\n')[0]||''} onChange={e=>set('demanda',e.target.value+(f.demanda.includes('\n')?'\n'+f.demanda.split('\n').slice(1).join('\n'):''))} placeholder="Ex.: ação consumerista já ajuizada"/></label>
  <label>Fase<select value={f.fase} onChange={e=>set('fase',e.target.value)}><option>Inicial</option><option>Em andamento</option><option>Execução</option><option>Recursal</option></select></label>
  <label>Complexidade (1–5)<input type="number" min="1" max="5" value={f.complexidade} onChange={e=>set('complexidade',Math.min(5,Math.max(1,+e.target.value||1)))}/></label>
  <label>Urgência (1–5)<input type="number" min="1" max="5" value={f.urgencia} onChange={e=>set('urgencia',Math.min(5,Math.max(1,+e.target.value||1)))}/></label>
@@ -78,6 +92,20 @@ export default function FeePricing(){
  <div className="integration-panel" style={{marginTop:16}}><div className="integration-head"><div><h2>Condição de pagamento</h2><p>Simulação calculada sobre o valor comercial sugerido, não sobre o custo técnico bruto.</p></div></div><div className="advanced-grid"><label>Entrada (%)<input type="number" min="0" max="100" value={f.entrada} onChange={e=>set('entrada',+e.target.value||0)}/></label><label>Parcelas do saldo<input type="number" min="1" max="60" value={f.parcelas} onChange={e=>set('parcelas',Math.min(60,Math.max(1,+e.target.value||1)))}/></label><label>Entrada sugerida<input disabled value={money(calc.entrada)}/></label><label>Valor da parcela<input disabled value={money(calc.parcela)}/></label></div><button className="primary" onClick={proposal}><FileText size={16}/> Gerar proposta</button></div>
 
  <div className="integration-panel" style={{marginTop:16}}><div className="integration-head"><div><h2>Diagnóstico Lex</h2><p>Leitura conjunta do trabalho, risco e dimensão econômica.</p></div></div><div className="advanced-grid"><label>Complexidade<input disabled value={niveis(f.complexidade)}/></label><label>Trabalho remanescente<input disabled value={niveis(f.trabalhoRestante)}/></label><label>Urgência<input disabled value={niveis(f.urgencia)}/></label><label>Risco processual<input disabled value={niveis(f.riscoProcessual)}/></label><label>Escopo<input disabled value={f.recurso?'Fase selecionada + recurso':'Fase selecionada; recurso fora do escopo'}/></label><label>Viabilidade<input disabled value={calc.sugerirFases?'AVALIAR CONTRATAÇÃO POR FASE':'CONTRATO INTEGRAL ADEQUADO'}/></label></div></div>
+
+
+ <style>{`
+ .fee-case-workspace{margin:18px 0 20px;display:grid;gap:12px}
+ .fee-case-label{display:grid;gap:8px;color:var(--lx-text-2);font-size:13px;font-weight:700}
+ .fee-case-textarea{width:100%;min-height:180px;resize:vertical;padding:16px 18px!important;line-height:1.55!important;background:#080705!important;color:#F5F1E8!important;border:1px solid #C99443!important;border-radius:14px!important;box-shadow:inset 0 1px 0 rgba(255,243,196,.05),0 0 16px rgba(255,217,120,.06)!important}
+ .fee-case-textarea:focus{outline:none!important;border-color:#FFD978!important;box-shadow:0 0 0 3px rgba(255,217,120,.10),0 0 20px rgba(255,217,120,.12)!important}
+ .fee-upload-zone{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px;border:1px dashed #E3A83B;border-radius:14px;background:linear-gradient(135deg,rgba(227,168,59,.08),rgba(255,217,120,.025))}
+ .fee-upload-zone>div{display:grid;grid-template-columns:auto 1fr;column-gap:9px;align-items:center}.fee-upload-zone strong{color:#FFD978}.fee-upload-zone span{grid-column:2;color:#BDB4A6;font-size:12px;margin-top:3px}
+ .fee-upload-btn{display:flex!important;align-items:center;gap:7px;white-space:nowrap;cursor:pointer}
+ .fee-file-list{display:flex;flex-wrap:wrap;gap:8px}.fee-file-chip{display:flex;align-items:center;gap:7px;padding:8px 10px;border:1px solid rgba(255,217,120,.35);border-radius:10px;background:#100C08;color:#F5F1E8}.fee-file-chip small{color:#BDB4A6}.fee-file-chip button{border:0;background:transparent;color:#FFD978;display:grid;place-items:center;cursor:pointer;padding:2px}
+ .fee-analysis-note{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-left:2px solid #FFD978;background:rgba(227,168,59,.055);color:#BDB4A6;font-size:12px}.fee-analysis-note svg{color:#FFD978;flex:none}
+ @media(max-width:720px){.fee-upload-zone{align-items:stretch;flex-direction:column}.fee-upload-btn{justify-content:center}.fee-case-textarea{min-height:220px}}
+ `}</style>
  <div className="integration-notice" style={{marginTop:16}}>A Lex calcula primeiro o valor técnico do trabalho e só depois testa a proporcionalidade econômica. O proveito econômico estimado tem prioridade sobre o valor da causa quando informado. A contratação por fase só é sugerida quando houver carga remanescente alta e diferença relevante entre valor técnico e viabilidade comercial. Percentuais são indicadores internos, nunca limites jurídicos. A decisão final permanece da advogada.</div>
  </div>
 }
