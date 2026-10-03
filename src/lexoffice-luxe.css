@@ -548,3 +548,69 @@ html .app.app>main h1,html .app.app>main .page-head p,html .app.app>main .page-t
     radial-gradient(ellipse at center,#241a11,#080705 70%)!important;
 }
 html .app.app .dr-head h1 span{text-shadow:none!important;filter:drop-shadow(0 2px 6px rgba(0,0,0,.95))}
+
+/* Monograma SF do menu: fiel à foto original (sem alterar cor/brilho),
+   inteiro (sem corte no topo) e com espaço adequado no cabeçalho do menu */
+html .app.app>aside .brand{height:auto!important;min-height:80px!important;padding:12px 12px!important;align-items:center!important;overflow:visible!important}
+html .app.app>aside .brand .logo{width:42px!important;height:57px!important;min-width:42px!important;flex:0 0 42px!important;overflow:visible!important}
+html .app.app .brand .logo img{width:100%!important;height:100%!important;object-fit:contain!important;
+  filter:drop-shadow(0 0 5px rgba(242,197,109,.30))!important}
+.legacy-auth .lx-luxe-brand img,.legacy-auth .legacy-card-logo img{filter:drop-shadow(0 0 12px rgba(242,197,109,.28))!important}
+
+/* ============================================================
+   OURO CLÁSSICO EM DEGRADÊ (sem tom laranja) + EFEITO 3D
+   Troca o bronze alaranjado (#8A5726) pelo ouro metálico clássico:
+   claro champanhe ↔ ouro velho, alternando para dar brilho de metal.
+   ============================================================ */
+:root{
+  --lx-gold-classic:linear-gradient(135deg,#AA771C 0%,#BF953F 16%,#FCF6BA 36%,#D4AF37 52%,#FBF5B7 70%,#B38728 86%,#AA771C 100%);
+  --lx-gold-grad:var(--lx-gold-classic);
+  --lx-metal:var(--lx-gold-classic);
+  --lx-gold-border:var(--lx-gold-classic);
+  --lx-gold-border-hover:linear-gradient(135deg,#BF953F 0%,#FCF6BA 30%,#FFFDE6 50%,#FCF6BA 70%,#BF953F 100%);
+  --lx-metal-text:linear-gradient(180deg,#FCF6BA 0%,#E6C66A 35%,#D4AF37 55%,#B38728 80%,#FBF5B7 100%);
+  --lx-accent:#D4AF37;
+  --lx-accent-2:#FCF6BA;
+}
+/* Botões dourados: ouro clássico com bisel (efeito 3D) */
+html .app.app .primary,html .app.app [class*="primary"],html .app.app button[type="submit"],html .app.app .dr-new,
+html .app.app .service-send,html .app.app .integration-action,.legacy-auth .legacy-enter{
+  background:var(--lx-gold-classic)!important;color:#2b1d04!important;border:1px solid #FCF6BA!important;
+  text-shadow:0 1px 0 rgba(255,250,220,.6)!important;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.65),inset 0 -3px 0 rgba(110,80,10,.45),0 3px 0 #5c4209,0 8px 18px rgba(0,0,0,.55)!important;
+}
+html .app.app .primary svg,html .app.app [class*="primary"] svg{color:#2b1d04!important}
+/* Selos e contadores em ouro clássico */
+html .app.app .dr-events time,html .app.app .dr-card time{background:var(--lx-gold-classic)!important;color:#2b1d04!important;border-color:#FCF6BA!important;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.65),inset 0 -2px 0 rgba(110,80,10,.45),0 3px 0 #4a3507,0 6px 12px rgba(0,0,0,.55)!important}
+html .app.app .service-unread,html .app.app .day-number.today,html .app.app .avatar{background:var(--lx-gold-classic)!important;color:#2b1d04!important}
+/* Títulos e números em ouro gravado em relevo (3D) */
+html .app.app .brand b,html .app.app .dr-head h1 span,html .app.app .dr-card header h2,html .app.app .dr-card header h3,
+html .app.app .dr-kpi strong,html .app.app .card strong,html .app.app .dashboard-kpi strong,
+.legacy-auth.legacy-auth.legacy-auth .lx-luxe-brand strong{
+  background:var(--lx-metal-text)!important;-webkit-background-clip:text!important;background-clip:text!important;
+  color:transparent!important;-webkit-text-fill-color:transparent!important;
+  filter:drop-shadow(0 1px 0 #3a2a06) drop-shadow(0 2px 3px rgba(0,0,0,.85))!important;
+}
+/* Ícones e destaques: ouro amarelo em vez de laranja */
+html .app.app aside nav a.active,html .app.app aside nav a.active svg,html .app.app .dr-kpi svg,html .app.app .dr-card header svg,
+html .app.app .smart-card svg,html .app.app .card-icon svg{color:#F3DE8A!important}
+html .app.app aside nav a.active{box-shadow:inset 3px 0 0 #D4AF37,inset 0 1px 0 rgba(255,250,220,.16),0 2px 0 rgba(0,0,0,.6),0 4px 10px rgba(0,0,0,.4)!important}
+html .app.app .eyebrow,html .app.app .nav-group>small,html .app.app th{color:#D4AF37!important}
+html .app.app .dr-bars i{background:linear-gradient(180deg,#FCF6BA,#D4AF37 55%,#AA771C)!important}
+.app ::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#AA771C,#D4AF37,#AA771C)!important}
+/* Foto de fundo: tira o excesso de laranja das cortinas, puxando para o dourado */
+html .app.app:after,html .app.app:before{filter:saturate(.82) hue-rotate(7deg)!important}
+html .app.app:before{filter:blur(22px) brightness(.55) saturate(.82) hue-rotate(7deg)!important}
+/* Foto de fundo mais aparente: véu escuro bem leve */
+html .app.app:after{
+  background:linear-gradient(180deg,rgba(8,7,5,.50) 0%,rgba(8,7,5,.60) 100%),url('/brand/fundo-sf.jpg') center/contain no-repeat!important;
+}
+@media(min-width:901px) and (orientation:landscape){
+  html .app.app:after{background:linear-gradient(180deg,rgba(8,7,5,.50) 0%,rgba(8,7,5,.60) 100%),url('/brand/fundo-sf.jpg') center 47%/cover no-repeat!important}
+}
+/* Menu lateral e cabeçalho levemente translúcidos para a foto aparecer por trás */
+html .app.app>aside{background:rgba(16,12,8,.82)!important;backdrop-filter:blur(6px)}
+html .app.app main>header{background:linear-gradient(180deg,rgba(36,26,17,.80),rgba(23,17,12,.80))!important;backdrop-filter:blur(6px)}
+/* Foto de fundo discreta e levemente embaçada (pedido de 03/10/2026) */
+html .app.app:after{filter:blur(3px) saturate(.82) hue-rotate(7deg)!important;transform:scale(1.03)}
