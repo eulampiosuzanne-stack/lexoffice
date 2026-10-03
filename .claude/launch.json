@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "lexoffice",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "5173", "--strictPort"],
+      "port": 5173
+    },
+    {
+      "name": "app-cliente",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "client-app", "run", "web", "--", "--port", "8081"],
+      "port": 8081
+    }
+  ]
+}
