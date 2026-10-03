@@ -1,5 +1,6 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const root = new URL('../', import.meta.url);
 const failures = [];
@@ -14,7 +15,7 @@ async function filesUnder(path, extension) {
       else if (full.endsWith(extension)) out.push(full);
     }
   }
-  await visit(base.pathname);
+  await visit(fileURLToPath(base));
   return out;
 }
 
@@ -25,7 +26,7 @@ for (const file of sourceFiles) {
   for (const match of source.matchAll(/functions\.invoke\(['"]([^'"]+)/g)) invoked.add(match[1]);
 }
 
-const functionRoot = new URL('supabase/functions/', root).pathname;
+const functionRoot = fileURLToPath(new URL('supabase/functions/', root));
 const local = new Set((await readdir(functionRoot, { withFileTypes: true })).filter(x => x.isDirectory()).map(x => x.name));
 const manifest = JSON.parse(await readFile(new URL('supabase/deployed-functions-manifest.json', root), 'utf8'));
 const remoteOnly = new Set(manifest.remoteOnly || []);
