@@ -41,6 +41,8 @@ import './mobile-shell.css';
 import './shell-layout-fix.css';
 /* Atendimento desktop: block horizontal scrollLeft drift while preserving mobile behavior. */
 import './service-scroll-guard.css';
+/* Camada visual preto e dourado luxo (identidade SF). Deve ser a última. */
+import './lexoffice-luxe.css';
 
 const intakePrefix='/formulario-cliente/';
 const path=window.location.pathname.replace(/\/$/,'')||'/';

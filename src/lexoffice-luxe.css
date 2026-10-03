@@ -1,0 +1,500 @@
+/* ============================================================
+   LEXOFFICE — CAMADA "PRETO E DOURADO LUXO"
+   Referência aprovada: identidade SF (Suzanne Figueiredo — Advocacia
+   e Soluções Jurídicas): preto profundo, dourado metálico polido,
+   títulos em serifa clássica e monograma SF.
+   Carregada por último; só ajusta tipografia de títulos, superfícies,
+   marca e realces. Corpo de texto continua em Inter (legibilidade).
+   ============================================================ */
+:root{
+  /* Paleta aprovada pela Dra. Suzanne (03/10/2026) */
+  --lx-bg:#080705;            /* fundo principal: preto profundo */
+  --lx-bg-2:#0c0906;
+  --lx-sidebar:#100C08;       /* menu lateral: preto café */
+  --lx-surface:rgba(23,17,12,.86); /* cards #17110C com leve transparência */
+  --lx-surface-solid:#17110C;
+  --lx-surface-2:#1d150e;
+  --lx-surface-3:#241a11;
+  --lx-accent:#C99443;        /* dourado principal */
+  --lx-accent-2:#F2C56D;      /* dourado luminoso */
+  --lx-accent-dark:#8A5726;   /* bronze */
+  --lx-accent-soft:rgba(201,148,67,.12);
+  --lx-text:#F5F1E8;          /* texto principal: marfim */
+  --lx-text-2:#E7DFD0;
+  --lx-muted:#BDB4A6;         /* texto secundário: bege acinzentado */
+  --lx-subtle:#8f8576;
+  --lx-border:rgba(201,148,67,.16);        /* bordas: dourado muito discreto */
+  --lx-border-strong:rgba(242,197,109,.32);
+  --lx-hairline:rgba(201,148,67,.16);
+  --lx-serif:"Cormorant Garamond","Cormorant",Garamond,"Times New Roman",serif;
+  --lx-caps:"Cinzel","Cormorant Garamond",Garamond,serif;
+  --lx-gold-grad:linear-gradient(135deg,#8A5726 0%,#C99443 40%,#F2C56D 62%,#C99443 82%,#8A5726 100%);
+  --lx-gold-text:linear-gradient(180deg,#F2C56D 0%,#C99443 100%);
+}
+
+/* ---- Atmosfera: preto profundo com luz dourada suave ---- */
+html,body,#root,.app{background:var(--lx-bg)!important}
+.app:before{background:
+  radial-gradient(ellipse 60% 40% at 92% -6%,rgba(242,197,109,.10),transparent 60%),
+  radial-gradient(ellipse 50% 45% at 2% 105%,rgba(138,87,38,.08),transparent 60%),
+  linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.35))!important}
+
+/* ---- Títulos em serifa clássica ---- */
+html .app.app h1,html .app.app .page-title h1,html .app.app .page-head h1,html .app.app .module h1{
+  font-family:var(--lx-serif)!important;font-weight:600!important;font-size:32px!important;
+  letter-spacing:.005em!important;line-height:1.1!important;color:#F5F1E8!important;
+}
+html .app.app h2{font-family:var(--lx-serif)!important;font-weight:600!important;font-size:22px!important;letter-spacing:.01em!important;color:#F5F1E8!important}
+html .app.app h3{font-family:var(--lx-serif)!important;font-weight:600!important;font-size:18px!important;letter-spacing:.01em!important}
+/* Números de destaque (KPIs) continuam em Inter, legíveis */
+html .app.app .card strong,html .app.app .report-card>strong,html .app.app .dashboard-kpi strong,html .app.app .dr-kpi strong{font-family:var(--lx-font)!important;letter-spacing:-.01em!important}
+/* Rótulos em versalete dourado */
+html .app.app .eyebrow,html .app.app .nav-group>small,html .app.app th,
+html .app.app .smart-title span,html .app.app .rule-head small,html .app.app .agent-console-head small{
+  font-family:var(--lx-caps)!important;letter-spacing:.16em!important;color:#C99443!important;font-weight:600!important;
+}
+html .app.app .page-title p,html .app.app .page-head p{color:#BDB4A6!important}
+
+/* ---- Superfícies: preto com filete dourado fino ---- */
+.app .card,.app .module-box,.app .settings-feature-card,.app .dashboard-kpi,
+.app .integration-panel,.app .investigation-card,.app .investigation-scope button,
+.app .connection-card,.app .doc-library-card,.app .doc-upload-card,.app .doc-templates-card,
+.app .movement-card,.app .proc-auto-card,.app .proc-sync-box,.app .lead-card{
+  background:
+    linear-gradient(var(--lx-surface),var(--lx-surface)) padding-box,
+    linear-gradient(var(--lx-border),var(--lx-border)) border-box!important;
+  box-shadow:inset 0 1px 0 rgba(255,236,190,.05),0 10px 30px rgba(0,0,0,.35)!important;
+}
+.app .card:hover,.app .module-box:hover,.app .settings-feature-card:hover,.app .dashboard-kpi:hover,
+.app .investigation-card:hover,.app .investigation-scope button:hover,.app .connection-card:hover,
+.app .doc-library-card:hover,.app .movement-card:hover,.app .lead-card:hover{
+  background:
+    linear-gradient(var(--lx-surface-solid),var(--lx-surface-solid)) padding-box,
+    var(--lx-gold-grad) border-box!important;
+  box-shadow:inset 0 1px 0 rgba(255,236,190,.10),0 0 22px rgba(242,197,109,.14),0 12px 32px rgba(0,0,0,.4)!important;
+}
+.app .dashboard-reference{background:var(--lx-bg)!important;border-color:var(--lx-hairline)!important}
+
+/* ---- Menu lateral ---- */
+.app aside{background:var(--lx-sidebar)!important;border-right:1px solid var(--lx-hairline)!important}
+.app aside .brand{border-bottom:1px solid var(--lx-hairline)!important;position:relative}
+.app aside .brand:after{content:"";position:absolute;left:18%;right:18%;bottom:-1px;height:1px;background:linear-gradient(90deg,transparent,#F2C56D,transparent)}
+html .app .brand .logo{
+  background:transparent!important;border:0!important;box-shadow:none!important;border-radius:0!important;
+  color:transparent!important;overflow:visible!important;
+}
+.app .brand .logo img{width:100%;height:100%;object-fit:contain;display:block;filter:drop-shadow(0 0 6px rgba(242,197,109,.28))}
+html .app.app .brand b,html .app.app .brand b span{font-family:var(--lx-caps)!important;font-weight:600!important;letter-spacing:.08em!important;font-size:13px!important;color:#F2C56D!important}
+html .app.app .brand small{font-family:var(--lx-caps)!important;letter-spacing:.14em!important;font-size:7.5px!important;color:#BDB4A6!important}
+.app aside nav a{color:#BDB4A6!important;border:1px solid transparent!important}
+.app aside nav a:hover{background:rgba(242,197,109,.06)!important;color:#F5F1E8!important}
+.app aside nav a.active{
+  color:#F2C56D!important;
+  background:linear-gradient(90deg,rgba(242,197,109,.16),rgba(242,197,109,.03))!important;
+  border-color:rgba(242,197,109,.38)!important;
+  box-shadow:inset 2px 0 0 #F2C56D!important;
+}
+.app aside nav a.active svg{filter:drop-shadow(0 0 5px rgba(242,197,109,.45))!important}
+.app .profile{background:var(--lx-sidebar)!important;border-top:1px solid var(--lx-hairline)!important}
+.app .avatar{background:var(--lx-gold-grad)!important;color:#080705!important;font-weight:800!important}
+
+/* ---- Cabeçalho superior ---- */
+.app main>header{
+  background:var(--lx-surface)!important;
+  border:1px solid var(--lx-hairline)!important;
+  box-shadow:0 10px 30px rgba(0,0,0,.35)!important;
+}
+html .app.app .crumb{font-family:var(--lx-caps)!important;letter-spacing:.2em!important;color:#F2C56D!important;font-size:12px!important}
+
+/* ---- Botões principais: ouro polido ---- */
+.app .primary,.app [class*="primary"],.app button[type="submit"],.app .dr-new,.app .integration-action,.app .service-send{
+  background:var(--lx-gold-grad)!important;color:#080705!important;border:1px solid #F2C56D!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 4px 18px rgba(242,197,109,.18)!important;font-weight:700!important;
+}
+.app .primary:hover,.app [class*="primary"]:hover,.app button[type="submit"]:hover{filter:brightness(1.08)!important}
+.app .primary svg,.app [class*="primary"] svg,.app button[type="submit"] svg{color:#080705!important}
+
+/* ---- Tabelas ---- */
+.app thead,.app th{background:var(--lx-surface-solid)!important}
+.app td,.app th{border-color:rgba(201,148,67,.12)!important}
+
+/* ---- Barras de rolagem ---- */
+.app ::-webkit-scrollbar{width:9px;height:9px}
+.app ::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#8a5726,#C99443)!important;border-radius:999px}
+
+/* ---- Celular: menu aberto e barra inferior sem tons de vinho ---- */
+@media(max-width:900px){
+  .app.nav-open>aside{background:var(--lx-sidebar)!important;border-right:1px solid var(--lx-hairline)!important}
+  .app.nav-open>aside nav a.active{background:linear-gradient(90deg,rgba(242,197,109,.22),rgba(242,197,109,.05))!important;color:#F2C56D!important}
+  .app .mobile-bottom-nav{background:rgba(16,12,8,.97)!important;border-top:1px solid var(--lx-hairline)!important}
+  .app .mobile-bottom-nav a.active{color:#F2C56D!important}
+  html .app.app h1,html .app.app .page-title h1{font-size:26px!important}
+  html .app.app h2{font-size:19px!important}
+}
+
+/* ============================================================
+   LOGIN (renderiza fora de .app)
+   ============================================================ */
+.legacy-auth{background:
+  radial-gradient(ellipse 55% 55% at 24% 45%,rgba(201,148,67,.12),transparent 65%),
+  radial-gradient(ellipse 40% 40% at 100% 0%,rgba(242,197,109,.06),transparent 60%),
+  var(--lx-bg)!important}
+.legacy-auth:before{background:none!important}
+.legacy-left{border-right:1px solid var(--lx-hairline)!important;align-items:center;justify-content:center;text-align:center}
+.legacy-left .legacy-copy{margin-top:0!important}
+.lx-luxe-brand{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:28px}
+.lx-luxe-brand img{width:132px;height:auto;filter:drop-shadow(0 0 18px rgba(242,197,109,.28))}
+.legacy-auth.legacy-auth.legacy-auth .lx-luxe-brand strong{font-family:var(--lx-caps)!important;font-weight:600;font-size:30px;letter-spacing:.06em;background:var(--lx-gold-text);-webkit-background-clip:text;background-clip:text;color:transparent!important;margin-top:8px}
+.legacy-auth.legacy-auth.legacy-auth .lx-luxe-brand small{font-family:var(--lx-caps)!important;font-size:11px;letter-spacing:.32em;color:#BDB4A6}
+.lx-luxe-rule{display:flex;align-items:center;gap:10px;width:260px;margin:6px auto 0;color:#F2C56D;font-size:12px}
+.lx-luxe-rule:before,.lx-luxe-rule:after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,#C99443)}
+.lx-luxe-rule:after{background:linear-gradient(90deg,#C99443,transparent)}
+.legacy-auth.legacy-auth.legacy-auth .legacy-copy h1{font-family:var(--lx-serif)!important;font-weight:500!important;font-size:34px!important;color:#F5F1E8!important}
+.legacy-auth.legacy-auth.legacy-auth .legacy-copy h1 em{font-family:var(--lx-serif)!important;font-style:italic!important;color:#F2C56D!important}
+.legacy-auth .legacy-copy>p{color:#BDB4A6!important}
+.legacy-auth .legacy-benefits{align-items:center}
+.legacy-auth .legacy-benefits>div{color:#BDB4A6!important}
+.legacy-auth .legacy-benefits i{background:var(--lx-surface-solid)!important;border:1px solid rgba(242,197,109,.35)!important;color:#F2C56D!important}
+.legacy-card{
+  background:linear-gradient(var(--lx-surface-solid),var(--lx-surface-solid)) padding-box,linear-gradient(var(--lx-border-strong),var(--lx-border-strong)) border-box!important;
+  border:1px solid transparent!important;box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 40px rgba(242,197,109,.06)!important;
+}
+.legacy-card .legacy-card-logo{background:transparent!important;border:0!important;box-shadow:none!important;width:74px!important;height:auto!important;margin:0 auto 22px!important}
+.legacy-card .legacy-card-logo img,.legacy-brand .legacy-logo img{width:100%;height:auto;display:block}
+.legacy-auth.legacy-auth.legacy-auth .legacy-card h2{font-family:var(--lx-serif)!important;font-weight:600!important;font-size:30px!important;color:#F5F1E8!important}
+.legacy-auth.legacy-auth.legacy-auth .legacy-card>p{font-family:var(--lx-caps)!important;letter-spacing:.2em!important;font-size:11px!important;color:#C99443!important;text-transform:uppercase}
+.legacy-card label{color:#BDB4A6!important}
+.legacy-card input{background:var(--lx-bg)!important;border-color:rgba(201,148,67,.28)!important}
+.legacy-card input:focus{border-color:#F2C56D!important;box-shadow:0 0 0 3px rgba(242,197,109,.12)!important}
+.legacy-enter{background:var(--lx-gold-grad)!important;color:#080705!important;border:1px solid #F2C56D!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.45)!important}
+.legacy-enter:hover{filter:brightness(1.08)}
+.legacy-google{background:var(--lx-surface-solid)!important;border-color:rgba(201,148,67,.3)!important}
+.legacy-create{border-top-color:rgba(201,148,67,.18)!important}
+.legacy-forgot,.legacy-create button{color:#F2C56D!important}
+.legacy-lang{background:var(--lx-bg-2)!important;border-color:var(--lx-hairline)!important}
+html body .auth-loading{background:var(--lx-bg)!important;font-family:var(--lx-caps)!important;color:#F2C56D!important}
+
+/* ============================================================
+   VISÃO GERAL (dashboard dr-*): remove o azul-marinho legado
+   ============================================================ */
+html .app.app .dr-head,html .app.app .dr-actions,html .app.app .dr-kpis,html .app.app .dr-middle,
+html .app.app .dr-bottom,html .app.app .dr-area,html .app.app .dr-legend,html .app.app .dr-bars,
+html .app.app .dr-events,html .app.app .dr-table,html .app.app .dr-row,html .app.app .dr-th,html .app.app .dr-empty{
+  background:transparent!important;background-image:none!important;border-color:transparent!important;box-shadow:none!important;
+}
+html .app.app .dr-row{border-bottom:1px solid rgba(201,148,67,.10)!important;border-radius:0!important}
+html .app.app .dr-kpi,html .app.app .dr-card{
+  background:
+    linear-gradient(var(--lx-surface),var(--lx-surface)) padding-box,
+    linear-gradient(var(--lx-border),var(--lx-border)) border-box!important;
+  border:1px solid transparent!important;
+  box-shadow:inset 0 1px 0 rgba(255,236,190,.06),0 14px 34px rgba(0,0,0,.5)!important;
+}
+html .app.app .dr-kpi:hover,html .app.app .dr-card:hover{
+  background:linear-gradient(var(--lx-surface-solid),var(--lx-surface-solid)) padding-box,var(--lx-gold-grad) border-box!important;
+  box-shadow:inset 0 1px 0 rgba(255,236,190,.1),0 0 22px rgba(242,197,109,.14),0 14px 34px rgba(0,0,0,.5)!important;
+}
+html .app.app .dr-head h1 span{font-family:var(--lx-serif)!important;font-style:italic!important;font-weight:500!important;color:#F2C56D!important}
+html .app.app .dr-head i{font-family:var(--lx-caps)!important;font-style:normal!important;letter-spacing:.22em!important;text-transform:uppercase!important;color:#C99443!important;font-size:10px!important}
+html .app.app .dr-kpi svg,html .app.app .dr-card header svg{color:#F2C56D!important}
+
+/* Menu recolhido: nenhum rótulo de texto pode vazar ao lado dos ícones */
+@media(min-width:761px) and (max-width:900px){
+  .app>aside:not(:hover) .nav-group a{font-size:0!important;color:transparent}
+  .app>aside:not(:hover) .nav-group a svg{color:#BDB4A6!important}
+  .app>aside:not(:hover) .nav-group a.active svg{color:#F2C56D!important}
+}
+html .app.app .dr-bars i{background:linear-gradient(180deg,#F2C56D,#C99443 60%,#8A5726)!important}
+html .app.app .dr-bars i.gray{background:#4a4036!important}
+html .app.app .dr-bars small,html .app.app .dr-legend{color:#BDB4A6!important}
+html .app.app .dr-legend i.rose{background:#F2C56D!important}
+
+/* ---- Agenda: remove azul-marinho legado ---- */
+html .app.app .month-chip,html .app.app .agenda-sync,html .app.app .week-head{background:var(--lx-surface)!important;border-color:var(--lx-border)!important;color:var(--lx-text-2)!important}
+html .app.app .week-head *{color:var(--lx-muted)!important}
+html .app.app .day-number{color:var(--lx-muted)!important}
+html .app.app .day-number.today{background:var(--lx-accent)!important;color:#080705!important}
+html .app.app .cal-event{background:rgba(201,148,67,.10)!important;color:var(--lx-text)!important;border:1px solid var(--lx-border)!important;border-left:2px solid var(--lx-accent)!important}
+html .app.app .cal-event *{color:inherit!important}
+html .app.app .cal-event small,html .app.app .cal-event span{color:var(--lx-accent-2)!important}
+html .app.app .agenda-legend,html .app.app .agenda-legend *{color:var(--lx-muted)!important}
+/* ---- Atendimento: contador de não lidas em dourado ---- */
+html .app.app .service-unread{background:var(--lx-accent)!important;color:#080705!important;border:0!important;font-weight:800!important}
+/* ---- Ícones do cabeçalho ---- */
+.app .tools,.app .tools svg{color:var(--lx-muted)!important}
+
+/* ============================================================
+   RELEVO 3D + CONFORTO VISUAL (pedido da Dra. Suzanne, 03/10/2026)
+   - fundo deixa de ser preto chapado: café profundo com luz no topo
+   - cards "saltam" da tela: bisel claro em cima, sombra embaixo
+   - campos de digitação ficam "afundados" (relevo invertido)
+   - botões têm volume e afundam ao clicar
+   - textos um pouco maiores e mais claros
+   ============================================================ */
+:root{
+  --lx-raise-bg:linear-gradient(180deg,#2a1f15 0%,#1d150e 45%,#17110C 100%);
+  --lx-raise-shadow:
+    inset 0 1px 0 rgba(255,236,190,.16),
+    inset 0 -2px 0 rgba(0,0,0,.45),
+    0 2px 0 rgba(0,0,0,.6),
+    0 10px 22px rgba(0,0,0,.55),
+    0 22px 44px rgba(0,0,0,.35);
+  --lx-raise-shadow-hover:
+    inset 0 1px 0 rgba(255,236,190,.22),
+    inset 0 -2px 0 rgba(0,0,0,.45),
+    0 3px 0 rgba(0,0,0,.6),
+    0 16px 30px rgba(0,0,0,.6),
+    0 0 26px rgba(242,197,109,.12);
+  --lx-sunken:inset 0 2px 5px rgba(0,0,0,.65),inset 0 -1px 0 rgba(255,236,190,.06);
+  /* Contorno em OURO POLIDO (gradiente) — marca registrada do layout, não remover */
+  --lx-gold-border:linear-gradient(125deg,#8A5726 0%,#C99443 26%,#F2C56D 44%,#FFF0BE 50%,#F2C56D 56%,#C99443 74%,#8A5726 100%);
+  --lx-gold-border-hover:linear-gradient(125deg,#C99443 0%,#F2C56D 30%,#FFF6D6 50%,#F2C56D 70%,#C99443 100%);
+}
+html,body,#root,.app{
+  background:radial-gradient(ellipse 120% 70% at 50% -10%,#2a1e13 0%,#17110C 42%,#0e0a07 75%,#080705 100%) fixed!important;
+}
+.app:before{display:none!important}
+html body{font-size:15px!important}
+/* Só na área de conteúdo: no menu lateral recolhido os rótulos precisam continuar escondidos */
+html .app.app>main p,html .app.app>main label,html .app.app>main small,html .app.app>main .muted{font-size:13px!important;color:#D4CBBC!important}
+html .app.app>main button,html .app.app>main input,html .app.app>main select,html .app.app>main textarea,html .app.app>main td,html .app.app>main a{font-size:14px!important}
+html .app.app td{color:#EDE6D8!important;font-weight:500!important}
+
+/* Cards em relevo */
+html .app.app .card,html .app.app .module-box,html .app.app .settings-feature-card,html .app.app .dashboard-kpi,
+html .app.app .integration-panel,html .app.app .investigation-card,html .app.app .connection-card,
+html .app.app .doc-library-card,html .app.app .doc-upload-card,html .app.app .doc-templates-card,
+html .app.app .movement-card,html .app.app .proc-auto-card,html .app.app .proc-sync-box,html .app.app .lead-card,
+html .app.app .dr-kpi,html .app.app .dr-card,html .app.app .table-panel,html .app.app .smart-card,
+html .app.app .agent-item,html .app.app .agent-console,html .app.app .service-sidebar,html .app.app .service-main,
+html .app.app .agenda-sync,html .app.app .month-chip,html .app.app .lane{
+  background:var(--lx-raise-bg) padding-box,var(--lx-gold-border) border-box!important;
+  border:1.5px solid transparent!important;
+  box-shadow:var(--lx-raise-shadow),0 0 14px rgba(242,197,109,.10)!important;
+}
+html .app.app .card:hover,html .app.app .module-box:hover,html .app.app .dashboard-kpi:hover,
+html .app.app .dr-kpi:hover,html .app.app .dr-card:hover,html .app.app .smart-card:hover,html .app.app .lead-card:hover,
+html .app.app .investigation-card:hover,html .app.app .connection-card:hover,html .app.app .doc-library-card:hover,html .app.app .movement-card:hover{
+  background:var(--lx-raise-bg) padding-box,var(--lx-gold-border-hover) border-box!important;
+  box-shadow:var(--lx-raise-shadow-hover),0 0 24px rgba(242,197,109,.22)!important;
+  transform:translateY(-1px);
+}
+/* Painel geral do dashboard: placa de fundo levemente elevada */
+html .app.app .dashboard-reference{
+  background:linear-gradient(180deg,rgba(36,26,17,.55),rgba(16,12,8,.55))!important;
+  border:1px solid rgba(201,148,67,.18)!important;
+  box-shadow:inset 0 1px 0 rgba(255,236,190,.08),0 20px 50px rgba(0,0,0,.45)!important;
+}
+
+/* Botões com volume */
+html .app.app button,html .app.app .secondary{
+  background:linear-gradient(180deg,#2c2117,#1b140d)!important;
+  border:1px solid rgba(242,197,109,.28)!important;
+  color:#F5F1E8!important;
+  box-shadow:inset 0 1px 0 rgba(255,236,190,.14),0 2px 0 rgba(0,0,0,.6),0 4px 10px rgba(0,0,0,.4)!important;
+}
+html .app.app .primary,html .app.app [class*="primary"],html .app.app button[type="submit"],html .app.app .dr-new,html .app.app .service-send,html .app.app .integration-action{
+  background:linear-gradient(135deg,#8A5726 0%,#C99443 28%,#FFF0BE 49%,#F2C56D 58%,#C99443 80%,#8A5726 100%)!important;
+  color:#080705!important;border:1px solid #F2C56D!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -2px 0 rgba(0,0,0,.25),0 2px 0 #5e3a17,0 6px 16px rgba(0,0,0,.5)!important;
+}
+html .app.app button:active,html .app.app .primary:active{transform:translateY(2px)!important;box-shadow:inset 0 2px 4px rgba(0,0,0,.5)!important}
+html .app.app aside nav a,html .app.app aside nav a.active{box-shadow:none}
+html .app.app aside nav a.active{
+  background:linear-gradient(180deg,#2c2117,#1b140d)!important;
+  box-shadow:inset 3px 0 0 #F2C56D,inset 0 1px 0 rgba(255,236,190,.14),0 2px 0 rgba(0,0,0,.6),0 4px 10px rgba(0,0,0,.4)!important;
+}
+
+/* Campos afundados */
+html .app.app input,html .app.app select,html .app.app textarea,html .app.app .input-search{
+  background:#0c0906!important;border:1px solid rgba(201,148,67,.30)!important;box-shadow:var(--lx-sunken)!important;color:#F5F1E8!important;
+}
+html .app.app .input-search input{box-shadow:none!important;border:0!important;background:transparent!important}
+html .app.app input:focus,html .app.app select:focus,html .app.app textarea:focus{border-color:#F2C56D!important;box-shadow:var(--lx-sunken),0 0 0 3px rgba(242,197,109,.18)!important}
+
+/* Tabelas: linhas bem separadas */
+html .app.app tbody tr:nth-child(even){background:rgba(255,236,190,.03)!important}
+html .app.app tbody tr:hover{background:rgba(242,197,109,.09)!important}
+
+/* Menu lateral e cabeçalho com profundidade */
+html .app.app>aside{box-shadow:inset -1px 0 0 rgba(242,197,109,.18),8px 0 24px rgba(0,0,0,.45)!important}
+html .app.app main>header{background:linear-gradient(180deg,#241a11,#17110C)!important;box-shadow:inset 0 1px 0 rgba(255,236,190,.12),0 3px 0 rgba(0,0,0,.5),0 12px 26px rgba(0,0,0,.45)!important}
+
+/* Login também em relevo */
+.legacy-auth{background:radial-gradient(ellipse 120% 70% at 30% 0%,#2a1e13 0%,#17110C 45%,#080705 100%)!important}
+.legacy-card{background:linear-gradient(180deg,#2a1f15,#17110C) padding-box,linear-gradient(125deg,#8A5726,#C99443 26%,#F2C56D 44%,#FFF0BE 50%,#F2C56D 56%,#C99443 74%,#8A5726) border-box!important;border:1.5px solid transparent!important;box-shadow:inset 0 1px 0 rgba(255,236,190,.16),0 3px 0 rgba(0,0,0,.6),0 30px 70px rgba(0,0,0,.6)!important}
+.legacy-card input{background:#0c0906!important;box-shadow:inset 0 2px 5px rgba(0,0,0,.65)!important}
+.legacy-enter{background:linear-gradient(135deg,#8A5726 0%,#C99443 28%,#FFF0BE 49%,#F2C56D 58%,#C99443 80%,#8A5726 100%)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 2px 0 #5e3a17,0 6px 16px rgba(0,0,0,.5)!important}
+
+/* Rótulo "Investigação" agora vem do próprio menu (App.tsx); anula o
+   truque antigo de ::after que vazava texto com o menu recolhido. */
+.app aside nav a[href="/consultas"]::after{content:none!important;display:none!important}
+.app aside:hover nav a[href="/consultas"]{font-size:13px!important}
+/* Eventos da agenda não transbordam o card */
+html .app.app .cal-event{overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+html .app.app .cal-event *{overflow:hidden!important;text-overflow:ellipsis!important}
+.app.nav-open>aside nav a[href="/consultas"]{font-size:.92rem!important}
+
+/* Item ativo do menu e abas ativas: moldura em ouro polido */
+html .app.app aside nav a.active,html .app.app button.active,html .app.app [role="tab"][aria-selected="true"]{
+  background:linear-gradient(180deg,#2c2117,#1b140d) padding-box,var(--lx-gold-border) border-box!important;
+  border:1px solid transparent!important;color:#FFF0BE!important;
+}
+
+/* Bordas de TODOS os cards em ouro polido, mais visíveis (2px) */
+html .app.app [class$="-card"],html .app.app [class*="-card "],html .app.app .card,html .app.app [class$="-panel"],
+html .app.app [class*="-panel "],html .app.app .module-box,html .app.app .dr-kpi,html .app.app .dr-card,
+html .app.app .smart-card,html .app.app .agent-item,html .app.app .agent-console,html .app.app .lane,
+html .app.app .service-sidebar,html .app.app .service-main,html .app.app .agenda-sync,html .app.app .month-chip{
+  background:var(--lx-raise-bg) padding-box,var(--lx-gold-border) border-box!important;
+  border:2px solid transparent!important;
+  box-shadow:var(--lx-raise-shadow),0 0 16px rgba(242,197,109,.16)!important;
+}
+html .app.app [class$="-card"]:hover,html .app.app [class*="-card "]:hover,html .app.app .card:hover,
+html .app.app .dr-kpi:hover,html .app.app .dr-card:hover,html .app.app .smart-card:hover,html .app.app .agent-item:hover{
+  background:var(--lx-raise-bg) padding-box,var(--lx-gold-border-hover) border-box!important;
+  box-shadow:var(--lx-raise-shadow-hover),0 0 26px rgba(242,197,109,.28)!important;
+}
+
+/* ============================================================
+   FUNDO DE TELA OFICIAL (foto SF: mesa, livros, caneta e cortinas
+   douradas) em toda a aplicação. Véu escuro por cima garante a
+   leitura; os cards em relevo ficam sobre ele.
+   ============================================================ */
+html,body,#root,.app{
+  background:
+    linear-gradient(180deg,rgba(8,7,5,.72) 0%,rgba(8,7,5,.80) 55%,rgba(8,7,5,.86) 100%),
+    url('/brand/fundo-sf.jpg') center 30%/cover no-repeat fixed,
+    #080705!important;
+}
+.app>main,.app .content{background:transparent!important}
+html .app.app .dashboard-reference{background:rgba(16,12,8,.55)!important;backdrop-filter:blur(2px)}
+/* Login: a foto aparece com mais destaque */
+.legacy-auth{
+  background:
+    linear-gradient(90deg,rgba(8,7,5,.45) 0%,rgba(8,7,5,.55) 44%,rgba(8,7,5,.80) 100%),
+    url('/brand/fundo-sf.jpg') center 30%/cover no-repeat,
+    #080705!important;
+}
+/* Tela larga (computador): a foto é vertical, então mostramos a parte da
+   mesa (livros, caneta, notebook), sem o monograma gigante atrás do conteúdo. */
+@media(min-width:901px){
+  html,body,#root,.app,.legacy-auth{background-position:center,center 100%,center!important}
+}
+/* Celular (tela em pé): foto inteira com o monograma, como no papel de parede */
+@media(max-width:900px){
+  html,body,#root,.app{background-attachment:scroll,fixed,scroll!important;background-position:center,center 30%,center!important}
+}
+/* Menu em trilho estreito (sem passar o mouse / sem abrir): só ícones */
+@media(max-width:760px){
+  .app:not(.nav-open)>aside .brand>div:not(.logo),
+  .app:not(.nav-open)>aside .nav-group>small{display:none!important}
+  .app:not(.nav-open)>aside .nav-group a{font-size:0!important}
+}
+/* CORREÇÃO DO MENU LATERAL: uma regra antiga (position:relative) colocava o
+   menu "dentro" do fluxo da página. Resultado: ele não conseguia abrir ao
+   passar o mouse (ficava espremido em 68px, com os nomes cortados) e
+   sobrava uma faixa preta entre o menu e o conteúdo. Volta a ser fixo. */
+@media(min-width:761px){
+  html .app.app>aside{position:fixed!important;top:0!important;left:0!important;bottom:0!important;height:100vh!important;flex-shrink:0!important}
+}
+
+/* ============================================================
+   MENU LATERAL SEMPRE ABERTO NO COMPUTADOR (preferência da Dra.
+   Suzanne, 03/10/2026). Em telas médias (761–900px) continua o
+   trilho que abre ao passar o mouse; no celular, o menu do botão ☰.
+   ============================================================ */
+@media(min-width:901px){
+  html .app.app>aside,html .app.app>aside:hover{width:240px!important;min-width:240px!important;max-width:240px!important;box-shadow:inset -1px 0 0 rgba(242,197,109,.18),8px 0 24px rgba(0,0,0,.45)!important}
+  html .app.app>main{margin-left:240px!important;width:calc(100% - 240px)!important}
+  html .app.app>aside .brand>div:not(.logo){opacity:1!important;visibility:visible!important;width:auto!important;overflow:visible!important;transform:none!important}
+  html .app.app>aside .nav-group>small{height:auto!important;padding:8px 10px 6px!important;opacity:1!important;font-size:10px!important}
+  html .app.app>aside .nav-group a{width:auto!important;max-width:none!important;min-width:0!important;padding:0 12px!important;justify-content:flex-start!important;font-size:13.5px!important;height:40px!important}
+  html .app.app>aside nav a[href="/consultas"]{font-size:13.5px!important}
+  html .app.app>aside .profile{min-height:64px!important;padding:9px!important;gap:9px!important;justify-content:flex-start!important;flex-direction:row!important}
+  html .app.app>aside .profile-copy{display:block!important;opacity:1!important}
+}
+/* Selo de data/hora das próximas audiências (era vinho) */
+html .app.app .dr-card time,html .app.app .dr-events time{background:rgba(201,148,67,.14)!important;color:#F2C56D!important;border:1px solid rgba(242,197,109,.3)!important}
+html .app.app .dr-card time *,html .app.app .dr-events time *{color:inherit!important}
+
+/* ============================================================
+   ZERO VERMELHO: detalhes vinho/vermelhos que sobraram em módulos
+   (CRM, Andamentos, Agentes, Integrações, Financeiro, Marketing,
+   Documentos, Relatórios, Calculadoras) passam para a paleta ouro.
+   ============================================================ */
+html .app.app .crm-ruler-step.has-leads,html .app.app .movement-stat-review,html .app.app .agent-advanced,
+html .app.app .legal-guard,html .app.app .integration-head,html .app.app .settings-chip.ready,
+html .app.app .connection-action,html .app.app .integration-form label{
+  border-color:rgba(242,197,109,.45)!important;
+}
+html .app.app .movement-stat-review{background:var(--lx-raise-bg)!important;box-shadow:var(--lx-raise-shadow)!important}
+html .app.app .smart-card svg,html .app.app .doc-name svg,html .app.app .campaign-alert svg,
+html .app.app .report-card-head svg,html .app.app .campaign-hub svg,html .app.app .marketing svg,
+html .app.app .card-icon,html .app.app .card-icon svg{color:#F2C56D!important}
+html .app.app .report-track i{background:linear-gradient(90deg,#8A5726,#C99443,#F2C56D)!important}
+html .app.app [style*="#b51f43"],html .app.app [style*="#d62950"],html .app.app [style*="#c3294d"],
+html .app.app [style*="#b42318"],html .app.app [style*="#e6375a"],html .app.app [style*="#df3658"]{
+  background-color:#C99443!important;border-color:#F2C56D!important;color:#080705!important;
+}
+.tribunals-page .integration-action{background:var(--lx-gold-grad)!important;border-color:#F2C56D!important;color:#080705!important}
+.tribunal-panel-title>span{border-color:#C99443!important;color:#F2C56D!important}
+
+/* ============================================================
+   BRINCANDO COM O OURO
+   ============================================================ */
+/* Números de destaque em ouro degradê */
+html .app.app .dr-kpi strong,html .app.app .card strong,html .app.app .dashboard-kpi strong,html .app.app .movement-number{
+  background:linear-gradient(180deg,#FFF0BE 0%,#F2C56D 45%,#C99443 100%);-webkit-background-clip:text;background-clip:text;color:transparent!important;
+  -webkit-text-fill-color:transparent;filter:drop-shadow(0 1px 0 rgba(0,0,0,.6));
+}
+/* Ícones dos cards num medalhão dourado em relevo */
+html .app.app .dr-kpi header svg,html .app.app .dr-kpi>div>svg,html .app.app .dr-kpi span>svg{
+  color:#F2C56D!important;filter:drop-shadow(0 0 4px rgba(242,197,109,.45))!important;
+}
+/* Selos de data/hora (audiências): ficha de ouro com texto escuro */
+html .app.app .dr-card time,html .app.app .dr-events time{
+  background:linear-gradient(180deg,#F2C56D,#C99443 60%,#8A5726)!important;color:#080705!important;
+  border:1px solid #FFF0BE!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 2px 0 rgba(0,0,0,.5)!important;font-weight:800!important;
+}
+html .app.app .dr-card time *,html .app.app .dr-events time *{color:#080705!important}
+/* Títulos de seção com filete dourado embaixo */
+html .app.app .dr-card header h2,html .app.app .dr-card header h3{position:relative;padding-bottom:6px}
+html .app.app .dr-card header h2:after,html .app.app .dr-card header h3:after{
+  content:"";position:absolute;left:0;bottom:0;width:56px;height:2px;border-radius:2px;background:linear-gradient(90deg,#F2C56D,#8A5726 70%,transparent);
+}
+/* Status "ativo/online" em ouro em vez de verde/azul no menu e chips neutros */
+html .app.app .badge,html .app.app [class*="pill"]{border-color:rgba(242,197,109,.3)!important}
+/* Linha divisória ornamental do cabeçalho */
+html .app.app main>header{border-image:none!important}
+/* Monograma SF sempre em ouro vivo e brilhante (menu e login) */
+html .app.app .brand .logo img,.legacy-auth .lx-luxe-brand img,.legacy-auth .legacy-card-logo img{
+  filter:brightness(1.18) saturate(1.25) drop-shadow(0 0 6px rgba(242,197,109,.55)) drop-shadow(0 0 14px rgba(242,197,109,.25))!important;
+}
+html .app.app>aside .brand .logo{width:40px!important;height:46px!important;min-width:40px!important;flex:0 0 40px!important}
+
+/* ============================================================
+   OURO METÁLICO EM DEGRADÊ (claro-escuro-claro, como a logo SF)
+   ============================================================ */
+:root{
+  --lx-metal:linear-gradient(135deg,#8A5726 0%,#C99443 20%,#F2C56D 38%,#FFF0BE 50%,#F2C56D 62%,#C99443 80%,#8A5726 100%);
+  --lx-metal-text:linear-gradient(100deg,#C99443 0%,#F2C56D 25%,#FFF0BE 45%,#F2C56D 60%,#C99443 80%,#F2C56D 100%);
+}
+/* Selos de data das audiências: ficha compacta de ouro polido */
+html .app.app .dr-events time,html .app.app .dr-card time{
+  align-self:flex-start!important;flex:0 0 52px!important;width:52px!important;height:auto!important;
+  padding:6px 4px 7px!important;border-radius:10px!important;text-align:center!important;
+  background:var(--lx-metal)!important;color:#2a1a08!important;border:1px solid #FFF0BE!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.65),inset 0 -1px 0 rgba(90,55,20,.5),0 3px 8px rgba(0,0,0,.55)!important;
+  font-size:10px!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.08em!important;
+}
+html .app.app .dr-events time b,html .app.app .dr-card time b{display:block!important;font-size:13px!important;font-weight:800!important;letter-spacing:0!important;color:#1a1005!important;margin-top:1px}
+
+/* Nome do escritório e títulos em ouro degradê */
+html .app.app .brand b,html .app.app .dr-head h1 span,html .app.app .dr-card header h2,html .app.app .dr-card header h3,
+html .app.app .module-box h2,html .app.app .table-panel h2,.legacy-auth.legacy-auth.legacy-auth .lx-luxe-brand strong{
+  background:var(--lx-metal-text)!important;-webkit-background-clip:text!important;background-clip:text!important;
+  color:transparent!important;-webkit-text-fill-color:transparent!important;
+}
+html .app.app .brand b{font-size:13px!important;letter-spacing:.04em!important}
+html .app.app>aside .brand{padding:0 12px!important;gap:10px!important}
