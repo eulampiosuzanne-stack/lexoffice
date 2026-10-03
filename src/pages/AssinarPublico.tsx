@@ -401,15 +401,15 @@ export default function AssinarPublico() {
 
 const CSS = `
 .lxs-page{min-height:100vh;background:#080705;display:flex;justify-content:center;padding:18px 12px;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#F5F1E8}
-.lxs-card{width:100%;max-width:560px;background:#F5F1E8;border-radius:18px;box-shadow:0 10px 40px rgba(60,20,30,.12);padding:22px 20px 16px}
+.lxs-card{width:100%;max-width:560px;background:#17110C;border-radius:18px;border:1px solid #C99443;box-shadow:0 10px 40px rgba(0,0,0,.38),0 0 24px rgba(255,217,120,.10);padding:22px 20px 16px}
 .lxs-head{display:flex;gap:12px;align-items:center;border-bottom:1px solid #4A3420;padding-bottom:14px;margin-bottom:16px}
-.lxs-logo{width:42px;height:42px;border-radius:50%;background:#C99443;color:#e9d3a6;display:grid;place-items:center;font-weight:700;font-family:Georgia,serif}
+.lxs-logo{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#9B5D12,#FFD978 38%,#FFF3C4 50%,#E3A83B 65%,#9B5D12);color:#080705;display:grid;place-items:center;font-weight:700;font-family:Georgia,serif}
 .lxs-head b{display:block;color:#C99443;letter-spacing:.04em;font-size:15px}.lxs-head small{color:#8a7a70;font-size:12px}
 .lxs-card h1{font-size:20px;margin:0 0 4px;color:#F5F1E8}.lxs-doc{margin:0 0 12px;color:#C99443;font-weight:600}
 .lxs-steps{display:flex;gap:6px;margin-bottom:14px}.lxs-steps span{flex:1;height:5px;border-radius:4px;background:#ece3d8}.lxs-steps .done{background:#b88a3a}.lxs-steps .on{background:#C99443}
 .lxs-box{display:flex;flex-direction:column;gap:12px}.lxs-box h2{font-size:17px;margin:4px 0 0;color:#C99443}.lxs-box p{margin:0;line-height:1.5;font-size:15px}
-.lxs-btn{appearance:none;border:0;border-radius:12px;background:#C99443;color:#F5F1E8;font-size:16px;font-weight:600;padding:14px 16px;text-align:center;cursor:pointer;text-decoration:none;display:block}
-.lxs-btn:disabled{opacity:.45;cursor:not-allowed}.lxs-ghost{background:#F5F1E8;color:#C99443;border:1.5px solid #C99443}
+.lxs-btn{appearance:none;border:1px solid #FFD978;border-radius:12px;background:linear-gradient(135deg,#9B5D12,#E3A83B 35%,#FFF3C4 50%,#FFD978 62%,#9B5D12);color:#080705;font-size:16px;font-weight:600;padding:14px 16px;text-align:center;cursor:pointer;text-decoration:none;display:block}
+.lxs-btn:disabled{opacity:.45;cursor:not-allowed}.lxs-ghost{background:#100C08;color:#FFD978;border:1.5px solid #FFD978}
 .lxs-link{background:none;border:0;color:#C99443;text-decoration:underline;font-size:14px;padding:4px;cursor:pointer}
 .lxs-input{font-size:26px;letter-spacing:.35em;text-align:center;padding:12px;border:1.5px solid #d9c9b4;border-radius:12px;outline:none}
 .lxs-check{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.45}.lxs-check input{width:20px;height:20px;margin-top:2px;accent-color:#C99443;flex:none}
@@ -430,5 +430,5 @@ const CSS = `
 .lxs-docbtn.on .lxs-docnum{background:#C99443;color:#F5F1E8}
 .lxs-doctitle{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .lxs-donelist{text-align:left;margin:0;padding-left:18px;font-size:14px;line-height:1.6;align-self:stretch}
-.lxs-foot{margin-top:18px;border-top:1px solid #efe6da;padding-top:10px;font-size:11px;color:#9a8b80;text-align:center}
+.lxs-foot{margin-top:18px;border-top:1px solid rgba(255,217,120,.28);padding-top:10px;font-size:11px;color:#9a8b80;text-align:center}
 `;
