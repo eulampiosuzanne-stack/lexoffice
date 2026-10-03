@@ -806,3 +806,19 @@ html .app.app .dr-legend i.cyan{background:#C9993F!important}
 html .app.app .dr-row b{font-size:14.5px!important;color:#F5F1E8!important;font-weight:600!important}
 html .app.app .dr-row small,html .app.app .dr-row>span{font-size:13px!important;color:#BDB4A6!important}
 html .app.app .dr-th span{font-family:var(--lx-caps)!important;font-size:11px!important;color:#C9993F!important;letter-spacing:.14em!important}
+
+/* Celular: Visão Geral ocupa a largura toda e os botões do topo não vazam */
+@media(max-width:760px){
+  html .app.app .dashboard-reference{padding:6px 2px!important;margin:0!important}
+  html .app.app .dr-actions{flex-wrap:wrap!important;width:100%!important}
+  html .app.app .dr-actions .dr-new{flex:1 1 auto!important}
+  html .app.app .dr-actions .dr-user{display:none!important}
+  html .app.app .dr-head h1{font-size:28px!important}
+  html .app.app .dr-head h1 span{font-size:17px!important}
+  html .app.app .mobile-bottom-nav{background:rgba(16,12,8,.97)!important;border-top:2px solid #C9993F!important}
+  html .app.app .mobile-bottom-nav a,html .app.app .mobile-bottom-nav button{color:#BDB4A6!important}
+  html .app.app .mobile-bottom-nav a.active{color:#F5F1E8!important}
+  html .app.app .mobile-bottom-nav a.active svg{color:#E3BC6A!important}
+}
+/* Barra inferior do celular: "Mais" igual aos outros itens */
+html .app.app .mobile-bottom-nav button{background:transparent!important;border:0!important;box-shadow:none!important;font-size:11px!important;min-height:0!important;font-weight:600!important;text-shadow:none!important}
