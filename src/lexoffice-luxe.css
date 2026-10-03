@@ -727,3 +727,82 @@ html .app.app .dr-kpi small svg{
 
 /* 5. Moldura de luz das bordas fixa (sem piscar) */
 #root::after{animation:none!important;opacity:.75!important}
+
+/* ============================================================
+   SISTEMA UNIFICADO DE TEXTO E COR — REGRA FINAL (vence tudo acima)
+   Só 3 cores de texto + ouro reservado para destaque:
+   • MARFIM  #F5F1E8 — títulos, nomes de cards, item do menu ativo/hover
+   • BEGE    #BDB4A6 — itens do menu, legendas, descrições
+   • OURO    degradê — SOMENTE valores/números, ícones e rótulos de seção
+   Tipografia: Cormorant Garamond (títulos) · Cinzel (rótulos de seção)
+   · Inter (todo o resto). Pesos: 700 títulos/valores, 600 nomes, 500 texto.
+   ============================================================ */
+:root{--lx-ivory:#F5F1E8;--lx-beige:#BDB4A6;--lx-label:#C9993F}
+
+/* ---- Menu lateral: todos iguais; o ativo só muda o fundo e o filete ---- */
+html .app.app>aside nav a,html .app.app>aside nav a:hover,html .app.app>aside nav a.active{
+  font-family:var(--lx-font)!important;font-size:14px!important;font-weight:500!important;letter-spacing:0!important;
+  text-shadow:none!important;transform:none!important;
+}
+html .app.app>aside nav a{color:var(--lx-beige)!important;background:transparent!important;border:1px solid transparent!important;box-shadow:none!important}
+html .app.app>aside nav a svg{color:var(--lx-beige)!important;filter:none!important}
+html .app.app>aside nav a:hover{color:var(--lx-ivory)!important;background:rgba(245,241,232,.05)!important;border-color:transparent!important;box-shadow:none!important}
+html .app.app>aside nav a:hover svg{color:var(--lx-ivory)!important}
+html .app.app>aside nav a.active{
+  color:var(--lx-ivory)!important;font-weight:600!important;
+  background:linear-gradient(90deg,rgba(201,153,63,.18),rgba(201,153,63,.04))!important;
+  border:1px solid rgba(201,153,63,.35)!important;box-shadow:inset 3px 0 0 #C9993F!important;
+}
+html .app.app>aside nav a.active svg{color:#E3BC6A!important}
+html .app.app>aside .nav-group>small{font-family:var(--lx-caps)!important;color:var(--lx-label)!important;font-size:10.5px!important;letter-spacing:.18em!important;font-weight:600!important}
+html .app.app .profile-copy b{color:var(--lx-ivory)!important}
+html .app.app .profile-copy small{color:var(--lx-beige)!important}
+
+/* ---- Cards da Visão Geral: nome marfim · valor ouro · legenda bege ---- */
+html .app.app .dr-kpi small{font-family:var(--lx-font)!important;font-size:15px!important;font-weight:600!important;color:var(--lx-ivory)!important;letter-spacing:0!important}
+html .app.app .dr-kpi strong{font-family:var(--lx-font)!important;font-size:24px!important;font-weight:700!important;margin:10px 0 4px!important}
+html .app.app>main em,html .app.app .dr-kpi em{
+  font-family:var(--lx-font)!important;font-size:13px!important;font-weight:500!important;font-style:normal!important;
+  color:var(--lx-beige)!important;letter-spacing:0!important;background:none!important;-webkit-text-fill-color:currentColor!important;filter:none!important;
+}
+
+/* ---- Títulos de seção dentro dos cards: marfim em serifa, com filete ouro ---- */
+html .app.app .dr-card header h2,html .app.app .dr-card header h3,html .app.app .module-box h2,html .app.app .table-panel h2{
+  background:none!important;-webkit-text-fill-color:currentColor!important;color:var(--lx-ivory)!important;filter:none!important;
+  font-family:var(--lx-serif)!important;font-weight:600!important;font-size:22px!important;
+}
+/* Nome do escritório no topo do menu e sob o título: ouro (assinatura da marca) */
+html .app.app .brand b,html .app.app .dr-head h1 span{filter:none!important}
+
+/* ---- Textos de apoio em toda a aplicação ---- */
+html .app.app>main p,html .app.app>main label,html .app.app>main small,html .app.app .muted{color:var(--lx-beige)!important}
+html .app.app td{color:var(--lx-ivory)!important}
+html .app.app th,html .app.app .eyebrow{font-family:var(--lx-caps)!important;color:var(--lx-label)!important}
+
+/* Cabeçalho da Visão Geral: botões em uma linha só, alinhados */
+html .app.app .dr-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:20px!important;flex-wrap:wrap!important}
+html .app.app .dr-head>div:first-child{flex:1 1 320px!important;min-width:0!important}
+html .app.app .dr-actions{display:flex!important;align-items:center!important;gap:10px!important;flex-wrap:nowrap!important;background:transparent!important}
+html .app.app .dr-actions button{white-space:nowrap!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;min-height:44px!important;height:44px!important;padding:0 18px!important;line-height:1!important}
+html .app.app .dr-actions .dr-bell{width:44px!important;padding:0!important;border-radius:50%!important}
+html .app.app .dr-actions .dr-user b{width:28px!important;height:28px!important;border-radius:50%!important;display:inline-grid!important;place-items:center!important;font-size:11px!important;background:var(--lx-gold-classic)!important;color:#1f1404!important}
+
+/* Gráfico "Processos por Área": rosca em tons de ouro (cores vindas do --p1/--p2) */
+html .app.app .dr-ring{
+  width:150px!important;height:150px!important;border-radius:50%!important;position:relative!important;display:grid!important;place-items:center!important;
+  background:conic-gradient(#F2D894 0 var(--p1,33%),#C9993F var(--p1,33%) var(--p2,66%),#5a3d12 var(--p2,66%) 100%)!important;
+  box-shadow:inset 0 2px 0 rgba(255,240,200,.35),0 3px 0 #2c1d05,0 10px 22px rgba(0,0,0,.55)!important;
+}
+html .app.app .dr-ring:after{display:none!important}
+html .app.app .dr-ring>b{position:relative!important;inset:auto!important;width:96px!important;height:96px!important;border-radius:50%!important;display:grid!important;place-content:center!important;text-align:center!important;
+  background:linear-gradient(180deg,#241a11,#140e08)!important;box-shadow:inset 0 3px 8px rgba(0,0,0,.7)!important;color:#F5F1E8!important;font-size:24px!important}
+html .app.app .dr-ring>b small{display:block!important;color:#BDB4A6!important;font-size:12px!important;font-weight:500!important}
+html .app.app .dr-legend{gap:12px!important}
+html .app.app .dr-legend span{color:#BDB4A6!important;font-size:14px!important}
+html .app.app .dr-legend i{width:12px!important;height:12px!important;background:#5a3d12!important;box-shadow:0 0 0 1px rgba(242,216,148,.35)!important}
+html .app.app .dr-legend i.rose{background:#F2D894!important}
+html .app.app .dr-legend i.cyan{background:#C9993F!important}
+/* Tabela de conversas da Visão Geral: letras legíveis */
+html .app.app .dr-row b{font-size:14.5px!important;color:#F5F1E8!important;font-weight:600!important}
+html .app.app .dr-row small,html .app.app .dr-row>span{font-size:13px!important;color:#BDB4A6!important}
+html .app.app .dr-th span{font-family:var(--lx-caps)!important;font-size:11px!important;color:#C9993F!important;letter-spacing:.14em!important}
