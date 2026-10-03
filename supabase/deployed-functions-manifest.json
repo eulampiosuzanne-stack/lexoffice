@@ -10,6 +10,7 @@
     "meta-whatsapp-oauth",
     "whatsapp-operator-send",
     "whatsapp-release-agent",
+    "whatsapp-zapi-qrcode",
     "zapsign-configure",
     "zapsign-send-signature"
   ],
