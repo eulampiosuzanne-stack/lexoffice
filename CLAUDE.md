@@ -10,8 +10,10 @@ A usuária trabalha com duas sessões ao mesmo tempo no mesmo repositório:
 - **App Claude (desktop): FUNCIONALIDADE.** Lógica, dados, Supabase (banco, edge functions), integrações, bugs, deploy/rollback.
 - **Extensão Claude Code (editor): LAYOUT.** Visual, cores, CSS, temas, imagens, espaçamentos, textos de interface.
 
+Essa divisão é o padrão, não uma proibição: se a usuária pedir explicitamente algo da outra área (ex.: uma funcionalidade na extensão), fazer normalmente, seguindo o fluxo obrigatório abaixo (localhost, build/teste, deploy verificado, cuidado com dados).
+
 Regras para não uma atrapalhar a outra:
-- Cada sessão só mexe na sua área. Se a tarefa exigir a área da outra, fazer a menor mudança possível e avisar a usuária.
+- Sem pedido explícito, cada sessão só mexe na sua área. Se a tarefa exigir a área da outra, fazer a menor mudança possível e avisar a usuária.
 - Arquivos de layout (`*.css`, `theme.ts`, `client-app/src/theme.ts`, `public/brand/`, `index.html`, `public/manifest.webmanifest`) são da extensão. Telas `.tsx` são compartilhadas: o app altera lógica, a extensão altera classes/estrutura visual.
 - `git pull --rebase` antes de começar qualquer edição e de novo imediatamente antes de cada push. Commits pequenos e frequentes, um assunto por commit.
 - Nunca `push --force`, nunca descartar alterações da outra sessão. Em conflito, manter as duas mudanças; se não for possível, perguntar à usuária.
