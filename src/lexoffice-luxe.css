@@ -653,3 +653,77 @@ html .app.app .dr-bars i{background:linear-gradient(180deg,#F2D894,#C9993F 55%,#
   50%{opacity:1}
 }
 @media (prefers-reduced-motion:reduce){#root::after{animation:none;opacity:.8}}
+
+/* ============================================================
+   MENU LATERAL COMO "PAINEL DE LACA PRETA" — diferente da área
+   da foto: preto sólido escovado, filete de ouro em relevo na
+   divisa e sombra projetada sobre a foto (sensação de camada).
+   ============================================================ */
+html .app.app>aside{
+  background:
+    repeating-linear-gradient(90deg,rgba(255,235,190,.018) 0 1px,transparent 1px 3px),
+    linear-gradient(180deg,#17110b 0%,#0d0a07 45%,#070504 100%)!important;
+  backdrop-filter:none!important;
+  border-right:0!important;
+  box-shadow:
+    inset -1px 0 0 rgba(0,0,0,.9),
+    inset -3px 0 0 #6E4914,
+    inset -4px 0 0 #F2D894,
+    inset -6px 0 0 #A97A2B,
+    14px 0 30px rgba(0,0,0,.75),
+    4px 0 14px rgba(214,170,85,.25)!important;
+}
+/* Itens do menu com leve placa em relevo ao passar o mouse */
+html .app.app>aside nav a:hover{
+  background:linear-gradient(180deg,rgba(255,235,190,.07),rgba(255,235,190,.02))!important;
+  box-shadow:inset 0 1px 0 rgba(255,235,190,.10),0 2px 6px rgba(0,0,0,.5)!important;
+}
+/* Área da foto: vinheta suave junto ao menu, reforçando a separação */
+html .app.app>main{box-shadow:inset 30px 0 40px -20px rgba(0,0,0,.65)}
+/* Menu mais distinto: couro café iluminado em dourado + coluna de ouro na divisa */
+html .app.app>aside{
+  background:radial-gradient(ellipse 140% 50% at 0% 0%,rgba(214,170,85,.22),transparent 60%),
+    radial-gradient(ellipse 140% 40% at 100% 100%,rgba(169,122,43,.16),transparent 60%),
+    linear-gradient(180deg,#2b2015 0%,#1d150d 50%,#140e08 100%)!important;
+  box-shadow:16px 0 34px rgba(0,0,0,.85),6px 0 20px rgba(214,170,85,.35)!important;
+}
+@media(min-width:901px){
+  html .app.app>aside::after{content:"";position:fixed;top:0;bottom:0;left:236px;width:4px;pointer-events:none;z-index:1300;
+    background:linear-gradient(180deg,#6E4914 0%,#D6AA55 18%,#F2D894 34%,#A97A2B 52%,#F2D894 70%,#D6AA55 84%,#6E4914 100%);
+    box-shadow:0 0 12px rgba(214,170,85,.55),2px 0 0 rgba(0,0,0,.7)}
+}
+
+/* ============================================================
+   AJUSTES DE CONFORTO VISUAL E ACABAMENTO (03/10/2026)
+   ============================================================ */
+/* 1. Letras pequenas maiores e mais claras */
+html .app.app>main em,html .app.app .dr-kpi em{font-size:13px!important;font-style:normal!important;color:#E6C27A!important;font-weight:600!important}
+html .app.app .dr-kpi small{font-size:14px!important;color:#EDE6D8!important;font-weight:600!important;display:flex!important;align-items:center!important;gap:10px!important}
+html .app.app .dr-legend,html .app.app .dr-bars small,html .app.app .dr-card header span,html .app.app .badge,html .app.app [class*="pill"]{font-size:12.5px!important}
+html .app.app th{font-size:11.5px!important}
+html .app.app .dr-events span small{font-size:13px!important;color:#D4CBBC!important}
+html .app.app .dr-events span b{font-size:14.5px!important}
+
+/* 2. Título da Visão Geral sem corte: nome do escritório numa linha abaixo */
+html .app.app .dr-head h1{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;max-width:none!important}
+html .app.app .dr-head h1 span{display:block!important;font-size:19px!important;margin-top:4px!important;line-height:1.25!important}
+
+/* 3. Cabeçalho superior limpo no computador */
+@media(min-width:901px){html .app.app .mobile-menu-btn{display:none!important}}
+html .app.app .integration-shortcut{
+  display:inline-flex!important;align-items:center!important;gap:6px!important;padding:7px 14px!important;border-radius:999px!important;
+  text-decoration:none!important;color:#1f1404!important;font-weight:700!important;
+  background:var(--lx-gold-classic)!important;border:1px solid #E6C27A!important;
+  box-shadow:inset 0 2px 0 rgba(255,240,200,.55),inset 0 -2px 0 rgba(70,45,8,.5),0 2px 0 #4a3005,0 5px 12px rgba(0,0,0,.5)!important;
+}
+html .app.app .integration-shortcut svg{color:#1f1404!important}
+
+/* 4. Ícones dos cards em medalhão de ouro em relevo */
+html .app.app .dr-kpi small svg{
+  width:32px!important;height:32px!important;min-width:32px!important;padding:7px!important;box-sizing:border-box!important;border-radius:50%!important;
+  background:var(--lx-gold-classic)!important;color:#1f1404!important;filter:none!important;
+  box-shadow:inset 0 2px 0 rgba(255,240,200,.6),inset 0 -2px 0 rgba(70,45,8,.55),0 2px 0 #3a2504,0 4px 10px rgba(0,0,0,.55)!important;
+}
+
+/* 5. Moldura de luz das bordas fixa (sem piscar) */
+#root::after{animation:none!important;opacity:.75!important}
