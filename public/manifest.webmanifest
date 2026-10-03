@@ -6,8 +6,8 @@
   "start_url": "/cliente",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#0b0e14",
-  "theme_color": "#0b0e14",
+  "background_color": "#080705",
+  "theme_color": "#080705",
   "orientation": "any",
   "icons": [
     {"src":"/lexoffice-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"},
