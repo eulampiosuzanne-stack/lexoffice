@@ -108,17 +108,17 @@ export default function VerificarPublico() {
 
 const CSS = `
 .lxs-page{min-height:100vh;background:#080705;display:flex;justify-content:center;padding:18px 12px;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#F5F1E8}
-.lxs-card{width:100%;max-width:560px;background:#F5F1E8;border-radius:18px;box-shadow:0 10px 40px rgba(60,20,30,.12);padding:22px 20px 16px;box-sizing:border-box}
+.lxs-card{width:100%;max-width:560px;background:#17110C;border-radius:18px;border:1px solid #C99443;box-shadow:0 10px 40px rgba(0,0,0,.38),0 0 24px rgba(255,217,120,.10);padding:22px 20px 16px;box-sizing:border-box}
 .lxs-head{display:flex;gap:12px;align-items:center;border-bottom:1px solid #4A3420;padding-bottom:14px;margin-bottom:16px}
-.lxs-logo{width:42px;height:42px;border-radius:50%;background:#C99443;color:#e9d3a6;display:grid;place-items:center;font-weight:700}
+.lxs-logo{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#9B5D12,#FFD978 38%,#FFF3C4 50%,#E3A83B 65%,#9B5D12);color:#080705;display:grid;place-items:center;font-weight:700}
 .lxs-head b{display:block;color:#C99443;letter-spacing:.04em;font-size:15px}.lxs-head small{color:#8a7a70;font-size:12px}
 .lxs-card h1{font-size:20px;margin:0 0 4px;color:#F5F1E8}
-.lxs-btn{appearance:none;border:0;border-radius:12px;background:#C99443;color:#F5F1E8;font-size:16px;font-weight:600;padding:14px 16px;text-align:center;cursor:pointer;display:block}
-.lxs-btn:disabled{opacity:.45;cursor:not-allowed}.lxs-ghost{background:#F5F1E8;color:#C99443;border:1.5px solid #C99443}
+.lxs-btn{appearance:none;border:1px solid #FFD978;border-radius:12px;background:linear-gradient(135deg,#9B5D12,#E3A83B 35%,#FFF3C4 50%,#FFD978 62%,#9B5D12);color:#080705;font-size:16px;font-weight:600;padding:14px 16px;text-align:center;cursor:pointer;display:block}
+.lxs-btn:disabled{opacity:.45;cursor:not-allowed}.lxs-ghost{background:#100C08;color:#FFD978;border:1.5px solid #FFD978}
 .lxs-muted{color:#8a7a70;font-size:13px;line-height:1.45}.lxs-notice{color:#6b5d55;font-size:14px;margin:10px 0 0;text-align:center}
 .lxs-error{color:#a3182f;font-size:14px;margin:12px 0 0;text-align:center}
-.lxs-foot{margin-top:18px;border-top:1px solid #efe6da;padding-top:10px;font-size:11px;color:#9a8b80;text-align:center}
-.lxv-row{display:flex;gap:8px}.lxv-input{flex:1;min-width:0;font-size:20px;letter-spacing:.12em;text-align:center;padding:12px;border:1.5px solid #d9c9b4;border-radius:12px;outline:none;text-transform:uppercase}
+.lxs-foot{margin-top:18px;border-top:1px solid rgba(255,217,120,.28);padding-top:10px;font-size:11px;color:#9a8b80;text-align:center}
+.lxv-row{display:flex;gap:8px}.lxv-input{flex:1;min-width:0;font-size:20px;letter-spacing:.12em;text-align:center;padding:12px;background:#100C08;color:#F5F1E8;border:1.5px solid #C99443;border-radius:12px;outline:none;text-transform:uppercase}
 .lxv-result{display:flex;gap:12px;align-items:flex-start;margin-top:16px;padding:14px;border-radius:12px}
 .lxv-result h2{font-size:17px;margin:0 0 4px}.lxv-result p{margin:0;font-size:14px;line-height:1.45}
 .lxv-good{background:#eef7f0;border:1px solid #bfe0c8}.lxv-good h2{color:#1f6b38}
@@ -128,7 +128,7 @@ const CSS = `
 .lxv-dl{display:grid;grid-template-columns:130px 1fr;gap:8px 12px;margin:16px 0 0;font-size:14px}
 .lxv-dl dt{color:#8a7a70;font-weight:600}.lxv-dl dd{margin:0;min-width:0;overflow-wrap:anywhere}
 .lxv-hash{font-family:ui-monospace,Menlo,monospace;font-size:12px}
-.lxv-file{margin-top:18px;padding-top:14px;border-top:1px solid #efe6da;display:flex;flex-direction:column;gap:8px}
+.lxv-file{margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,217,120,.28);display:flex;flex-direction:column;gap:8px}
 .lxv-okmsg{color:#1f6b38;font-weight:600;font-size:14px;margin:6px 0 0;text-align:center}
 @media (max-width:420px){.lxv-dl{grid-template-columns:1fr}.lxv-dl dt{margin-top:4px}.lxv-row{flex-direction:column}}
 `;
