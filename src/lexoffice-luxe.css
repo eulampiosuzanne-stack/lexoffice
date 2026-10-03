@@ -614,3 +614,42 @@ html .app.app>aside{background:rgba(16,12,8,.82)!important;backdrop-filter:blur(
 html .app.app main>header{background:linear-gradient(180deg,rgba(36,26,17,.80),rgba(23,17,12,.80))!important;backdrop-filter:blur(6px)}
 /* Foto de fundo discreta e levemente embaçada (pedido de 03/10/2026) */
 html .app.app:after{filter:blur(3px) saturate(.82) hue-rotate(7deg)!important;transform:scale(1.03)}
+
+/* ============================================================
+   OURO MAIS "OURO" (menos amarelo-claro): tons mais profundos e
+   quentes como o metal da logo SF, com o brilho só numa faixa estreita
+   ============================================================ */
+:root{
+  --lx-gold-classic:linear-gradient(135deg,#6E4914 0%,#A97A2B 16%,#D6AA55 32%,#F2D894 43%,#D1A04A 54%,#9E6E24 72%,#C4913F 88%,#6E4914 100%);
+  --lx-gold-border-hover:linear-gradient(135deg,#9E6E24 0%,#D6AA55 30%,#F5DFA3 48%,#D6AA55 66%,#9E6E24 100%);
+  --lx-metal-text:linear-gradient(180deg,#F3D99A 0%,#DDB25C 32%,#BE8B35 58%,#8F5F1C 80%,#D8AE5E 100%);
+  --lx-accent:#C9993F;
+  --lx-accent-2:#E6C27A;
+}
+html .app.app .primary,html .app.app [class*="primary"],html .app.app button[type="submit"],html .app.app .dr-new,
+html .app.app .service-send,html .app.app .integration-action,.legacy-auth .legacy-enter{
+  color:#1f1404!important;border-color:#E6C27A!important;text-shadow:0 1px 0 rgba(255,235,180,.45)!important;
+  box-shadow:inset 0 2px 0 rgba(255,240,200,.55),inset 0 -3px 0 rgba(70,45,8,.5),0 3px 0 #4a3005,0 8px 18px rgba(0,0,0,.55)!important;
+}
+html .app.app .dr-events time,html .app.app .dr-card time{border-color:#E6C27A!important;color:#1f1404!important}
+html .app.app aside nav a.active,html .app.app aside nav a.active svg,html .app.app .dr-kpi svg,html .app.app .dr-card header svg,
+html .app.app .smart-card svg,html .app.app .card-icon svg{color:#E3BC6A!important}
+html .app.app aside nav a.active{box-shadow:inset 3px 0 0 #C9993F,inset 0 1px 0 rgba(255,235,180,.14),0 2px 0 rgba(0,0,0,.6),0 4px 10px rgba(0,0,0,.4)!important}
+html .app.app .eyebrow,html .app.app .nav-group>small,html .app.app th{color:#C9993F!important}
+html .app.app .dr-bars i{background:linear-gradient(180deg,#F2D894,#C9993F 55%,#7A5216)!important}
+
+/* ============================================================
+   MOLDURA DE LUZ DOURADA NAS BORDAS DA TELA (pulsa devagar)
+   Inspirada no brilho de borda que a Dra. Suzanne gostou.
+   Não bloqueia cliques e desliga para quem pede menos movimento.
+   ============================================================ */
+#root::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:2147483000;
+  box-shadow:inset 0 0 0 1px rgba(242,216,148,.35),inset 0 0 26px 2px rgba(214,170,85,.38),inset 0 0 70px 6px rgba(169,122,43,.18);
+  animation:lxGoldFrame 4.5s ease-in-out infinite;
+}
+@keyframes lxGoldFrame{
+  0%,100%{opacity:.55}
+  50%{opacity:1}
+}
+@media (prefers-reduced-motion:reduce){#root::after{animation:none;opacity:.8}}
