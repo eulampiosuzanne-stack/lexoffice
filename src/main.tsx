@@ -14,6 +14,7 @@ import ClientMessageActionBridge from './components/ClientMessageActionBridge';
 import BulkClientMessageBridge from './components/BulkClientMessageBridge';
 import OfficeBrandBridge from './OfficeBrandBridge';
 import ThemeController from './ThemeController';
+import './pwa-install';
 import './styles.css';
 import './legacy-auth.css';
 import './interaction-feedback.css';

@@ -3,3 +3,13 @@
 .cp-welcome-card{width:min(430px,100%);max-height:calc(100dvh - 32px);overflow-y:auto;-webkit-overflow-scrolling:touch;background:linear-gradient(145deg,#080705,#2a1c09);border:1px solid #9b681e;border-radius:24px;color:#f4eadc;padding:28px 24px 24px;text-align:center;box-shadow:0 24px 70px #0009}
 .cp-welcome-card .cp-seal{width:92px;height:92px;flex:0 0 auto}.cp-welcome-card h2{font:700 38px Georgia;color:#e8ad4d;margin:22px 0}.cp-welcome-card .cp-script{font-size:27px;color:#fff0da}.cp-welcome-card h3{font-size:19px;margin:28px 0 14px}.cp-welcome-card p{font-size:16px;line-height:1.5;margin:14px 0}.cp-welcome-card>strong,.cp-welcome-card>small{display:block}.cp-welcome-card .cp-gold{position:sticky;bottom:0;z-index:2;min-height:52px;margin-top:24px;font-size:16px;box-shadow:0 -10px 24px rgba(15,9,2,.75)}
 @media(max-height:720px){.cp-welcome-card{padding-top:18px}.cp-welcome-card .cp-seal{width:66px;height:66px;font-size:30px;margin-bottom:8px}.cp-welcome-card h2{font-size:29px;margin:10px 0}.cp-welcome-card .cp-script{font-size:21px}.cp-welcome-card h3{margin:18px 0 8px}.cp-welcome-card p{font-size:14px;line-height:1.4;margin:9px 0}}
+
+/* Convite "Baixar app" (InstallAppBanner). Visual base — ajustes finos ficam com a sessão de layout. */
+.cp-install{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:12px 0;padding:12px 14px;border:1px solid rgba(201,162,77,.45);border-radius:14px;background:rgba(201,162,77,.10);text-align:left}
+.cp-install-text{flex:1 1 180px;display:flex;flex-direction:column;gap:2px}
+.cp-install-text strong{font-size:15px}
+.cp-install-text span{font-size:13px;opacity:.8}
+.cp-install-actions{display:flex;gap:8px;align-items:center}
+.cp-install-btn{padding:10px 16px;border:0;border-radius:10px;background:#c9a24d;color:#120f08;font-weight:800;cursor:pointer}
+.cp-install-close{padding:8px 6px;border:0;background:none;color:inherit;opacity:.7;cursor:pointer;font-size:12px}
+.cp-install-help{flex-basis:100%;font-size:13px;line-height:1.45}
