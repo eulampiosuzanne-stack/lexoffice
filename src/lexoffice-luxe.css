@@ -498,3 +498,53 @@ html .app.app .module-box h2,html .app.app .table-panel h2,.legacy-auth.legacy-a
 }
 html .app.app .brand b{font-size:13px!important;letter-spacing:.04em!important}
 html .app.app>aside .brand{padding:0 12px!important;gap:10px!important}
+
+/* ============================================================
+   FOTO DE FUNDO INTEIRA E NÍTIDA (pedido de 03/10/2026)
+   - camada 1 (::before): a mesma foto ampliada e desfocada preenche
+     as laterais da tela larga, sem faixas pretas
+   - camada 2 (::after): a foto INTEIRA, nítida, com o monograma e o
+     nome, apenas com um véu leve
+   - os cards ficam por cima, sólidos, então o texto continua legível
+   ============================================================ */
+html,body,#root{background:#080705!important}
+html .app.app{background:transparent!important;position:relative}
+html .app.app:before,html .app.app:after{
+  content:""!important;display:block!important;position:fixed!important;inset:0!important;
+  pointer-events:none!important;z-index:0!important;
+}
+html .app.app:before{
+  background:url('/brand/fundo-sf.jpg') center/cover no-repeat!important;
+  filter:blur(22px) brightness(.55) saturate(1.1);transform:scale(1.08);
+}
+html .app.app:after{
+  background:
+    linear-gradient(180deg,rgba(8,7,5,.20) 0%,rgba(8,7,5,.32) 100%),
+    url('/brand/fundo-sf.jpg') center/contain no-repeat!important;
+}
+/* Computador (tela deitada): a foto preenche a tela toda, enquadrada no
+   monograma e no nome, com véu leve */
+@media(min-width:901px) and (orientation:landscape){
+  html .app.app:after{
+    background:
+      linear-gradient(180deg,rgba(8,7,5,.30) 0%,rgba(8,7,5,.38) 100%),
+      url('/brand/fundo-sf.jpg') center 47%/cover no-repeat!important;
+  }
+  html .app.app:before{display:none!important}
+}
+html .app.app>aside{z-index:1200!important}
+html .app.app>main{position:relative;z-index:1!important}
+/* O painel grande da Visão Geral fica transparente: os cards flutuam sobre a foto */
+html .app.app .dashboard-reference{background:transparent!important;border-color:transparent!important;box-shadow:none!important;backdrop-filter:none!important}
+/* Textos soltos sobre a foto ganham sombra para continuar legíveis */
+html .app.app>main h1,html .app.app>main .page-head p,html .app.app>main .page-title p,html .app.app .dr-head i{
+  text-shadow:0 2px 10px rgba(0,0,0,.95),0 0 2px rgba(0,0,0,.9)!important;
+}
+/* Login: foto inteira e nítida também */
+.legacy-auth{
+  background:
+    linear-gradient(90deg,rgba(8,7,5,.15),rgba(8,7,5,.35)),
+    url('/brand/fundo-sf.jpg') center/contain no-repeat,
+    radial-gradient(ellipse at center,#241a11,#080705 70%)!important;
+}
+html .app.app .dr-head h1 span{text-shadow:none!important;filter:drop-shadow(0 2px 6px rgba(0,0,0,.95))}
