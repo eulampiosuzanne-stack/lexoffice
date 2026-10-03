@@ -59,7 +59,7 @@ export default function FeePricing(){
   {arquivos.length>0&&<div className="fee-file-list">{arquivos.map((a,i)=><div className="fee-file-chip" key={a.name+a.size}><FileText size={14}/><span>{a.name}</span><small>{(a.size/1024/1024).toFixed(2)} MB</small><button type="button" onClick={()=>removeFile(i)} title="Remover"><X size={13}/></button></div>)}</div>}
   <div className="fee-analysis-note"><ShieldCheck size={15}/><span><b>Base da análise:</b> relato + documentos anexados + parâmetros abaixo. Os arquivos ficam preparados nesta simulação para a etapa de leitura inteligente.</span></div>
  </div>
- <div className="advanced-grid">
+ <div className="fee-section"><div className="fee-section-title"><span>01</span><div><b>Identificação e enquadramento</b><small>Dados essenciais da contratação e do processo.</small></div></div><div className="advanced-grid fee-form-grid">
  <label>Nome / lead<input value={f.nome} onChange={e=>set('nome',e.target.value)} placeholder="Opcional"/></label>
  <label>Área<select value={f.area} onChange={e=>set('area',e.target.value)}>{Object.keys(areas).map(x=><option key={x}>{x}</option>)}</select></label>
  <label className="wide">Resumo / identificação da demanda<input value={f.demanda.split('\n')[0]||''} onChange={e=>set('demanda',e.target.value+(f.demanda.includes('\n')?'\n'+f.demanda.split('\n').slice(1).join('\n'):''))} placeholder="Ex.: ação consumerista já ajuizada"/></label>
@@ -77,24 +77,38 @@ export default function FeePricing(){
  <label>Referência mínima aplicável (R$)<input type="number" min="0" value={f.pisoReferencia} onChange={e=>set('pisoReferencia',Math.max(0,+e.target.value||0))} placeholder="Tabela aplicável / validação humana"/></label>
  <label><span>Perícia</span><input type="checkbox" checked={f.pericia} onChange={e=>set('pericia',e.target.checked)}/></label>
  <label><span>Recurso incluído no escopo</span><input type="checkbox" checked={f.recurso} onChange={e=>set('recurso',e.target.checked)}/></label>
- </div></div>
+ </div></div></div>
 
- <div className="dashboard-kpis" style={{marginTop:16}}>
+ <div className="fee-section fee-results"><div className="fee-section-title"><span>02</span><div><b>Resultado da precificação</b><small>Leitura técnica, comercial e econômica em um único quadro.</small></div></div><div className="dashboard-kpis">
  <div className="dashboard-kpi"><div className="dashboard-kpi-head"><Scale size={18}/></div><strong>{money(calc.tecnico)}</strong><span>Valor técnico do trabalho</span></div>
  <div className="dashboard-kpi"><div className="dashboard-kpi-head"><TrendingUp size={18}/></div><strong>{money(calc.comercial)}</strong><span>Valor comercial sugerido · faixa {money(calc.faixaMin)}–{money(calc.faixaMax)}</span></div>
  <div className="dashboard-kpi"><div className="dashboard-kpi-head"><ShieldCheck size={18}/></div><strong>{calc.referenciaEconomica?Math.round(calc.proporcao*100)+'%':'—'}</strong><span>Honorários / referência econômica</span></div>
- <div className="dashboard-kpi"><strong>{calc.score}/10</strong><span>Índice de esforço Lex</span></div></div>
+ <div className="dashboard-kpi"><strong>{calc.score}/10</strong><span>Índice de esforço Lex</span></div></div></div>
 
  {calc.alerta&&<div className="integration-notice" style={{marginTop:16}}><AlertTriangle size={16}/> <strong>Alerta de proporcionalidade:</strong> o valor técnico representa {Math.round(calc.proporcaoTecnica*100)}% da referência econômica. A Lex preserva o valor técnico e apresenta uma faixa comercial para decisão da advogada, sem tratar percentuais como teto jurídico.</div>}
  {calc.sugerirFases?<div className="integration-notice" style={{marginTop:12}}><AlertTriangle size={16}/> <strong>Considerar contratação por fase:</strong> a carga de trabalho remanescente é alta e a distância entre o valor técnico e a faixa comercial é relevante. O fracionamento é apenas uma alternativa de viabilidade e não altera automaticamente o escopo.</div>:calc.alerta&&<div className="integration-notice" style={{marginTop:12}}><ShieldCheck size={16}/> <strong>Contrato integral preservado:</strong> não há gatilho suficiente para recomendar fracionamento por fases neste cenário.</div>}
  {calc.pisoIncompativel&&<div className="integration-notice" style={{marginTop:12}}><AlertTriangle size={16}/> <strong>Revisão obrigatória:</strong> a referência mínima informada supera o ajuste comercial calculado. Não reduzir automaticamente. Validar tabela aplicável, escopo e modelo de contratação.</div>}
 
- <div className="integration-panel" style={{marginTop:16}}><div className="integration-head"><div><h2>Condição de pagamento</h2><p>Simulação calculada sobre o valor comercial sugerido, não sobre o custo técnico bruto.</p></div></div><div className="advanced-grid"><label>Entrada (%)<input type="number" min="0" max="100" value={f.entrada} onChange={e=>set('entrada',+e.target.value||0)}/></label><label>Parcelas do saldo<input type="number" min="1" max="60" value={f.parcelas} onChange={e=>set('parcelas',Math.min(60,Math.max(1,+e.target.value||1)))}/></label><label>Entrada sugerida<input disabled value={money(calc.entrada)}/></label><label>Valor da parcela<input disabled value={money(calc.parcela)}/></label></div><button className="primary" onClick={proposal}><FileText size={16}/> Gerar proposta</button></div>
+ <div className="fee-two-column"><div className="integration-panel fee-compact-panel"><div className="integration-head"><div><span className="fee-step">03</span><h2>Condição de pagamento</h2><p>Simulação calculada sobre o valor comercial sugerido, não sobre o custo técnico bruto.</p></div></div><div className="advanced-grid"><label>Entrada (%)<input type="number" min="0" max="100" value={f.entrada} onChange={e=>set('entrada',+e.target.value||0)}/></label><label>Parcelas do saldo<input type="number" min="1" max="60" value={f.parcelas} onChange={e=>set('parcelas',Math.min(60,Math.max(1,+e.target.value||1)))}/></label><label>Entrada sugerida<input disabled value={money(calc.entrada)}/></label><label>Valor da parcela<input disabled value={money(calc.parcela)}/></label></div><button className="primary" onClick={proposal}><FileText size={16}/> Gerar proposta</button></div>
 
- <div className="integration-panel" style={{marginTop:16}}><div className="integration-head"><div><h2>Diagnóstico Lex</h2><p>Leitura conjunta do trabalho, risco e dimensão econômica.</p></div></div><div className="advanced-grid"><label>Complexidade<input disabled value={niveis(f.complexidade)}/></label><label>Trabalho remanescente<input disabled value={niveis(f.trabalhoRestante)}/></label><label>Urgência<input disabled value={niveis(f.urgencia)}/></label><label>Risco processual<input disabled value={niveis(f.riscoProcessual)}/></label><label>Escopo<input disabled value={f.recurso?'Fase selecionada + recurso':'Fase selecionada; recurso fora do escopo'}/></label><label>Viabilidade<input disabled value={calc.sugerirFases?'AVALIAR CONTRATAÇÃO POR FASE':'CONTRATO INTEGRAL ADEQUADO'}/></label></div></div>
+ <div className="integration-panel fee-compact-panel"><div className="integration-head"><div><span className="fee-step">04</span><h2>Diagnóstico Lex</h2><p>Leitura conjunta do trabalho, risco e dimensão econômica.</p></div></div><div className="advanced-grid"><label>Complexidade<input disabled value={niveis(f.complexidade)}/></label><label>Trabalho remanescente<input disabled value={niveis(f.trabalhoRestante)}/></label><label>Urgência<input disabled value={niveis(f.urgencia)}/></label><label>Risco processual<input disabled value={niveis(f.riscoProcessual)}/></label><label>Escopo<input disabled value={f.recurso?'Fase selecionada + recurso':'Fase selecionada; recurso fora do escopo'}/></label><label>Viabilidade<input disabled value={calc.sugerirFases?'AVALIAR CONTRATAÇÃO POR FASE':'CONTRATO INTEGRAL ADEQUADO'}/></label></div></div>
 
 
  <style>{`
+
+ .fee-section{margin-top:16px;padding:18px;border:1px solid rgba(255,217,120,.32);border-radius:16px;background:linear-gradient(145deg,rgba(23,17,12,.96),rgba(10,8,6,.96));box-shadow:inset 0 1px 0 rgba(255,243,196,.06)}
+ .fee-section-title{display:flex;align-items:center;gap:11px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(255,217,120,.15)}
+ .fee-section-title>span,.fee-step{display:grid;place-items:center;min-width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#9B5D12,#FFD978 45%,#FFF3C4 52%,#E3A83B);color:#080705;font-size:11px;font-weight:900;box-shadow:0 0 12px rgba(255,217,120,.14)}
+ .fee-section-title b{display:block;color:#FFF3C4;font-size:14px}.fee-section-title small{display:block;color:#BDB4A6;margin-top:2px;font-size:11px;font-weight:400}
+ .fee-form-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:12px 14px!important}.fee-form-grid .wide{grid-column:span 2}
+ .fee-results .dashboard-kpis{margin:0!important;grid-template-columns:repeat(4,minmax(0,1fr))!important}
+ .fee-two-column{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin-top:16px;align-items:start}
+ .fee-compact-panel{margin:0!important;height:100%}.fee-compact-panel .integration-head{margin-bottom:14px}.fee-compact-panel .integration-head>div{display:grid;grid-template-columns:auto 1fr;column-gap:9px;align-items:center}.fee-compact-panel .integration-head h2{margin:0!important}.fee-compact-panel .integration-head p{grid-column:2;margin-top:4px!important}
+ .fee-compact-panel .advanced-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+ @media(max-width:1180px){.fee-form-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}.fee-results .dashboard-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+ @media(max-width:900px){.fee-two-column{grid-template-columns:1fr}.fee-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+ @media(max-width:620px){.fee-form-grid,.fee-results .dashboard-kpis,.fee-compact-panel .advanced-grid{grid-template-columns:1fr!important}.fee-form-grid .wide{grid-column:auto}}
+
  .fee-case-workspace{margin:18px 0 20px;display:grid;gap:12px}
  .fee-case-label{display:grid;gap:8px;color:var(--lx-text-2);font-size:13px;font-weight:700}
  .fee-case-textarea{width:100%;min-height:180px;resize:vertical;padding:16px 18px!important;line-height:1.55!important;background:#080705!important;color:#F5F1E8!important;border:1px solid #C99443!important;border-radius:14px!important;box-shadow:inset 0 1px 0 rgba(255,243,196,.05),0 0 16px rgba(255,217,120,.06)!important}
