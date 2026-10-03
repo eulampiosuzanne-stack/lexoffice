@@ -377,3 +377,38 @@ body{font-family:var(--lx-font)!important;font-size:14px!important;line-height:1
 .app .primary,.app [class*="primary"],.app button[type="submit"]{background:linear-gradient(145deg,#C99443,#8A5726)!important}
 .app .page-title h1,.app .page-head h1{color:#F5F1E8!important}
 .app .dashboard-kpi,.app .integration-panel,.app .card{box-shadow:inset 0 1px 0 rgba(242,197,109,.035)!important}
+
+
+/* ---- Metallic gold interaction language: selected categories + card contours ---- */
+.app .card,.app .module-box,.app .settings-feature-card,.app .dashboard-kpi,
+.app .integration-panel,.app .investigation-card,.app .investigation-scope button,
+.app .connection-card,.app .doc-library-card,.app .doc-upload-card,.app .doc-templates-card,
+.app .movement-card,.app .proc-auto-card,.app .proc-sync-box,.app .lead-card{
+  border:1px solid rgba(201,148,67,.26)!important;
+  box-shadow:inset 0 1px 0 rgba(242,197,109,.055),0 0 0 1px rgba(138,87,38,.035)!important;
+}
+.app .card:hover,.app .module-box:hover,.app .settings-feature-card:hover,.app .dashboard-kpi:hover,
+.app .investigation-card:hover,.app .investigation-scope button:hover,.app .connection-card:hover,
+.app .doc-library-card:hover,.app .movement-card:hover,.app .lead-card:hover{
+  border-color:rgba(242,197,109,.48)!important;
+  box-shadow:inset 0 1px 0 rgba(255,224,160,.09),0 0 18px rgba(201,148,67,.075)!important;
+}
+.app button.active,.app .active[role="tab"],.app [role="tab"][aria-selected="true"],
+.app button[aria-pressed="true"],.app .investigation-card.selected,
+.app .investigation-tabs button.active,.app .settings-section-nav button.active,
+.app .investigation-scope button.active{
+  color:#F5F1E8!important;
+  border-color:#F2C56D!important;
+  background:
+    linear-gradient(#17110C,#17110C) padding-box,
+    linear-gradient(135deg,#8A5726 0%,#F2C56D 38%,#FFF0BE 50%,#C99443 68%,#8A5726 100%) border-box!important;
+  box-shadow:inset 0 1px 0 rgba(255,240,190,.14),0 0 0 1px rgba(201,148,67,.16),0 0 20px rgba(201,148,67,.12)!important;
+}
+.app button.active svg,.app button[aria-pressed="true"] svg,.app .investigation-card.selected svg,
+.app .settings-section-nav button.active svg,.app .investigation-tabs button.active svg{
+  color:#F2C56D!important;
+  filter:drop-shadow(0 0 5px rgba(242,197,109,.18))!important;
+}
+.app button.active:after,.app .settings-section-nav button.active:after,.app .investigation-tabs button.active:after{
+  background:linear-gradient(90deg,transparent,#F2C56D,#C99443,transparent)!important;
+}
