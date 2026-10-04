@@ -46,7 +46,7 @@ export function LiberarVendasButton({ conversationId }: { conversationId: string
         {(status === 'idle' || status === 'error') && 'Liberar Vendas para fechar contrato'}
       </button>
       {message && (
-        <p style={{ fontSize: 13, color: status === 'error' ? '#e05575' : '#9aa0b0', marginTop: 6 }}>
+        <p style={{ fontSize: 13, color: status === 'error' ? '#D6AA55' : '#BDB4A6', marginTop: 6 }}>
           {message}
         </p>
       )}

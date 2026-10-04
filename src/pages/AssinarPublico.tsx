@@ -418,10 +418,10 @@ const CSS = `
 .lxs-cam{position:relative;width:100%;aspect-ratio:3/4;background:#1d1417;border-radius:14px;overflow:hidden}
 .lxs-cam video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
 .lxs-ring{position:absolute;left:50%;top:44%;width:62%;aspect-ratio:3/4;transform:translate(-50%,-50%);border:3px dashed rgba(233,211,166,.85);border-radius:50%;pointer-events:none}
-.lxs-challenge{position:absolute;left:10px;right:10px;bottom:12px;background:rgba(110,25,48,.92);color:#F5F1E8;border-radius:10px;padding:10px;text-align:center;font-weight:600;font-size:16px}
+.lxs-challenge{position:absolute;left:10px;right:10px;bottom:12px;background:rgba(23,17,12,.92);border:1.5px solid #C9993F;color:#F5F1E8;border-radius:10px;padding:10px;text-align:center;font-weight:600;font-size:16px}
 .lxs-faces{display:flex;gap:10px}.lxs-faces img{flex:1;min-width:0;height:160px;object-fit:cover;border-radius:10px;border:1px solid #4A3420}
 .lxs-ok{color:#1f6b38;font-weight:600;font-size:14px}.lxs-notice{color:#6b5d55;font-size:14px;margin:12px 0 0;text-align:center}
-.lxs-error,.lxs-err p{color:#a3182f;font-size:14px;margin:12px 0 0;text-align:center}.lxs-muted{color:#8a7a70;font-size:13px}
+.lxs-error,.lxs-err p{color:#8A5A12;font-size:14px;margin:12px 0 0;text-align:center}.lxs-muted{color:#8a7a70;font-size:13px}
 .lxs-done{align-items:center;text-align:center;padding:12px 0}.lxs-check-big{width:64px;height:64px;border-radius:50%;background:#1f6b38;color:#F5F1E8;display:grid;place-items:center;font-size:34px}
 .lxs-doclist{display:flex;flex-direction:column;gap:6px}
 .lxs-docbtn{display:flex;gap:10px;align-items:center;text-align:left;width:100%;border:1.5px solid #4A3420;background:#faf7f3;border-radius:12px;padding:12px;font-size:15px;color:#F5F1E8;cursor:pointer}

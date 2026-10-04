@@ -70,9 +70,9 @@ export default function CalculatorPdfAutofillBridge(){
     return()=>{active=false;document.removeEventListener('change',onChange,true)};
   },[]);
   if(!notice)return null;
-  return <div style={{position:'fixed',right:24,bottom:24,zIndex:3000,maxWidth:460,padding:'14px 16px',borderRadius:14,border:'1px solid #334258',background:'#0f1621',color:'#eef2f6',boxShadow:'0 18px 50px rgba(0,0,0,.45)',display:'flex',alignItems:'flex-start',gap:10}} role="status">
+  return <div style={{position:'fixed',right:24,bottom:24,zIndex:3000,maxWidth:460,padding:'14px 16px',borderRadius:14,border:'1px solid #6E4914',background:'#17110C',color:'#F5F1E8',boxShadow:'0 18px 50px rgba(0,0,0,.45)',display:'flex',alignItems:'flex-start',gap:10}} role="status">
     <div style={{marginTop:2}}>{notice.kind==='loading'?<Loader2 size={18} className="spin"/>:<FileSearch size={18}/>}</div>
     <div style={{flex:1,fontSize:13,lineHeight:1.45}}>{notice.text}</div>
-    {notice.kind!=='loading'&&<button onClick={()=>setNotice(null)} aria-label="Fechar" style={{border:0,background:'transparent',color:'#b9c2ce',cursor:'pointer',padding:0}}><X size={17}/></button>}
+    {notice.kind!=='loading'&&<button onClick={()=>setNotice(null)} aria-label="Fechar" style={{border:0,background:'transparent',color:'#E7DFD0',cursor:'pointer',padding:0}}><X size={17}/></button>}
   </div>
 }

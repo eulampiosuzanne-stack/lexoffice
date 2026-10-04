@@ -343,7 +343,7 @@ export default function WhatsAppFlow() {
     )
     .slice(0, 10);
   const tileStyle = {
-    border: "1px solid rgba(220,38,38,.3)",
+    border: "1px solid rgba(201,148,67,.3)",
     borderRadius: 18,
     padding: "22px 16px",
     minHeight: 150,

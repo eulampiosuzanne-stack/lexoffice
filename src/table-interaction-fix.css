@@ -13,9 +13,9 @@
 .app [role="row"]:focus,
 .app [role="row"]:focus-within,
 .app [role="row"]:active {
-  background: linear-gradient(180deg,#21191b 0%,#181516 100%) !important;
+  background: linear-gradient(180deg,#17110C 0%,#181516 100%) !important;
   color: var(--legal-text) !important;
-  box-shadow: inset 3px 0 0 rgba(93,24,39,.92), inset 0 1px 0 rgba(229,212,191,.035), 0 4px 12px rgba(0,0,0,.16) !important;
+  box-shadow: inset 3px 0 0 rgba(138,87,38,.92), inset 0 1px 0 rgba(229,212,191,.035), 0 4px 12px rgba(0,0,0,.16) !important;
   outline: none !important;
 }
 
@@ -32,7 +32,7 @@
 .app .data-row.active,
 .app .table-row.selected,
 .app .table-row.active {
-  background: linear-gradient(180deg,#26191d 0%,#1b1517 100%) !important;
+  background: linear-gradient(180deg,#17110C 0%,#17110C 100%) !important;
   color: var(--legal-text) !important;
   box-shadow: inset 3px 0 0 var(--legal-wine), inset 0 1px 0 rgba(229,212,191,.04), 0 5px 14px rgba(0,0,0,.18) !important;
   outline: none !important;
@@ -52,7 +52,7 @@
 .app [role="row"][aria-selected="true"] > [role="cell"] {
   background: transparent !important;
   color: #e7e0d8 !important;
-  border-color: #332b2a !important;
+  border-color: #241A11 !important;
   -webkit-text-fill-color: currentColor !important;
 }
 
@@ -87,7 +87,7 @@
 .app table tbody tr[class*="bg-gray-50"].selected,
 .app [role="row"][class*="bg-white"]:hover,
 .app [role="row"][class*="bg-white"][aria-selected="true"] {
-  background: linear-gradient(180deg,#21191b 0%,#181516 100%) !important;
+  background: linear-gradient(180deg,#17110C 0%,#181516 100%) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

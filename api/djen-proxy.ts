@@ -1,4 +1,4 @@
-export const config = { runtime: 'edge' };
+export const config = { runtime: 'edge', regions: ['gru1'] }; // CNJ bloqueia IPs fora do Brasil: fixa a execução em São Paulo
 
 const allowed = new Set(['numeroOab','ufOab','dataDisponibilizacaoInicio','dataDisponibilizacaoFim','pagina','itensPorPagina']);
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;

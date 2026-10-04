@@ -14,24 +14,24 @@
   color: #f0c888;
 }
 .prospecting-shared.ok {
-  border-color: #315c4a;
-  background: #102019;
-  color: #8ee0b9;
+  border-color: #6E4914;
+  background: #17110C;
+  color: #D6AA55;
 }
 .prospecting-shared div {
   display: grid;
   gap: 4px;
 }
 .prospecting-shared span {
-  color: #aeb6c5;
+  color: #BDB4A6;
   font-size: 13px;
 }
 .prospecting section {
   margin-bottom: 18px;
   padding: 18px;
-  border: 1px solid #2a303c;
+  border: 1px solid #2E2216;
   border-radius: 16px;
-  background: #10151e;
+  background: #17110C;
 }
 .prospecting-title {
   display: flex;
@@ -41,18 +41,18 @@
   margin-bottom: 15px;
 }
 .prospecting-title span {
-  color: #e10600;
+  color: #C99443;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.13em;
 }
 .prospecting-title h2 {
   margin: 4px 0 0;
-  color: #f2f4f8;
+  color: #F5F1E8;
   font-size: 21px;
 }
 .prospecting-title small {
-  color: #9099a8;
+  color: #BDB4A6;
 }
 .source-grid {
   display: grid;
@@ -65,34 +65,34 @@
   align-items: center;
   gap: 10px;
   padding: 14px;
-  border: 1px solid #29313d;
+  border: 1px solid #2E2216;
   border-radius: 12px;
-  background: #0c1119;
+  background: #100C08;
 }
 .source-grid article > svg {
-  color: #e10600;
+  color: #C99443;
 }
 .source-grid b {
-  color: #eef1f5;
+  color: #F5F1E8;
 }
 .source-grid p {
   margin: 4px 0 0;
-  color: #949eae;
+  color: #BDB4A6;
   font-size: 12px;
   line-height: 1.4;
 }
 .source-grid article > span {
   padding: 5px 7px;
   border-radius: 999px;
-  background: #242a35;
-  color: #abb3c0;
+  background: #241A11;
+  color: #BDB4A6;
   font-size: 10px;
   font-weight: 800;
 }
 .source-grid article > span.ready,
 .source-grid article > span.shared {
-  background: #153126;
-  color: #8ee0b9;
+  background: #241A11;
+  color: #D6AA55;
 }
 .source-grid article > span.review {
   background: #302517;
@@ -114,38 +114,38 @@
   display: grid;
   gap: 4px;
   padding: 12px;
-  border: 1px solid #29313d;
+  border: 1px solid #2E2216;
   border-radius: 10px;
-  background: #0d121a;
-  color: #e2e6ec;
+  background: #100C08;
+  color: #E7DFD0;
   text-align: left;
   cursor: pointer;
 }
 .model-list button.active {
-  border-color: #b00000;
-  background: #211019;
+  border-color: #C99443;
+  background: #17110C;
 }
 .model-list small {
-  color: #8f99a9;
+  color: #BDB4A6;
 }
 .model-editor {
   padding: 20px;
-  border: 1px solid #303744;
+  border: 1px solid #2E2216;
   border-radius: 14px;
-  background: #0c1119;
+  background: #100C08;
 }
 .model-editor h2 {
   margin: 12px 0 8px;
-  color: #f3f5f8;
+  color: #F5F1E8;
 }
 .model-editor h3 {
   margin: 20px 0 9px;
-  color: #e8ebf0;
+  color: #E7DFD0;
   font-size: 14px;
 }
 .model-editor > p,
 .model-editor li {
-  color: #aab2c0;
+  color: #BDB4A6;
   line-height: 1.55;
 }
 .model-editor ol {
@@ -159,8 +159,8 @@
 .model-editor li {
   padding: 7px 10px;
   border-radius: 999px;
-  background: #181f2a;
-  border: 1px solid #303846;
+  background: #17110C;
+  border: 1px solid #2E2216;
   font-size: 12px;
 }
 .model-meta {
@@ -171,8 +171,8 @@
 .model-meta span {
   padding: 5px 8px;
   border-radius: 7px;
-  background: #24121a;
-  color: #ff5a52;
+  background: #17110C;
+  color: #D6AA55;
   font-size: 11px;
 }
 .prompt-box {
@@ -180,16 +180,16 @@
   align-items: flex-start;
   gap: 10px;
   padding: 14px;
-  border-left: 3px solid #d00000;
-  background: #141923;
+  border-left: 3px solid #C99443;
+  background: #17110C;
 }
 .prompt-box svg {
   flex: none;
-  color: #e10600;
+  color: #C99443;
 }
 .prompt-box p {
   margin: 0;
-  color: #c4cad4;
+  color: #E7DFD0;
   line-height: 1.55;
 }
 .model-editor .integration-form {

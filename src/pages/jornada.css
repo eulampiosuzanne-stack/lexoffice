@@ -1,42 +1,42 @@
 .jornada-page .jornada-tabs{margin-top:6px}
 .jornada-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.jornada-actions select,.jornada-page .input-search input{background:#0a0f18;border:1px solid #293140;border-radius:9px;padding:9px 11px;color:#e7eaf0}
-.jornada-switch{border:1px solid #3a4150;border-radius:999px;padding:6px 12px;background:#10151f;color:#9ca5b4;cursor:pointer;font-weight:600}
-.jornada-switch.on{border-color:#315c4a;background:#102019;color:#8ee0b9}
+.jornada-actions select,.jornada-page .input-search input{background:#100C08;border:1px solid #2E2216;border-radius:9px;padding:9px 11px;color:#E7DFD0}
+.jornada-switch{border:1px solid #2E2216;border-radius:999px;padding:6px 12px;background:#17110C;color:#BDB4A6;cursor:pointer;font-weight:600}
+.jornada-switch.on{border-color:#6E4914;background:#17110C;color:#D6AA55}
 .jornada-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;margin-top:14px}
-.jornada-card{display:flex;flex-direction:column;gap:10px;padding:16px;border:1px solid #2a303c;border-radius:14px;background:#111620}
+.jornada-card{display:flex;flex-direction:column;gap:10px;padding:16px;border:1px solid #2E2216;border-radius:14px;background:#17110C}
 .jornada-card header{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
-.jornada-card header b{display:block;color:#f2f5f8;font-size:15px}
-.jornada-card header small,.jornada-meta{color:#8f98aa;font-size:12px}
-.jornada-title{margin:0;color:#d7dce5;font-size:13px;line-height:1.45}
+.jornada-card header b{display:block;color:#F5F1E8;font-size:15px}
+.jornada-card header small,.jornada-meta{color:#BDB4A6;font-size:12px}
+.jornada-title{margin:0;color:#E7DFD0;font-size:13px;line-height:1.45}
 .jornada-meta{display:flex;flex-wrap:wrap;gap:6px 14px}
-.jornada-meta b{color:#e8ebf1}
-.jornada-status{white-space:nowrap;font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;border:1px solid #3a4150;color:#c8ced9;background:#161b26}
+.jornada-meta b{color:#E7DFD0}
+.jornada-status{white-space:nowrap;font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;border:1px solid #2E2216;color:#E7DFD0;background:#17110C}
 .jornada-status.s-enviada{border-color:#6b5a2b;color:#e8c878;background:#1d1a10}
-.jornada-status.s-respondida{border-color:#7d2840;color:#ff9aa9;background:#22101a}
-.jornada-status.s-contratada{border-color:#315c4a;color:#8ee0b9;background:#102019}
+.jornada-status.s-respondida{border-color:#6E4914;color:#D6AA55;background:#17110C}
+.jornada-status.s-contratada{border-color:#6E4914;color:#D6AA55;background:#17110C}
 .jornada-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
-.jornada-step{display:flex;flex-direction:column;gap:2px;padding:8px;border:1px solid #252c39;border-radius:10px;background:#0d121b;min-width:0}
-.jornada-step b{font-size:12px;color:#e7eaf0}
-.jornada-step small{font-size:10.5px;color:#8993a4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.jornada-step.st-sent{border-color:#315c4a}.jornada-step.st-sent small:first-of-type{color:#8ee0b9}
-.jornada-step.st-failed{border-color:#7d2840}.jornada-step.st-failed small:first-of-type{color:#ff9aa9}
+.jornada-step{display:flex;flex-direction:column;gap:2px;padding:8px;border:1px solid #241A11;border-radius:10px;background:#100C08;min-width:0}
+.jornada-step b{font-size:12px;color:#E7DFD0}
+.jornada-step small{font-size:10.5px;color:#BDB4A6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jornada-step.st-sent{border-color:#6E4914}.jornada-step.st-sent small:first-of-type{color:#D6AA55}
+.jornada-step.st-failed{border-color:#6E4914}.jornada-step.st-failed small:first-of-type{color:#D6AA55}
 .jornada-step.st-cancelled,.jornada-step.st-skipped{opacity:.55}
-.jornada-stop{color:#9ca5b4;font-size:12px}.jornada-stop.warn{color:#ffb4c1}
+.jornada-stop{color:#BDB4A6;font-size:12px}.jornada-stop.warn{color:#F5F1E8}
 .jornada-card-actions{display:flex;gap:8px;flex-wrap:wrap}
 .jornada-card-actions button{display:flex;align-items:center;gap:6px}
 .jornada-rate{display:flex;justify-content:space-between;gap:10px;align-items:flex-end}
-.jornada-rate small{color:#8f98aa;font-size:11.5px;line-height:1.35}
-.jornada-rate b{color:#f1f3f7;font-size:16px;white-space:nowrap}
-.jornada-footnote{margin-top:16px;color:#8993a4;font-size:12px;line-height:1.55;max-width:1000px}
+.jornada-rate small{color:#BDB4A6;font-size:11.5px;line-height:1.35}
+.jornada-rate b{color:#F5F1E8;font-size:16px;white-space:nowrap}
+.jornada-footnote{margin-top:16px;color:#BDB4A6;font-size:12px;line-height:1.55;max-width:1000px}
 .jornada-warning{margin:4px 0 12px;display:flex;gap:8px;align-items:flex-start;line-height:1.5}
 .jornada-table{overflow-x:auto;margin-top:12px}
 .jornada-table table{width:100%;border-collapse:collapse;min-width:820px}
-.jornada-table th{text-align:left;font-size:11px;color:#8f98aa;font-weight:600;padding:8px;border-bottom:1px solid #252c39}
-.jornada-table td{padding:5px 6px;border-bottom:1px solid #1b212c}
+.jornada-table th{text-align:left;font-size:11px;color:#BDB4A6;font-weight:600;padding:8px;border-bottom:1px solid #241A11}
+.jornada-table td{padding:5px 6px;border-bottom:1px solid #241A11}
 .jornada-table td.c{text-align:center}
-.jornada-table td input:not([type=checkbox]){width:100%;box-sizing:border-box;background:transparent;border:1px solid transparent;border-radius:7px;padding:7px 8px;color:#e7eaf0}
-.jornada-table td input:not([type=checkbox]):focus,.jornada-table td input:not([type=checkbox]):hover{border-color:#293140;background:#0a0f18;outline:none}
-.jornada-table input[type=checkbox]{accent-color:#b51f43;width:16px;height:16px}
-.jornada-table tr.dirty td{background:#1a1420}
+.jornada-table td input:not([type=checkbox]){width:100%;box-sizing:border-box;background:transparent;border:1px solid transparent;border-radius:7px;padding:7px 8px;color:#E7DFD0}
+.jornada-table td input:not([type=checkbox]):focus,.jornada-table td input:not([type=checkbox]):hover{border-color:#2E2216;background:#100C08;outline:none}
+.jornada-table input[type=checkbox]{accent-color:#C99443;width:16px;height:16px}
+.jornada-table tr.dirty td{background:#17110C}
 @media(max-width:700px){.jornada-cards{grid-template-columns:1fr}.jornada-steps{grid-template-columns:repeat(2,minmax(0,1fr))}}

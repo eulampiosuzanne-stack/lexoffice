@@ -1,0 +1,9 @@
+-- Aplicada em produção em 03/10/2026 (via MCP). Registro para histórico.
+-- Secretário Executivo: resumo diário no WhatsApp de alertas da Dra. Suzanne, seg–sex 07:50 (America/Sao_Paulo).
+-- Função completa: public.lexoffice_secretary_daily_brief(p_force boolean default false)
+--   monta audiências (hoje/amanhã), prazos (vencidos e próximos 3 dias), agenda do dia e pendências
+--   (andamentos para aprovar, revisões, assinaturas, parcelas vencidas, conversas aguardando) e enfileira
+--   em notification_queue (template_key 'secretary_daily_brief', idempotente por dia). O envio é feito
+--   pelo lexoffice-automation-worker, como os demais avisos.
+-- select cron.schedule('lexoffice-secretary-daily-brief','50 10 * * 1-5','select public.lexoffice_secretary_daily_brief(false)');
+-- Também em 03/10/2026: cron.alter_job(22 /* lexoffice-datajud-sync */, schedule => '*/5 * * * *').

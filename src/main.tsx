@@ -44,6 +44,8 @@ import './shell-layout-fix.css';
 import './service-scroll-guard.css';
 /* Camada visual preto e dourado luxo (identidade SF). Deve ser a última. */
 import './lexoffice-luxe.css';
+/* Uniformização final: uma fonte só (a do menu), campos 3D com contorno ouro. Carregar por último. */
+import './lexoffice-uniform.css';
 
 const intakePrefix='/formulario-cliente/';
 const path=window.location.pathname.replace(/\/$/,'')||'/';

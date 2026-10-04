@@ -116,15 +116,15 @@ const CSS = `
 .lxs-btn{appearance:none;border:1px solid #FFD978;border-radius:12px;background:linear-gradient(135deg,#9B5D12,#E3A83B 35%,#FFF3C4 50%,#FFD978 62%,#9B5D12);color:#080705;font-size:16px;font-weight:600;padding:14px 16px;text-align:center;cursor:pointer;display:block}
 .lxs-btn:disabled{opacity:.45;cursor:not-allowed}.lxs-ghost{background:#100C08;color:#FFD978;border:1.5px solid #FFD978}
 .lxs-muted{color:#8a7a70;font-size:13px;line-height:1.45}.lxs-notice{color:#6b5d55;font-size:14px;margin:10px 0 0;text-align:center}
-.lxs-error{color:#a3182f;font-size:14px;margin:12px 0 0;text-align:center}
+.lxs-error{color:#8A5A12;font-size:14px;margin:12px 0 0;text-align:center}
 .lxs-foot{margin-top:18px;border-top:1px solid rgba(255,217,120,.28);padding-top:10px;font-size:11px;color:#9a8b80;text-align:center}
 .lxv-row{display:flex;gap:8px}.lxv-input{flex:1;min-width:0;font-size:20px;letter-spacing:.12em;text-align:center;padding:12px;background:#100C08;color:#F5F1E8;border:1.5px solid #C99443;border-radius:12px;outline:none;text-transform:uppercase}
 .lxv-result{display:flex;gap:12px;align-items:flex-start;margin-top:16px;padding:14px;border-radius:12px}
 .lxv-result h2{font-size:17px;margin:0 0 4px}.lxv-result p{margin:0;font-size:14px;line-height:1.45}
 .lxv-good{background:#eef7f0;border:1px solid #bfe0c8}.lxv-good h2{color:#1f6b38}
-.lxv-bad{background:#fbeef0;border:1px solid #efc3cb}.lxv-bad h2{color:#a3182f}
+.lxv-bad{background:#fbf3e4;border:1px solid #e8cf9a}.lxv-bad h2{color:#8A5A12}
 .lxv-icon{width:36px;height:36px;border-radius:50%;flex:none;display:grid;place-items:center;color:#F5F1E8;font-weight:700;font-size:20px}
-.lxv-good .lxv-icon{background:#1f6b38}.lxv-bad .lxv-icon{background:#a3182f}
+.lxv-good .lxv-icon{background:#1f6b38}.lxv-bad .lxv-icon{background:#8A5A12}
 .lxv-dl{display:grid;grid-template-columns:130px 1fr;gap:8px 12px;margin:16px 0 0;font-size:14px}
 .lxv-dl dt{color:#8a7a70;font-weight:600}.lxv-dl dd{margin:0;min-width:0;overflow-wrap:anywhere}
 .lxv-hash{font-family:ui-monospace,Menlo,monospace;font-size:12px}

@@ -1,0 +1,270 @@
+/* ============================================================
+   LEXOFFICE — UNIFORMIZAÇÃO FINAL (03/10/2026)
+   Pedido da Dra. Suzanne: uma única letra em toda a aplicação (a mesma
+   do menu lateral), nada colorido fora do preto e dourado, e todos os
+   campos de preenchimento em relevo 3D com contorno em ouro degradê.
+   Carregada por último. Não altera o monograma/marca do menu.
+   ============================================================ */
+
+/* ---- 1. Uma única fonte: a do menu (Inter) ---- */
+html body .app.app.app.app main,
+html body .app.app.app.app main :is(h1,h2,h3,h4,h5,h6,p,span,small,label,button,input,select,textarea,option,a,b,strong,em,i,div,li,td,th,dt,dd,legend,summary,figcaption),
+html body .app.app.app.app aside nav :is(a,small),
+html body .client-share-trigger,html body .client-share-modal *:not(svg):not(path){
+  font-family:var(--lx-font)!important;
+  font-style:normal;
+}
+html body .app.app.app.app main :is(h1,.page-title h1,.page-head h1){font-weight:700!important;letter-spacing:-.01em!important;font-size:28px!important;line-height:1.15!important;color:#F5F1E8!important}
+html body .app.app.app.app main h2{font-weight:700!important;letter-spacing:-.005em!important;font-size:19px!important;color:#F5F1E8!important}
+html body .app.app.app.app main :is(h3,h4){font-weight:700!important;letter-spacing:0!important;font-size:16px!important;color:#F5F1E8!important}
+/* Rótulos e cabeçalhos de tabela: mesma fonte, em caixa alta discreta e dourada */
+html body .app.app.app.app main :is(th,.eyebrow,.smart-title span,.rule-head small,.agent-console-head small),
+html body .app.app.app.app aside nav .nav-group>small{
+  font-family:var(--lx-font)!important;font-weight:700!important;font-size:11px!important;
+  letter-spacing:.08em!important;text-transform:uppercase!important;color:#C9993F!important;
+}
+html body .app.app.app.app .crumb{font-family:var(--lx-font)!important;letter-spacing:.14em!important;font-weight:700!important}
+html body .app.app.app.app main :is(em,i):not([class*="icon"]){font-style:normal!important}
+@media(max-width:900px){html body .app.app.app.app main :is(h1,.page-title h1){font-size:24px!important}}
+
+/* ---- 2. Campos de preenchimento em relevo 3D com contorno ouro degradê ---- */
+html body .app.app.app.app :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]),select,textarea),
+html body .client-share-modal :is(input,select,textarea){
+  background:
+    linear-gradient(180deg,#0a0705 0%,#130e09 100%) padding-box,
+    linear-gradient(135deg,#6E4914 0%,#D6AA55 38%,#C9993F 62%,#6E4914 100%) border-box!important;
+  border:1.5px solid transparent!important;
+  border-radius:12px!important;
+  color:#F5F1E8!important;
+  box-shadow:
+    inset 0 3px 7px rgba(0,0,0,.75),
+    inset 0 -1px 0 rgba(214,170,85,.10),
+    0 1px 0 rgba(255,236,190,.08),
+    0 8px 18px rgba(0,0,0,.40)!important;
+  transition:box-shadow .18s ease,filter .18s ease;
+}
+html body .app.app.app.app :is(input,select,textarea)::placeholder{color:#8f8576!important;opacity:1}
+html body .app.app.app.app :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea):hover{filter:brightness(1.06)}
+html body .app.app.app.app :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea):focus{
+  outline:none!important;
+  box-shadow:
+    inset 0 3px 7px rgba(0,0,0,.75),
+    0 0 0 3px rgba(214,170,85,.18),
+    0 0 18px rgba(214,170,85,.22),
+    0 8px 18px rgba(0,0,0,.40)!important;
+}
+html body .app.app.app.app :is(input,select,textarea):disabled{opacity:.6;filter:none}
+html body .app.app.app.app select option{background:#100C08!important;color:#F5F1E8!important}
+html body .app.app.app.app input[type=checkbox],html body .app.app.app.app input[type=radio]{accent-color:#C9993F}
+html body .app.app.app.app input[type=date]::-webkit-calendar-picker-indicator,
+html body .app.app.app.app input[type=datetime-local]::-webkit-calendar-picker-indicator,
+html body .app.app.app.app input[type=time]::-webkit-calendar-picker-indicator{filter:invert(78%) sepia(40%) saturate(600%) hue-rotate(358deg)}
+
+/* ---- 3. Botão "Novo cadastro por link" em ouro polido, como os demais ---- */
+html body .client-share-trigger{
+  background:linear-gradient(135deg,#6E4914 0%,#C9993F 40%,#D6AA55 62%,#C9993F 82%,#6E4914 100%)!important;
+  color:#080705!important;border:1px solid #D6AA55!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 6px 20px rgba(214,170,85,.22),0 12px 30px rgba(0,0,0,.4)!important;
+  font-weight:800!important;
+}
+html body .client-share-trigger svg{color:#080705!important}
+
+/* ---- 4. Contadores e selos: ouro, nunca vinho/vermelho ---- */
+html body .app.app.app.app :is(.crm-ruler-step strong,.crm-lane-head span,.badge-count,.count-badge){
+  background:linear-gradient(135deg,#C9993F,#D6AA55)!important;color:#080705!important;font-weight:800!important;
+}
+html body .app.app.app.app .crm-ruler-step:not(:last-child)::after{color:#C9993F!important;background:transparent!important}
+html body .app.app.app.app :is(.crm-ruler-step,.crm-chip,.crm-lane,.crm-lead-card){
+  background:linear-gradient(180deg,#17110C,#100C08)!important;border-color:rgba(201,153,63,.22)!important;color:#E7DFD0!important;
+}
+html body .app.app.app.app .crm-ruler-step{cursor:pointer}
+html body .app.app.app.app .crm-ruler-step.active-stage{border-color:#D6AA55!important;box-shadow:inset 0 -2px 0 #D6AA55!important}
+html body .app.app.app.app .crm-lead-card:hover{border-color:#D6AA55!important;box-shadow:0 0 18px rgba(214,170,85,.14)!important}
+html body .app.app.app.app .crm-lead-card strong{color:#D6AA55!important}
+html body .app.app.app.app .crm-agent{color:#C9993F!important;border-top-color:rgba(201,153,63,.18)!important}
+html body .app.app.app.app .crm-lane.drag-over{border-color:#D6AA55!important;box-shadow:0 0 0 2px rgba(214,170,85,.18)!important}
+html body .app.app.app.app .crm-error{background:#17110C!important;border-color:#6E4914!important;color:#D6AA55!important}
+html body .app.app.app.app .crm-stage-select{margin-top:6px;font-size:12px!important;padding:6px 8px!important;min-height:0!important}
+
+/* ---- 5. Selo de sincronização dos processos (sem "error" em inglês) ---- */
+html body .app.app.app.app .sync-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid rgba(201,153,63,.35);color:#E7DFD0;background:#17110C;white-space:nowrap}
+html body .app.app.app.app .sync-badge.ok{color:#D6AA55;border-color:rgba(214,170,85,.55)}
+html body .app.app.app.app .sync-badge.wait{color:#BDB4A6}
+
+/* ---- 6. Cartões e painéis coloridos remanescentes → superfície preta com filete dourado ---- */
+html body .app.app.app.app main :is(.investigation-kpis>*,.investigation-scope button,.pa-card,.pa-panel,.petition-card,.jornada-card,.fee-card,.agenda-side,.agenda-event,.sign-card,.integration-card,.settings-feature-card){
+  background:
+    linear-gradient(180deg,rgba(23,17,12,.92),rgba(16,12,8,.92)) padding-box,
+    linear-gradient(rgba(201,153,63,.22),rgba(201,153,63,.22)) border-box!important;
+  border:1px solid transparent!important;
+}
+html body .app.app.app.app main svg{color:inherit}
+
+/* ---- 7. Estratégia Processual: cartões da análise alinhados, em relevo e sem cores estranhas ---- */
+html body .app.app.app.app .petition-page :is(.pa-box,.pa-cols>div){
+  background:linear-gradient(180deg,rgba(23,17,12,.95),rgba(16,12,8,.95)) padding-box,linear-gradient(135deg,rgba(138,87,38,.55),rgba(214,170,85,.45),rgba(138,87,38,.55)) border-box!important;
+  border:1px solid transparent!important;border-radius:16px!important;padding:18px 20px!important;
+  box-shadow:inset 0 1px 0 rgba(255,236,190,.06),0 12px 28px rgba(0,0,0,.45)!important;
+}
+html body .app.app.app.app .petition-page :is(.pa-box h3,.pa-cols h3){
+  display:flex!important;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px!important;
+  font-size:14px!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.06em!important;color:#D6AA55!important;
+}
+html body .app.app.app.app .petition-page :is(.pa-box h3 svg,.pa-cols h3 svg){color:#D6AA55!important;flex:0 0 auto}
+html body .app.app.app.app .petition-page .pa-cols{align-items:stretch;gap:18px!important}
+html body .app.app.app.app .petition-page :is(.pa-box,.pa-cols>div) :is(p,li){color:#E7DFD0!important;font-size:14px!important;line-height:1.6!important}
+html body .app.app.app.app .petition-page :is(.pa-pill){background:linear-gradient(135deg,#C9993F,#D6AA55)!important;color:#080705!important;border:0!important}
+html body .app.app.app.app .petition-page :is(.pa-sub){color:#C9993F!important;font-weight:700!important}
+html body .app.app.app.app .petition-page .pa-petition{font-size:15px!important;line-height:1.75!important}
+
+/* ---- 8. Investigação: indicadores no mesmo padrão dos KPIs do Dashboard ---- */
+html body .app.app.app.app .investigation-kpi{display:flex!important;flex-direction:column;gap:6px;padding:18px 20px!important;border-radius:16px!important;
+  background:linear-gradient(180deg,rgba(23,17,12,.95),rgba(16,12,8,.95)) padding-box,linear-gradient(rgba(201,153,63,.24),rgba(201,153,63,.24)) border-box!important;border:1px solid transparent!important;box-shadow:inset 0 1px 0 rgba(255,236,190,.06),0 12px 28px rgba(0,0,0,.45)!important}
+html body .app.app.app.app .investigation-kpi small{font-size:11px!important;font-weight:700!important;letter-spacing:.08em!important;text-transform:uppercase;color:#C9993F!important}
+html body .app.app.app.app .investigation-kpi strong{font-size:30px!important;font-weight:800!important;line-height:1!important;color:#D6AA55!important}
+html body .app.app.app.app .investigation-kpi span{font-size:13px!important;color:#BDB4A6!important;line-height:1.4!important}
+
+/* ---- 9. Agenda: cabeçalho organizado e eventos do calendário legíveis ---- */
+html body .app.app.app.app .agenda-title>div{display:flex!important;flex-direction:column!important;align-items:flex-start!important}
+html body .app.app.app.app .cal-event{border-left:3px solid #C9993F!important;background:linear-gradient(180deg,#1d150e,#120d08)!important;padding:5px 7px!important;gap:2px!important}
+html body .app.app.app.app .cal-event b{display:none!important}
+html body .app.app.app.app .cal-event span{font-size:11px!important;font-weight:600!important;color:#F5F1E8!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+html body .app.app.app.app .cal-event small{font-size:10px!important;font-weight:700!important;color:#D6AA55!important}
+html body .app.app.app.app :is(.side-type,.agenda-legend span){color:#C9993F!important;background:transparent!important;border-color:rgba(201,153,63,.35)!important;font-weight:700!important;letter-spacing:.06em!important}
+html body .app.app.app.app .day-number.today{background:linear-gradient(135deg,#C9993F,#D6AA55)!important;color:#080705!important}
+@media (max-width:1400px){
+  html body .app.app.app.app .agenda-layout{grid-template-columns:1fr!important}
+  html body .app.app.app.app .agenda-layout>.agenda-side{width:100%!important;max-width:100%!important}
+}
+html body .app.app.app.app main button{gap:8px}
+
+/* ---- 10. Configurações: cores do escritório em ouro degradê ---- */
+html body .app.app.app.app .office-gold-colors{grid-column:1/-1;display:flex;flex-direction:column;gap:12px}
+html body .app.app.app.app .office-gold-title{font-size:13px;font-weight:700;color:#E7DFD0}
+html body .app.app.app.app .office-gold-swatch{height:64px;border-radius:14px;border:1px solid #D6AA55;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -6px 14px rgba(0,0,0,.25),0 10px 24px rgba(0,0,0,.45)}
+html body .app.app.app.app .office-gold-pickers{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap}
+html body .app.app.app.app .office-gold-pickers label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#BDB4A6}
+html body .app.app.app.app .office-gold-pickers input[type=color]{width:64px;height:40px;padding:3px;border-radius:10px;border:1.5px solid #C9993F;background:#100C08;cursor:pointer}
+
+/* ============================================================
+   11. RELEVO EM TODOS OS CARDS + SELEÇÃO EM OURO DEGRADÊ
+   Pedido da Dra. Suzanne (03/10/2026), por questão de visão:
+   - todo card/painel tem leve elevação (bisel claro em cima, sombra embaixo)
+     e contorno em ouro degradê — sem exceção de módulo;
+   - tudo que está SELECIONADO (item do menu, aba, etapa, filtro, linha,
+     chip) fica com efeito de botão em relevo e contorno em ouro degradê.
+   Carregada por último: não remover.
+   ============================================================ */
+html body .app.app.app.app main :is(
+  .card,.module-box,.table-panel,.settings-panel,.settings-feature-card,.dashboard-kpi,.dr-kpi,.dr-card,
+  [class$="-card"],[class*="-card "],[class$="-panel"],[class*="-panel "],[class$="-box"],[class*="-box "],
+  .lane,.smart-card,.agent-item,.agent-console,.service-sidebar,.service-main,.agenda-sync,.agenda-side,.agenda-event,.month-chip,
+  .investigation-kpi,.investigation-kpis>*,.investigation-scope button,.pa-box,.pa-cols>div,.pa-card,.pa-panel,
+  .crm-ruler-step,.crm-lane,.crm-lead-card,.jornada-card,.fee-card,.sign-card,.integration-card,.report-card
+):not(.office-gold-swatch){
+  background:linear-gradient(180deg,#2a1f15 0%,#1d150e 45%,#17110C 100%) padding-box,var(--lx-gold-border) border-box!important;
+  border:1.5px solid transparent!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,236,190,.16),
+    inset 0 -2px 0 rgba(0,0,0,.45),
+    0 2px 0 rgba(0,0,0,.6),
+    0 10px 22px rgba(0,0,0,.55),
+    0 0 14px rgba(214,170,85,.12)!important;
+}
+/* Cards dentro de cards não acumulam sombra pesada */
+html body .app.app.app.app main :is(.card,.module-box,.table-panel,[class$="-panel"],[class$="-box"]) :is([class$="-card"],.card){
+  box-shadow:inset 0 1px 0 rgba(255,236,190,.14),inset 0 -2px 0 rgba(0,0,0,.4),0 2px 0 rgba(0,0,0,.5),0 6px 14px rgba(0,0,0,.45)!important;
+}
+html body .app.app.app.app main :is(.card,.dr-kpi,.dr-card,.smart-card,.crm-lead-card,[class$="-card"],.investigation-kpi):hover{
+  background:linear-gradient(180deg,#2a1f15 0%,#1d150e 45%,#17110C 100%) padding-box,var(--lx-gold-border-hover) border-box!important;
+  box-shadow:inset 0 1px 0 rgba(255,236,190,.22),inset 0 -2px 0 rgba(0,0,0,.45),0 3px 0 rgba(0,0,0,.6),0 16px 30px rgba(0,0,0,.6),0 0 24px rgba(214,170,85,.24)!important;
+  transform:translateY(-1px);
+}
+
+/* Selecionado = botão em relevo com contorno ouro degradê */
+html body .app.app.app.app :is(
+  aside nav a.active,main button.active,main [role="tab"][aria-selected="true"],main [aria-pressed="true"],
+  main .crm-ruler-step.active-stage,main .selected,main .is-active,main [class*="tab"].active,main .chip.active,main .filter.active
+){
+  background:linear-gradient(180deg,#3a2b1b 0%,#2c2117 45%,#1b140d 100%) padding-box,var(--lx-gold-border) border-box!important;
+  border:1.5px solid transparent!important;
+  color:#F2D894!important;
+  box-shadow:
+    inset 0 1px 0 rgba(242,216,148,.28),
+    inset 0 -2px 0 rgba(0,0,0,.5),
+    0 2px 0 rgba(0,0,0,.65),
+    0 6px 14px rgba(0,0,0,.5),
+    0 0 16px rgba(214,170,85,.30)!important;
+}
+html body .app.app.app.app :is(aside nav a.active,main button.active,main [role="tab"][aria-selected="true"],main .crm-ruler-step.active-stage) svg{color:#D6AA55!important}
+html body .app.app.app.app main tbody tr:is(.selected-row,.selected,[aria-selected="true"]){
+  background:rgba(214,170,85,.10)!important;box-shadow:inset 4px 0 0 #D4AF37,inset 0 0 0 1px rgba(214,170,85,.35)!important;
+}
+
+/* ============================================================
+   12. TIPOGRAFIA DEFINITIVA — uma fonte (a do menu) e 3 cores fixas
+   Decisão de 03/10/2026 (fim do cinza/amarelo/branco misturados):
+   • TÍTULO da página (h1) ............ MARFIM  #F5F1E8 · Inter 700
+   • SUBTÍTULOS (h2, h3, h4, títulos
+     de card/seção/painel) ............ OURO    #D6AA55 · Inter 600
+   • TEXTOS e descrições (p, small,
+     label, legendas, subtítulo da
+     página) .......................... BEGE CLARO #D2C8B8 · Inter 500
+   ============================================================ */
+html body .app.app.app.app main :is(h2,h3,h4,h5,.card-title,.section-title,.panel-title,.dr-card header h2,.dr-card header h3,.module-box h2,.table-panel h2){
+  font-family:var(--lx-font)!important;font-weight:600!important;font-style:normal!important;letter-spacing:0!important;text-transform:none!important;
+  color:#D6AA55!important;-webkit-text-fill-color:#D6AA55!important;background:none!important;filter:none!important;text-shadow:none!important;
+}
+html body .app.app.app.app main h2{font-size:19px!important}
+html body .app.app.app.app main :is(h3,h4,h5,.card-title,.section-title,.panel-title){font-size:16px!important}
+html body .app.app.app.app main :is(h2,h3,h4,h5) svg{color:#D6AA55!important}
+html body .app.app.app.app main :is(h1,.page-title h1,.page-head h1,.dr-head h1){
+  font-family:var(--lx-font)!important;color:#F5F1E8!important;-webkit-text-fill-color:#F5F1E8!important;background:none!important;
+}
+html body .app.app.app.app main :is(p,small,label,figcaption,li,dd,.muted,.page-head p,.page-title p,.dr-head i,.subtitle,.description,.hint){
+  font-family:var(--lx-font)!important;font-weight:500!important;font-style:normal!important;letter-spacing:0!important;
+  color:#D2C8B8!important;-webkit-text-fill-color:#D2C8B8!important;
+}
+/* Rótulos de seção em caixa alta (cabeçalho de tabela, "eyebrow"): mesmo ouro dos subtítulos */
+html body .app.app.app.app main :is(th,.eyebrow){color:#D6AA55!important;-webkit-text-fill-color:#D6AA55!important}
+/* Dentro de botões dourados o texto continua escuro e legível */
+html body .app.app.app.app main :is(.primary,[class*="primary"],button[type="submit"],.integration-action,.dr-new) :is(p,small,label,span){color:#1f1404!important;-webkit-text-fill-color:#1f1404!important}
+
+/* ============================================================
+   13. AO PASSAR O MOUSE / CLICAR / SELECIONAR: círculo (moldura)
+   em ouro degradê em botões, abas, itens do menu e cards clicáveis
+   ============================================================ */
+html body .app.app.app.app :is(aside nav a,main button,main [role="tab"],main [role="button"],main .ux-clickable-card,main .crm-ruler-step,main .agent-item,main .chip):not(.primary):not([class*="primary"]):not([type="submit"]):not(.integration-action):not(.dr-new):is(:hover,:focus-visible,:active){
+  background:linear-gradient(180deg,#3a2b1b 0%,#2c2117 45%,#1b140d 100%) padding-box,var(--lx-gold-border) border-box!important;
+  border:1.5px solid transparent!important;color:#F5F1E8!important;outline:none!important;
+  box-shadow:inset 0 1px 0 rgba(242,216,148,.24),0 2px 0 rgba(0,0,0,.6),0 0 0 2px rgba(214,170,85,.18),0 0 18px rgba(214,170,85,.32)!important;
+}
+html body .app.app.app.app :is(main .primary,main [class*="primary"],main button[type="submit"],main .integration-action,main .dr-new):is(:hover,:focus-visible){
+  outline:none!important;box-shadow:inset 0 2px 0 rgba(255,240,200,.55),inset 0 -3px 0 rgba(70,45,8,.5),0 0 0 2px #1b140d,0 0 0 4px #D6AA55,0 0 20px rgba(214,170,85,.4)!important;
+}
+/* Item escolhido com selo redondo (✓) em ouro degradê */
+html body .app.app.app.app :is(.agent-item.selected,.doc-template-card.selected)::after{
+  background:var(--lx-gold-border)!important;color:#1f1404!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 2px 6px rgba(0,0,0,.5)!important;
+}
+html body .app.app.app.app input[type=checkbox],html body .app.app.app.app input[type=radio]{accent-color:#D6AA55}
+
+/* ============================================================
+   14. ORGANIZAÇÃO: nada amontoado
+   - linhas de abas/botões/filtros quebram em várias linhas com espaço
+   - cabeçalho da página: título à esquerda, ações à direita, com folga
+   - grades de cards com espaçamento igual
+   ============================================================ */
+html body .app.app.app.app main :is([class*="tabs"],[class*="-tabs "],.settings-section-nav,.campaign-tabs,.process-tabs,.jornada-tabs,.toolbar,.filters,.chips,[class*="-toolbar"],[class*="-filters"],[class*="-actions"]){
+  display:flex!important;flex-wrap:wrap!important;gap:10px!important;align-items:center!important;row-gap:10px!important;
+}
+html body .app.app.app.app main :is([class*="tabs"],.settings-section-nav,.campaign-tabs,.process-tabs) > :is(button,a){
+  white-space:nowrap!important;min-height:40px!important;padding:0 16px!important;margin:0!important;display:inline-flex!important;align-items:center!important;gap:8px!important;
+}
+html body .app.app.app.app main :is(.page-head,.page-title,.dr-head){
+  display:flex!important;flex-wrap:wrap!important;justify-content:space-between!important;align-items:flex-start!important;gap:16px 24px!important;margin-bottom:22px!important;
+}
+html body .app.app.app.app main :is(.page-head,.page-title)>div:first-child{flex:1 1 360px!important;min-width:0!important}
+html body .app.app.app.app main :is([class*="-grid"],.form-grid){gap:18px!important}
+html body .app.app.app.app main :is(.card,.module-box,.table-panel,[class$="-card"],[class$="-panel"],[class$="-box"]){padding:20px 22px;margin-bottom:0}
+html body .app.app.app.app main :is(.card,.module-box,.table-panel,[class$="-panel"],[class$="-box"]) + :is(.card,.module-box,.table-panel,[class$="-panel"],[class$="-box"]){margin-top:18px!important}
+html body .app.app.app.app main :is(h2,h3){margin-bottom:12px!important}
