@@ -13,3 +13,35 @@
 .cp-install-btn{padding:10px 16px;border:0;border-radius:10px;background:#c9a24d;color:#120f08;font-weight:800;cursor:pointer}
 .cp-install-close{padding:8px 6px;border:0;background:none;color:inherit;opacity:.7;cursor:pointer;font-size:12px}
 .cp-install-help{flex-basis:100%;font-size:13px;line-height:1.45}
+
+/* ============================================================
+   MODELO APROVADO (03/10/2026) — igual ao app do cliente:
+   tela inicial preta e dourada; telas internas em creme/marfim
+   com marrom-caramelo e dourado. Especificidade alta de propósito
+   para vencer as regras antigas de styles.css.
+   ============================================================ */
+.cp-shell .cp-phone .cp-monogram{display:block;width:76px;height:auto;margin:0 auto 10px;filter:drop-shadow(0 0 10px rgba(214,170,85,.3))}
+.cp-shell .cp-phone.cp-home .cp-hero{text-align:center}
+.cp-shell .cp-phone.cp-home .cp-grid button{background:#FFFBF5;border:1px solid #E9C98B;color:#2A1D12;box-shadow:0 6px 16px rgba(0,0,0,.35),inset 0 1px 0 #fff}
+.cp-shell .cp-phone.cp-home .cp-grid button b{color:#7A4A14}
+.cp-shell .cp-phone.cp-home .cp-talk{border:1.5px solid #E9C98B;background:rgba(233,201,139,.06);color:#E9C98B}
+
+.cp-shell .cp-phone.cp-inner{background:#FBF3E9;color:#2A1D12}
+.cp-shell .cp-phone.cp-inner .cp-back{color:#7A4A14;font-weight:700;font-size:15px}
+.cp-shell .cp-phone.cp-inner .cp-head{color:#2A1D12;border-bottom:1px solid #EAD8BE;padding:16px 4px 12px;margin-bottom:6px}
+.cp-shell .cp-phone.cp-inner .cp-head span{color:#B8863B;font-family:Georgia,serif}
+.cp-shell .cp-phone.cp-inner .cp-head h2{color:#2A1D12;font-family:Georgia,serif;font-size:20px;letter-spacing:.02em}
+.cp-shell .cp-phone.cp-inner .cp-head i{background:#B8863B}
+.cp-shell .cp-phone.cp-inner .cp-card{background:#FFFBF5;color:#2A1D12;border:1px solid #EAD8BE;box-shadow:0 4px 14px rgba(122,74,20,.08);margin:14px 0}
+.cp-shell .cp-phone.cp-inner .cp-card h3,.cp-shell .cp-phone.cp-inner .cp-card h4{color:#2A1D12;font-family:Georgia,serif}
+.cp-shell .cp-phone.cp-inner .cp-card>p,.cp-shell .cp-phone.cp-inner .cp-card small{color:#7C6B5A}
+.cp-shell .cp-phone.cp-inner .cp-gold{background:#7A4A14;border:1px solid #5C3610;color:#FFF6EA;border-radius:9px}
+.cp-shell .cp-phone.cp-inner .cp-select,.cp-shell .cp-phone.cp-inner .cp-summary{background:#F5E7D3;border:1px solid #EAD8BE;color:#2A1D12}
+.cp-shell .cp-phone.cp-inner .cp-move,.cp-shell .cp-phone.cp-inner .cp-notice,.cp-shell .cp-phone.cp-inner .cp-doc,
+.cp-shell .cp-phone.cp-inner .cp-step,.cp-shell .cp-phone.cp-inner .cp-person{background:#FFFFFF;border:1px solid #EAD8BE;color:#2A1D12}
+.cp-shell .cp-phone.cp-inner .cp-note{background:#F5E7D3;color:#5C3610}
+.cp-shell .cp-phone.cp-inner .cp-install{background:#FFF6E8;border-color:#E9C98B;color:#2A1D12}
+.cp-shell .cp-phone.cp-inner ~ .cp-nav,.cp-shell:has(.cp-inner) .cp-nav{background:#FFFBF5;border-top:1px solid #EAD8BE}
+.cp-shell:has(.cp-inner) .cp-nav button{color:#7A4A14}
+.cp-shell:has(.cp-inner) .cp-nav button small{color:#7C6B5A}
+.cp-shell .cp-phone.cp-inner .cp-head{background:transparent!important;box-shadow:none!important;border:0!important;border-bottom:1px solid #EAD8BE!important;border-radius:0!important;backdrop-filter:none!important}
