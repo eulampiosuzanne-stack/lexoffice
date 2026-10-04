@@ -15,7 +15,8 @@ function classify(title=''){
 function delivery(m:any,q:any){
  // Nunca tratar autorização/processamento como entrega. O selo abaixo significa apenas
  // que o provedor aceitou o disparo; confirmação de recebimento exige status próprio.
- if(q?.status==='delivered')return{kind:'sent',label:'✓ ENTREGUE AO CLIENTE',detail:q?.sent_at?`Confirmado em ${dt(q.sent_at)}`:'Entrega confirmada pelo provedor.'};
+ if(q?.read_at)return{kind:'sent',label:'✓ LIDO PELO CLIENTE',detail:`Leitura confirmada em ${dt(q.read_at)}`};
+ if(q?.delivered_at||q?.status==='delivered')return{kind:'sent',label:'✓ ENTREGUE AO CLIENTE',detail:`Entrega confirmada em ${dt(q.delivered_at||q.sent_at)}`};
  if(q?.status==='sent')return{kind:'authorized',label:'↗ DISPARO CONFIRMADO · ENTREGA NÃO CONFIRMADA',detail:q?.sent_at?`Disparado em ${dt(q.sent_at)}`:'O provedor registrou o disparo, mas não confirmou a entrega.'};
  if(m.sent_to_client_at&&!q)return{kind:'authorized',label:'↗ REGISTRO DE ENVIO · ENTREGA NÃO CONFIRMADA',detail:`Registrado em ${dt(m.sent_to_client_at)}`};
  if(q?.status==='failed'||q?.status==='error')return{kind:'blocked',label:'✕ FALHA NO ENVIO',detail:q?.last_error||'O envio não foi confirmado.'};
@@ -39,7 +40,7 @@ export default function ProcessMovements(){
     .select('id,org_id,process_id,movement_date,title,description,source,client_message,approved_for_client,sent_to_client_at,created_at,processes(cnj_number,internal_number,subject,status,clients(name))')
     .eq('org_id',orgId).order('created_at',{ascending:false}).order('movement_date',{ascending:false}).limit(1000),
    supabase.from('process_notification_queue')
-    .select('id,process_id,client_id,movement_id,notification_type,channel,scheduled_at,message_text,status,last_error,sent_at,external_message_id,send_to_client_app,clients(name),processes(cnj_number,internal_number,status)')
+    .select('id,process_id,client_id,movement_id,notification_type,channel,scheduled_at,message_text,status,last_error,sent_at,delivered_at,read_at,external_message_id,send_to_client_app,clients(name),processes(cnj_number,internal_number,status)')
     .eq('org_id',orgId).order('scheduled_at',{ascending:false}).limit(1000)
   ]);
   if(m.error)setNotice(`Erro ao carregar andamentos: ${m.error.message}`);else setRows(m.data||[]);
