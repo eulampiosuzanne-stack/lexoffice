@@ -1,33 +1,40 @@
 import {Platform} from "react-native";
 
-// Modelo aprovado pela Dra. Suzanne (03/10/2026): tela inicial em preto e
-// dourado; telas internas em creme/marfim com marrom-caramelo e dourado.
+// Paleta oficial = a mesma do LEXOFFICE (decisão da Dra. Suzanne, 03/10/2026):
+// preto profundo, cards em relevo e ouro em degradê (ouro profundo, sem amarelo).
 export const C = {
   // base
-  night: "#120C07",      // fundo escuro da tela inicial e login
-  night2: "#1E150D",     // variação do fundo escuro
-  paper: "#FBF3E9",      // fundo das telas internas (creme)
-  card: "#FFFBF5",       // cartões (marfim)
-  cardHead: "#F5E7D3",   // faixa de título dos cartões
-  line: "#EAD8BE",       // bordas
+  night: "#080705",      // fundo da tela inicial e login
+  night2: "#100C08",     // variação do fundo escuro
+  paper: "#100C08",      // fundo das telas internas
+  card: "#1D150E",       // cartões em relevo
+  cardHead: "#2A1F15",   // faixa de título dos cartões
+  line: "#6E4914",       // bordas (ouro escuro)
   // marca
-  brown: "#7A4A14",      // botões e ícones principais
-  brownDark: "#5C3610",
-  gold: "#B8863B",       // detalhes dourados
-  gold2: "#E9C98B",      // dourado claro (sobre fundo escuro)
+  brown: "#D6AA55",      // botões e ícones principais (ouro)
+  brownDark: "#A97A2B",
+  gold: "#C9993F",       // detalhes dourados
+  gold2: "#E3BC6A",      // ouro luminoso
+  goldHi: "#F2D894",     // brilho do degradê
   // texto
-  ink: "#2A1D12",
-  muted: "#7C6B5A",
-  onDark: "#FFF6EA",
+  ink: "#F5F1E8",        // marfim
+  muted: "#D2C8B8",      // bege claro
+  onDark: "#F5F1E8",
+  onGold: "#1F1404",     // texto sobre botão dourado
   // status
-  success: "#2E7D4F", successBg: "#E3F2E8",
-  warning: "#C0680F", warningBg: "#FBEBD7",
-  info: "#2D63B8", infoBg: "#E4ECF9",
-  danger: "#B3261E", dangerBg: "#FBE4E1",
-  neutral: "#8A7B6C", neutralBg: "#EFE6DA",
+  success: "#8CCB9F", successBg: "rgba(46,125,79,.20)",
+  warning: "#E3BC6A", warningBg: "rgba(214,170,85,.16)",
+  info: "#A9C1EC", infoBg: "rgba(45,99,184,.20)",
+  danger: "#E8968C", dangerBg: "rgba(179,38,30,.20)",
+  neutral: "#BDB4A6", neutralBg: "rgba(189,180,166,.12)",
   // compatibilidade com o código antigo
-  black: "#120C07", cream: "#FFFBF5",
+  black: "#080705", cream: "#1D150E",
 };
+
+// Relevo dos cartões (sombra) — iOS/Android/web
+export const RAISE = {
+  shadowColor: "#000", shadowOpacity: 0.55, shadowRadius: 10, shadowOffset: {width: 0, height: 5}, elevation: 6,
+} as const;
 
 // Fonte serifada nativa: Georgia no iPhone, Noto Serif no Android.
 export const SERIF = Platform.select({ios: "Georgia", android: "serif", default: "serif"}) as string;

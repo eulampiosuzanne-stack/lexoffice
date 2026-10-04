@@ -72,7 +72,7 @@ function Login({onDemo}: any) {
         <TextInput style={s.input} autoCapitalize="characters" secureTextEntry placeholder="Fornecido pelo escritório" placeholderTextColor="#A8998A" value={code} onChangeText={setCode} />
 
         <Pressable style={({pressed}) => [s.btn, (pressed || busy) && {opacity: 0.8}]} onPress={login}>
-          {busy ? <ActivityIndicator color="#fff" /> : <Text style={s.bt}>Entrar</Text>}
+          {busy ? <ActivityIndicator color={C.onGold} /> : <Text style={s.bt}>Entrar</Text>}
         </Pressable>
         <Text style={s.help}>Não tem o código? Peça ao escritório pelo WhatsApp (31) 99298-4141.</Text>
       </ScrollView>
@@ -131,11 +131,11 @@ function Tabs() {
         return {
           headerShown: false,
           tabBarActiveTintColor: dark ? C.gold2 : C.brown,
-          tabBarInactiveTintColor: dark ? "#9C8F80" : "#A8998A",
+          tabBarInactiveTintColor: "#9C8F80",
           tabBarLabelStyle: {fontSize: 11, fontWeight: "600"},
           tabBarStyle: {
             backgroundColor: dark ? C.night : C.card,
-            borderTopColor: dark ? "#2A2118" : C.line,
+            borderTopColor: "#2A2118",
           },
           tabBarIcon: ({color, size, focused}) => {
             const icons: any = {Início: "home", Notificações: "notifications", Perfil: "person"};
@@ -223,6 +223,6 @@ const s = StyleSheet.create({
   label: {color: C.gold2, fontSize: 13, fontWeight: "600", marginBottom: 6},
   input: {borderWidth: 1, borderColor: "#5B452D", borderRadius: 12, padding: 15, marginBottom: 14, backgroundColor: C.card, color: C.ink, fontSize: 16},
   btn: {backgroundColor: C.brown, borderRadius: 12, padding: 16, marginTop: 8, alignItems: "center", borderWidth: 1, borderColor: C.gold},
-  bt: {color: "#fff", fontWeight: "700", fontSize: 16},
+  bt: {color: C.onGold, fontWeight: "700", fontSize: 16},
   help: {color: "#A8998A", textAlign: "center", fontSize: 13, marginTop: 18, lineHeight: 19},
 });

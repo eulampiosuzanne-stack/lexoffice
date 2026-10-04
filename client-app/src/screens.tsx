@@ -5,7 +5,7 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {supabase} from "./supabase";
 import {C, R, SERIF} from "./theme";
 import {uploadRequestedDocument, uploadClientFile} from "./mobile";
-import {Avatar, Button, Card, Empty, InfoRow, Loading, Note, Pill, Screen, Section, Tone, u} from "./ui";
+import {Avatar, Backdrop, Button, Card, Empty, InfoRow, Loading, Note, Pill, Screen, Section, Tone, u} from "./ui";
 
 /* ---------------------------------------------------------------- utilidades */
 
@@ -74,7 +74,8 @@ export function Home({navigation}: any) {
   const insets = useSafeAreaInsets();
   const name = firstName(x);
   return (
-    <ScrollView style={h.page} contentContainerStyle={[h.pad, {paddingTop: insets.top + 18}]}>
+    <Backdrop>
+    <ScrollView style={{flex: 1}} contentContainerStyle={[h.pad, {paddingTop: insets.top + 18}]}>
       <View style={h.brand}>
         <Image source={require("../assets/sf-monogram.png")} style={h.logo} resizeMode="contain" accessibilityLabel="Monograma SF" />
         <Text style={h.brandName}>SUZANNE FIGUEIREDO</Text>
@@ -95,7 +96,7 @@ export function Home({navigation}: any) {
       <View style={h.grid}>
         {TILES.map(([label, route, icon]) => (
           <Pressable key={route} style={({pressed}) => [h.tile, pressed && {opacity: 0.85}]} onPress={() => navigation.navigate(route)}>
-            <Ionicons name={icon} size={34} color={C.brown} />
+            <Ionicons name={icon} size={34} color={C.gold2} />
             <Text style={h.tileText}>{label}</Text>
             {route === "Recados" && count > 0 ? (
               <View style={h.badge}>
@@ -111,6 +112,7 @@ export function Home({navigation}: any) {
         <Text style={h.officeText}>Falar com o Escritório</Text>
       </Pressable>
     </ScrollView>
+    </Backdrop>
   );
 }
 
@@ -128,7 +130,7 @@ const h = StyleSheet.create({
   restricted: {flexDirection: "row", alignItems: "center", backgroundColor: C.dangerBg, borderRadius: R.md, padding: 12, marginBottom: 14},
   restrictedText: {flex: 1, color: C.danger, fontSize: 13, lineHeight: 18, fontWeight: "600"},
   grid: {flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 12},
-  tile: {width: "48.3%", minHeight: 118, backgroundColor: C.card, borderRadius: R.md, borderWidth: 1, borderColor: C.gold2, shadowColor: "#000", shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: {width: 0, height: 4}, elevation: 4, alignItems: "center", justifyContent: "center", padding: 12, gap: 10},
+  tile: {width: "48.3%", minHeight: 118, backgroundColor: C.card, borderRadius: R.md, borderWidth: 1.5, borderColor: C.gold, shadowColor: "#000", shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: {width: 0, height: 4}, elevation: 4, alignItems: "center", justifyContent: "center", padding: 12, gap: 10},
   tileText: {fontFamily: SERIF, fontSize: 15, lineHeight: 19, color: C.ink, textAlign: "center"},
   badge: {position: "absolute", top: 10, right: 10, minWidth: 22, height: 22, borderRadius: 11, backgroundColor: C.danger, alignItems: "center", justifyContent: "center", paddingHorizontal: 5},
   badgeText: {color: "#fff", fontSize: 12, fontWeight: "800"},
@@ -271,7 +273,7 @@ export function Process({navigation}: any) {
 }
 
 const p = StyleSheet.create({
-  select: {flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: C.line, borderRadius: R.sm, padding: 12, marginTop: 8, backgroundColor: "#fff"},
+  select: {flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: C.line, borderRadius: R.sm, padding: 12, marginTop: 8, backgroundColor: C.night2},
   cnj: {fontSize: 16, fontWeight: "700", color: C.ink},
   option: {paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderColor: C.line},
   tl: {flexDirection: "row", gap: 12},
@@ -293,10 +295,10 @@ const p = StyleSheet.create({
 
 function msgCategory(c: any): {label: string; tone: Tone; icon: any; bg: string} {
   const s = norm(c);
-  if (/import|urgen|alert|audi/.test(s)) return {label: "IMPORTANTE", tone: "danger", icon: "alert-circle", bg: "#FDF1EF"};
-  if (/doc/.test(s)) return {label: "DOCUMENTOS", tone: "info", icon: "document-text", bg: "#F1F5FC"};
-  if (/finan|pag|parcel|cobr/.test(s)) return {label: "FINANCEIRO", tone: "warning", icon: "wallet", bg: "#FDF5EA"};
-  return {label: c ? String(c).toUpperCase() : "INFORMATIVO", tone: "info", icon: "information-circle", bg: "#F3F2FB"};
+  if (/import|urgen|alert|audi/.test(s)) return {label: "IMPORTANTE", tone: "danger", icon: "alert-circle", bg: "rgba(179,38,30,.14)"};
+  if (/doc/.test(s)) return {label: "DOCUMENTOS", tone: "info", icon: "document-text", bg: "rgba(45,99,184,.14)"};
+  if (/finan|pag|parcel|cobr/.test(s)) return {label: "FINANCEIRO", tone: "warning", icon: "wallet", bg: "rgba(214,170,85,.12)"};
+  return {label: c ? String(c).toUpperCase() : "INFORMATIVO", tone: "info", icon: "information-circle", bg: "rgba(214,170,85,.08)"};
 }
 
 export function Messages({navigation}: any) {
@@ -421,7 +423,7 @@ const rc = StyleSheet.create({
   actions: {flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 4},
   btn: {backgroundColor: C.brown, borderRadius: R.sm, paddingVertical: 10, paddingHorizontal: 14, marginTop: 8},
   btnOutline: {backgroundColor: "transparent", borderWidth: 1.5, borderColor: C.brown},
-  btnText: {color: "#fff", fontWeight: "700", fontSize: 13},
+  btnText: {color: C.onGold, fontWeight: "700", fontSize: 13},
 });
 
 /* --------------------------------------------------------------- documentos */
@@ -968,7 +970,7 @@ export function Communication({route}: any) {
 }
 
 const cm = StyleSheet.create({
-  input: {borderWidth: 1, borderColor: C.line, borderRadius: R.sm, padding: 12, minHeight: 130, textAlignVertical: "top", backgroundColor: "#fff", color: C.ink, fontSize: 15},
+  input: {borderWidth: 1, borderColor: C.line, borderRadius: R.sm, padding: 12, minHeight: 130, textAlignVertical: "top", backgroundColor: C.night2, color: C.ink, fontSize: 15},
 });
 
 /* ------------------------------------------------------------------ perfil */

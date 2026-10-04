@@ -15,33 +15,46 @@
 .cp-install-help{flex-basis:100%;font-size:13px;line-height:1.45}
 
 /* ============================================================
-   MODELO APROVADO (03/10/2026) — igual ao app do cliente:
-   tela inicial preta e dourada; telas internas em creme/marfim
-   com marrom-caramelo e dourado. Especificidade alta de propósito
-   para vencer as regras antigas de styles.css.
+   PALETA OFICIAL = A DO LEXOFFICE (decisão de 03/10/2026)
+   Preto profundo, cards em relevo com contorno em ouro degradê,
+   ouro profundo (sem amarelo), títulos marfim, subtítulos em ouro.
+   Especificidade alta de propósito para vencer regras antigas.
    ============================================================ */
+.cp-shell{--g:linear-gradient(135deg,#6E4914 0%,#A97A2B 16%,#D6AA55 32%,#F2D894 43%,#D1A04A 54%,#9E6E24 72%,#C4913F 88%,#6E4914 100%);--raise:linear-gradient(180deg,#2a1f15 0%,#1d150e 45%,#17110C 100%)}
+.cp-shell .cp-phone{background:radial-gradient(circle at 85% 6%,rgba(214,170,85,.14),transparent 30%),linear-gradient(180deg,#100C08,#080705 75%)!important;color:#F5F1E8}
 .cp-shell .cp-phone .cp-monogram{display:block;width:76px;height:auto;margin:0 auto 10px;filter:drop-shadow(0 0 10px rgba(214,170,85,.3))}
 .cp-shell .cp-phone.cp-home .cp-hero{text-align:center}
-.cp-shell .cp-phone.cp-home .cp-grid button{background:#FFFBF5;border:1px solid #E9C98B;color:#2A1D12;box-shadow:0 6px 16px rgba(0,0,0,.35),inset 0 1px 0 #fff}
-.cp-shell .cp-phone.cp-home .cp-grid button b{color:#7A4A14}
-.cp-shell .cp-phone.cp-home .cp-talk{border:1.5px solid #E9C98B;background:rgba(233,201,139,.06);color:#E9C98B}
-
-.cp-shell .cp-phone.cp-inner{background:#FBF3E9;color:#2A1D12}
-.cp-shell .cp-phone.cp-inner .cp-back{color:#7A4A14;font-weight:700;font-size:15px}
-.cp-shell .cp-phone.cp-inner .cp-head{color:#2A1D12;border-bottom:1px solid #EAD8BE;padding:16px 4px 12px;margin-bottom:6px}
-.cp-shell .cp-phone.cp-inner .cp-head span{color:#B8863B;font-family:Georgia,serif}
-.cp-shell .cp-phone.cp-inner .cp-head h2{color:#2A1D12;font-family:Georgia,serif;font-size:20px;letter-spacing:.02em}
-.cp-shell .cp-phone.cp-inner .cp-head i{background:#B8863B}
-.cp-shell .cp-phone.cp-inner .cp-card{background:#FFFBF5;color:#2A1D12;border:1px solid #EAD8BE;box-shadow:0 4px 14px rgba(122,74,20,.08);margin:14px 0}
-.cp-shell .cp-phone.cp-inner .cp-card h3,.cp-shell .cp-phone.cp-inner .cp-card h4{color:#2A1D12;font-family:Georgia,serif}
-.cp-shell .cp-phone.cp-inner .cp-card>p,.cp-shell .cp-phone.cp-inner .cp-card small{color:#7C6B5A}
-.cp-shell .cp-phone.cp-inner .cp-gold{background:#7A4A14;border:1px solid #5C3610;color:#FFF6EA;border-radius:9px}
-.cp-shell .cp-phone.cp-inner .cp-select,.cp-shell .cp-phone.cp-inner .cp-summary{background:#F5E7D3;border:1px solid #EAD8BE;color:#2A1D12}
-.cp-shell .cp-phone.cp-inner .cp-move,.cp-shell .cp-phone.cp-inner .cp-notice,.cp-shell .cp-phone.cp-inner .cp-doc,
-.cp-shell .cp-phone.cp-inner .cp-step,.cp-shell .cp-phone.cp-inner .cp-person{background:#FFFFFF;border:1px solid #EAD8BE;color:#2A1D12}
-.cp-shell .cp-phone.cp-inner .cp-note{background:#F5E7D3;color:#5C3610}
-.cp-shell .cp-phone.cp-inner .cp-install{background:#FFF6E8;border-color:#E9C98B;color:#2A1D12}
-.cp-shell .cp-phone.cp-inner ~ .cp-nav,.cp-shell:has(.cp-inner) .cp-nav{background:#FFFBF5;border-top:1px solid #EAD8BE}
-.cp-shell:has(.cp-inner) .cp-nav button{color:#7A4A14}
-.cp-shell:has(.cp-inner) .cp-nav button small{color:#7C6B5A}
-.cp-shell .cp-phone.cp-inner .cp-head{background:transparent!important;box-shadow:none!important;border:0!important;border-bottom:1px solid #EAD8BE!important;border-radius:0!important;backdrop-filter:none!important}
+.cp-shell .cp-phone.cp-home .cp-hero h1{background:linear-gradient(180deg,#F3D99A 0%,#DDB25C 40%,#BE8B35 75%,#D8AE5E 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.cp-shell .cp-phone .cp-grid button,.cp-shell .cp-phone .cp-card{
+  background:var(--raise) padding-box,var(--g) border-box!important;border:1.5px solid transparent!important;color:#F5F1E8!important;
+  box-shadow:inset 0 1px 0 rgba(255,236,190,.16),inset 0 -2px 0 rgba(0,0,0,.45),0 2px 0 rgba(0,0,0,.6),0 10px 22px rgba(0,0,0,.55),0 0 14px rgba(214,170,85,.12)!important}
+.cp-shell .cp-phone .cp-grid button svg{color:#E3BC6A;width:32px;height:32px}
+.cp-shell .cp-phone .cp-grid button span{color:#F5F1E8;font-weight:600}
+.cp-shell .cp-phone .cp-grid button:active{transform:translateY(2px)}
+.cp-shell .cp-phone .cp-talk{background:var(--g)!important;border:1px solid #F2D894!important;color:#1F1404!important;font-weight:800;box-shadow:inset 0 2px 0 rgba(255,240,200,.55),inset 0 -3px 0 rgba(70,45,8,.5),0 3px 0 #4a3005,0 8px 18px rgba(0,0,0,.55)}
+.cp-shell .cp-phone .cp-back{color:#E3BC6A!important;font-weight:700;font-size:15px}
+.cp-shell .cp-phone .cp-head{background:transparent!important;box-shadow:none!important;border:0!important;border-bottom:1px solid rgba(214,170,85,.25)!important;border-radius:0!important;padding:14px 4px 12px!important;margin-bottom:6px;display:flex;align-items:center;gap:10px}
+.cp-shell .cp-phone .cp-head span,.cp-shell .cp-phone .cp-head i{display:none!important}
+.cp-shell .cp-phone .cp-head h2{color:#F5F1E8!important;font:600 22px Georgia,serif!important;letter-spacing:.01em;text-transform:none;margin:0}
+.cp-shell .cp-phone .cp-card h3,.cp-shell .cp-phone .cp-card h4{color:#D6AA55!important;font-family:Georgia,serif}
+.cp-shell .cp-phone .cp-card>p,.cp-shell .cp-phone .cp-card small,.cp-shell .cp-phone .cp-card label{color:#D2C8B8!important}
+.cp-shell .cp-phone .cp-gold{background:var(--g)!important;border:1px solid #F2D894!important;color:#1F1404!important;font-weight:800;border-radius:10px;box-shadow:inset 0 2px 0 rgba(255,240,200,.5),0 3px 0 #4a3005,0 6px 14px rgba(0,0,0,.5)}
+.cp-shell .cp-phone :is(.cp-select,.cp-summary,input,select,textarea){background:#0c0906!important;border:1px solid rgba(214,170,85,.4)!important;color:#F5F1E8!important;box-shadow:inset 0 2px 5px rgba(0,0,0,.65);border-radius:10px}
+.cp-shell .cp-phone .cp-summary strong{color:#E3BC6A!important}
+.cp-shell .cp-phone :is(.cp-move,.cp-notice,.cp-doc,.cp-step,.cp-person,.cp-letter){background:#120d09!important;border:1px solid rgba(214,170,85,.28)!important;color:#F5F1E8!important;border-radius:12px}
+.cp-shell .cp-phone :is(.cp-move,.cp-notice,.cp-doc,.cp-step,.cp-person) small{color:#BDB4A6!important}
+.cp-shell .cp-phone .cp-notice{border-left:3px solid #D6AA55!important}
+.cp-shell .cp-phone .cp-doc>span{color:#E3BC6A!important}
+.cp-shell .cp-phone .cp-step>span{background:var(--g)!important;color:#1F1404!important}
+.cp-shell .cp-phone .cp-ok{color:#8CCB9F!important}
+.cp-shell .cp-phone .cp-note{background:rgba(214,170,85,.10)!important;color:#E7DFD0!important;border:1px solid rgba(214,170,85,.25)}
+.cp-shell .cp-phone .cp-alert{background:rgba(214,170,85,.10)!important;border:1px solid rgba(214,170,85,.35)!important;color:#F2D894!important}
+.cp-shell .cp-phone .cp-install{background:rgba(214,170,85,.10)!important;border:1px solid rgba(214,170,85,.4)!important;color:#F5F1E8!important}
+.cp-shell .cp-nav{background:#080705!important;border-top:1px solid rgba(214,170,85,.3)!important}
+.cp-shell .cp-nav button{color:#BDB4A6!important}
+.cp-shell .cp-nav button:first-child{color:#E3BC6A!important}
+.cp-shell .cp-nav button small{color:inherit!important}
+/* Fundo igual ao do LEXOFFICE: foto oficial SF com véu escuro */
+.cp-shell{background:linear-gradient(180deg,rgba(8,7,5,.50),rgba(8,7,5,.62)),url('/brand/fundo-sf.jpg') center/cover fixed no-repeat,#080705!important}
+.cp-shell .cp-phone{background:rgba(8,7,5,.38)!important;backdrop-filter:blur(2px)}
+@media(min-width:700px){.cp-shell .cp-phone{border-left:1px solid rgba(214,170,85,.25);border-right:1px solid rgba(214,170,85,.25)}}

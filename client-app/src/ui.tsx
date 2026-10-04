@@ -1,17 +1,30 @@
 import React from "react";
-import {ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, ViewStyle} from "react-native";
+import {ActivityIndicator, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View, ViewStyle} from "react-native";
 import {Ionicons} from "@expo/vector-icons";
-import {C, R, SERIF} from "./theme";
+import {C, RAISE, R, SERIF} from "./theme";
 
 export type Tone = "success" | "warning" | "info" | "danger" | "neutral";
 
 /** Área rolável padrão das telas internas. */
+export const BG = require("../assets/fundo-sf.jpg");
+
+// Fundo igual ao do LEXOFFICE: foto oficial SF com véu escuro por cima.
+export function Backdrop({children}: {children: React.ReactNode}) {
+  return (
+    <ImageBackground source={BG} style={{flex: 1, backgroundColor: C.night}} resizeMode="cover">
+      <View style={{flex: 1, backgroundColor: "rgba(8,7,5,.62)"}}>{children}</View>
+    </ImageBackground>
+  );
+}
+
 export function Screen({children, lead}: {children: React.ReactNode; lead?: string}) {
   return (
-    <ScrollView style={u.page} contentContainerStyle={u.pad}>
-      {lead ? <Text style={u.lead}>{lead}</Text> : null}
-      {children}
-    </ScrollView>
+    <Backdrop>
+      <ScrollView style={{flex: 1}} contentContainerStyle={u.pad}>
+        {lead ? <Text style={u.lead}>{lead}</Text> : null}
+        {children}
+      </ScrollView>
+    </Backdrop>
   );
 }
 
@@ -75,7 +88,7 @@ export function Pill({label, tone = "neutral", icon}: {label: string; tone?: Ton
 export function Button({label, onPress, variant = "primary", icon, disabled}: {label: string; onPress?: () => void; variant?: "primary" | "outline" | "dark"; icon?: any; disabled?: boolean}) {
   const st = variant === "outline" ? u.btnOutline : variant === "dark" ? u.btnDark : u.btn;
   const tx = variant === "outline" ? u.btnOutlineText : variant === "dark" ? u.btnDarkText : u.btnText;
-  const ic = variant === "outline" ? C.brown : variant === "dark" ? C.gold2 : "#fff";
+  const ic = variant === "outline" ? C.brown : variant === "dark" ? C.gold2 : C.onGold;
   return (
     <Pressable disabled={disabled} onPress={onPress} style={({pressed}) => [st, pressed && u.pressed, disabled && {opacity: 0.5}]}>
       {icon ? <Ionicons name={icon} size={18} color={ic} style={{marginRight: 8}} /> : null}
@@ -88,7 +101,7 @@ export function Button({label, onPress, variant = "primary", icon, disabled}: {l
 export function Note({children, icon = "information-circle-outline", tone}: {children: React.ReactNode; icon?: any; tone?: "warning"}) {
   const warn = tone === "warning";
   return (
-    <View style={[u.note, warn && {backgroundColor: C.warningBg, borderColor: "#F1D1A8"}]}>
+    <View style={[u.note, warn && {backgroundColor: C.warningBg, borderColor: C.line}]}>
       <Ionicons name={icon} size={20} color={warn ? C.warning : C.gold} style={{marginRight: 10, marginTop: 1}} />
       <Text style={u.noteText}>{children}</Text>
     </View>
@@ -128,7 +141,7 @@ export const u = StyleSheet.create({
   pad: {padding: 18, paddingTop: 6, paddingBottom: 40},
   loading: {flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: C.paper},
   lead: {fontSize: 15, lineHeight: 21, color: C.muted, marginBottom: 16},
-  card: {backgroundColor: C.card, borderWidth: 1, borderColor: C.line, borderRadius: R.md, marginBottom: 14, overflow: "hidden"},
+  card: {backgroundColor: C.card, borderWidth: 1.5, borderColor: C.gold, borderRadius: R.md, marginBottom: 16, ...RAISE},
   cardHead: {backgroundColor: C.cardHead, paddingHorizontal: 16, paddingVertical: 10},
   cardHeadText: {fontFamily: SERIF, fontSize: 16, color: C.ink, fontWeight: "700"},
   cardBody: {padding: 16},
@@ -141,17 +154,17 @@ export const u = StyleSheet.create({
   pill: {flexDirection: "row", alignItems: "center", alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 4, borderRadius: R.pill},
   pillText: {fontSize: 12, fontWeight: "700"},
   btn: {flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: C.brown, borderRadius: R.md, paddingVertical: 14, paddingHorizontal: 16, marginTop: 12},
-  btnText: {color: "#fff", fontWeight: "700", fontSize: 15},
+  btnText: {color: C.onGold, fontWeight: "700", fontSize: 15},
   btnOutline: {flexDirection: "row", alignItems: "center", justifyContent: "center", borderWidth: 1.5, borderColor: C.brown, borderRadius: R.md, paddingVertical: 13, paddingHorizontal: 16, marginTop: 12, backgroundColor: "transparent"},
   btnOutlineText: {color: C.brown, fontWeight: "700", fontSize: 15},
   btnDark: {flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: C.night, borderRadius: R.md, paddingVertical: 15, paddingHorizontal: 16, marginTop: 12},
   btnDarkText: {color: C.gold2, fontWeight: "700", fontSize: 15},
-  note: {flexDirection: "row", backgroundColor: "#F7EBD8", borderWidth: 1, borderColor: C.line, borderRadius: R.md, padding: 14, marginTop: 4, marginBottom: 14},
+  note: {flexDirection: "row", backgroundColor: C.cardHead, borderWidth: 1, borderColor: C.line, borderRadius: R.md, padding: 14, marginTop: 4, marginBottom: 14},
   noteText: {flex: 1, fontSize: 13, lineHeight: 19, color: C.ink},
   section: {fontFamily: SERIF, fontSize: 20, color: C.ink, marginTop: 10, marginBottom: 12},
   empty: {color: C.muted, fontSize: 14, lineHeight: 20},
   avatar: {backgroundColor: C.brown, alignItems: "center", justifyContent: "center"},
-  avatarText: {color: C.gold2, fontFamily: SERIF, fontWeight: "700"},
+  avatarText: {color: C.onGold, fontFamily: SERIF, fontWeight: "700"},
   title: {fontFamily: SERIF, fontSize: 17, fontWeight: "700", color: C.ink},
   body: {fontSize: 14, lineHeight: 21, color: C.ink},
   small: {fontSize: 12, color: C.muted, marginTop: 3},
