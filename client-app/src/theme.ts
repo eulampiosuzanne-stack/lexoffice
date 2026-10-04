@@ -1,23 +1,24 @@
 import {Platform} from "react-native";
 
-// Identidade Suzanne Figueiredo: preto profundo, café, bronze, dourado e marfim.
+// Modelo aprovado pela Dra. Suzanne (03/10/2026): tela inicial em preto e
+// dourado; telas internas em creme/marfim com marrom-caramelo e dourado.
 export const C = {
   // base
-  night: "#080705",      // fundo escuro da tela inicial e login
-  night2: "#100C08",     // variação do fundo escuro
-  paper: "#100C08",      // fundo das telas internas
-  card: "#17110C",       // cartões
-  cardHead: "#20170F",   // faixa de título dos cartões
-  line: "#4A3420",       // bordas
+  night: "#120C07",      // fundo escuro da tela inicial e login
+  night2: "#1E150D",     // variação do fundo escuro
+  paper: "#FBF3E9",      // fundo das telas internas (creme)
+  card: "#FFFBF5",       // cartões (marfim)
+  cardHead: "#F5E7D3",   // faixa de título dos cartões
+  line: "#EAD8BE",       // bordas
   // marca
-  brown: "#C99443",      // botões e ícones principais
-  brownDark: "#8A5726",
-  gold: "#C99443",       // detalhes dourados
-  gold2: "#F2C56D",      // dourado claro (sobre fundo escuro)
+  brown: "#7A4A14",      // botões e ícones principais
+  brownDark: "#5C3610",
+  gold: "#B8863B",       // detalhes dourados
+  gold2: "#E9C98B",      // dourado claro (sobre fundo escuro)
   // texto
-  ink: "#F5F1E8",
-  muted: "#BDB4A6",
-  onDark: "#F5F1E8",
+  ink: "#2A1D12",
+  muted: "#7C6B5A",
+  onDark: "#FFF6EA",
   // status
   success: "#2E7D4F", successBg: "#E3F2E8",
   warning: "#C0680F", warningBg: "#FBEBD7",
@@ -25,7 +26,7 @@ export const C = {
   danger: "#B3261E", dangerBg: "#FBE4E1",
   neutral: "#8A7B6C", neutralBg: "#EFE6DA",
   // compatibilidade com o código antigo
-  black: "#080705", cream: "#17110C",
+  black: "#120C07", cream: "#FFFBF5",
 };
 
 // Fonte serifada nativa: Georgia no iPhone, Noto Serif no Android.

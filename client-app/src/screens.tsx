@@ -1,5 +1,5 @@
 import React, {createContext, useCallback, useContext, useEffect, useState} from "react";
-import {Alert, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View} from "react-native";
+import {Alert, Image, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View} from "react-native";
 import {Ionicons} from "@expo/vector-icons";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {supabase} from "./supabase";
@@ -76,7 +76,7 @@ export function Home({navigation}: any) {
   return (
     <ScrollView style={h.page} contentContainerStyle={[h.pad, {paddingTop: insets.top + 18}]}>
       <View style={h.brand}>
-        <Text style={h.monogram}>SF</Text>
+        <Image source={require("../assets/sf-monogram.png")} style={h.logo} resizeMode="contain" accessibilityLabel="Monograma SF" />
         <Text style={h.brandName}>SUZANNE FIGUEIREDO</Text>
         <View style={h.brandRule} />
         <Text style={h.brandSub}>ADVOCACIA E SOLUÇÕES JURÍDICAS</Text>
@@ -118,6 +118,7 @@ const h = StyleSheet.create({
   page: {flex: 1, backgroundColor: C.night},
   pad: {paddingHorizontal: 18, paddingBottom: 32},
   brand: {alignItems: "center", marginBottom: 26},
+  logo: {width: 74, height: 100, marginBottom: 6},
   monogram: {fontFamily: SERIF, fontSize: 64, lineHeight: 70, color: C.gold2, fontWeight: "700", fontStyle: "italic"},
   brandName: {fontFamily: SERIF, fontSize: 20, letterSpacing: 3, color: C.gold2, marginTop: 2},
   brandRule: {width: 170, height: 1, backgroundColor: C.gold, marginVertical: 6, opacity: 0.7},
@@ -127,11 +128,11 @@ const h = StyleSheet.create({
   restricted: {flexDirection: "row", alignItems: "center", backgroundColor: C.dangerBg, borderRadius: R.md, padding: 12, marginBottom: 14},
   restrictedText: {flex: 1, color: C.danger, fontSize: 13, lineHeight: 18, fontWeight: "600"},
   grid: {flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 12},
-  tile: {width: "48.3%", minHeight: 118, backgroundColor: C.card, borderRadius: R.md, alignItems: "center", justifyContent: "center", padding: 12, gap: 10},
+  tile: {width: "48.3%", minHeight: 118, backgroundColor: C.card, borderRadius: R.md, borderWidth: 1, borderColor: C.gold2, shadowColor: "#000", shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: {width: 0, height: 4}, elevation: 4, alignItems: "center", justifyContent: "center", padding: 12, gap: 10},
   tileText: {fontFamily: SERIF, fontSize: 15, lineHeight: 19, color: C.ink, textAlign: "center"},
   badge: {position: "absolute", top: 10, right: 10, minWidth: 22, height: 22, borderRadius: 11, backgroundColor: C.danger, alignItems: "center", justifyContent: "center", paddingHorizontal: 5},
   badgeText: {color: "#fff", fontSize: 12, fontWeight: "800"},
-  office: {flexDirection: "row", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: C.gold, borderRadius: R.md, paddingVertical: 16, marginTop: 18},
+  office: {flexDirection: "row", alignItems: "center", justifyContent: "center", borderWidth: 1.5, borderColor: C.gold2, backgroundColor: "rgba(233,201,139,.06)", borderRadius: R.md, paddingVertical: 16, marginTop: 18},
   officeText: {color: C.gold2, fontSize: 16, fontWeight: "700"},
 });
 

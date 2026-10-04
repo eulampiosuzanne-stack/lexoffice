@@ -268,3 +268,40 @@ html body .app.app.app.app main :is([class*="-grid"],.form-grid){gap:18px!import
 html body .app.app.app.app main :is(.card,.module-box,.table-panel,[class$="-card"],[class$="-panel"],[class$="-box"]){padding:20px 22px;margin-bottom:0}
 html body .app.app.app.app main :is(.card,.module-box,.table-panel,[class$="-panel"],[class$="-box"]) + :is(.card,.module-box,.table-panel,[class$="-panel"],[class$="-box"]){margin-top:18px!important}
 html body .app.app.app.app main :is(h2,h3){margin-bottom:12px!important}
+
+/* ============================================================
+   15. AGENTES IA — organização (03/10/2026)
+   Lista enxuta à esquerda; configuração dividida em abas à direita.
+   ============================================================ */
+html body .app.app.app.app .agents-layout{display:grid!important;grid-template-columns:300px minmax(0,1fr)!important;gap:24px!important;align-items:start!important;margin-top:22px!important}
+html body .app.app.app.app .agents-list{display:flex!important;flex-direction:column!important;gap:12px!important;position:sticky;top:16px;max-height:calc(100vh - 140px);overflow:auto;padding:4px 6px 8px 2px}
+html body .app.app.app.app .agent-item{flex:0 0 auto!important;height:auto!important;display:grid!important;grid-template-columns:38px minmax(0,1fr)!important;gap:12px!important;align-items:start!important;padding:14px 16px!important;border-radius:14px!important;min-height:0!important;text-align:left!important;position:relative}
+html body .app.app.app.app .agent-item .agent-icon{width:38px;height:38px;display:grid;place-items:center;border-radius:10px}
+html body .app.app.app.app .agent-item b{font-size:14.5px!important;line-height:1.3!important;padding-right:26px;color:#F5F1E8!important;-webkit-text-fill-color:#F5F1E8!important}
+html body .app.app.app.app .agent-item small{display:-webkit-box!important;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:12.5px!important;line-height:1.45!important;margin:6px 0 8px!important}
+html body .app.app.app.app .agent-item span{display:inline-block;font-size:10.5px!important;font-weight:700!important;letter-spacing:.06em;padding:3px 9px;border-radius:999px;border:1px solid rgba(214,170,85,.35);color:#BDB4A6!important}
+html body .app.app.app.app .agent-item span.agent-online{color:#1f1404!important;background:var(--lx-gold-border)!important;border-color:transparent}
+html body .app.app.app.app .agent-console{padding:26px 28px!important;min-width:0}
+html body .app.app.app.app .agent-console-head{display:flex!important;justify-content:space-between!important;align-items:flex-start!important;gap:20px!important;padding-bottom:18px!important;margin-bottom:18px;border-bottom:1px solid rgba(214,170,85,.18)!important}
+html body .app.app.app.app .agent-console-head h2{font-size:22px!important;margin:6px 0 6px!important}
+html body .app.app.app.app .agent-console-head p{font-size:13.5px!important;line-height:1.55!important;max-width:620px}
+html body .app.app.app.app .agent-tabs{display:flex!important;flex-wrap:wrap!important;gap:8px!important;margin:0 0 22px!important;padding-bottom:16px;border-bottom:1px solid rgba(214,170,85,.14)}
+html body .app.app.app.app .agent-tabs button{min-height:38px!important;padding:0 14px!important;font-size:13px!important;border-radius:10px!important;white-space:nowrap}
+html body .app.app.app.app .agent-tab-body{display:flex;flex-direction:column;gap:18px}
+html body .app.app.app.app .agent-tab-body .agent-form{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:16px 18px!important;padding:0!important}
+html body .app.app.app.app .agent-tab-body .agent-form label{font-size:13px!important;gap:8px!important}
+html body .app.app.app.app .agent-tab-body .agent-form label.wide{grid-column:1/-1!important}
+html body .app.app.app.app .agent-tab-body .agent-form textarea{min-height:90px!important;font-size:14px!important;line-height:1.55!important}
+html body .app.app.app.app .agent-tab-body .agent-form textarea.instructions{min-height:320px!important}
+html body .app.app.app.app .agent-tab-body .permission-title{margin:6px 0 0!important;display:flex;align-items:center;gap:8px}
+html body .app.app.app.app .agent-tab-body .permission-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))!important;gap:12px!important}
+html body .app.app.app.app .agent-tab-body .advanced-section{padding:18px 20px!important;margin:0 0 14px!important;border-radius:14px;border:1px solid rgba(214,170,85,.16)!important;background:rgba(16,12,8,.45)}
+html body .app.app.app.app .agent-tab-body .setting-row{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid rgba(214,170,85,.10)}
+html body .app.app.app.app .agent-tab-body .setting-row:last-child{border-bottom:0}
+html body .app.app.app.app .agent-save{display:flex;justify-content:flex-end;margin-top:22px;padding-top:18px;border-top:1px solid rgba(214,170,85,.14)}
+@media(max-width:1100px){
+  html body .app.app.app.app .agents-layout{grid-template-columns:1fr!important}
+  html body .app.app.app.app .agents-list{position:static;max-height:none;flex-direction:row!important;overflow-x:auto;padding-bottom:10px}
+  html body .app.app.app.app .agent-item{min-width:240px}
+}
+@media(max-width:700px){html body .app.app.app.app .agent-tab-body .agent-form{grid-template-columns:1fr!important}}
