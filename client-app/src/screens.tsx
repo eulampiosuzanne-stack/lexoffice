@@ -1,11 +1,11 @@
 import React, {createContext, useCallback, useContext, useEffect, useState} from "react";
-import {Alert, Image, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View} from "react-native";
+import {Alert, Image, ImageBackground, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View} from "react-native";
 import {Ionicons} from "@expo/vector-icons";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {supabase} from "./supabase";
-import {C, R, SERIF} from "./theme";
+import {C, R, RAISE, SERIF} from "./theme";
 import {uploadRequestedDocument, uploadClientFile} from "./mobile";
-import {Avatar, Backdrop, Button, Card, Empty, InfoRow, Loading, Note, Pill, Screen, Section, Tone, u} from "./ui";
+import {Avatar, Backdrop, Button, Card, GOLD, GoldFrame, Empty, InfoRow, Loading, Note, Pill, Screen, Section, Tone, u} from "./ui";
 
 /* ---------------------------------------------------------------- utilidades */
 
@@ -95,7 +95,9 @@ export function Home({navigation}: any) {
 
       <View style={h.grid}>
         {TILES.map(([label, route, icon]) => (
-          <Pressable key={route} style={({pressed}) => [h.tile, pressed && {opacity: 0.85}]} onPress={() => navigation.navigate(route)}>
+          <Pressable key={route} style={({pressed}) => [{width: "48.3%"}, pressed && {transform: [{translateY: 2}]}]} onPress={() => navigation.navigate(route)}>
+            <GoldFrame>
+            <View style={h.tile}>
             <Ionicons name={icon} size={34} color={C.gold2} />
             <Text style={h.tileText}>{label}</Text>
             {route === "Recados" && count > 0 ? (
@@ -103,13 +105,17 @@ export function Home({navigation}: any) {
                 <Text style={h.badgeText}>{count > 9 ? "9+" : count}</Text>
               </View>
             ) : null}
+            </View>
+            </GoldFrame>
           </Pressable>
         ))}
       </View>
 
-      <Pressable style={({pressed}) => [h.office, pressed && {opacity: 0.85}]} onPress={() => navigation.navigate("Comunicação")}>
-        <Ionicons name="chatbubble-ellipses-outline" size={20} color={C.gold2} style={{marginRight: 10}} />
-        <Text style={h.officeText}>Falar com o Escritório</Text>
+      <Pressable style={({pressed}) => [{marginTop: 18, borderRadius: R.md}, RAISE, pressed && {transform: [{translateY: 2}]}]} onPress={() => navigation.navigate("Comunicação")}>
+        <ImageBackground source={GOLD} resizeMode="stretch" style={[h.office, {marginTop: 0, overflow: "hidden"}]} imageStyle={{borderRadius: R.md}}>
+          <Ionicons name="chatbubble-ellipses-outline" size={20} color={C.onGold} style={{marginRight: 10}} />
+          <Text style={[h.officeText, {color: C.onGold}]}>Falar com o Escritório</Text>
+        </ImageBackground>
       </Pressable>
     </ScrollView>
     </Backdrop>
@@ -130,7 +136,7 @@ const h = StyleSheet.create({
   restricted: {flexDirection: "row", alignItems: "center", backgroundColor: C.dangerBg, borderRadius: R.md, padding: 12, marginBottom: 14},
   restrictedText: {flex: 1, color: C.danger, fontSize: 13, lineHeight: 18, fontWeight: "600"},
   grid: {flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 12},
-  tile: {width: "48.3%", minHeight: 118, backgroundColor: C.card, borderRadius: R.md, borderWidth: 1.5, borderColor: C.gold, shadowColor: "#000", shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: {width: 0, height: 4}, elevation: 4, alignItems: "center", justifyContent: "center", padding: 12, gap: 10},
+  tile: {minHeight: 118, backgroundColor: C.card, alignItems: "center", justifyContent: "center", padding: 12, gap: 10},
   tileText: {fontFamily: SERIF, fontSize: 15, lineHeight: 19, color: C.ink, textAlign: "center"},
   badge: {position: "absolute", top: 10, right: 10, minWidth: 22, height: 22, borderRadius: 11, backgroundColor: C.danger, alignItems: "center", justifyContent: "center", paddingHorizontal: 5},
   badgeText: {color: "#fff", fontSize: 12, fontWeight: "800"},

@@ -20,7 +20,7 @@
    ouro profundo (sem amarelo), títulos marfim, subtítulos em ouro.
    Especificidade alta de propósito para vencer regras antigas.
    ============================================================ */
-.cp-shell{--g:linear-gradient(135deg,#6E4914 0%,#A97A2B 16%,#D6AA55 32%,#F2D894 43%,#D1A04A 54%,#9E6E24 72%,#C4913F 88%,#6E4914 100%);--raise:linear-gradient(180deg,#2a1f15 0%,#1d150e 45%,#17110C 100%)}
+.cp-shell{--g:linear-gradient(135deg,#6E4914 0%,#A97A2B 16%,#D6AA55 32%,#F2D894 43%,#FFF6D6 47%,#F2D894 51%,#D1A04A 58%,#9E6E24 74%,#C4913F 88%,#6E4914 100%);--raise:linear-gradient(180deg,#2a1f15 0%,#1d150e 45%,#17110C 100%)}
 .cp-shell .cp-phone{background:radial-gradient(circle at 85% 6%,rgba(214,170,85,.14),transparent 30%),linear-gradient(180deg,#100C08,#080705 75%)!important;color:#F5F1E8}
 .cp-shell .cp-phone .cp-monogram{display:block;width:76px;height:auto;margin:0 auto 10px;filter:drop-shadow(0 0 10px rgba(214,170,85,.3))}
 .cp-shell .cp-phone.cp-home .cp-hero{text-align:center}
@@ -58,3 +58,10 @@
 .cp-shell{background:linear-gradient(180deg,rgba(8,7,5,.50),rgba(8,7,5,.62)),url('/brand/fundo-sf.jpg') center/cover fixed no-repeat,#080705!important}
 .cp-shell .cp-phone{background:rgba(8,7,5,.38)!important;backdrop-filter:blur(2px)}
 @media(min-width:700px){.cp-shell .cp-phone{border-left:1px solid rgba(214,170,85,.25);border-right:1px solid rgba(214,170,85,.25)}}
+
+/* Brilho do ouro: reflexo que passa devagar nos botões dourados (desliga para quem pede menos movimento) */
+.cp-shell .cp-phone :is(.cp-talk,.cp-gold){position:relative;overflow:hidden}
+.cp-shell .cp-phone :is(.cp-talk,.cp-gold)::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;pointer-events:none;
+  background:linear-gradient(100deg,transparent 0%,rgba(255,250,225,.55) 50%,transparent 100%);transform:skewX(-18deg);animation:cpShine 5s ease-in-out infinite}
+@keyframes cpShine{0%,70%{left:-60%}100%{left:130%}}
+@media (prefers-reduced-motion:reduce){.cp-shell .cp-phone :is(.cp-talk,.cp-gold)::after{animation:none;display:none}}

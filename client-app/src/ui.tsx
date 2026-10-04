@@ -37,25 +37,38 @@ export function Loading() {
 }
 
 /** Cartão com faixa de título opcional (como "Resumo do seu plano"). */
+export const GOLD = require("../assets/ouro-degrade.png");
+
+/** Moldura em ouro degradê com brilho (como na LEX), com relevo por baixo. */
+export function GoldFrame({children, style, radius = R.md, width = 1.5, fill = C.card}: {children?: React.ReactNode; style?: any; radius?: number; width?: number; fill?: string}) {
+  return (
+    <View style={[{borderRadius: radius}, RAISE, style]}>
+      <ImageBackground source={GOLD} resizeMode="stretch" style={{borderRadius: radius, padding: width, overflow: "hidden"}} imageStyle={{borderRadius: radius}}>
+        <View style={{backgroundColor: fill, borderRadius: Math.max(radius - width, 0), overflow: "hidden"}}>{children}</View>
+      </ImageBackground>
+    </View>
+  );
+}
+
 export function Card({title, children, style, onPress}: {title?: string; children?: React.ReactNode; style?: ViewStyle; onPress?: () => void}) {
   const body = (
-    <>
+    <GoldFrame style={[{marginBottom: 16}, style]}>
       {title ? (
         <View style={u.cardHead}>
           <Text style={u.cardHeadText}>{title}</Text>
         </View>
       ) : null}
       <View style={u.cardBody}>{children}</View>
-    </>
+    </GoldFrame>
   );
   if (onPress) {
     return (
-      <Pressable onPress={onPress} style={({pressed}) => [u.card, style, pressed && u.pressed]}>
+      <Pressable onPress={onPress} style={({pressed}) => [pressed && u.pressed]}>
         {body}
       </Pressable>
     );
   }
-  return <View style={[u.card, style]}>{body}</View>;
+  return body;
 }
 
 /** Linha com ícone, rótulo e valor (usada no Financeiro e em listas). */
@@ -89,10 +102,25 @@ export function Button({label, onPress, variant = "primary", icon, disabled}: {l
   const st = variant === "outline" ? u.btnOutline : variant === "dark" ? u.btnDark : u.btn;
   const tx = variant === "outline" ? u.btnOutlineText : variant === "dark" ? u.btnDarkText : u.btnText;
   const ic = variant === "outline" ? C.brown : variant === "dark" ? C.gold2 : C.onGold;
-  return (
-    <Pressable disabled={disabled} onPress={onPress} style={({pressed}) => [st, pressed && u.pressed, disabled && {opacity: 0.5}]}>
+  const inner = (
+    <>
       {icon ? <Ionicons name={icon} size={18} color={ic} style={{marginRight: 8}} /> : null}
       <Text style={tx}>{label}</Text>
+    </>
+  );
+  if (variant === "primary") {
+    // Botão principal em ouro degradê polido, com relevo.
+    return (
+      <Pressable disabled={disabled} onPress={onPress} style={({pressed}) => [{marginTop: 12, borderRadius: R.md}, RAISE, pressed && {transform: [{translateY: 2}]}, disabled && {opacity: 0.5}]}>
+        <ImageBackground source={GOLD} resizeMode="stretch" style={[st, {marginTop: 0, backgroundColor: "transparent", overflow: "hidden", borderWidth: 1, borderColor: C.goldHi}]} imageStyle={{borderRadius: R.md}}>
+          {inner}
+        </ImageBackground>
+      </Pressable>
+    );
+  }
+  return (
+    <Pressable disabled={disabled} onPress={onPress} style={({pressed}) => [st, pressed && u.pressed, disabled && {opacity: 0.5}]}>
+      {inner}
     </Pressable>
   );
 }
@@ -141,7 +169,7 @@ export const u = StyleSheet.create({
   pad: {padding: 18, paddingTop: 6, paddingBottom: 40},
   loading: {flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: C.paper},
   lead: {fontSize: 15, lineHeight: 21, color: C.muted, marginBottom: 16},
-  card: {backgroundColor: C.card, borderWidth: 1.5, borderColor: C.gold, borderRadius: R.md, marginBottom: 16, ...RAISE},
+  card: {},
   cardHead: {backgroundColor: C.cardHead, paddingHorizontal: 16, paddingVertical: 10},
   cardHeadText: {fontFamily: SERIF, fontSize: 16, color: C.ink, fontWeight: "700"},
   cardBody: {padding: 16},

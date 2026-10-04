@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import {ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View} from "react-native";
+import {ActivityIndicator, Alert, ImageBackground, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View} from "react-native";
 import {NavigationContainer, createNavigationContainerRef, getFocusedRouteNameFromRoute} from "@react-navigation/native";
 import * as Notifications from "expo-notifications";
 import {createBottomTabNavigator} from "@react-navigation/bottom-tabs";
@@ -8,7 +8,8 @@ import {SafeAreaProvider} from "react-native-safe-area-context";
 import {Ionicons} from "@expo/vector-icons";
 import {StatusBar} from "expo-status-bar";
 import {supabase, supabaseUrl, supabaseAnonKey} from "./src/supabase";
-import {C, SERIF} from "./src/theme";
+import {C, RAISE, SERIF} from "./src/theme";
+import {GOLD} from "./src/ui";
 import {registerPush} from "./src/mobile";
 import {
   Home, Process, Messages, Documents, Steps, Calendar, Urgency, SuzanneMessage,
@@ -71,8 +72,10 @@ function Login({onDemo}: any) {
         <Text style={s.label}>Código de acesso</Text>
         <TextInput style={s.input} autoCapitalize="characters" secureTextEntry placeholder="Fornecido pelo escritório" placeholderTextColor="#A8998A" value={code} onChangeText={setCode} />
 
-        <Pressable style={({pressed}) => [s.btn, (pressed || busy) && {opacity: 0.8}]} onPress={login}>
+        <Pressable style={({pressed}) => [{marginTop: 8, borderRadius: 12}, RAISE, (pressed || busy) && {opacity: 0.85}]} onPress={login}>
+          <ImageBackground source={GOLD} resizeMode="stretch" style={[s.btn, {marginTop: 0, overflow: "hidden"}]} imageStyle={{borderRadius: 12}}>
           {busy ? <ActivityIndicator color={C.onGold} /> : <Text style={s.bt}>Entrar</Text>}
+          </ImageBackground>
         </Pressable>
         <Text style={s.help}>Não tem o código? Peça ao escritório pelo WhatsApp (31) 99298-4141.</Text>
       </ScrollView>
