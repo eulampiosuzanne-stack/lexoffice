@@ -127,9 +127,17 @@ function Proposals({ orgId, flash, fail }: { orgId: string; flash: (m: string) =
   }
   async function pause(p: Proposal) {
     if (!window.confirm('Pausar o follow-up desta proposta? As mensagens pendentes não serão enviadas.')) return;
-    const { error } = await supabase.from('commercial_proposals').update({ followup_active: false, stop_reason: 'pausado_manual' }).eq('id', p.id);
+    const { error } = await supabase.from('commercial_proposals').update({ followup_active: false, stop_reason: 'pausado_manual' }).eq('id', p.id).eq('org_id', orgId);
     if (error) { fail(error.message); return; }
     flash('Follow-up pausado.'); load();
+  }
+  async function resume(p: Proposal) {
+    if (!window.confirm('Retomar o follow-up desta proposta? Somente as etapas ainda não enviadas serão reativadas.')) return;
+    const { error } = await supabase.from('commercial_proposals').update({ followup_active: true, stop_reason: null, updated_at: new Date().toISOString() }).eq('id', p.id).eq('org_id', orgId);
+    if (error) { fail(error.message); return; }
+    const { error: followupError } = await supabase.from('commercial_proposal_followups').update({ status: 'pending', error_message: null }).eq('proposal_id', p.id).eq('org_id', orgId).in('status', ['cancelled', 'skipped']).gte('scheduled_at', new Date().toISOString());
+    if (followupError) { fail('A proposta foi reativada, mas houve falha ao reagendar as etapas pendentes: ' + followupError.message); await load(); return; }
+    flash('Follow-up retomado. As etapas futuras pendentes foram reativadas.'); load();
   }
   async function toggleGlobal() {
     const next = !enabled;
@@ -192,7 +200,7 @@ function Proposals({ orgId, flash, fail }: { orgId: string; flash: (m: string) =
           {['enviada', 'respondida'].includes(p.status) && <div className="jornada-card-actions">
             <button className="integration-action" onClick={() => setStatus(p, 'contratada')}><CheckCircle2 size={14} />Contratou</button>
             <button className="secondary" onClick={() => setStatus(p, 'recusada')}><XCircle size={14} />Sem interesse</button>
-            {p.followup_active && <button className="secondary" onClick={() => pause(p)}><Pause size={14} />Pausar follow-up</button>}
+            {p.followup_active ? <button className="secondary" onClick={() => pause(p)}><Pause size={14} />Pausar follow-up</button> : p.stop_reason === 'pausado_manual' && <button className="secondary" onClick={() => resume(p)}><RefreshCw size={14} />Retomar follow-up</button>}
           </div>}
         </article>;
       })}</div>}
