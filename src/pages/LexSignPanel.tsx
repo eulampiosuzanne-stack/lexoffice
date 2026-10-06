@@ -33,6 +33,7 @@ async function invoke(body: Record<string, unknown>): Promise<any> {
 export default function LexSignPanel() {
   const [clients, setClients] = useState<Client[]>([]);
   const [search, setSearch] = useState('');
+  const [searchingClients, setSearchingClients] = useState(false);
   const [clientId, setClientId] = useState('');
   const [docs, setDocs] = useState<Doc[]>([]);
   const [docIds, setDocIds] = useState<string[]>([]);
@@ -75,6 +76,24 @@ export default function LexSignPanel() {
     const q = search.trim().toLowerCase();
     return (q ? clients.filter((c) => c.name.toLowerCase().includes(q)) : clients).slice(0, 200);
   }, [clients, search]);
+  // A lista inicial é limitada. Quando o nome digitado não estiver nela, busca diretamente no banco.
+  useEffect(() => {
+    const q = search.trim();
+    if (!supabase || q.length < 2 || filtered.length > 0) return;
+    const timer = window.setTimeout(async () => {
+      setSearchingClients(true);
+      try {
+        const safe = q.replace(/[%_]/g, '');
+        const { data } = await supabase.from('clients').select('id,name,whatsapp,phone').ilike('name', `%${safe}%`).not('name', 'ilike', '%DUPLICADO%').order('name').limit(50);
+        if (data?.length) setClients((cur) => {
+          const map = new Map(cur.map((x) => [x.id, x]));
+          for (const x of data as Client[]) map.set(x.id, x);
+          return Array.from(map.values());
+        });
+      } finally { setSearchingClients(false); }
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [search, filtered.length]);
   // Se a busca deixar só um cliente, ele já fica selecionado.
   useEffect(() => {
     if (search.trim() && filtered.length === 1 && filtered[0].id !== clientId) setClientId(filtered[0].id);
@@ -187,7 +206,7 @@ export default function LexSignPanel() {
         <label style={S.label}>Cliente
           <input style={S.input} placeholder="Buscar pelo nome" value={search} onChange={(e) => setSearch(e.target.value)} />
           <select style={S.input} value={clientId} onChange={(e) => setClientId(e.target.value)}>
-            <option value="">Selecione o cliente</option>
+            <option value="">{searchingClients ? 'Buscando cliente...' : 'Selecione o cliente'}</option>
             {filtered.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
           {client && <small style={{ color: phone ? '#BDB4A6' : '#D6AA55' }}>{phone ? `WhatsApp: ${phone}` : 'Este cliente não tem WhatsApp cadastrado.'}</small>}
