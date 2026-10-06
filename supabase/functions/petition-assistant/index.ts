@@ -24,6 +24,27 @@ const AREAS: Record<string, string> = {
 
 const CALCULATORS = ["Execução de Alimentos", "Pensão Alimentícia", "Atualização monetária e juros", "Revisional Bancária", "Financiamento e empréstimos", "Superendividamento", "RMC / RCC INSS", "Aluguel e reajuste locatício", "Inventário e Quinhões", "Danos Materiais", "Custas e Honorários", "Prazo Processual"];
 
+// Banco de Peças Ouro: padrões extraídos dos modelos aprovados pela Dra. Suzanne.
+// É uma biblioteca de arquitetura e Visual Law, nunca uma fonte autônoma de fatos, artigos ou precedentes.
+const PETITION_VISUAL_LIBRARY = `BANCO DE PEÇAS OURO DA LEXOFFICE
+Use os modelos apenas como referência de arquitetura, hierarquia visual e técnica de apresentação. NUNCA copie nomes, fatos, valores, artigos, jurisprudência ou dados fictícios dos modelos.
+Escolha recursos somente quando ajudarem a provar ou esclarecer algo no caso atual:
+- Síntese processual / resumo executivo no início para casos densos.
+- Alegação da parte contrária × resposta/defesa, especialmente contestação, réplica e contrarrazões.
+- Decisão/sentença impugnada × erro/vício × razão para reforma, em recursos e embargos.
+- Linha do tempo para sequência de fatos, tempestividade, decadência, prescrição, tratamento médico ou histórico processual.
+- Fato × prova/documento × consequência jurídica quando houver documentação suficiente.
+- Quadro de pontos controvertidos × prova necessária × finalidade da prova em réplica, saneamento e especificação de provas.
+- Quadro financeiro e gráfico apenas quando números realmente demonstrarem renda, despesas, evolução de dívida, danos ou outro ponto probatório. Nunca crie gráfico decorativo.
+- Quesito × resposta pericial × documento contrário × impugnação × consequência jurídica em matéria pericial.
+- Quadro de requisitos da tutela/liminar, mandado de segurança ou habeas corpus quando facilitar a leitura.
+- Quadro de testemunhas com qualificação, relação com as partes, necessidade de intimação e fato que cada uma provará.
+- Memoriais com controvérsia, decisão anterior, prova produzida e razões objetivas para acolhimento da tese.
+- Pareceres/planejamentos com índice, pendências, documentos necessários, cenários e recomendação final.
+O recurso visual deve ser textual e compatível com Word: títulos claros, tabelas simples, listas curtas e blocos de síntese. Não use emojis. Se os dados não sustentarem um quadro ou gráfico, não o crie.
+Antes de redigir, decida silenciosamente quais componentes do Banco de Peças Ouro realmente aumentam a compreensão e use somente esses.`;
+
+
 const MARITAL: Record<string, string> = { single: "solteiro(a)", married: "casado(a)", divorced: "divorciado(a)", widowed: "viúvo(a)", separated: "separado(a)" };
 const todayLong = () => new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "numeric", month: "long", year: "numeric" }).format(new Date());
 
@@ -243,7 +264,7 @@ ${calc || "(sem cálculo)"}
 JURISPRUDÊNCIA SELECIONADA PELA ADVOGADA (cite somente estas, com tribunal, número e data exatamente como estão; se estiver vazio, não cite julgados com número):
 ${juris || "(nenhuma)"}
 
-Estrutura obrigatória: endereçamento ao juízo competente; qualificação completa das partes; nome da ação; I – DOS FATOS; II – DO DIREITO (com fundamentos legais e, quando pertinente, súmulas/temas de tribunais superiores que você tenha certeza que existem); III – DA TUTELA DE URGÊNCIA (somente se cabível); IV – DOS PEDIDOS (numerados); V – DAS PROVAS; VI – DO VALOR DA CAUSA; requerimentos finais (justiça gratuita somente se o dossiê indicar; opção por audiência de conciliação; segredo de justiça quando aplicável); local, data e assinatura.
+${PETITION_VISUAL_LIBRARY}\n\nEstrutura obrigatória: endereçamento ao juízo competente; qualificação completa das partes; nome da ação; I – DOS FATOS; II – DO DIREITO (com fundamentos legais e, quando pertinente, súmulas/temas de tribunais superiores que você tenha certeza que existem); III – DA TUTELA DE URGÊNCIA (somente se cabível); IV – DOS PEDIDOS (numerados); V – DAS PROVAS; VI – DO VALOR DA CAUSA; requerimentos finais (justiça gratuita somente se o dossiê indicar; opção por audiência de conciliação; segredo de justiça quando aplicável); local, data e assinatura.
 
 Regras:
 - Português jurídico formal, claro e persuasivo, sem floreios. Parágrafos curtos.
