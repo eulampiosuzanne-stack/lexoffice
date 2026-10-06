@@ -77,6 +77,7 @@ export default function PetitionAssistant() {
   const [docs, setDocs] = useState<Doc[]>([]);
   const [runs, setRuns] = useState<Run[]>([]);
   const [clientId, setClientId] = useState('');
+  const [prospectName, setProspectName] = useState('');
   const [processId, setProcessId] = useState('');
   const [area, setArea] = useState('familia');
   const [notes, setNotes] = useState('');
@@ -103,6 +104,7 @@ export default function PetitionAssistant() {
   const [julgados, setJulgados] = useState<any[]>([]);
   const [jurisPick, setJurisPick] = useState<number[]>([]);
   const [extraBusy, setExtraBusy] = useState<'' | 'opinion' | 'docs' | 'terms' | 'filter'>('');
+  const [dirty, setDirty] = useState(false);
 
   async function loadBase() {
     if (!supabase) return;
@@ -136,7 +138,6 @@ export default function PetitionAssistant() {
 
   async function upload(files: FileList | null) {
     if (!files?.length || !supabase) return;
-    if (!clientId) { setNotice({ kind: 'error', text: 'Escolha o cliente antes de juntar os documentos.' }); return; }
     setBusy('upload'); setNotice(null);
     try {
       const { data: org } = await supabase.rpc('current_org_id');
@@ -149,11 +150,12 @@ export default function PetitionAssistant() {
         const path = `${org}/documents/${crypto.randomUUID()}-${safe(file.name.replace(ext, ''))}${ext}`;
         const { error: ue } = await supabase.storage.from('lexoffice-documents').upload(path, file, { contentType: file.type || 'application/octet-stream', upsert: false });
         if (ue) throw ue;
-        const { data: row, error: ie } = await supabase.from('documents').insert({ org_id: org, client_id: clientId, process_id: processId || null, name: file.name, file_path: path, mime_type: file.type || null, size_bytes: file.size, category: uploadCategory, notes: 'Juntado pelo Assistente de Petição', uploaded_by: u.user.id }).select('id').single();
+        const { data: row, error: ie } = await supabase.from('documents').insert({ org_id: org, client_id: clientId || null, process_id: processId || null, name: file.name, file_path: path, mime_type: file.type || null, size_bytes: file.size, category: uploadCategory, notes: 'Juntado pelo Assistente de Petição', uploaded_by: u.user.id }).select('id').single();
         if (ie) { await supabase.storage.from('lexoffice-documents').remove([path]); throw ie; }
         added.push(String(row?.id));
       }
-      await loadDocs(clientId);
+      if (clientId) await loadDocs(clientId);
+      else { const { data: tempDocs } = await supabase.from('documents').select('id,client_id,name,file_path,mime_type,category,created_at').in('id', added); setDocs((tempDocs || []) as Doc[]); }
       setSelected(s => [...s, ...added]);
       setNotice({ kind: 'ok', text: `${added.length} documento(s) juntado(s) à pasta do cliente.` });
     } catch (e: any) { setNotice({ kind: 'error', text: e.message || 'Falha no envio.' }); }
@@ -164,7 +166,7 @@ export default function PetitionAssistant() {
     setBusy('analyze'); setNotice({ kind: 'info', text: 'Lendo os documentos e montando o dossiê. Pode levar até 1 minuto.' });
     setDossier(null); setPetition(''); setMemorial('');
     try {
-      const caseInfo = { cliente: client?.name || null, cpf_cnpj: client?.cpf_cnpj || null, processo: proc?.cnj_number || proc?.internal_number || null, assunto: proc?.subject || null };
+      const caseInfo = { cliente: client?.name || prospectName.trim() || null, cpf_cnpj: client?.cpf_cnpj || null, processo: proc?.cnj_number || proc?.internal_number || null, assunto: proc?.subject || null };
       const r = await invoke({ action: 'analyze', area, notes, document_ids: selected, client_id: clientId || null, process_id: processId || null, case_info: caseInfo });
       setRunId(r.run_id); setDossier(r.dossier); setReadInfo({ read: r.read || [], skipped: r.skipped || [] });
       setOpinion(''); setItems(toItems(r.dossier?.documentos_solicitar)); setJuris(null); setJulgados([]); setJurisPick([]);
@@ -218,12 +220,12 @@ export default function PetitionAssistant() {
   async function makeOpinion() {
     setExtraBusy('opinion'); setNotice({ kind: 'info', text: 'Redigindo o parecer jurídico. Leva cerca de 1 minuto.' });
     try {
-      const r = await invoke({ action: 'opinion', run_id: runId, area, dossier, office: OFFICE, client_name: client?.name || '' });
+      const r = await invoke({ action: 'opinion', run_id: runId, area, dossier, office: OFFICE, client_name: client?.name || prospectName.trim() || '' });
       setOpinion(String(r.opinion || '')); setNotice({ kind: 'ok', text: 'Parecer pronto. Revise antes de enviar ao cliente.' });
     } catch (e: any) { setNotice({ kind: 'error', text: e.message }); }
     finally { setExtraBusy(''); }
   }
-  const opinionTitle = `Parecer jurídico - ${dossier?.tipo_acao || areaLabel(area)} - ${client?.name || 'cliente'}`;
+  const opinionTitle = `Parecer jurídico - ${dossier?.tipo_acao || areaLabel(area)} - ${client?.name || prospectName || 'caso'}`;
   async function saveOpinion() {
     if (!supabase || !clientId || !opinion) return;
     setExtraBusy('opinion'); setNotice(null);
@@ -298,7 +300,7 @@ export default function PetitionAssistant() {
     return jurisPick.map(i => julgados[i]).filter(Boolean).map((j: any) => `${[j.tribunal, j.processo, j.relator && `Rel. ${j.relator}`, j.data].filter(Boolean).join(', ')}: "${j.trecho_util}"`).join('\n\n');
   }
 
-  const title = `Petição inicial - ${dossier?.tipo_acao || areaLabel(area)} - ${client?.name || 'cliente'}`;
+  const title = `Petição inicial - ${dossier?.tipo_acao || areaLabel(area)} - ${client?.name || prospectName || 'caso'}`;
   async function downloadWord() {
     const { blob, ext } = await wordFile(title, petition);
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${safe(title)}.${ext}`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
@@ -320,6 +322,27 @@ export default function PetitionAssistant() {
       setNotice({ kind: 'ok', text: 'Petição salva na pasta do cliente, em Documentos, na categoria Petição.' });
       loadBase();
     } catch (e: any) { setNotice({ kind: 'error', text: e.message || 'Falha ao salvar.' }); }
+    finally { setBusy(''); }
+  }
+
+  async function saveWork(status: 'rascunho' | 'versao' = 'rascunho') {
+    if (!supabase) return;
+    setBusy('save'); setNotice(null);
+    try {
+      const { data: org } = await supabase.rpc('current_org_id');
+      const { data: u } = await supabase.auth.getUser();
+      if (!org || !u?.user) throw new Error('Sessão expirada.');
+      const payload:any = { org_id: org, area, status, client_id: clientId || null, process_id: processId || null, notes, instructions, document_ids: selected, dossier, calculation: memorial || null, petition: petition || null, opinion: opinion || null, updated_at: new Date().toISOString() };
+      if (status === 'versao' || !runId) {
+        const { data, error } = await supabase.from('petition_assistant_runs').insert(payload).select('id').single();
+        if (error) throw error; setRunId(String(data.id));
+      } else {
+        const { error } = await supabase.from('petition_assistant_runs').update(payload).eq('id', runId);
+        if (error) throw error;
+      }
+      setDirty(false); await loadBase();
+      setNotice({ kind:'ok', text: status === 'versao' ? 'Nova versão salva no histórico do caso.' : 'Rascunho salvo. Você pode sair e continuar depois.' });
+    } catch(e:any) { setNotice({ kind:'error', text:e.message || 'Falha ao salvar o trabalho.' }); }
     finally { setBusy(''); }
   }
 
@@ -354,15 +377,16 @@ export default function PetitionAssistant() {
       <section className="doc-upload-card">
         <div className="doc-section-title"><span className="doc-section-icon"><Upload size={20} /></span><div><h2>1. O caso e a documentação</h2><p>PDF ou foto (RG, contrato, laudos, prints, comprovantes, decisões). Tudo o que você juntar aqui também fica salvo na pasta do cliente.</p></div></div>
         <div className="doc-upload-grid">
-          <label><span>Cliente</span><select value={clientId} onChange={e => setClientId(e.target.value)}><option value="">Selecione</option>{clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+          <label><span>Cliente do escritório (opcional)</span><select value={clientId} onChange={e => setClientId(e.target.value)}><option value="">Não cliente / novo caso</option>{clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+          {!clientId && <label><span>Nome do interessado</span><input value={prospectName} onChange={e => {setProspectName(e.target.value);setDirty(true)}} placeholder="Nome do potencial cliente" /></label>}
           <label><span>Processo (opcional)</span><select value={processId} onChange={e => setProcessId(e.target.value)} disabled={!clientId}><option value="">Caso novo</option>{available.map(p => <option key={p.id} value={p.id}>{p.cnj_number || p.internal_number || p.subject || 'Processo'}</option>)}</select></label>
           <label><span>Área</span><select value={area} onChange={e => setArea(e.target.value)}>{AREAS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
           <label><span>Categoria dos novos arquivos</span><select value={uploadCategory} onChange={e => setUploadCategory(e.target.value)}>{DOC_CATEGORIES.map(c => <option key={c}>{c}</option>)}</select></label>
         </div>
-        <label className="pa-block"><span>Relato do caso e suas anotações</span><textarea rows={4} value={notes} onChange={e => setNotes(e.target.value)} placeholder="O que o cliente contou, o que você quer pedir, a estratégia..." /></label>
+        <label className="pa-block"><span>Relato do caso e suas anotações</span><textarea rows={4} value={notes} onChange={e => {setNotes(e.target.value);setDirty(true)}} placeholder="O que o cliente contou, o que você quer pedir, a estratégia..." /></label>
         <div className="pa-row">
           <input ref={fileRef} type="file" multiple accept="application/pdf,image/*" hidden onChange={e => upload(e.target.files)} />
-          <button className="doc-refresh" onClick={() => fileRef.current?.click()} disabled={busy !== '' || !clientId}>{busy === 'upload' ? <Loader2 size={17} className="spin" /> : <Upload size={17} />} Juntar documentos</button>
+          <button className="doc-refresh" onClick={() => fileRef.current?.click()} disabled={busy !== ''}>{busy === 'upload'} ? <Loader2 size={17} className="spin" /> : <Upload size={17} />} Juntar documentos</button>
           <span className="pa-muted">{selected.length} de {docs.length} documento(s) do cliente marcado(s) para a análise</span>
         </div>
         {docs.length > 0 && (
@@ -370,11 +394,12 @@ export default function PetitionAssistant() {
             <label key={d.id} className={selected.includes(d.id) ? 'on' : ''}><input type="checkbox" checked={selected.includes(d.id)} onChange={() => toggle(d.id)} /><FileText size={15} /><b>{d.name}</b><small>{d.category || '—'}</small></label>
           ))}</div>
         )}
-        <div className="pa-row end"><button className="doc-primary" onClick={analyze} disabled={busy !== '' || (!selected.length && notes.trim().length < 40)}>{busy === 'analyze' ? <Loader2 size={17} className="spin" /> : <WandSparkles size={17} />} Analisar com IA</button></div>
+        <div className="pa-row end"><button className="doc-refresh" onClick={()=>saveWork('rascunho')} disabled={busy!==''}><Save size={17}/> Salvar rascunho</button><button className="doc-refresh" onClick={()=>saveWork('versao')} disabled={busy!==''}><History size={17}/> Salvar versão</button><button className="doc-primary" onClick={analyze} disabled={busy !== '' || (!selected.length && notes.trim().length < 40)}>{busy === 'analyze' ? <Loader2 size={17} className="spin" /> : <WandSparkles size={17} />} Analisar com IA</button></div>
       </section>
 
       {dossier && (
         <section className="doc-library-card">
+          <div className="pa-row end"><button className="doc-refresh" onClick={()=>saveWork('rascunho')} disabled={busy!==''}><Save size={17}/> Salvar rascunho</button><button className="doc-refresh" onClick={()=>saveWork('versao')} disabled={busy!==''}><History size={17}/> Salvar versão</button></div>
           <div className="doc-section-title"><span className="doc-section-icon"><ScrollText size={20} /></span><div><h2>2. Análise do caso</h2><p>Confira o que a IA extraiu. O que você corrigir aqui é o que vai para o parecer e para a petição.</p></div></div>
           {readInfo && (readInfo.read.length > 0 || readInfo.skipped.length > 0) && <p className="pa-muted">Lidos: {readInfo.read.join(', ') || 'nenhum'}{readInfo.skipped.length ? ` · Não lidos: ${readInfo.skipped.join(', ')}` : ''}</p>}
           {dossier.chance_exito?.nivel && (() => {
