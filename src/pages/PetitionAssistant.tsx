@@ -386,7 +386,7 @@ export default function PetitionAssistant() {
         <label className="pa-block"><span>Relato do caso e suas anotações</span><textarea rows={4} value={notes} onChange={e => {setNotes(e.target.value);setDirty(true)}} placeholder="O que o cliente contou, o que você quer pedir, a estratégia..." /></label>
         <div className="pa-row">
           <input ref={fileRef} type="file" multiple accept="application/pdf,image/*" hidden onChange={e => upload(e.target.files)} />
-          <button className="doc-refresh" onClick={() => fileRef.current?.click()} disabled={busy !== ''}>{busy === 'upload'} ? <Loader2 size={17} className="spin" /> : <Upload size={17} />} Juntar documentos</button>
+          <button className="doc-refresh" onClick={() => fileRef.current?.click()} disabled={busy !== ''}>{busy === 'upload' ? <Loader2 size={17} className="spin" /> : <Upload size={17} />} Juntar documentos</button>
           <span className="pa-muted">{selected.length} de {docs.length} documento(s) do cliente marcado(s) para a análise</span>
         </div>
         {docs.length > 0 && (
