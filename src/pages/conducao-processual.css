@@ -1,0 +1,20 @@
+/* Condução Processual — usa a base da Estratégia Processual (petition-assistant.css) e acrescenta só o necessário. */
+.conducao-page .cp-procline{display:flex;align-items:center;gap:6px;margin:4px 0 0}
+.conducao-page .cp-phases{display:flex;flex-wrap:wrap;gap:6px;list-style:none;padding:0;margin:4px 0 14px;counter-reset:fase}
+.conducao-page .cp-phases li{counter-increment:fase;padding:7px 11px;border:1px solid #2E2216;border-radius:999px;background:#100C08;color:#BDB4A6;font-size:12px;font-weight:700}
+.conducao-page .cp-phases li::before{content:counter(fase) ". "}
+.conducao-page .cp-phases li.done{color:#E7DFD0;border-color:#8A5726}
+.conducao-page .cp-phases li.now{color:#080705;border-color:#F2C56D;background:linear-gradient(135deg,#C99443,#F2C56D);box-shadow:0 0 0 2px rgba(242,197,109,.25)}
+.conducao-page .cp-inline{display:flex;align-items:center;gap:8px;color:#E7DFD0;font-size:13px;font-weight:700}
+.conducao-page select,.conducao-page .cp-input{border:1px solid #2E2216;border-radius:10px;background:#080705;color:#E7DFD0;padding:9px 11px;font:inherit;font-size:14px;box-sizing:border-box}
+.conducao-page .cp-input{min-width:180px}
+.conducao-page .cp-input.wide{flex:1;min-width:220px}
+.conducao-page .cp-focus{padding:10px 12px;border-left:3px solid #C99443;background:rgba(201,148,67,.08);border-radius:8px;color:#F5F1E8;margin:8px 0;line-height:1.5}
+.conducao-page .cp-steps{margin:6px 0 4px 18px;color:#E7DFD0;line-height:1.6}
+.conducao-page .cp-list{list-style:none;padding:0;margin:6px 0 12px;display:flex;flex-direction:column;gap:6px}
+.conducao-page .cp-list li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border:1px solid #2E2216;border-radius:10px;background:#100C08;color:#E7DFD0;flex-wrap:wrap}
+.conducao-page .cp-list li.soon{border-color:#C99443}
+.conducao-page .cp-list li.late{border-color:#8A5726;background:rgba(138,87,38,.18)}
+.conducao-page .cp-draft-buttons{display:flex;flex-wrap:wrap;gap:10px;margin:4px 0 12px}
+.conducao-page .cp-history h3{display:flex;align-items:center;gap:6px}
+@media (max-width:720px){.conducao-page .cp-input{min-width:0;width:100%}.conducao-page .pa-cols{grid-template-columns:1fr}}
