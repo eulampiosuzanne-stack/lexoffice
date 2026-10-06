@@ -274,7 +274,7 @@ export default function LexSignPanel() {
                 {!many && r.status === 'signed' && <button style={S.small} onClick={() => downloadSigned(r)}>Baixar assinado</button>}
                 {['sent', 'viewed', 'expired', 'rejected'].includes(st) && <button style={S.small} disabled={!!busy} onClick={() => resend(r)}>{busy === r.id ? '...' : 'Reenviar'}</button>}
                 {['sent', 'viewed', 'pending_review'].includes(st) && <button style={{ ...S.small, background: 'transparent' }} disabled={!!busy} onClick={() => cancel(r)}>Cancelar</button>}
-                {many && st === 'signed' && <button type="button" style={{ ...S.small, background: '#C99443', borderColor: '#C99443', color: '#fff' }} onClick={() => downloadBatch(g)}>Baixar lote ({g.length})</button>}
+                {many && g.some((x) => x.status === 'signed' && x.signed_path) && <button type="button" style={{ ...S.small, background: '#C99443', borderColor: '#C99443', color: '#fff' }} onClick={() => downloadBatch(g)}>Baixar lote assinado ({g.filter((x) => x.status === 'signed' && x.signed_path).length})</button>}
                 {many && <button type="button" style={S.small} aria-expanded={isOpen} onClick={() => toggleGroup(gk)}>{isOpen ? 'Recolher ▲' : `Ver documentos (${g.length}) ▼`}</button>}
               </div>
               {many && isOpen && (
