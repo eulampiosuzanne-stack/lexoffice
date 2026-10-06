@@ -256,11 +256,11 @@ export default function LexSignPanel() {
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <b style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{many ? `${g.length} documentos • um único link` : r.title}</b>
-                  <small style={{ color: '#BDB4A6' }}>{r.signer_name} • enviado {dt(r.created_at)}{r.viewed_at ? ` • aberto ${dt(r.viewed_at)}` : ''}{r.signed_at && st === 'signed' ? ` • assinado ${dt(r.signed_at)}` : ''}{!many && r.verification_code ? ` • código ${r.verification_code}` : ''}</small>
+                  <small style={{ color: '#BDB4A6' }}>{r.signer_name} • enviado {dt(r.created_at)}{r.viewed_at ? ` • aberto ${dt(r.viewed_at)}` : ''}{!many && r.verification_code ? ` • código ${r.verification_code}` : ''}{r.signed_at && st === 'signed' ? ` • ASSINADO EM ${dt(r.signed_at)}` : ''}</small>
                 </div>
                 <span style={{ ...S.status, color: COLOR[st] || '#ccc', borderColor: COLOR[st] || '#555' }}>{STATUS[st] || st}</span>
                 {st === 'pending_review' && <button style={{ ...S.small, background: '#C99443', borderColor: '#C99443', color: '#fff' }} disabled={!!busy} onClick={() => openReview(r)}>{busy === r.id ? '...' : 'Conferir'}</button>}
-                {!many && r.status === 'signed' && <button style={S.small} onClick={() => openSigned(r)}>Abrir assinado</button>}
+                {!many && r.status === 'signed' && <button style={S.small} onClick={() => openSigned(r)}>Baixar assinado</button>}
                 {['sent', 'viewed', 'expired', 'rejected'].includes(st) && <button style={S.small} disabled={!!busy} onClick={() => resend(r)}>{busy === r.id ? '...' : 'Reenviar'}</button>}
                 {['sent', 'viewed', 'pending_review'].includes(st) && <button style={{ ...S.small, background: 'transparent' }} disabled={!!busy} onClick={() => cancel(r)}>Cancelar</button>}
                 {many && <button type="button" style={S.small} aria-expanded={isOpen} onClick={() => toggleGroup(gk)}>{isOpen ? 'Recolher ▲' : `Ver documentos (${g.length}) ▼`}</button>}
@@ -271,7 +271,7 @@ export default function LexSignPanel() {
                     <div key={m.id} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 13 }}>
                       <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#E7DFD0' }}>{m.title}{m.verification_code && m.status === 'signed' ? <small style={{ color: '#BDB4A6' }}> • código {m.verification_code}</small> : null}</span>
                       <small style={{ color: COLOR[m.status] || '#ccc' }}>{STATUS[m.status] || m.status}</small>
-                      {m.status === 'signed' && <button style={S.small} onClick={() => openSigned(m)}>Abrir assinado</button>}
+                      {m.status === 'signed' && <button style={S.small} onClick={() => openSigned(m)}>Baixar assinado</button>}
                     </div>
                   ))}
                 </div>
