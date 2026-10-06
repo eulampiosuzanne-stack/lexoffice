@@ -149,11 +149,22 @@ export default function LexSignPanel() {
       setReview(null); await loadReqs();
     } catch (e: any) { setNotice(e?.message || 'Falha ao registrar a decisão.'); } finally { setBusy(''); }
   }
-  async function openSigned(r: Req) {
+  async function downloadSigned(r: Req) {
     if (!supabase || !r.signed_path) return;
-    const { data, error } = await supabase.storage.from('lexoffice-documents').createSignedUrl(r.signed_path, 300);
-    if (error || !data?.signedUrl) { setNotice(error?.message || 'Não foi possível abrir.'); return; }
-    window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+    const { data, error } = await supabase.storage.from('lexoffice-documents').download(r.signed_path);
+    if (error || !data) { setNotice(error?.message || 'Não foi possível baixar o documento assinado.'); return; }
+    const url = URL.createObjectURL(data);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = r.title?.toLowerCase().endsWith('.pdf') ? r.title : `${r.title || 'documento-assinado'}.pdf`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  async function downloadBatch(g: Req[]) {
+    const signed = g.filter((x) => x.status === 'signed' && x.signed_path);
+    if (!signed.length) { setNotice('Este lote ainda não possui documentos assinados para download.'); return; }
+    setNotice(`Iniciando download de ${signed.length} documento${signed.length > 1 ? 's' : ''} assinado${signed.length > 1 ? 's' : ''}...`);
+    for (const r of signed) { await downloadSigned(r); await new Promise((resolve) => setTimeout(resolve, 250)); }
   }
 
   // Agrupa os documentos enviados no mesmo link (lote) num único cartão.
@@ -260,9 +271,10 @@ export default function LexSignPanel() {
                 </div>
                 <span style={{ ...S.status, color: COLOR[st] || '#ccc', borderColor: COLOR[st] || '#555' }}>{STATUS[st] || st}</span>
                 {st === 'pending_review' && <button style={{ ...S.small, background: '#C99443', borderColor: '#C99443', color: '#fff' }} disabled={!!busy} onClick={() => openReview(r)}>{busy === r.id ? '...' : 'Conferir'}</button>}
-                {!many && r.status === 'signed' && <button style={S.small} onClick={() => openSigned(r)}>Baixar assinado</button>}
+                {!many && r.status === 'signed' && <button style={S.small} onClick={() => downloadSigned(r)}>Baixar assinado</button>}
                 {['sent', 'viewed', 'expired', 'rejected'].includes(st) && <button style={S.small} disabled={!!busy} onClick={() => resend(r)}>{busy === r.id ? '...' : 'Reenviar'}</button>}
                 {['sent', 'viewed', 'pending_review'].includes(st) && <button style={{ ...S.small, background: 'transparent' }} disabled={!!busy} onClick={() => cancel(r)}>Cancelar</button>}
+                {many && st === 'signed' && <button type="button" style={{ ...S.small, background: '#C99443', borderColor: '#C99443', color: '#fff' }} onClick={() => downloadBatch(g)}>Baixar lote ({g.length})</button>}
                 {many && <button type="button" style={S.small} aria-expanded={isOpen} onClick={() => toggleGroup(gk)}>{isOpen ? 'Recolher ▲' : `Ver documentos (${g.length}) ▼`}</button>}
               </div>
               {many && isOpen && (
@@ -271,7 +283,7 @@ export default function LexSignPanel() {
                     <div key={m.id} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 13 }}>
                       <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#E7DFD0' }}>{m.title}{m.verification_code && m.status === 'signed' ? <small style={{ color: '#BDB4A6' }}> • código {m.verification_code}</small> : null}</span>
                       <small style={{ color: COLOR[m.status] || '#ccc' }}>{STATUS[m.status] || m.status}</small>
-                      {m.status === 'signed' && <button style={S.small} onClick={() => openSigned(m)}>Baixar assinado</button>}
+                      {m.status === 'signed' && <button style={S.small} onClick={() => downloadSigned(m)}>Baixar assinado</button>}
                     </div>
                   ))}
                 </div>
