@@ -1,5 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "jsr:@supabase/supabase-js@2.57.4";
+// v44 (05/10/2026) — roteamento reavaliado a cada mensagem: a conversa não fica mais "grudada" no último agente.
+//        Sem assunto claro e sem conversa nas últimas 3h → volta para a triagem. Lead que pede consulta/agenda/PIX
+//        → financeiro (cobra a consulta) enquanto não houver pagamento registrado; com pagamento → agenda.
+//        Lead que hesita/recusa o valor da consulta → Agente de Vendas.
+//        Mídia: a intenção é lida só do conteúdo (foto de documento não cai mais no financeiro).
 // v41 — "QUERO MEU ACESSO" tratado ANTES de tudo (não depende de agente ligado, atendimento humano nem junção de mensagens);
 //        aceita variações ("quero meu acesso!", "Quero meu acesso por favor"); se faltar CPF, pede o CPF e gera o código quando o cliente responder;
 //        reaproveita o código existente (não derruba quem já ativou); avisa a Dra. quando não dá para liberar; cartilha nova (busca a imagem "cartilha*" no Storage).
@@ -48,7 +53,44 @@ const PHOTO='https://lexoffice-ashy.vercel.app/file_000000003d3c820ea01435d641ac
 const SIG='⚖️ *Helena | Suzanne Figueiredo Advocacia* ⚖️';
 const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
 // v27 — sem menu de entrada: cumprimento elegante com a foto da Dra.; texto livre vai direto ao agente certo; junta mensagens picadas; ignora contatos marcados como "pessoal".
+// ===================== ROTEAMENTO (v44) =====================
 function intentFor(t:string){const s=String(t||'').toLowerCase();if(/process|andamento|audi[eê]ncia|senten[cç]a|juiz|liminar|movimenta|intima/.test(s))return 'client_process_updates';if(/pag|parcela|boleto|\bpix\b|cobran|d[ée]bito|honor[aá]rio|atras|comprovante|cart[aã]o/.test(s))return 'billing';if(/agend|reuni[aã]o|consulta|hor[aá]rio|remarc|atendimento presencial/.test(s))return 'client_schedule_relationship';return ''}
+// Mídia: avalia só o conteúdo lido, não a instrução interna (que cita "comprovante").
+function intentText(t:string){const s=String(t||'');if(!/^\[O cliente enviou/.test(s))return s;const m=s.match(/legenda: "([\s\S]*?)"\./);const c=s.match(/Conteúdo lido automaticamente:\s*([\s\S]*?)\.\s*Confirme o recebimento/);return [m?.[1]||'',c?.[1]||''].join(' ').trim()}
+const CONSULT_RE=/consult|agend|marcar|hor[aá]rio|reuni[aã]o|\bpix\b|paguei|pagamento|comprovante|transferi|quanto (custa|é|e|fica|cobra|sai) a consult|valor da consult/;
+const CONTRACT_RE=/honor[aá]rio|contrat|parcel|entrada|(valor|quanto).{0,25}(a[cç][aã]o|processo)/;
+// Lead que hesita ou recusa o valor da consulta → Agente de Vendas (contorna objeção / follow-up).
+const OBJECTION_RE=/(pagar|pago|cobrar|cobra).{0,30}pra qu[eê]|pra qu[eê] (vou )?pagar|t[aá] caro|muito caro|\bcaro\b|vou pensar|depois (eu )?vejo|n[aã]o tenho (condi|dinheiro|como pagar)|sem condi[cç]|mais barato|desconto|gr[aá]tis|gratuit|de gra[cç]a|s[oó] (pra|para) tirar d[uú]vida|n[aã]o vou pagar|n[aã]o quero pagar|n[aã]o posso pagar/;
+function decideAgent(o:{isClient:boolean,text:string,owner:string|null,ownerActive:boolean,leadPaid:boolean,requirePayment:boolean}){
+  const s=intentText(o.text).toLowerCase();
+  const intent=intentFor(s);
+  if(!o.isClient){
+    if(OBJECTION_RE.test(s))return 'sales';
+    const consult=CONSULT_RE.test(s)&&!(CONTRACT_RE.test(s)&&!/consult/.test(s));
+    if(consult)return (o.requirePayment&&!o.leadPaid)?'billing':'client_schedule_relationship';
+    if(o.owner&&o.ownerActive&&['client_service_triage','billing','client_schedule_relationship','sales'].includes(o.owner))return o.owner;
+    return 'client_service_triage';
+  }
+  if(intent)return intent;
+  if(o.owner&&o.ownerActive&&o.owner!=='human')return o.owner;
+  return 'client_service_triage';
+}
+async function pickAgent(a:any,x:any,t:string){
+  const isClient=!!(x.v.client_id||x.c.client_id);
+  let ownerActive=false,leadPaid=false,requirePayment=true;
+  if(x.v.owner_agent_key){const {data:lo}=await a.from('whatsapp_messages').select('created_at').eq('conversation_id',x.v.id).eq('direction','outbound').order('created_at',{ascending:false}).limit(1).maybeSingle();ownerActive=!!lo?.created_at&&Date.now()-new Date(lo.created_at).getTime()<3*3600000}
+  if(!isClient){
+    try{
+      const {data:ws}=await a.from('whatsapp_settings').select('require_payment_before_booking').eq('org_id',x.v.org_id).maybeSingle();requirePayment=ws?.require_payment_before_booking!==false;
+      const {data:cv}=await a.from('whatsapp_conversations').select('lead_id').eq('id',x.v.id).maybeSingle();
+      const {data:ct}=await a.from('whatsapp_contacts').select('lead_id').eq('id',x.c.id).maybeSingle();
+      const leadId=cv?.lead_id||ct?.lead_id||null;
+      if(leadId){const {count}=await a.from('payment_receipts').select('id',{count:'exact',head:true}).eq('lead_id',leadId);leadPaid=(count||0)>0}
+    }catch(e){console.error('pickAgent lead',e)}
+  }
+  return decideAgent({isClient,text:t,owner:x.v.owner_agent_key||null,ownerActive,leadPaid,requirePayment});
+}
+// ==============================================================
 function spGreeting(){const h=Number(new Intl.DateTimeFormat('en-US',{timeZone:'America/Sao_Paulo',hour:'2-digit',hourCycle:'h23'}).format(new Date()));return h<12?'Bom dia':h<18?'Boa tarde':'Boa noite'}
 async function sendGreeting(a:any,x:any,p:string,askHelp=true){
   const inst=await S(a,'zapi_instance_id'),tok=(await S(a,'zapi_instance_token'))||(await S(a,'zapi_token')),ct=await S(a,'zapi_client_token');
@@ -58,7 +100,6 @@ async function sendGreeting(a:any,x:any,p:string,askHelp=true){
   await a.from('whatsapp_messages').insert({org_id:x.v.org_id,conversation_id:x.v.id,direction:'outbound',message_type:'image',body:caption,status:'sent',external_message_id:String(d?.zaapId||d?.messageId||d?.id||'')||null,sent_at:new Date().toISOString(),metadata:{source:'ai_agent',kind:'greeting'}});
   return true;
 }
-function routeFor(v:any,node:string){const ctx=v.chatbot_context||{};if(v.owner_agent_key)return String(v.owner_agent_key);const s=String(ctx?.summary||'').toLowerCase()+' '+node;if(ctx?.collection_schedule_id||/financ|pagamento|parcela|cobran/.test(s))return 'billing';if(/process|andamento|audi[eê]ncia|prazo/.test(s))return 'client_process_updates';if(/agend|reuni[aã]o|hor[aá]rio/.test(s))return 'client_schedule_relationship';return 'client_service_triage'}
 async function claimInbound(a:any,x:any,inboundId:string,t:string,ch:string,type='text'){if(!inboundId)return true;const {error}=await a.from('whatsapp_messages').insert({org_id:x.v.org_id,conversation_id:x.v.id,external_message_id:inboundId,direction:'inbound',message_type:type,body:(t||ch||'').slice(0,4000),status:'received',sent_at:new Date().toISOString(),metadata:{source:'zapi',choice:ch||null}});if(error){if(String(error.code)==='23505')return false;console.error('claimInbound',error.message)}return true}
 async function gateSend(orgId:string,conversationId:string,phone:string,message:string,key:string){const svc=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;try{await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/whatsapp-outbound-gate`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${svc}`,apikey:svc},body:JSON.stringify({org_id:orgId,conversation_id:conversationId,phone,message,agent_key:'system',idempotency_key:key})})}catch(e){console.error('gateSend',e)}}
 
@@ -234,13 +275,58 @@ async function bot(a:any,p:string,ch0:string,t:string,inboundId:string,preClaime
     }
   }
   if(t){
-    const isClient=!!(x.v.client_id||x.c.client_id);
-    const key=(isClient?intentFor(t):'')||routeFor(x.v,node);
+    // v44: a cada mensagem o assunto é reavaliado (antes, a conversa ficava presa no último agente).
+    const key=await pickAgent(a,x,t);
     if(key!==x.v.owner_agent_key)await a.from('whatsapp_conversations').update({owner_agent_key:key,owner_changed_at:new Date().toISOString()}).eq('id',x.v.id);
     await runAgent(x.v.org_id,x.v.id,p,key,t,testMode);if(node!=='agent_conversation')await saveState('agent_conversation',path);return true
   }
   return false;
 }
+
+// ===================== ADMIN COMMAND BRIDGE v45 =====================
+function samePhone(a:any,b:any){const x=D(a),y=D(b);return !!x&&!!y&&(x===y||x.slice(-8)===y.slice(-8))}
+function parseAdminSchedule(s:string){
+ const raw=String(s||'').toLowerCase(),tm=raw.match(/(?:às|as|a)\s*(\d{1,2})(?:[:h](\d{2}))?\b/)||raw.match(/\b(\d{1,2})h(?:(\d{2}))?\b/);if(!tm)return null;
+ const hh=Number(tm[1]),mm=Number(tm[2]||0);if(hh>23||mm>59)return null;
+ const now=new Date(),sp=new Date(now.toLocaleString('en-US',{timeZone:'America/Sao_Paulo'}));let y=sp.getFullYear(),mo=sp.getMonth(),d=sp.getDate();
+ if(/\bamanh[ãa]\b/.test(raw)){const z=new Date(y,mo,d+1);y=z.getFullYear();mo=z.getMonth();d=z.getDate()}
+ else if(!/\bhoje\b/.test(raw)){const dm=raw.match(/\b(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2,4}))?\b/);if(!dm)return null;d=Number(dm[1]);mo=Number(dm[2])-1;if(dm[3]){y=Number(dm[3]);if(y<100)y+=2000}}
+ const local=new Date(y,mo,d,hh,mm,0,0),starts=new Date(local.getTime()+3*3600000),ends=new Date(starts.getTime()+3600000);
+ if(!Number.isFinite(starts.getTime())||starts.getTime()<Date.now()-300000)return null;return{starts_at:starts.toISOString(),ends_at:ends.toISOString()}
+}
+async function operatorSend(a:any,orgId:string,phone:string,message:string){
+ const svc=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,r=await fetch(Deno.env.get('SUPABASE_URL')!+'/functions/v1/whatsapp-operator-send',{method:'POST',headers:{Authorization:'Bearer '+svc,apikey:svc,'Content-Type':'application/json'},body:JSON.stringify({org_id:orgId,message,keep_ai_active:true,targets:[{phone:D(phone),name:'Helena'}]})});
+ const d=await r.json().catch(()=>null);return{ok:r.ok&&Number(d?.sent||0)>0,data:d}
+}
+async function handleAdminCommand(a:any,p:string,message:string,inboundId:string){
+ if(!String(message||'').trim())return false;
+ const {data:settings}=await a.from('whatsapp_settings').select('org_id,alert_phone,alerts_enabled').not('alert_phone','is',null).limit(50),ws=(settings||[]).find((x:any)=>samePhone(x.alert_phone,p));if(!ws?.org_id)return false;
+ const orgId=String(ws.org_id),adminPhone=D(p),since=new Date(Date.now()-86400000).toISOString();
+ if(inboundId){const {data:seen}=await a.from('audit_logs').select('id').eq('org_id',orgId).eq('action','helena_admin_command').eq('metadata->>external_message_id',inboundId).limit(1).maybeSingle();if(seen?.id)return true}
+ const {data:rows}=await a.from('ai_agent_alerts').select('id,client_id,contact_phone,alert_phone,reason,context,status,created_at').eq('org_id',orgId).gt('created_at',since).order('created_at',{ascending:false}).limit(40);
+ const pending=(rows||[]).find((x:any)=>samePhone(x.alert_phone,adminPhone)&&String(x.reason||'').startsWith('ADMIN_COMMAND_PENDING_SCHEDULE')&&x.status==='pending');
+ const source=pending||(rows||[]).find((x:any)=>samePhone(x.alert_phone,adminPhone)&&!String(x.reason||'').startsWith('ADMIN_COMMAND_'));
+ if(!source?.contact_phone){await operatorSend(a,orgId,adminPhone,'Helena aqui. Não encontrei um alerta recente vinculado a esse comando. Responda diretamente ao próximo alerta que eu lhe enviar.');return true}
+ const targetPhone=D(source.contact_phone),x=await context(a,targetPhone,'',false);let clientId=String(source.client_id||x?.v?.client_id||x?.c?.client_id||'')||null,clientName='';
+ if(clientId){const {data:cl}=await a.from('clients').select('name').eq('org_id',orgId).eq('id',clientId).maybeSingle();clientName=String(cl?.name||'')}if(!clientName)clientName=String(x?.c?.name||'cliente');
+ const cmd=String(message).trim();await a.from('audit_logs').insert({org_id:orgId,action:'helena_admin_command',entity:'whatsapp',entity_id:source.id,metadata:{external_message_id:inboundId||null,admin_phone:adminPhone,target_phone:targetPhone,client_id:clientId,command:cmd.slice(0,1000),at:new Date().toISOString()}});
+ if(/^(n[aã]o responda|n[aã]o envie|deixa|deixe|ignora|ignore)\b/i.test(cmd)){if(pending?.id)await a.from('ai_agent_alerts').update({status:'cancelled',updated_at:new Date().toISOString()}).eq('id',pending.id);await operatorSend(a,orgId,adminPhone,'Certo. Não enviarei mensagem ao cliente deste alerta.');return true}
+ const wantsSchedule=/\b(agend|marc|consulta|atendimento|reuni[aã]o)\w*/i.test(cmd)||!!pending;
+ if(wantsSchedule){
+  const when=parseAdminSchedule(cmd);
+  if(!when){if(!pending)await a.from('ai_agent_alerts').insert({org_id:orgId,agent_key:'helena_chatbot',client_id:clientId,contact_phone:targetPhone,alert_phone:adminPhone,reason:'ADMIN_COMMAND_PENDING_SCHEDULE',context:('Agendamento solicitado para '+clientName+'. Comando: '+cmd).slice(0,1500),status:'pending'});await operatorSend(a,orgId,adminPhone,'Certo. Para agendar '+(clientName||'essa cliente')+', me diga o dia e o horário. Ex.: “amanhã às 15h” ou “08/10 às 14h30”.');return true}
+  const svc=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,rr=await fetch(Deno.env.get('SUPABASE_URL')!+'/functions/v1/ai-agent-calendar',{method:'POST',headers:{Authorization:'Bearer '+svc,apikey:svc,'Content-Type':'application/json'},body:JSON.stringify({org_id:orgId,agent_key:'client_schedule_relationship',action:'create',client_id:clientId,client_name:clientName,title:'Atendimento online — '+(clientName||'Cliente'),starts_at:when.starts_at,ends_at:when.ends_at,meeting_mode:'online'})}),rd=await rr.json().catch(()=>null);
+  if(!rr.ok||!rd?.ok){await operatorSend(a,orgId,adminPhone,'Não consegui confirmar o agendamento de '+(clientName||'essa cliente')+': '+String(rd?.error||'horário indisponível').slice(0,220)+'.');return true}
+  if(pending?.id)await a.from('ai_agent_alerts').update({status:'handled',updated_at:new Date().toISOString()}).eq('id',pending.id);
+  const whenBr=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',dateStyle:'short',timeStyle:'short'}).format(new Date(rd.event.starts_at)),clientMsg='Seu atendimento com a Dra. Suzanne foi agendado para '+whenBr+'. Será realizado online.'+(rd.meeting_url?'\n\nLink de acesso: '+rd.meeting_url:'');
+  await operatorSend(a,orgId,targetPhone,clientMsg);await operatorSend(a,orgId,adminPhone,'Agendado. '+(clientName||'Cliente')+': '+whenBr+'. A confirmação também foi enviada ao cliente.');return true
+ }
+ let clientMsg=cmd.replace(/^(diga|avise|informe|responda|fale|mande|envie|pe[cç]a)\s+(?:para\s+(?:ela|ele|a cliente|o cliente)\s+)?(?:que\s+)?/i,'').trim();if(!clientMsg)clientMsg=cmd;clientMsg=clientMsg.charAt(0).toUpperCase()+clientMsg.slice(1);
+ const sent=await operatorSend(a,orgId,targetPhone,clientMsg);if(!sent.ok){await operatorSend(a,orgId,adminPhone,'Não consegui enviar a orientação ao cliente. O comando foi registrado para conferência.');return true}
+ await operatorSend(a,orgId,adminPhone,'Enviado para '+(clientName||'o cliente')+': “'+clientMsg.slice(0,280)+'”');return true
+}
+// ===================================================================
+
 Deno.serve(async req=>{if(req.method!=='POST')return J({ok:false},405);try{const a=A(),client=await S(a,'zapi_client_token'),got=new URL(req.url).searchParams.get('key')||'';if(!client||got!==await H(client))return J({ok:false},401);const b=await req.json().catch(()=>null);if(!b)return J({ok:true,ignored:'empty'});if((await S(a,'whatsapp_active_provider')).toLowerCase()!=='zapi')return J({ok:true,ignored:'provider_disabled'});const type=String(b.type||b.event||'').toLowerCase();if(type.includes('disconnect'))return J({ok:true,event:'disconnected'});if(type.includes('connect'))return J({ok:true,event:'connected'});if(type.includes('status')){const externalId=String(b.messageId||b.zaapId||b.id||b.message?.id||b.ids?.[0]?.id||'').trim(),rawStatus=String(b.status||b.messageStatus||b.message?.status||type).toLowerCase(),now=new Date().toISOString(),isRead=/read|played|lido/.test(rawStatus),isDelivered=isRead||/delivered|received|entregue/.test(rawStatus);if(externalId&&(isDelivered||isRead)){const {data:q}=await a.from('process_notification_queue').select('id,org_id,owner_user_id,process_id,delivered_at,read_at').eq('external_message_id',externalId).limit(1).maybeSingle();const patch:any={};if(isDelivered)patch.delivered_at=now;if(isRead)patch.read_at=now;if(Object.keys(patch).length){await a.from('process_notification_queue').update(patch).eq('external_message_id',externalId);await a.from('whatsapp_messages').update({...patch,status:isRead?'read':'delivered'}).eq('external_message_id',externalId)}if(q?.owner_user_id&&isDelivered&&!q.delivered_at){const when=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',dateStyle:'short',timeStyle:'short'}).format(new Date());await a.from('notifications').insert({org_id:q.org_id,user_id:q.owner_user_id,type:'process',title:'Andamento entregue ao cliente',body:`O cliente recebeu o andamento em ${when}.`,link:q.process_id?`/processos?processo=${q.process_id}`:'/andamentos',read:false})}}return J({ok:true,event:'status',external_message_id:externalId||null,status:rawStatus,tracked:!!externalId&&(isDelivered||isRead)})}const p=D(b.phone||b.sender?.phone||b.from||b.chatId||b.participantPhone||b.senderPhone),t=text(b),ch=choice(b),m=media(b);
 const senderName=String(b.senderName||b.chatName||b.sender?.name||'').trim();
 const inboundId=String(b.messageId||b.zaapId||b.id||b.message?.id||'').trim();
@@ -254,6 +340,7 @@ if(!fromMe&&inboundId){
   const {data:seen}=await a.from('whatsapp_messages').select('id').eq('external_message_id',inboundId).limit(1).maybeSingle();
   if(seen?.id)return J({ok:true,ignored:'duplicate_or_own_message',external_message_id:inboundId});
 }
+if(!fromMe&&!m&&(t||ch)){try{if(await handleAdminCommand(a,p,t||ch,inboundId))return J({ok:true,event:'admin_command'})}catch(e){console.error('admin command',e)}}
 // "QUERO MEU ACESSO" e resposta com CPF: tratado antes de qualquer outra regra.
 if(!fromMe&&!m&&(t||ch)){try{if(await accessFlow(a,p,t,ch,inboundId,senderName))return J({ok:true,event:'client_app_access'})}catch(e){console.error('accessFlow',e)}}
 // Áudio, imagem e PDF: lê o conteúdo (OpenAI) e segue o atendimento com esse conteúdo.
