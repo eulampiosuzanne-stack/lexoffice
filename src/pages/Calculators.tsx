@@ -19,7 +19,7 @@ export const fields:Record<string,F[]>={
  'Pensão Alimentícia':[{key:'income',label:'Renda do alimentante',type:'number'},{key:'percentage',label:'Percentual (%)',type:'number'},{key:'fixedAmount',label:'Valor fixo',type:'number'},{key:'dependents',label:'Alimentandos',type:'number'}],
  'Atualização monetária e juros':[{key:'principal',label:'Valor principal',type:'number'},{key:'correctionIndex',label:'Índice de correção monetária',type:'select',options:correctionIndexes},{key:'correctionPercent',label:'Percentual acumulado do índice no período (%)',type:'number'},{key:'secondIndex',label:'Índice após marco intermediário',type:'select',options:correctionIndexes},{key:'penalty',label:'Multa (%)',type:'number'},{key:'rate',label:'Juros ao mês (%)',type:'number'},{key:'startDate',label:'Data inicial',type:'date'},{key:'switchDate',label:'Data do marco intermediário (ex.: citação)',type:'date'},{key:'endDate',label:'Data final',type:'date'}],
  'Revisional Bancária':[{key:'contractValue',label:'Valor contratado',type:'number'},{key:'releasedValue',label:'Valor efetivamente liberado',type:'number'},{key:'installments',label:'Quantidade de parcelas',type:'number'},{key:'installmentValue',label:'Valor da parcela',type:'number'},{key:'paidInstallments',label:'Parcelas já pagas',type:'number'},{key:'contractRate',label:'Taxa contratada (% a.m.)',type:'number'},{key:'referenceRate',label:'Taxa de referência informada (% a.m.)',type:'number'}],
- 'Financiamento e empréstimos':[{key:'principal',label:'Valor principal',type:'number'},{key:'entryAmount',label:'Entrada',type:'number'},{key:'installmentCount',label:'Quantidade de parcelas',type:'number'},{key:'rate',label:'Taxa de juros (% a.m.)',type:'number'},{key:'system',label:'Sistema',type:'select',options:[{value:'price',label:'Tabela Price'},{value:'sac',label:'SAC'}]}],
+ 'Financiamento e empréstimos':[{key:'principal',label:'Valor principal',type:'number'},{key:'entryAmount',label:'Entrada',type:'number'},{key:'installmentCount',label:'Quantidade de parcelas',type:'number'},{key:'rate',label:'Taxa de juros (% a.m.)',type:'number'},{key:'installmentValue',label:'Valor da parcela no contrato (opcional)',type:'number'},{key:'system',label:'Sistema',type:'select',options:[{value:'price',label:'Tabela Price'},{value:'sac',label:'SAC'}]}],
  'Superendividamento':[{key:'income',label:'Renda líquida mensal',type:'number'},{key:'essentialExpenses',label:'Despesas essenciais mensais',type:'number'},{key:'monthlyDebt',label:'Dívidas mensais',type:'number'},{key:'totalDebt',label:'Dívida total',type:'number'},{key:'minimumExistence',label:'Mínimo existencial informado',type:'number'}],
  'RMC / RCC INSS':[{key:'amountReceived',label:'Valor recebido',type:'number'},{key:'monthlyDiscount',label:'Desconto mensal',type:'number'},{key:'monthsDiscounted',label:'Meses descontados',type:'number'},{key:'totalPaid',label:'Total descontado conhecido (opcional)',type:'number'}],
  'Revisão PASEP':[{key:'initialBalance',label:'Saldo inicial',type:'number'},{key:'withdrawals',label:'Saques realizados',type:'number'},{key:'finalBalance',label:'Saldo final informado',type:'number'},{key:'correctionPercent',label:'Correção acumulada informada (%)',type:'number'}],
@@ -66,6 +66,25 @@ function legalOpinion(calc:string,warnings:any[]=[]){const caution=warnings.leng
  'Prazo Processual':'A contagem deve considerar intimação, termo inicial, dias úteis, feriados, suspensões e regras específicas do procedimento.'};return base+' '+(specific[calc]||'Os pressupostos jurídicos e documentais devem ser revisados antes do uso processual ou extrajudicial.')+caution}
 function months(a:any,b:any){if(!a||!b)return 0;const x=new Date(a+'T12:00:00'),y=new Date(b+'T12:00:00');return y<x?0:(y.getFullYear()-x.getFullYear())*12+y.getMonth()-x.getMonth()+1}
 export const localOnly=new Set(['ITCD — Minas Gerais','Execução de Alimentos','Regulamentação de Visitas e Convivência','Divórcio, Partilha, Filhos e Alimentos','Honorários advocatícios']);
+/* Contratos de empréstimo e financiamento quase nunca escrevem "Tabela Price" ou "SAC".
+   Quando o PDF não informa o sistema, a LEX deduz pela parcela do contrato (ou adota Price, o padrão). */
+const numBR=(v:any)=>{const t=String(v??'').trim().replace(/\s|R\$/g,'');if(!t)return NaN;const n=Number(t.includes(',')?t.replace(/\./g,'').replace(',','.'):t);return Number.isFinite(n)?n:NaN};
+export function deduzirAmortizacao(calc:string,extracted:Record<string,any>,notes:any[]):{extracted:Record<string,any>;notes:string[]}{
+ const list=(Array.isArray(notes)?notes:[]).map(String);
+ if(calc!=='Financiamento e empréstimos')return {extracted,notes:list};
+ const out={...extracted};const sys=String(out.system||'').toLowerCase();
+ const limpas=list.filter(n=>!/(sistema de amortiza|campo ['"]?system)/i.test(n));
+ if(sys==='price'||sys==='sac')return {extracted:out,notes:list};
+ const P=numBR(out.principal)-(numBR(out.entryAmount)||0),n=numBR(out.installmentCount),i=numBR(out.rate)/100,parc=numBR(out.installmentValue);
+ let sistema='price',como='O contrato não informa o sistema de amortização. A LEX adotou a Tabela Price (parcelas fixas), que é o padrão dos empréstimos e financiamentos.';
+ if(parc>0&&P>0&&n>0&&i>0){const pmt=P*i/(1-Math.pow(1+i,-n)),sac1=P/n+P*i,dp=Math.abs(parc-pmt)/pmt,ds=Math.abs(parc-sac1)/sac1;
+  if(ds<0.03&&ds<dp){sistema='sac';como=`Sistema identificado como SAC: a 1ª parcela do contrato (R$ ${parc.toFixed(2).replace('.',',')}) bate com o cálculo SAC.`}
+  else if(dp<0.03){como=`Sistema identificado como Tabela Price: a parcela do contrato (R$ ${parc.toFixed(2).replace('.',',')}) bate com o cálculo Price.`}
+  else como=`A parcela do contrato (R$ ${parc.toFixed(2).replace('.',',')}) não bate com Price nem com SAC pelos dados lidos. A LEX deixou Tabela Price; confira taxa, prazo e valor liberado — a diferença pode indicar encargos embutidos.`}
+ out.system=sistema;
+ return {extracted:out,notes:[...limpas,como,'Se as parcelas do contrato forem decrescentes, troque o sistema para SAC.']};
+}
+
 export default function Calculators(){
  const queryCalc=new URLSearchParams(window.location.search).get('calc');const selected=queryCalc&&names.includes(queryCalc)?queryCalc:null;
  const [calc,setCalc]=useState(selected||names[0]),[d,setD]=useState<Record<string,any>>({}),[res,setRes]=useState(''),[busy,setBusy]=useState(false),[pdfBusy,setPdfBusy]=useState(false),[msg,setMsg]=useState(''),[pdfNotes,setPdfNotes]=useState<string[]>([]),[pdfAnalyzed,setPdfAnalyzed]=useState(false),[pdf,setPdf]=useState<File|null>(null),[clients,setClients]=useState<C[]>([]),[processes,setProcesses]=useState<P[]>([]),[clientId,setClientId]=useState(''),[processId,setProcessId]=useState(''),[resultDetail,setResultDetail]=useState<any>(null);
@@ -103,9 +122,9 @@ export default function Calculators(){
    if(uploadError)throw Error(`Falha ao enviar o PDF: ${uploadError.message}`);
    const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error('Falha técnica: o leitor de PDF excedeu 45 segundos.')),45000));
    const r=await Promise.race([invokeCalculator({mode:'extract_pdf',calculator:calc,pdf:{name:file.name,mime_type:file.type,storage_path:storagePath},fields:fs.map(f=>({key:f.key,label:f.label,type:f.type||'text'}))}),timeout]);
-   const extracted=(r as any)?.extractedData||{};
+   const {extracted,notes:pdfN}=deduzirAmortizacao(calc,(r as any)?.extractedData||{},(r as any)?.notes||[]);
    setD(current=>({...current,...extracted}));
-   setPdfAnalyzed(true);setPdfNotes((r as any)?.notes||[]);
+   setPdfAnalyzed(true);setPdfNotes(pdfN);
    setMsg(Object.keys(extracted).length?'PDF analisado. Confira os campos preenchidos antes de calcular.':'O PDF foi lido, mas nenhum campo seguro foi identificado para esta calculadora.');
   }catch(e:any){
    setMsg(e.message||'Falha ao analisar o PDF.');
@@ -141,9 +160,9 @@ export default function Calculators(){
    const {data,error}=await Promise.race([call,timeout]) as any;
    if(error)throw Error(error.message||'Falha ao ler o processo.');
    if(data?.ok===false)throw Error(data.error||'Falha ao ler o processo.');
-   const extracted=data?.extractedData||{};
+   const {extracted,notes:pdfN}=deduzirAmortizacao(calc,data?.extractedData||{},data?.notes||[]);
    setD(current=>({...current,...extracted}));
-   setPdfAnalyzed(true);setPdfNotes(data?.notes||[]);
+   setPdfAnalyzed(true);setPdfNotes(pdfN);
    setMsg(Object.keys(extracted).length?`Processo analisado (${files.length} arquivo(s)). Confira os campos preenchidos antes de calcular.`:'O processo foi lido, mas nenhum campo seguro foi identificado para esta calculadora.');
   }catch(e:any){setMsg(e.message||'Falha ao analisar o processo.')}
   finally{if(paths.length)await supabase?.storage.from('lexoffice-documents').remove(paths).catch(()=>undefined);setPdfBusy(false)}

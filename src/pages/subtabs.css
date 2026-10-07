@@ -1,0 +1,6 @@
+/* Abas internas das telas (Área do Cliente, Documentos) — paleta LEX, ouro degradê no item ativo. */
+.lx-subtabs{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 16px}
+.lx-subtabs button{border:1px solid #2E2216;border-radius:12px;background:#100C08;color:#BDB4A6;font:inherit;font-weight:700;font-size:14px;padding:10px 16px;cursor:pointer}
+.lx-subtabs button:hover{color:#F5F1E8}
+.lx-subtabs button.active{color:#F5F1E8;border-color:transparent;background:linear-gradient(#17110C,#17110C) padding-box,linear-gradient(135deg,#8A5726,#F2C56D,#C99443) border-box;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+.lx-subtabs button:focus-visible{outline:2px solid #F2C56D;outline-offset:2px}
