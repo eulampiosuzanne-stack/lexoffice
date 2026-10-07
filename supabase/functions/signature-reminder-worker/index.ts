@@ -47,6 +47,45 @@ async function intakeReminders(a:any,now:Date,force=false){
   return out;
 }
 
+// ===== Resumo por IA dos alertas de vendas e financeiro (pedido da Dra. Suzanne, 07/10/2026) =====
+// O alerta nasce com status "summarizing" (gatilho no banco), este trecho gera o resumo e libera para envio (status "pending").
+const SUMMARY_AGENTS=['sales','billing'];
+async function summarizeAlert(a:any,alertId:string){
+  const {data:al}=await a.from('ai_agent_alerts').select('id,org_id,agent_key,contact_phone,client_id,reason,context,status').eq('id',alertId).maybeSingle();
+  if(!al||al.status!=='summarizing')return {ok:true,skipped:'not_summarizing'};
+  let resumo='';
+  try{
+    const phone=String(al.contact_phone||'').replace(/\D/g,'');
+    let historico='';
+    if(phone){
+      const {data:cts}=await a.from('whatsapp_contacts').select('id').eq('org_id',al.org_id).eq('phone',phone).limit(3);
+      const ids=(cts||[]).map((c:any)=>c.id);
+      if(ids.length){
+        const {data:cv}=await a.from('whatsapp_conversations').select('id').eq('org_id',al.org_id).in('contact_id',ids).order('updated_at',{ascending:false}).limit(1).maybeSingle();
+        if(cv){const {data:ms}=await a.from('whatsapp_messages').select('direction,body,created_at').eq('conversation_id',cv.id).order('created_at',{ascending:false}).limit(12);
+          historico=(ms||[]).reverse().map((m:any)=>(m.direction==='inbound'?'Contato: ':'Escritório: ')+String(m.body||'').replace(/\s+/g,' ').slice(0,400)).join('\n');}
+      }
+    }
+    let cliente='';if(al.client_id){const {data:c}=await a.from('clients').select('name').eq('id',al.client_id).maybeSingle();cliente=c?.name?`Cliente cadastrado: ${c.name}`:''}
+    const instructions=['Você resume alertas para a Dra. Suzanne Figueiredo (advogada) decidir rápido pelo WhatsApp.','Escreva em português, no máximo 3 frases curtas, sem emoji e sem markdown.','Diga do que se trata e o que o contato quer de verdade, com nome e valores quando houver.','Se a mensagem for propaganda ou oferta de serviço de terceiros (não é cliente nem interessado em serviço jurídico), comece com "Parece propaganda de terceiros:" e sugira ignorar.','Termine com "Sugestão:" e a ação recomendada em poucas palavras.','Não invente nada que não esteja no texto.'].join('\n');
+    const input=`Tipo de alerta: ${al.agent_key==='billing'?'financeiro':'vendas'}\nMotivo: ${al.reason}\n${cliente}\nContexto do alerta: ${String(al.context||'').slice(0,1500)}\n\nÚltimas mensagens da conversa:\n${historico||'(sem histórico)'}`;
+    const u=Deno.env.get('SUPABASE_URL')!,sk=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const ctl=new AbortController();const tm=setTimeout(()=>ctl.abort(),25000);
+    const r=await fetch(u+'/functions/v1/ai-provider-gateway',{method:'POST',signal:ctl.signal,headers:{Authorization:'Bearer '+sk,apikey:sk,'Content-Type':'application/json'},body:JSON.stringify({org_id:al.org_id,agent_key:al.agent_key,purpose:'alert_summary',instructions,input})}).finally(()=>clearTimeout(tm));
+    const d=await r.json().catch(()=>null);
+    resumo=String(r.ok&&d?.ok?d.text||'':'').replace(/[*#`]/g,'').replace(/\n{3,}/g,'\n\n').trim().slice(0,600);
+  }catch(e){console.error('summarizeAlert',alertId,e instanceof Error?e.message:e)}
+  const context=resumo?`Resumo: ${resumo}\n\nDetalhes: ${String(al.context||'')}`:String(al.context||'');
+  await a.from('ai_agent_alerts').update({context,status:'pending',updated_at:new Date().toISOString()}).eq('id',al.id).eq('status','summarizing');
+  return {ok:true,summarized:Boolean(resumo)};
+}
+// Segurança: alerta que ficou preso aguardando resumo (mais de 5 min) é liberado sem resumo, para nunca deixar de avisar.
+async function releaseStuckSummaries(a:any){
+  const lim=new Date(Date.now()-5*60000).toISOString();
+  const {data}=await a.from('ai_agent_alerts').update({status:'pending',updated_at:new Date().toISOString()}).eq('status','summarizing').lt('created_at',lim).select('id');
+  return data?.length||0;
+}
+
 Deno.serve(async(req)=>{
   if(req.method!=='POST')return json({ok:false,error:'Método inválido'},405);
   try{
@@ -55,8 +94,11 @@ Deno.serve(async(req)=>{
     const provided=req.headers.get('x-sync-token')||'';
     if(expected && provided!==expected) return json({ok:false,error:'unauthorized'},401);
 
+    const reqBody=await req.clone().json().catch(()=>({}));
+    if(reqBody?.action==='summarize_alert'&&reqBody?.alert_id)return json(await summarizeAlert(a,String(reqBody.alert_id)));
     const now=new Date();
     const nowIso=now.toISOString();
+    let releasedSummaries=0;try{releasedSummaries=await releaseStuckSummaries(a)}catch(e){console.error('releaseStuckSummaries',e)}
 
     // Expira solicitações vencidas que ainda não foram assinadas (nunca cobra documento expirado/assinado/recusado).
     const {data:toExpire}=await a.from('signature_requests').select('id').in('status',['sent','viewed']).not('expires_at','is',null).lt('expires_at',nowIso).limit(200);
@@ -125,7 +167,7 @@ Deno.serve(async(req)=>{
     let authorizationReminders=0;
     for(const d of authDocs||[]){try{const age=(now.getTime()-new Date(d.created_at).getTime())/3600000;if(age<24)continue;if(d.reminder_last_sent_at&&(now.getTime()-new Date(d.reminder_last_sent_at).getTime())/3600000<24)continue;const {data:cl}=await a.from('clients').select('name,phone,whatsapp').eq('id',d.client_id).maybeSingle();const phone=cl?.whatsapp||cl?.phone||'';if(!phone)continue;const first=String(cl?.name||'').trim().split(/\\s+/)[0]||'';const message='Olá'+(first?', '+first:'')+'! Há um documento aguardando sua autorização na Área do Cliente da Suzanne Figueiredo Advocacia: '+d.title+'. Acesse: https://lexoffice.univittagroup.com.br/cliente';const resp=await send(d.org_id,phone,message,'client_doc_authorization:'+d.id+':'+new Date().toISOString().slice(0,10));if(resp?.allowed||resp?.duplicate){await a.from('client_document_requests').update({reminder_last_sent_at:nowIso,updated_at:nowIso}).eq('id',d.id);authorizationReminders++}}catch(e){console.error('authorization reminder',d.id,e)}}
     let intake:any=null;try{intake=await intakeReminders(a,now)}catch(e){console.error('intake reminders',e);intake={error:e instanceof Error?e.message:String(e)}}
-    return json({ok:true,sent,skipped,errors,expired:toExpire?.length||0,checked_at:nowIso ,authorization_reminders:authorizationReminders,intake_reminders:intake});
+    return json({ok:true,sent,skipped,errors,expired:toExpire?.length||0,checked_at:nowIso ,authorization_reminders:authorizationReminders,intake_reminders:intake,released_summaries:releasedSummaries});
   }catch(e){
     console.error('signature-reminder-worker',e);
     return json({ok:false,error:e instanceof Error?e.message:String(e)},500);
