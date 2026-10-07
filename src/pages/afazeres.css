@@ -37,3 +37,9 @@
 .afz-page .afz-spin{animation:afz-spin 1s linear infinite}
 @keyframes afz-spin{to{transform:rotate(360deg)}}
 @media (max-width:720px){.afz-page .afz-row{grid-template-columns:1fr 1fr}.afz-page .afz-btn{grid-column:1/-1}}
+.afz-embedded{margin:0 0 18px}
+.afz-embedded .afz-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0 0 10px}
+.afz-embedded .afz-head h2{display:flex;align-items:center;gap:8px;margin:0;font-size:18px;color:#F5F1E8}
+.afz-embedded .afz-head h2 svg{color:#C99443}
+.afz-embedded .afz-head small{color:#C99443;font-weight:700;font-size:12px;letter-spacing:.4px}
+.afz-embedded .afz-list{max-height:340px;overflow:auto}

@@ -11,7 +11,7 @@ type Filtro = 'pendentes' | 'feitas' | 'todas';
 const hoje = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
 const dataBR = (iso: string) => iso.split('-').reverse().join('/');
 
-export default function Afazeres() {
+export default function Afazeres({ embedded = false }: { embedded?: boolean }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState('');
@@ -76,8 +76,10 @@ export default function Afazeres() {
   }, [tasks, filtro, quem]);
   const pendentes = tasks.filter((t) => !t.done_at).length;
 
-  return <div className="afz-page">
-    <div className="page-title"><h1>Afazeres</h1><p>O que você e a Gláucia precisam fazer. Marque quando estiver feito.</p></div>
+  return <div className={`afz-page${embedded ? ' afz-embedded' : ''}`}>
+    {embedded
+      ? <div className="afz-head"><h2><ListChecks size={18} />Afazeres</h2><small>{pendentes ? `${pendentes} pendente(s)` : 'Tudo em dia'}</small></div>
+      : <div className="page-title"><h1>Afazeres</h1><p>O que você e a Gláucia precisam fazer. Marque quando estiver feito.</p></div>}
     <form className="afz-panel afz-form" onSubmit={adicionar}>
       <input className="afz-title" placeholder="O que precisa ser feito?" value={novo.title} maxLength={300} onChange={(e) => setNovo({ ...novo, title: e.target.value })} aria-label="Afazer" />
       <div className="afz-row">
