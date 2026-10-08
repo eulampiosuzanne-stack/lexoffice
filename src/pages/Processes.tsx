@@ -38,8 +38,7 @@ export default function Processes(){
   try{
    const {data:cached,error:cacheError}=await supabase!.from('process_ai_summaries').select('summary,latest_movement_created_at,movement_count').eq('process_id',p.id).maybeSingle();
    if(summaryTarget.current!==requestId)return;
-   if(cacheError)throw cacheError;
-   if(cached?.summary&&Number(cached.movement_count)===items.length&&String(cached.latest_movement_created_at||'')===latest){
+   if(!cacheError&&cached?.summary&&Number(cached.movement_count)===items.length&&String(cached.latest_movement_created_at||'')===latest){
     setMikeSummary({text:cached.summary,source:'ai'});return;
    }
    if(!p.org_id){setMikeSummary({text:fallback,source:'error'});return;}
