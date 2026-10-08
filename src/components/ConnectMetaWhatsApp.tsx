@@ -6,5 +6,5 @@ import MetaPartnerConnect from '../pages/MetaPartnerConnect';
  * para evitar duplicação de credenciais, SDK e lógica de conexão.
  */
 export default function ConnectMetaWhatsApp() {
-  return <MetaPartnerConnect />;
+  return <MetaPartnerConnect connectLabel="Conectar WhatsApp oficial da Meta via Facebook" />;
 }
