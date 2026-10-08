@@ -14,9 +14,9 @@ const leadSteps: Step[] = [
     icon: MessageCircle,
   },
   {
-    title: "Lavínia faz a triagem com IA",
+    title: "Helena faz a triagem com IA",
     description:
-      "A IA Lavínia (OpenAI, com o modelo definido nas configurações) identifica o nome, a área jurídica, a cidade, se já existe processo, a urgência e um breve relato. Ela encaminha o contato para o agente adequado.",
+      "A IA Helena (OpenAI, com o modelo definido nas configurações) identifica o nome, a área jurídica, a cidade, se já existe processo, a urgência e um breve relato. Ela encaminha o contato para o agente adequado.",
     icon: Bot,
   },
   {
@@ -41,7 +41,7 @@ const clientSteps: Step[] = [
     icon: MessageCircle,
   },
   {
-    title: "Lavínia reconhece e encaminha",
+    title: "Helena reconhece e encaminha",
     description:
       "A IA de triagem identifica que a pessoa já é cliente e envia a conversa ao agente responsável, sem iniciar uma abordagem comercial.",
     icon: Bot,
