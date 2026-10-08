@@ -16,6 +16,7 @@ export default function Dossier(){
   try{
    const {data:p,error:pe}=await supabase.from('processes').select('id,org_id,client_id,cnj_number,internal_number,opposing_party,pole,court,comarca,vara,area,subject,class_name,status,is_confidential,clients(id,name,phone,email,notes)').eq('id',processId).maybeSingle();
    if(pe)throw pe;if(!p)throw new Error('Processo não encontrado ou sem permissão de acesso.');
+   if(p.org_id)void supabase.from('process_access_log').insert({org_id:p.org_id,process_id:p.id}).then(()=>undefined,()=>undefined);
    const [m,d,h,j,e,w]=await Promise.all([
     supabase.from('process_movements').select('movement_date,title,description').eq('process_id',p.id).order('movement_date',{ascending:false}).limit(20),
     supabase.from('process_deadlines').select('title,description,due_at,status,priority').eq('process_id',p.id).order('due_at',{ascending:true}).limit(50),
