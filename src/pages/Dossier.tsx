@@ -16,15 +16,19 @@ export default function Dossier(){
   try{
    const {data:p,error:pe}=await supabase.from('processes').select('id,org_id,client_id,cnj_number,internal_number,opposing_party,pole,court,comarca,vara,area,subject,class_name,status,is_confidential,clients(id,name,phone,email,notes)').eq('id',processId).maybeSingle();
    if(pe)throw pe;if(!p)throw new Error('Processo não encontrado ou sem permissão de acesso.');
-   const [m,d,h,j,e]=await Promise.all([
+   const [m,d,h,j,e,w]=await Promise.all([
     supabase.from('process_movements').select('movement_date,title,description').eq('process_id',p.id).order('movement_date',{ascending:false}).limit(20),
     supabase.from('process_deadlines').select('title,description,due_at,status,priority').eq('process_id',p.id).order('due_at',{ascending:true}).limit(50),
     supabase.from('process_hearings').select('title,hearing_type,starts_at,location,notes,status').eq('process_id',p.id).order('starts_at',{ascending:true}).limit(30),
     supabase.from('process_judge_analyses').select('result,created_at,sample_size,tribunal,orgao_nome').eq('process_id',p.id).order('created_at',{ascending:false}).limit(1).maybeSingle(),
-    p.client_id?supabase.from('client_events').select('type,title,description,created_at').eq('client_id',p.client_id).order('created_at',{ascending:false}).limit(20):Promise.resolve({data:[],error:null}) as any
+    p.client_id?supabase.from('client_events').select('type,title,description,created_at').eq('client_id',p.client_id).order('created_at',{ascending:false}).limit(20):Promise.resolve({data:[],error:null}) as any,
+    p.client_id?supabase.from('whatsapp_conversations').select('id,last_message_at,status').eq('client_id',p.client_id).order('last_message_at',{ascending:false}).limit(10):Promise.resolve({data:[],error:null}) as any
    ]);
-   for(const result of [m,d,h,j,e])if(result.error)throw result.error;
-   setData({process:p,movements:m.data||[],deadlines:d.data||[],hearings:h.data||[],judge:j.data,clientEvents:e.data||[]});
+   for(const result of [m,d,h,j,e,w])if(result.error)throw result.error;
+   const conversationIds=(w.data||[]).map((x:any)=>x.id);
+   const whatsapp=conversationIds.length?await supabase.from('whatsapp_messages').select('conversation_id,direction,body,created_at').in('conversation_id',conversationIds).order('created_at',{ascending:false}).limit(30):{data:[],error:null} as any;
+   if(whatsapp.error)throw whatsapp.error;
+   setData({process:p,movements:m.data||[],deadlines:d.data||[],hearings:h.data||[],judge:j.data,clientEvents:e.data||[],clientWhatsApp:whatsapp.data||[]});
   }catch(e:any){setError(e?.message||'Não foi possível carregar o Dossiê. Verifique a conexão e tente novamente.')}
   finally{setLoading(false)}
  }
@@ -40,7 +44,7 @@ export default function Dossier(){
     audiencias:data.hearings.map((x:any)=>({titulo:x.title,tipo:x.hearing_type,data:x.starts_at,local:x.location,observacoes:x.notes,status:x.status})),
     andamentos:data.movements.map((x:any)=>({data:x.movement_date,titulo:x.title,descricao:x.description})),
     analise_do_juizo:data.judge?.result||null,
-    historico_do_cliente:data.clientEvents.map((x:any)=>({data:x.created_at,tipo:x.type,titulo:x.title,descricao:x.description}))
+    historico_do_cliente:{eventos:data.clientEvents.map((x:any)=>({data:x.created_at,tipo:x.type,titulo:x.title,descricao:x.description})),mensagens_whatsapp:data.clientWhatsApp.map((x:any)=>({data:x.created_at,direcao:x.direction,texto:x.body}))}
    };
    const result=await supabase.functions.invoke('ai-provider-gateway',{body:{
     org_id:p.org_id,purpose:'process_dossier',
@@ -72,7 +76,7 @@ export default function Dossier(){
   <section style={section}><h2 style={heading}>Audiências e reuniões</h2><p style={{fontSize:17,lineHeight:1.6,whiteSpace:'pre-wrap'}}>{listText(data.hearings,(x:any)=>'• '+x.title+' — '+datePt(x.starts_at)+(x.location?' — '+x.location:'')+(x.notes?' — '+x.notes:''))}</p></section>
   <section style={section}><h2 style={heading}>Últimos andamentos</h2><p style={{fontSize:17,lineHeight:1.6,whiteSpace:'pre-wrap'}}>{listText(data.movements.slice(0,10),(x:any)=>'• '+datePt(x.movement_date)+' — '+(x.title||x.description||'Sem descrição'))}</p></section>
   <section style={section}><h2 style={heading}>Análise do Juízo salva</h2><p style={{fontSize:17,lineHeight:1.6,whiteSpace:'pre-wrap'}}>{data.judge?JSON.stringify(data.judge.result,null,2):'Não há análise salva para este processo.'}</p><small style={{fontSize:14}}>A análise usa publicações públicas e não prevê resultado.</small></section>
-  <section style={section}><h2 style={heading}>Histórico do cliente</h2><p style={{fontSize:17,lineHeight:1.6,whiteSpace:'pre-wrap'}}>{listText(data.clientEvents,(x:any)=>'• '+datePt(x.created_at)+' — '+(x.title||x.type||'Evento')+(x.description?' — '+x.description:''))}</p>{!data.clientEvents.length&&<small style={{fontSize:15}}>A tabela de eventos do cliente está disponível, mas não contém registros para este cliente.</small>}</section>
+  <section style={section}><h2 style={heading}>Histórico do cliente</h2><h3 style={{fontSize:17}}>Eventos cadastrados</h3><p style={{fontSize:17,lineHeight:1.6,whiteSpace:'pre-wrap'}}>{listText(data.clientEvents,(x:any)=>'• '+datePt(x.created_at)+' — '+(x.title||x.type||'Evento')+(x.description?' — '+x.description:''))}</p><h3 style={{fontSize:17}}>Mensagens recentes do WhatsApp</h3><p style={{fontSize:17,lineHeight:1.6,whiteSpace:'pre-wrap'}}>{listText(data.clientWhatsApp,(x:any)=>'• '+datePt(x.created_at)+' — '+(x.direction==='inbound'?'Cliente':'Escritório')+': '+(x.body||'Mensagem sem texto'))}</p>{!data.clientEvents.length&&!data.clientWhatsApp.length&&<small style={{fontSize:15}}>Não há eventos ou mensagens disponíveis para este cliente.</small>}</section>
   {draft&&<section style={section}><h2 style={heading}>Sugestão da IA — revisar antes de usar</h2><p style={{fontSize:17,lineHeight:1.65,whiteSpace:'pre-wrap'}}>{draft}</p><small style={{fontSize:14}}>Conteúdo elaborado por Helena com base nos dados exibidos. Confirme fatos, prazos e estratégia antes de usar.</small></section>}
   <p style={{fontSize:15,color:'#ddd'}}>Documento interno de apoio à advogada. A IA não substitui a análise profissional.</p>
   <style>{'@media print{.no-print{display:none!important}body{background:#fff!important;color:#111!important}main{max-width:none!important;padding:0!important}section{break-inside:avoid;color:#111!important;background:#fff!important;border-color:#555!important}h1,h2,p,small{color:#111!important}}'}</style>
