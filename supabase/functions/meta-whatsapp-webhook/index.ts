@@ -115,7 +115,9 @@ async function metaClearFlow(s:any,cv:any){await s.from("whatsapp_chatbot_flow_s
 async function metaAlertAndHandoff(s:any,o:string,cv:any,c:any,from:string,reason:string,contextText:string,urgentFlag=false){
   const now=new Date().toISOString(),settings=(await s.from("whatsapp_settings").select("alert_phone").eq("org_id",o).maybeSingle()).data;
   const {data:owner}=await s.from("profiles").select("id,phone").eq("org_id",o).in("role_key",["owner","admin"]).eq("status","active").order("created_at",{ascending:true}).limit(1).maybeSingle();
-  if(owner?.id)try{await s.from("ai_agent_alerts").insert({org_id:o,agent_key:"helena",contact_phone:from,alert_phone:settings?.alert_phone||owner?.phone||from,reason,context:String(contextText||"").slice(0,1800),status:"pending",owner_user_id:owner.id})}catch(e){console.error("META_HANDOFF_ALERT_FAILED",e)}
+  const alertPhone=String(settings?.alert_phone||owner?.phone||"").trim();
+  if(owner?.id&&alertPhone)try{await s.from("ai_agent_alerts").insert({org_id:o,agent_key:"helena",contact_phone:from,alert_phone:alertPhone,reason,context:String(contextText||"").slice(0,1800),status:"pending",owner_user_id:owner.id})}catch(e){console.error("META_HANDOFF_ALERT_FAILED",e)}
+  else await metaLog(s,o,"meta_handoff_alert_missing_destination",{conversation_id:cv.id,reason,contact_phone:from},"No office alert_phone configured");
   await s.from("whatsapp_conversations").update({bot_ativo:false,priority:urgentFlag?"high":"normal",conversation_owner:"HUMAN",owner_agent_key:null,human_takeover_at:now,human_takeover_reason:reason,owner_changed_at:now,updated_at:now}).eq("id",cv.id);
   await s.from("ai_conversation_controls").update({ai_enabled:false,human_takeover:true,human_takeover_at:now,resume_after_minutes:0,resume_at:null,updated_at:now}).eq("org_id",o).eq("contact_key",D(from));
 }
