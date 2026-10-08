@@ -16,7 +16,7 @@ const leadSteps: Step[] = [
   {
     title: "Lavínia faz a triagem com IA",
     description:
-      "A IA identifica o nome, a área jurídica, a cidade, se já existe processo, a urgência e um breve relato. Ela encaminha o contato para o agente adequado.",
+      "A IA Lavínia (OpenAI, com o modelo definido nas configurações) identifica o nome, a área jurídica, a cidade, se já existe processo, a urgência e um breve relato. Ela encaminha o contato para o agente adequado.",
     icon: Bot,
   },
   {
@@ -28,7 +28,7 @@ const leadSteps: Step[] = [
   {
     title: "A Dra. Suzanne assume quando necessário",
     description:
-      "Pedido para falar com a advogada, situação urgente ou sensível, dúvida relevante, negociação fora das regras ou falha de ferramenta interrompe a automação e pede atendimento humano.",
+      "Pedido para falar com a advogada, situação urgente ou sensível, dúvida relevante, negociação fora das regras ou falha de ferramenta interrompe a automação e encaminha a conversa para a Dra. Suzanne ou sua equipe.",
     icon: Scale,
   },
 ];
@@ -55,7 +55,7 @@ const clientSteps: Step[] = [
   {
     title: "A Dra. Suzanne recebe os casos que pedem intervenção",
     description:
-      "Pedidos de atendimento humano, urgências, decisões ou prazos que exijam revisão, divergências financeiras e falhas são encaminhados para a equipe ou para a Dra. Suzanne.",
+      "Pedidos de atendimento humano, urgências, decisões ou prazos que exijam revisão, divergências financeiras e falhas são encaminhados para a Dra. Suzanne ou sua equipe.",
     icon: ShieldAlert,
   },
 ];
