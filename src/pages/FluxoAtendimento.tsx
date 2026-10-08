@@ -91,7 +91,7 @@ export default function FluxoAtendimento() {
         <Steps values={items.client}/>
         <div style={{ marginTop: 20, padding: 16, borderLeft: "4px solid #6c2638", background: "rgba(108,38,56,.2)", borderRadius: 8 }}>
           <b style={{ display: "flex", alignItems: "center", gap: 8, color: "#f0cbd3", fontSize: 17 }}><Bot size={19}/> Atuação da Helena</b>
-          <p style={{ ...copy, marginTop: 8 }}>A Helena consulta o último andamento disponível e o traduz em linguagem simples. Honorários só são informados quando constarem no sistema.</p>
+          <p style={{ ...copy, marginTop: 8 }}>O Lex mostra a última movimentação aprovada com uma explicação simples já cadastrada. Se esse texto não existir, encaminha a consulta à equipe. Honorários só são informados quando constarem no sistema.</p>
         </div>
       </section>
     </div>
