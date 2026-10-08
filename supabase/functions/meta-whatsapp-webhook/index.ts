@@ -82,10 +82,14 @@ async function metaSendInteractive(s:any,o:string,cv:any,to:string,body:string,i
   const interactive:any={type:kind,body:{text:body},action};
   if(kind==="button"&&imageHeader){const logo=(await secret(s,"meta_whatsapp_header_logo_url"))||"https://raw.githubusercontent.com/eulampiosuzanne-stack/lexoffice/feat/meta-whatsapp-menu-flows/public/dama-justica-meta.png";if(/^https:\/\/\S+$/i.test(logo))interactive.header={type:"image",image:{link:logo}}}
   const request={messaging_product:"whatsapp",to,type:"interactive",interactive};
-  const r=await fetch("https://graph.facebook.com/"+GV+"/"+phoneId+"/messages",{method:"POST",headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify(request)});
-  const result=await r.json().catch(()=>null);
-  if(!r.ok){
-    const err=String(result?.error?.message||"Falha ao enviar menu interativo pela Meta");
+  let result:any=null,sendError="";
+  try{
+    const r=await fetch("https://graph.facebook.com/"+GV+"/"+phoneId+"/messages",{method:"POST",headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify(request)});
+    result=await r.json().catch(()=>null);
+    if(!r.ok)sendError=String(result?.error?.message||"Falha ao enviar menu interativo pela Meta");
+  }catch(e){sendError=e instanceof Error?e.message:String(e)}
+  if(sendError){
+    const err=sendError;
     await metaLog(s,o,"meta_interactive_send_failed",{conversation_id:cv.id,to,items:items.map((x:any)=>({id:x.id,title:x.title})),type:kind},err);
     const fallback=metaFallback(items);
     await sendMeta(s,to,fallback);
