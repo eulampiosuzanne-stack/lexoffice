@@ -72,15 +72,17 @@ export default function Afazeres({ embedded = false }: { embedded?: boolean }) {
         const da = a.due_date || '9999', db = b.due_date || '9999';
         return da.localeCompare(db) || b.created_at.localeCompare(a.created_at);
       })
-      .map((t) => ({ ...t, atrasada: !t.done_at && !!t.due_date && t.due_date < h, hoje: !t.done_at && t.due_date === h }));
-  }, [tasks, filtro, quem]);
+      .map((t) => ({ ...t, atrasada: !t.done_at && !!t.due_date && t.due_date < h, hoje: !t.done_at && t.due_date === h }))
+      .slice(0, embedded ? 6 : undefined);
+  }, [tasks, filtro, quem, embedded]);
   const pendentes = tasks.filter((t) => !t.done_at).length;
 
   return <div className={`afz-page${embedded ? ' afz-embedded' : ''}`}>
-    {embedded
-      ? <div className="afz-head"><h2><ListChecks size={18} />Afazeres</h2><small>{pendentes ? `${pendentes} pendente(s)` : 'Tudo em dia'}</small></div>
-      : <div className="page-title"><h1>Afazeres</h1><p>O que você e a Gláucia precisam fazer. Marque quando estiver feito.</p></div>}
-    <form className="afz-panel afz-form" onSubmit={adicionar}>
+    {!embedded && <div className="page-title"><h1>Afazeres</h1><p>O que você e a Gláucia precisam fazer. Marque quando estiver feito.</p></div>}
+    {embedded ? <form className="afz-quick" onSubmit={adicionar}>
+      <input placeholder="Anotar um afazer e apertar Enter" value={novo.title} maxLength={300} onChange={(e) => setNovo({ ...novo, title: e.target.value })} aria-label="Novo afazer" />
+      <button className="afz-btn" type="submit" disabled={salvando}>{salvando ? <Loader2 size={15} className="afz-spin" /> : <Plus size={15} />}Adicionar</button>
+    </form> : <form className="afz-panel afz-form" onSubmit={adicionar}>
       <input className="afz-title" placeholder="O que precisa ser feito?" value={novo.title} maxLength={300} onChange={(e) => setNovo({ ...novo, title: e.target.value })} aria-label="Afazer" />
       <div className="afz-row">
         <label>Quem<select value={novo.responsible} onChange={(e) => setNovo({ ...novo, responsible: e.target.value as Resp })}>{(Object.keys(RESP) as Resp[]).map((k) => <option key={k} value={k}>{RESP[k]}</option>)}</select></label>
@@ -89,15 +91,15 @@ export default function Afazeres({ embedded = false }: { embedded?: boolean }) {
         <button className="afz-btn" type="submit" disabled={salvando}>{salvando ? <Loader2 size={15} className="afz-spin" /> : <Plus size={15} />}Adicionar</button>
       </div>
       <input className="afz-notes" placeholder="Observação (opcional)" value={novo.notes} maxLength={2000} onChange={(e) => setNovo({ ...novo, notes: e.target.value })} aria-label="Observação" />
-    </form>
+    </form>}
     {erro && <p className="afz-erro">{erro}</p>}
-    <div className="afz-filters">
+    {!embedded && <div className="afz-filters">
       <div className="afz-seg" role="tablist" aria-label="Situação">{(['pendentes', 'feitas', 'todas'] as Filtro[]).map((f) => <button key={f} type="button" role="tab" aria-selected={filtro === f} className={filtro === f ? 'active' : ''} onClick={() => setFiltro(f)}>{f === 'pendentes' ? `Pendentes (${pendentes})` : f === 'feitas' ? 'Feitas' : 'Todas'}</button>)}</div>
       <div className="afz-seg" role="tablist" aria-label="Responsável">{(['todas', 'suzanne', 'glaucia'] as const).map((q) => <button key={q} type="button" role="tab" aria-selected={quem === q} className={quem === q ? 'active' : ''} onClick={() => setQuem(q)}>{q === 'todas' ? 'De todas' : RESP[q]}</button>)}</div>
-    </div>
-    <section className="afz-panel">
+    </div>}
+    <section className={embedded ? 'afz-plain' : 'afz-panel'}>
       {loading ? <p className="afz-empty"><Loader2 size={16} className="afz-spin" /> Carregando...</p>
-        : lista.length === 0 ? <p className="afz-empty"><ListChecks size={18} /> {filtro === 'feitas' ? 'Nada marcado como feito ainda.' : 'Nenhum afazer pendente.'}</p>
+        : lista.length === 0 ? <p className="afz-empty"><ListChecks size={18} /> {filtro === 'feitas' ? 'Nada marcado como feito ainda.' : (embedded ? 'Tudo em dia. Nenhum afazer pendente.' : 'Nenhum afazer pendente.')}</p>
         : <ul className="afz-list">{lista.map((t) => <li key={t.id} className={`${t.done_at ? 'done' : ''} ${t.atrasada ? 'late' : ''}`}>
           <label className="afz-check"><input type="checkbox" checked={!!t.done_at} onChange={() => marcar(t)} aria-label={`Marcar "${t.title}" como ${t.done_at ? 'não feito' : 'feito'}`} /><span /></label>
           <div className="afz-body">
