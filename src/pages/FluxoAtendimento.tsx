@@ -1,4 +1,4 @@
-import { UserRound, UserPlus, Bot, MessageCircle, Scale, CalendarDays, CircleDollarSign, FileText, ShieldAlert, Handshake } from "lucide-react";
+import { UserRound, UserPlus, Bot, MessageCircle, Scale, FileText, ShieldAlert, Handshake } from "lucide-react";
 
 type Step = {
   title: string;
