@@ -20,6 +20,7 @@ export async function handleVipInboundMessage(req:Request){
   const b=await req.json().catch(()=>({}));
   const messageId=String(b.message_id||"").trim();
   if(!messageId)return json({ok:false,error:"Mensagem não informada"},400);
+  let deliveryConversationId="";
   try{
     const {data:message,error:messageError}=await a.from("whatsapp_messages").select("id,org_id,conversation_id,direction").eq("id",messageId).maybeSingle();
     if(messageError)throw messageError;
@@ -27,6 +28,7 @@ export async function handleVipInboundMessage(req:Request){
     const {data:conversation,error:conversationError}=await a.from("whatsapp_conversations").select("id,org_id,client_id,contact_id").eq("id",message.conversation_id).eq("org_id",message.org_id).maybeSingle();
     if(conversationError)throw conversationError;
     if(!conversation)return json({ok:false,error:"Conversa não encontrada"},404);
+    deliveryConversationId=conversation.id;
     let clientId=conversation.client_id||null;
     let contact:any=null;
     if(conversation.contact_id){
@@ -72,7 +74,7 @@ export async function handleVipInboundMessage(req:Request){
     return json({ok:true,sent:true});
   }catch(error){
     const reason=clean(error instanceof Error?error.message:error,240);
-    try{await a.from("vip_greeting_deliveries").update({status:"failed",last_error:reason}).eq("conversation_id",String((await req.clone().json().catch(()=>({}))).conversation_id||""))}catch{}
+    try{await a.from("vip_greeting_deliveries").update({status:"failed",last_error:reason}).eq("conversation_id",deliveryConversationId).eq("status","sending")}catch{}
     return json({ok:false,error:reason},502);
   }
 }
