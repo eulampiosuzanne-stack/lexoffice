@@ -185,7 +185,7 @@ async function metaProcessFlow(s:any,o:string,cv:any,c:any,from:string,menuId:st
       const {data:ps}=await s.from("processes").select("id,cnj_number,internal_number").eq("org_id",o).eq("client_id",clientId).eq("status","active").limit(2);
       if((ps||[]).length===1){
         const {data:m}=await s.from("process_movements").select("movement_date,title,client_message").eq("org_id",o).eq("process_id",ps[0].id).eq("approved_for_client",true).eq("is_sensitive",false).order("movement_date",{ascending:false}).limit(1).maybeSingle();
-        if(m){await metaText(s,o,cv,from,"A atualização mais recente do processo "+(ps[0].cnj_number||ps[0].internal_number||"")+" é de "+new Date(m.movement_date).toLocaleDateString("pt-BR")+": "+String(m.client_message||m.title||"Há uma nova movimentação registrada.").slice(0,900),"meta_last_movement");await metaClientMenu(s,o,cv,from,String(flow?.path?.client_name||""));return true}
+        if(m?.client_message){await metaText(s,o,cv,from,"A atualização mais recente do processo "+(ps[0].cnj_number||ps[0].internal_number||"")+" é de "+new Date(m.movement_date).toLocaleDateString("pt-BR")+": "+String(m.client_message).slice(0,900),"meta_last_movement");await metaClientMenu(s,o,cv,from,String(flow?.path?.client_name||""));return true}else if(m){await metaNotify(s,o,cv,from,"client_movement_needs_explanation","Há uma movimentação aprovada para consulta, mas sem explicação simples cadastrada.");await metaClearFlow(s,cv);return true}
       }
       await metaSetFlow(s,o,cv,"client_lookup",{client_id:clientId,client_name:flow?.path?.client_name||""});
       await metaText(s,o,cv,from,"Para localizar a atualização, envie o número do processo. Se preferir, informe seu nome completo e o número do processo.","meta_client_process_number");return true;
@@ -203,8 +203,8 @@ async function metaProcessFlow(s:any,o:string,cv:any,c:any,from:string,menuId:st
     const digitsCase=D(caseNo),p=(ps||[]).find((x:any)=>D(x.cnj_number)===digitsCase||D(x.internal_number)===digitsCase);
     if(p){
       const {data:m}=await s.from("process_movements").select("movement_date,title,client_message").eq("org_id",o).eq("process_id",p.id).eq("approved_for_client",true).eq("is_sensitive",false).order("movement_date",{ascending:false}).limit(1).maybeSingle();
-      if(m)await metaText(s,o,cv,from,"A atualização mais recente do processo é de "+new Date(m.movement_date).toLocaleDateString("pt-BR")+": "+String(m.client_message||m.title||"Há uma movimentação registrada.").slice(0,900),"meta_last_movement");
-      else await metaText(s,o,cv,from,"Localizei o processo, mas não há uma atualização liberada para envio pelo WhatsApp. Vou encaminhar a consulta à equipe.","meta_process_no_public_update");
+      if(m?.client_message)await metaText(s,o,cv,from,"A atualização mais recente do processo é de "+new Date(m.movement_date).toLocaleDateString("pt-BR")+": "+String(m.client_message).slice(0,900),"meta_last_movement");
+      else await metaNotify(s,o,cv,from,"client_movement_needs_explanation","Não há explicação simples liberada para enviar sobre esta atualização. A equipe precisa conferir.");
 
       await metaClearFlow(s,cv);return true;
     }
