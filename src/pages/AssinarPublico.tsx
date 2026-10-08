@@ -48,6 +48,22 @@ function toJpeg(src: HTMLVideoElement | HTMLImageElement, maxSide: number): HTML
   return c;
 }
 const dist = (a: any, b: any) => Math.hypot(a.x - b.x, a.y - b.y);
+// Mensagens claras para quando a câmera não abre (muito comum no computador).
+function cameraErrorMessage(e: any): string {
+  const phone = ' Se preferir, abra este mesmo link no seu celular e continue por lá.';
+  switch (e?.name) {
+    case 'NotAllowedError': case 'SecurityError':
+      return 'A câmera foi bloqueada no navegador. Clique no ícone de câmera (ou cadeado) ao lado do endereço do site, escolha "Permitir" e toque em "Tentar de novo".' + phone;
+    case 'NotFoundError': case 'OverconstrainedError':
+      return 'Não encontramos uma câmera neste computador.' + phone;
+    case 'NotReadableError': case 'AbortError': case 'TrackStartError':
+      return 'A câmera está sendo usada por outro programa (por exemplo Zoom, Teams, WhatsApp ou outra aba). Feche esse programa e toque em "Tentar de novo".' + phone;
+    case 'NoMediaDevices':
+      return 'Este navegador não permite usar a câmera. Abra o link no Google Chrome, Edge ou Safari atualizados.' + phone;
+    default:
+      return 'Não foi possível abrir a câmera.' + phone;
+  }
+}
 function ear(eye: any[]): number { return (dist(eye[1], eye[5]) + dist(eye[2], eye[4])) / (2 * dist(eye[0], eye[3])); }
 
 export default function AssinarPublico() {
@@ -75,6 +91,9 @@ export default function AssinarPublico() {
   const [faceAttempts, setFaceAttempts] = useState(0);
   const [reviewAllowed, setReviewAllowed] = useState(false);
   const [manualReview, setManualReview] = useState(false);
+  const [resumed, setResumed] = useState(false);
+  // Progresso guardado só neste aparelho (foto do documento), apagado ao concluir ou em 48h.
+  const progressKey = `lexsign-${String(token || '').slice(-16)}`;
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const runRef = useRef(0);
@@ -84,10 +103,22 @@ export default function AssinarPublico() {
       try {
         const d = await call({ token, action: 'open' });
         setInfo(d);
-        if (d.status === 'signed') { setStep('done'); return; }
-        if (d.status === 'pending_review') { setStep('review'); return; }
+        if (d.status === 'signed' || d.status === 'pending_review') { try { localStorage.removeItem(progressKey); } catch {} setStep(d.status === 'signed' ? 'done' : 'review'); return; }
         setFaceAttempts(d.face_attempts || 0); setReviewAllowed((d.face_attempts || 0) >= (d.review_after || 2));
-        setStep('doc');
+        if (d.otp_verified) {
+          // Retomada: quem já leu os documentos e confirmou o código continua de onde parou
+          // (vale em qualquer aparelho). Neste aparelho, recupera também a foto do documento.
+          setReadOk(true); setSeen([0, ...((d.documents || []) as any[]).map((_: any, i: number) => i)]);
+          setResumed(true); setStep('idphoto');
+          setNotice('Bem-vindo de volta. Você já leu os documentos e confirmou o código; continue de onde parou.');
+          try {
+            const saved = JSON.parse(localStorage.getItem(progressKey) || 'null');
+            if (saved?.jpeg && Date.now() - saved.at < 48 * 3600 * 1000) {
+              const blob = await (await fetch(saved.jpeg)).blob();
+              onIdFile(new File([blob], 'documento.jpg', { type: 'image/jpeg' }));
+            } else localStorage.removeItem(progressKey);
+          } catch { /* sem progresso salvo neste aparelho */ }
+        } else setStep('doc');
         loadFaceApi().then(() => setModelsReady(true)).catch(() => undefined);
       } catch (e: any) { setError(e?.message || 'Link inválido.'); setStep('error'); }
     })();
@@ -129,6 +160,7 @@ export default function AssinarPublico() {
       dets.sort((a: any, b: any) => b.detection.box.area - a.detection.box.area);
       setIdDescriptor(dets[0].descriptor);
       setNotice('Foto do documento validada.');
+      try { localStorage.setItem(progressKey, JSON.stringify({ at: Date.now(), jpeg })); } catch { /* armazenamento cheio ou bloqueado */ }
     } catch (e: any) { setError(e?.message || 'Falha ao analisar a foto.'); setNotice(''); }
     finally { setBusy(false); }
   }
@@ -138,7 +170,15 @@ export default function AssinarPublico() {
     setBusy(true);
     try {
       const fa = await loadFaceApi(); setModelsReady(true);
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 960 } }, audio: false });
+      if (!navigator.mediaDevices?.getUserMedia) throw Object.assign(new Error(''), { name: 'NoMediaDevices' });
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 960 } }, audio: false });
+      } catch (first: any) {
+        // Webcams de computador às vezes recusam o formato "retrato": tenta o padrão da câmera.
+        if (first?.name !== 'OverconstrainedError' && first?.name !== 'NotReadableError') throw first;
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      }
       streamRef.current = stream;
       const v = videoRef.current;
       if (!v) throw new Error('Câmera indisponível.');
@@ -147,7 +187,7 @@ export default function AssinarPublico() {
       await runLiveness(fa, v);
     } catch (e: any) {
       stopCamera(); setBusy(false);
-      setError(e?.name === 'NotAllowedError' ? 'Você precisa permitir o uso da câmera para tirar a selfie.' : (e?.message || 'Não foi possível abrir a câmera.'));
+      setError(cameraErrorMessage(e));
     }
   }
 
@@ -155,7 +195,7 @@ export default function AssinarPublico() {
     const my = ++runRef.current;
     const order = Math.random() < 0.5 ? ['blink', 'turn'] : ['turn', 'blink'];
     const labels: Record<string, string> = {
-      blink: 'Feche os olhos por um segundo e abra de novo',
+      blink: 'Feche os olhos devagar, conte até dois e abra',
       turn: 'Vire devagar o rosto para um dos lados',
       turn2: 'Agora vire devagar o rosto para o outro lado',
       front: 'Agora olhe de frente para a câmera',
@@ -175,9 +215,9 @@ export default function AssinarPublico() {
     while (runRef.current === my && idx < queue.length) {
       if (Date.now() - started > 120000) { stopCamera(); setChallenge(''); setError('O tempo acabou. Toque em "Tentar de novo".'); return; }
       const cur = queue[idx];
-      // Se a piscada não for reconhecida em 20s (óculos, pouca luz, pálpebra caída),
-      // troca por virar o rosto para o outro lado — continua sendo prova de vida.
-      if (cur === 'blink' && Date.now() - stepStarted > 20000) {
+      // Se a piscada não for reconhecida em 10s (óculos, pouca luz, pálpebra caída,
+      // idosos), troca por virar o rosto para o outro lado — continua sendo prova de vida.
+      if (cur === 'blink' && Date.now() - stepStarted > 10000) {
         queue.splice(idx, 1);
         const t = queue.indexOf('turn');
         queue.splice(t >= 0 ? t + 1 : idx, 0, 'turn2');
@@ -200,9 +240,12 @@ export default function AssinarPublico() {
         if (!frontal) setNotice('Olhe de frente para a câmera.');
         else if (samples.length < 5) setNotice('');
         else {
-          setNotice('');
-          if (e < base * 0.8) { if (!closedAt) closedAt = Date.now(); }
-          else if (closedAt && e > base * 0.9) { ok = Date.now() - closedAt < 4000; closedAt = 0; }
+          setNotice(Date.now() - stepStarted > 5000 ? 'Feche bem os olhos, conte até dois e abra devagar.' : '');
+          // Limiares mais folgados: olho "fechado" abaixo de 85% do normal e
+          // "aberto de novo" acima de 88%. A câmera do celular costuma perder
+          // piscadas rápidas, por isso pedimos para fechar por dois segundos.
+          if (e < base * 0.85 || e < 0.19) { if (!closedAt) closedAt = Date.now(); }
+          else if (closedAt && e > base * 0.88) { ok = Date.now() - closedAt < 6000; closedAt = 0; }
         }
       } else setNotice('');
       if (cur === 'turn') { if (r < 0.38) { ok = true; turnSide = -1; } else if (r > 0.62) { ok = true; turnSide = 1; } }
@@ -220,7 +263,7 @@ export default function AssinarPublico() {
     // A foto final só é aceita com os olhos abertos e o rosto de frente.
     // Se a pessoa piscar ou fechar os olhos na hora, tira outra automaticamente.
     setChallenge('Olhe para a câmera com os olhos bem abertos');
-    const eyeMin = samples.length >= 5 ? Math.max(0.15, baseline() * 0.8) : 0.18;
+    const eyeMin = samples.length >= 5 ? Math.max(0.13, baseline() * 0.7) : 0.16;
     const ssd = new fa.SsdMobilenetv1Options({ minConfidence: 0.4 });
     let canvas: HTMLCanvasElement | null = null;
     let det: any = null;
@@ -278,6 +321,7 @@ export default function AssinarPublico() {
     } catch { geo = null; }
     try {
       const d = await call({ token, action: 'submit', manual_review: manualReview, consent_terms: consentTerms, consent_biometrics: consentBio, face_distance: faceDistance, liveness: { passed: true, steps: doneSteps }, selfie_jpeg: selfieJpeg, id_photo_jpeg: idJpeg, geo, user_agent: navigator.userAgent });
+      try { localStorage.removeItem(progressKey); } catch {}
       if (d.status === 'pending_review') { setStep('review'); return; }
       setInfo((i) => (i ? { ...i, status: 'signed', verification_code: d.verification_code, signed_at: d.signed_at, documents: Array.isArray(d.documents) ? d.documents : i.documents } : i));
       setStep('done');
@@ -347,6 +391,7 @@ export default function AssinarPublico() {
           {idPreview && <img className="lxs-idprev" src={idPreview} alt="Documento" />}
           {!modelsReady && <p className="lxs-muted">Preparando o reconhecimento facial...</p>}
           <button className="lxs-btn" disabled={busy || !idDescriptor} onClick={() => { setNotice(''); setStep('selfie'); }}>Continuar</button>
+          {resumed && <button className="lxs-link" onClick={() => { setNotice(''); setStep('doc'); }}>Rever os documentos</button>}
         </div>}
 
         {step === 'selfie' && <div className="lxs-box">
