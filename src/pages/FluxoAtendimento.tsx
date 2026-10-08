@@ -73,7 +73,7 @@ function FlowSection({
 }) {
   return (
     <section
-      aria-labelledby={title.replaceAll(" ", "-").toLowerCase()}
+      aria-labelledby={title.replace(/\s+/g, "-").toLowerCase()}
       style={{
         background: "#17130f",
         border: "2px solid #8d682d",
@@ -101,7 +101,7 @@ function FlowSection({
         </span>
         <div>
           <h2
-            id={title.replaceAll(" ", "-").toLowerCase()}
+            id={title.replace(/\s+/g, "-").toLowerCase()}
             style={{ margin: 0, fontSize: "clamp(23px, 4vw, 30px)", color: "#f0c66e" }}
           >
             {title}
