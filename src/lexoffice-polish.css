@@ -173,3 +173,15 @@ html body .app.app.app.app main .content .area-tabs a:focus-visible{outline:3px 
 html body .app.app.app.app main .content :is(.card,.smart-card,.integration-head,.investigation-kpi,.report-card,.afz-panel,.panel){border-radius:18px!important;border:1px solid rgba(214,170,85,.32)!important;box-shadow:inset 6px 0 0 #D6AA55,0 1px 0 rgba(255,236,190,.10),0 16px 34px -14px rgba(0,0,0,.75)!important;padding-left:max(26px,1.6em)!important}
 html body .app.app.app.app main .content :is(.card,.smart-card,.investigation-kpi,.report-card):nth-child(3n+2){box-shadow:inset 6px 0 0 #B8733A,0 1px 0 rgba(255,236,190,.10),0 16px 34px -14px rgba(0,0,0,.75)!important;border-color:rgba(184,115,58,.45)!important}
 html body .app.app.app.app main .content :is(.card,.smart-card,.investigation-kpi,.report-card):nth-child(3n+3){box-shadow:inset 6px 0 0 #E7DFD0,0 1px 0 rgba(255,236,190,.10),0 16px 34px -14px rgba(0,0,0,.75)!important;border-color:rgba(245,241,232,.30)!important}
+
+/* ---- 20. Tela de entrada: a foto oficial ocupa a metade esquerda (sem
+        logos repetidas) e o formulário fica do lado, centralizado ---- */
+html body .legacy-auth.legacy-auth{grid-template-columns:minmax(0,1fr) minmax(420px,600px)!important;background:#0A0806!important}
+html body .legacy-auth.legacy-auth::before,html body .legacy-auth.legacy-auth::after{display:none!important}
+html body .legacy-auth.legacy-auth .legacy-left{background:#0A0806 url(/brand/fundo-sf.jpg) center/cover no-repeat!important;padding:0!important;border:0!important;box-shadow:inset -60px 0 80px -40px #0A0806}
+html body .legacy-auth.legacy-auth .legacy-left>*{display:none!important}
+html body .legacy-auth.legacy-auth .legacy-right{place-items:center!important;padding:32px 28px!important;background:radial-gradient(70% 50% at 50% 0%,rgba(242,197,109,.10),transparent 70%),#0A0806!important}
+html body .legacy-auth.legacy-auth .legacy-card{min-height:0!important;width:min(460px,100%)!important}
+html body .legacy-auth.legacy-auth .legacy-card-logo{display:none!important}
+html body .legacy-auth.legacy-auth .legacy-card :is(label,input,button,a,p){font-size:max(16px,1em)!important}
+@media (max-width:900px){html body .legacy-auth.legacy-auth{grid-template-columns:1fr!important}html body .legacy-auth.legacy-auth .legacy-left{min-height:42vh!important}html body .legacy-auth.legacy-auth .legacy-right{padding:20px 16px 32px!important}}
