@@ -46,6 +46,8 @@ import './service-scroll-guard.css';
 import './lexoffice-luxe.css';
 /* Uniformização final: uma fonte só (a do menu), campos 3D com contorno ouro. Carregar por último. */
 import './lexoffice-uniform.css';
+/* Polimento de leitura e espaçamento + véu sobre o fundo (08/10/2026). Carregar por último. */
+import './lexoffice-polish.css';
 
 const intakePrefix='/formulario-cliente/';
 const path=window.location.pathname.replace(/\/$/,'')||'/';
