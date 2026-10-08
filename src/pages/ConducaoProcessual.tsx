@@ -78,6 +78,14 @@ const brD = (v?: string | null) => (v ? new Date(v).toLocaleDateString('pt-BR') 
 const daysLeft = (v: string) => Math.ceil((new Date(v).getTime() - Date.now()) / 86400000);
 const safeName = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9._-]+/g, '_').slice(0, 120);
 const procLabel = (p?: Proc | null) => (p ? `${p.cnj_number || p.internal_number || 'Sem número'} · ${p.clients?.name || 'Cliente'}` : '');
+const judgeNumber = (value: unknown, digits = 1) => {
+  if (value == null || value === '' || !Number.isFinite(Number(value))) return '—';
+  return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: digits }).format(Number(value));
+};
+const judgeMoney = (value: unknown) => {
+  if (value == null || value === '' || !Number.isFinite(Number(value))) return '—';
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 2 }).format(Number(value));
+};
 
 async function fnError(error: any) {
   let msg = error?.message || 'Falha na comunicação.';
@@ -236,6 +244,8 @@ export default function ConducaoProcessual() {
   const openDeadlines = deadlines.filter(d => !/complet|conclu|done|cancel/i.test(d.status));
   const nextHearings = hearings.filter(h => new Date(h.starts_at).getTime() > Date.now() - 86400000 && !/cancel/i.test(h.status || ''));
   const ai = analysis?.analise;
+  const insights = analysis?.insights && typeof analysis.insights === 'object' && !Array.isArray(analysis.insights) ? analysis.insights : null;
+  const judgeDicas = Array.isArray(analysis?.dicas) ? analysis.dicas.filter((d: unknown) => typeof d === 'string' && d.trim()) : [];
   const allChecks = [...new Set([...suggestedChecks, ...state.checklist.map(c => c.item)])];
 
   return (
@@ -284,14 +294,55 @@ export default function ConducaoProcessual() {
           {analysis && (<>
             <p className="pa-muted"><b>{analysis.vara?.nome || 'Vara'}</b> · {analysis.base?.publicacoes ?? 0} publicações lidas ({analysis.base?.sentencas ?? 0} sentenças) · período {brD(analysis.base?.periodo?.de)} a {brD(analysis.base?.periodo?.ate)}{analysis.juizes?.length ? ` · Magistrado(a): ${analysis.juizes.map((j: any) => j.nome).join(', ')}` : ''}{ai?.confianca ? ` · Confiança: ${ai.confianca}` : ''}</p>
             {ai?.resumo && <p>{ai.resumo}</p>}
+            {judgeDicas.length > 0 && <div className="cp-judge-tips" role="note" aria-label="Dicas para este juízo">
+              <h3>Dicas para este juízo</h3>
+              <ul>{judgeDicas.map((d: string, i: number) => <li key={i}>{d}</li>)}</ul>
+            </div>}
             <div className="pa-cols">
               <div><h3>Provas que costuma determinar</h3>{(ai?.provas_que_pede || []).length ? <ul>{ai.provas_que_pede.map((p: any, i: number) => <li key={i}><b>{p.prova}</b>{p.frequencia ? ` (${p.frequencia})` : ''}{p.comentario ? ` — ${p.comentario}` : ''}</li>)}</ul> : (analysis.provas || []).length ? <ul>{analysis.provas.map((p: any, i: number) => <li key={i}><b>{p.item}</b> ({p.vezes}x)</li>)}</ul> : <p className="pa-muted">Sem padrão identificado.</p>}</div>
               <div><h3>Estratégia sugerida</h3>{(ai?.estrategia || []).length ? <ul>{ai.estrategia.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul> : <p className="pa-muted">Sem leitura por IA nesta análise.</p>}</div>
             </div>
+            {insights ? <div className="cp-insights-grid" aria-label="Indicadores das publicações públicas">
+              <article className="cp-insight-card">
+                <h3>Tutela de urgência</h3>
+                <p className="cp-insight-lead">{insights.tutela?.taxa_deferimento_pct == null ? '—' : `${judgeNumber(insights.tutela.taxa_deferimento_pct, 0)}%`} de deferimento</p>
+                <p>Deferidas: <b>{judgeNumber(insights.tutela?.deferidas, 0)} de {judgeNumber(insights.tutela?.decididas, 0)}</b> decisões decididas.</p>
+                {insights.tutela?.amostra_suficiente === false && <p className="cp-small-sample">Amostra pequena</p>}
+                <h4>Por tema</h4>
+                {Array.isArray(insights.tutela?.por_tema) && insights.tutela.por_tema.length > 0
+                  ? <ul>{insights.tutela.por_tema.map((item: any, i: number) => <li key={i}><b>{item?.tema || 'Tema não informado'}</b>: {judgeNumber(item?.deferidas, 0)} deferidas, {judgeNumber(item?.indeferidas, 0)} indeferidas ({item?.taxa_deferimento_pct == null ? '—' : `${judgeNumber(item.taxa_deferimento_pct, 0)}%`})</li>)}</ul>
+                  : <p className="pa-muted">Sem dados por tema.</p>}
+              </article>
+              <article className="cp-insight-card">
+                <h3>Tempo até a sentença</h3>
+                <p className="cp-insight-lead">{judgeNumber(insights.tempo_ate_sentenca?.mediana_meses)} meses de mediana</p>
+                <p>Faixa central: {judgeNumber(insights.tempo_ate_sentenca?.p25_meses)} a {judgeNumber(insights.tempo_ate_sentenca?.p75_meses)} meses.</p>
+                {insights.tempo_ate_sentenca?.observacao && <small>{String(insights.tempo_ate_sentenca.observacao)}</small>}
+              </article>
+              <article className="cp-insight-card">
+                <h3>Valores</h3>
+                <p>Mediana: <b>{judgeMoney(insights.valores?.mediana)}</b></p>
+                <p>Mínimo: <b>{judgeMoney(insights.valores?.minimo)}</b></p>
+                <p>Máximo: <b>{judgeMoney(insights.valores?.maximo)}</b></p>
+                <div className="cp-insight-subblock">
+                  <h4>Dano moral</h4>
+                  {insights.valores?.dano_moral
+                    ? <p>Mediana: <b>{judgeMoney(insights.valores.dano_moral.mediana)}</b> · mínimo {judgeMoney(insights.valores.dano_moral.minimo)} · máximo {judgeMoney(insights.valores.dano_moral.maximo)} ({judgeNumber(insights.valores.dano_moral.n, 0)} valor(es)).</p>
+                    : <p className="pa-muted">Sem valores de dano moral identificados.</p>}
+                </div>
+              </article>
+              <article className="cp-insight-card">
+                <h3>Mais citados nas decisões favoráveis</h3>
+                {Array.isArray(insights.teses) && insights.teses.length > 0
+                  ? <ul>{insights.teses.map((tese: any, i: number) => <li key={i}>{tese?.item || 'Tese não informada'}{tese?.vezes != null ? ` (${judgeNumber(tese.vezes, 0)} citações)` : ''}</li>)}</ul>
+                  : <p className="pa-muted">Sem teses recorrentes identificadas.</p>}
+              </article>
+            </div> : <p className="pa-muted">Os indicadores detalhados não estão disponíveis nesta análise. Atualize a análise para consultá-los.</p>}
             {ai?.ritmo && <p className="pa-muted"><b>Ritmo deste processo:</b> {ai.ritmo}</p>}
             {(ai?.alertas || []).length > 0 && <div className="pa-warn"><AlertTriangle size={16} /> {ai.alertas.join(' · ')}</div>}
             {analysis.aviso && <p className="pa-muted">{analysis.aviso}</p>}
           </>)}
+          <p className="cp-judge-disclaimer"><b>Tendência a partir de publicações públicas, não é previsão de resultado.</b></p>
         </section>
 
         <section className="doc-library-card">
