@@ -23,12 +23,12 @@ select cron.schedule(
   '0 10 * * *',
   $cron$
     select net.http_post(
-      url := 'https://dcpwcuototomxoiszukt.supabase.co/functions/v1/donna-daily-brief',
+      url := 'https://dcpwcuototomxoiszukt.supabase.co/functions/v1/secretary-supervisor',
       headers := jsonb_build_object(
         'Content-Type', 'application/json',
         'x-donna-token', (select secret from public.system_runtime_secrets where key = 'donna_daily_brief_token')
       ),
-      body := '{"source":"pg_cron"}'::jsonb,
+      body := '{"action":"donna_daily_brief","source":"pg_cron"}'::jsonb,
       timeout_milliseconds := 10000
     );
   $cron$
