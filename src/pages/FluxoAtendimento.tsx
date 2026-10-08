@@ -54,6 +54,24 @@ export default function FluxoAtendimento() {
       </div>
     </section>
 
+    <section style={{ ...panel, marginBottom: 18 }}>
+      <h2 style={title}>Quem faz cada parte</h2>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,260px),1fr))", gap: 14, marginTop: 14 }}>
+        <article style={{ padding: 16, borderRadius: 14, background: "#211b18", border: "1px solid rgba(255,255,255,.08)" }}>
+          <b style={{ display: "flex", alignItems: "center", gap: 8, color: "#fff", fontSize: 18 }}><MessageCircle size={20} color={gold}/> Chatbot</b>
+          <p style={{ ...copy, marginTop: 8 }}>Mostra os botões e listas, conduz as escolhas e coleta área, nome e resumo do caso. Se a Meta falhar, apresenta as opções em texto numerado.</p>
+        </article>
+        <article style={{ padding: 16, borderRadius: 14, background: "#211b18", border: "1px solid rgba(255,255,255,.08)" }}>
+          <b style={{ display: "flex", alignItems: "center", gap: 8, color: "#fff", fontSize: 18 }}><Bot size={20} color={gold}/> Helena</b>
+          <p style={{ ...copy, marginTop: 8 }}>É a IA de conversa livre, conectada pelo ai-provider-gateway. Aguarda 25 segundos antes de responder e ignora mensagens isoladas “kkk”, “ok” e “aqui”. Não inventa fatos nem honorários.</p>
+        </article>
+        <article style={{ padding: 16, borderRadius: 14, background: "#211b18", border: "1px solid rgba(255,255,255,.08)" }}>
+          <b style={{ display: "flex", alignItems: "center", gap: 8, color: "#fff", fontSize: 18 }}><ShieldAlert size={20} color={gold}/> Dra. Suzanne</b>
+          <p style={{ ...copy, marginTop: 8 }}>Recebe o atendimento VIP, urgências, pedidos de ligação, casos sem cadastro localizado e solicitações que precisam de decisão profissional. Quando ela assume, a IA fica em pausa.</p>
+        </article>
+      </div>
+    </section>
+
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,360px),1fr))", gap: 18 }}>
       <section style={panel}>
         <span style={badge}><UsersRound size={18}/> LEADS</span>
