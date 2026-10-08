@@ -67,11 +67,16 @@ html body .app.app.app.app main .content tbody td{padding-top:12px!important;pad
         entre a lista de conversas e o chat ---- */
 html body .app.app.app.app main .content main{margin:0!important}
 html body .app.app.app.app main .content .service-sidebar{max-width:none!important}
-@media (min-width:761px){
-html body .app.app.app.app main .content .service-shell{grid-template-columns:300px minmax(0,1fr)!important}
-html body .app.app.app.app main .content .service-shell:has(>:nth-child(3)){grid-template-columns:270px minmax(0,1fr) 260px!important}
+@media (min-width:1181px){
+html body .app.app.app.app main .content .service-chat-page .service-shell:not(.has-selection){grid-template-columns:320px minmax(0,1fr)!important}
+html body .app.app.app.app main .content .service-chat-page .service-shell.has-selection{grid-template-columns:280px minmax(0,1fr) 260px!important}
 }
-html body .app.app.app.app main .content .service-shell>*{grid-column:auto!important;min-width:0}
+@media (min-width:761px) and (max-width:1180px){
+html body .app.app.app.app main .content .service-chat-page .service-shell{grid-template-columns:300px minmax(0,1fr)!important}
+html body .app.app.app.app main .content .service-chat-page .service-details{display:none!important}
+}
+html body .app.app.app.app main .content .service-chat-page .service-shell>*{grid-column:auto!important;min-width:0}
+html body .app.app.app.app main .content .service-chat-page .service-main{margin:0!important;width:auto!important;max-width:none!important;min-width:0!important;position:relative!important;inset:auto!important}
 html body .app.app.app.app main .content .service-chat-head{flex-wrap:wrap!important;height:auto!important;gap:10px!important;align-items:center!important}
 html body .app.app.app.app main .content .service-chat-person{flex:1 1 180px!important;min-width:0!important}
 html body .app.app.app.app main .content .service-chat-person :is(b,small){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
