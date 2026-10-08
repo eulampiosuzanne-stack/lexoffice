@@ -1,16 +1,17 @@
+import type { CSSProperties } from "react";
 import { ArrowRight, Bot, Clock3, MessageCircle, ShieldAlert, UserRound, UsersRound, Workflow } from "lucide-react";
 
 const gold = "#d1aa68";
-const panel: React.CSSProperties = {
+const panel: CSSProperties = {
   background: "linear-gradient(145deg, #171411, #0e0c0b)",
   border: "1px solid rgba(209,170,104,.32)",
   borderRadius: 18,
   padding: 22,
   color: "#f5f0e7",
 };
-const title: React.CSSProperties = { margin: "0 0 8px", fontSize: 23, color: "#fff" };
-const copy: React.CSSProperties = { margin: 0, fontSize: 17, lineHeight: 1.6, color: "#e7e0d5" };
-const badge: React.CSSProperties = {
+const title: CSSProperties = { margin: "0 0 8px", fontSize: 23, color: "#fff" };
+const copy: CSSProperties = { margin: 0, fontSize: 17, lineHeight: 1.6, color: "#e7e0d5" };
+const badge: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: 8,
