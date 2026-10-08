@@ -80,7 +80,7 @@ async function metaLog(s:any,o:string,kind:string,payload:any,error:string){try{
 async function metaSendInteractive(s:any,o:string,cv:any,to:string,body:string,items:any[],kind:"button"|"list",imageHeader=false){
   const {token,phoneId}=await metaCfg(s),action=kind==="button"?{buttons:items.slice(0,3).map((x:any)=>({type:"reply",reply:{id:x.id,title:x.title}}))}:{button:"Ver opções",sections:[{title:"Opções",rows:items.slice(0,10).map((x:any)=>({id:x.id,title:x.title}))}]};
   const interactive:any={type:kind,body:{text:body},action};
-  if(kind==="button"&&imageHeader){const logo=(await secret(s,"meta_whatsapp_header_logo_url"))||"https://lexoffice-ashy.vercel.app/dama-justica-meta.png";if(/^https:\/\/\S+$/i.test(logo))interactive.header={type:"image",image:{link:logo}}}
+  if(kind==="button"&&imageHeader){const logo=(await secret(s,"meta_whatsapp_header_logo_url"))||"https://raw.githubusercontent.com/eulampiosuzanne-stack/lexoffice/feat/meta-whatsapp-menu-flows/public/dama-justica-meta.png";if(/^https:\/\/\S+$/i.test(logo))interactive.header={type:"image",image:{link:logo}}}
   const request={messaging_product:"whatsapp",to,type:"interactive",interactive};
   const r=await fetch("https://graph.facebook.com/"+GV+"/"+phoneId+"/messages",{method:"POST",headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify(request)});
   const result=await r.json().catch(()=>null);
@@ -130,7 +130,7 @@ async function metaNotify(s:any,o:string,cv:any,to:string,reason:string,text:str
 }
 async function metaMainMenu(s:any,o:string,cv:any,to:string){
   await metaSetFlow(s,o,cv,"root",{});
-  const logo=(await secret(s,"meta_whatsapp_header_logo_url"))||"https://lexoffice-ashy.vercel.app/dama-justica-meta.png";
+  const logo=(await secret(s,"meta_whatsapp_header_logo_url"))||"https://raw.githubusercontent.com/eulampiosuzanne-stack/lexoffice/feat/meta-whatsapp-menu-flows/public/dama-justica-meta.png";
   await metaSendInteractive(s,o,cv,to,"Olá! Você está no atendimento da Suzanne Figueiredo Advocacia e Soluções Jurídicas. Para encaminhar seu atendimento, escolha uma opção.",META_MENU_ROOT,"button",Boolean(logo));
 }
 async function metaAreaMenu(s:any,o:string,cv:any,to:string){
