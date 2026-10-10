@@ -9,7 +9,7 @@ import JornadaComercial from './pages/JornadaComercial';
 import ClientArea from './pages/ClientArea';
 import Planejamento from './pages/Planejamento';
 import Afazeres from './pages/Afazeres';
-const PRODUCTION_URL='https://lexoffice-ashy.vercel.app';
+const PRODUCTION_URL='https://lex.suzannefigueiredoadvocacia.com.br';
 type NavItem={label:string;path:string;icon:any;adminOnly?:boolean;superAdminOnly?:boolean;ownerOnly?:boolean};
 type Area={label:string;icon:any;tabs:NavItem[]};
 /* Menu reorganizado (08/10/2026): 9 áreas; as telas de cada área viram abas no topo. */

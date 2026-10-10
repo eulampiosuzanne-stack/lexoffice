@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 type Payload={org_id?:string;name:string;email:string;password:string;role_key?:string;phone?:string;title?:string;oab_number?:string;oab_uf?:string};
-const allowedOrigins=new Set(["https://lexoffice-ashy.vercel.app","http://localhost:5173","http://127.0.0.1:5173"]);
+const allowedOrigins=new Set(["https://lex.suzannefigueiredoadvocacia.com.br","https://lexoffice-ashy.vercel.app","http://localhost:5173","http://127.0.0.1:5173"]);
 function cors(req:Request){const origin=req.headers.get('origin')||'';return{"Access-Control-Allow-Origin":allowedOrigins.has(origin)?origin:"https://lexoffice-ashy.vercel.app","Vary":"Origin","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"}}
 function out(req:Request,b:any,s=200){return new Response(JSON.stringify(b),{status:s,headers:{...cors(req),"Content-Type":"application/json","Cache-Control":"no-store"}})}
 const validRoles=new Set(['owner','admin','lawyer','responsible_lawyer','assistant','support','finance','marketing','supervisor','custom']);

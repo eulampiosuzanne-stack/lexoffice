@@ -57,7 +57,7 @@ else {
 } }
 Deno.serve(async (req) => { if (req.method === 'OPTIONS')
     return new Response('ok', { headers: cors }); try {
-    const url = Deno.env.get('SUPABASE_URL')!, anon = Deno.env.get('SUPABASE_ANON_KEY')!, service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, redirect = Deno.env.get('META_REDIRECT_URI') || `${url}/functions/v1/meta-whatsapp-oauth`, frontend = Deno.env.get('META_FRONTEND_URL') || 'https://lexoffice-ashy.vercel.app/marketing?tab=connections';
+    const url = Deno.env.get('SUPABASE_URL')!, anon = Deno.env.get('SUPABASE_ANON_KEY')!, service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, redirect = Deno.env.get('META_REDIRECT_URI') || `${url}/functions/v1/meta-whatsapp-oauth`, frontend = Deno.env.get('META_FRONTEND_URL') || 'https://lex.suzannefigueiredoadvocacia.com.br/integracoes';
     const admin = createClient(url, service, { auth: { persistSession: false } }), u = new URL(req.url);
     if (req.method === 'GET' && u.searchParams.get('debugredirect')) {
         return json({ redirect, env_override: Boolean(Deno.env.get('META_REDIRECT_URI')), supabase_url: url });
