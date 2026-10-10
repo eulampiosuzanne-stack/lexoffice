@@ -284,7 +284,8 @@ async function bot(a:any,p:string,ch0:string,t:string,inboundId:string,preClaime
 }
 
 // ===================== ADMIN COMMAND BRIDGE v45 =====================
-function samePhone(a:any,b:any){const x=D(a),y=D(b);return !!x&&!!y&&(x===y||x.slice(-8)===y.slice(-8))}
+function samePhone(a:any,b:any){const x=D(a),y=D(b);return !!x&&!!y&&x===y}
+async function isAdminSender(a:any,p:string){const {data:rows}=await a.from('whatsapp_settings').select('alert_phone').not('alert_phone','is',null);return (rows||[]).some((x:any)=>samePhone(x.alert_phone,p))}
 function parseAdminSchedule(s:string){
  const raw=String(s||'').toLowerCase(),tm=raw.match(/(?:às|as|a)\s*(\d{1,2})(?:[:h](\d{2}))?\b/)||raw.match(/\b(\d{1,2})h(?:(\d{2}))?\b/);if(!tm)return null;
  const hh=Number(tm[1]),mm=Number(tm[2]||0);if(hh>23||mm>59)return null;
@@ -367,6 +368,8 @@ if(!fromMe&&inboundId){
   if(seen?.id)return J({ok:true,ignored:'duplicate_or_own_message',external_message_id:inboundId});
 }
 if(!fromMe&&!m&&(t||ch)){try{if(await handleAdminCommand(a,p,t||ch,inboundId))return J({ok:true,event:'admin_command'})}catch(e){console.error('admin command',e)}}
+// Um numero administrativo nao pode virar lead, cliente ou disparar o menu do publico.
+if(!fromMe&&await isAdminSender(a,p))return J({ok:true,ignored:'admin_channel_reserved'});
 // "QUERO MEU ACESSO" e resposta com CPF: tratado antes de qualquer outra regra.
 if(!fromMe&&!m&&(t||ch)){try{if(await accessFlow(a,p,t,ch,inboundId,senderName))return J({ok:true,event:'client_app_access'})}catch(e){console.error('accessFlow',e)}}
 // Áudio, imagem e PDF: lê o conteúdo (OpenAI) e segue o atendimento com esse conteúdo.
