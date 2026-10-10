@@ -97,7 +97,7 @@ Deno.serve(async req=>{if(req.method!=='POST')return J({ok:false},405);try{
     return J({ok:true,preview:true,enabled, node:k,message:x.message,options:x.options.map((v:any,i:number)=>({number:i+1,id:v.id,label:v.label,description:v.description||'',next:v.next||null,agent:v.agent||null})),matched:Boolean(result),selected:chosen?{id:chosen.id,label:chosen.label,next:chosen.next||null,agent:chosen.agent||null}:null});
   }
 
-  if(!enabled)return J({ok:true,blocked:true,reason:'flow_disabled',path});
+  if(!enabled){const allow=(await secret(a,'ai_test_allowlist')).split(/[,;\s]+/).map(D).filter(Boolean);if(o!=='b3dd3ed0-2a05-4087-8220-307a44352cec'||!allow.includes(D(p)))return J({ok:true,blocked:true,reason:'flow_disabled',path});}
   const why=await blocked(a,o,id,p);if(why)return J({ok:true,blocked:true,reason:why,path});
   if(ch||tx){
     const r=resolve(nodes,k,ch,tx);
