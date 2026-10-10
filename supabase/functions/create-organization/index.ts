@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 type Payload = { action?:string; name?:string; org_name?:string; email?:string; password?:string; org_id?:string; user_id?:string; role_key?:string; status?:string };
-const allowedOrigins=new Set(["https://lexoffice-ashy.vercel.app","http://localhost:5173","http://127.0.0.1:5173"]);
+const allowedOrigins=new Set(["https://lex.suzannefigueiredoadvocacia.com.br","https://lexoffice-ashy.vercel.app","http://localhost:5173","http://127.0.0.1:5173"]);
 function corsHeaders(req:Request){const origin=req.headers.get("origin")||"";const allowOrigin=allowedOrigins.has(origin)?origin:"https://lexoffice-ashy.vercel.app";return{"Access-Control-Allow-Origin":allowOrigin,"Vary":"Origin","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"}}
 function jsonResponse(req:Request,body:Record<string,unknown>,status=200){return new Response(JSON.stringify(body),{status,headers:{...corsHeaders(req),"Content-Type":"application/json","Cache-Control":"no-store"}})}
 function slugify(value:string){return value.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")}

@@ -1,7 +1,7 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const allowedOrigins = new Set(['https://lexoffice-ashy.vercel.app','http://localhost:5173','http://127.0.0.1:5173'])
+const allowedOrigins = new Set(["https://lex.suzannefigueiredoadvocacia.com.br",'https://lexoffice-ashy.vercel.app','http://localhost:5173','http://127.0.0.1:5173'])
 function cors(req: Request) {
   const origin=req.headers.get('origin')||''
   return {
@@ -33,7 +33,7 @@ serve(async(req)=>{
   try{
     const apiKey=Deno.env.get('ASAAS_API_KEY')
     const environment=Deno.env.get('ASAAS_ENV')||'sandbox'
-    const appUrl=Deno.env.get('PUBLIC_APP_URL')||'https://lexoffice-ashy.vercel.app'
+    const appUrl=Deno.env.get('PUBLIC_APP_URL')||'https://lex.suzannefigueiredoadvocacia.com.br'
     const supabaseUrl=Deno.env.get('SUPABASE_URL')
     const serviceKey=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     if(!apiKey) return json(req,{error:'Integração Asaas ainda não configurada.'},503)
