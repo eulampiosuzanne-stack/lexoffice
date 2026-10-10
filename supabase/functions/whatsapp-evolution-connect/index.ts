@@ -19,7 +19,24 @@ Deno.serve(async req=>{
  if(kind!=="messages.upsert")return J({ok:true,ignored:"event"});
  const data=event.data||{},key=data.key||{},msg=data.message||{};
  const jid=String(key.remoteJidAlt||key.remoteJid||data.remoteJid||"");
- if(key.fromMe===true||jid.includes("@g.us")||jid.includes("@broadcast")||jid.includes("@newsletter"))return J({ok:true,ignored:"non_inbound"});
+ if(jid.includes("@g.us")||jid.includes("@broadcast")||jid.includes("@newsletter"))return J({ok:true,ignored:"non_inbound"});
+ if(key.fromMe===true){
+   const phone=jid.replace(/@.*/,"").replace(/\D/g,"");
+   if(!/^55\d{10,11}$/.test(phone))return J({ok:true,ignored:"outbound_invalid_phone"});
+   const msgId=String(key.id||"");
+   if(msgId){const {data:automated}=await db.from("whatsapp_messages").select("id").eq("external_message_id",msgId).eq("direction","outbound").limit(1).maybeSingle();if(automated)return J({ok:true,ignored:"outbound_logged"});}
+   const content=String(msg.conversation||msg.extendedTextMessage?.text||"").trim();
+   const {data:contacts}=await db.from("whatsapp_contacts").select("id").eq("org_id","b3dd3ed0-2a05-4087-8220-307a44352cec").eq("phone",phone).limit(1);
+   for(const ct of contacts||[]){
+     const {data:cv}=await db.from("whatsapp_conversations").select("id").eq("org_id","b3dd3ed0-2a05-4087-8220-307a44352cec").eq("contact_id",ct.id).neq("status","closed").order("updated_at",{ascending:false}).limit(1).maybeSingle();
+     if(!cv)continue;
+     if(content){const {data:existing}=await db.from("whatsapp_messages").select("id").eq("conversation_id",cv.id).eq("direction","outbound").eq("body",content).gt("created_at",new Date(Date.now()-120000).toISOString()).limit(1).maybeSingle();if(existing)return J({ok:true,ignored:"outbound_matched_agent"});}
+     const now=new Date().toISOString();
+     await db.from("whatsapp_conversations").update({last_human_outbound_at:now,human_takeover_reason:"manual_operator_message",updated_at:now}).eq("id",cv.id);
+     if(msgId)await db.from("whatsapp_messages").insert({org_id:"b3dd3ed0-2a05-4087-8220-307a44352cec",conversation_id:cv.id,direction:"outbound",message_type:"text",body:content||"[mensagem pelo WhatsApp]",external_message_id:msgId,status:"sent",sent_at:now,metadata:{source:"whatsapp_native_operator"}}).then(()=>{});
+   }
+   return J({ok:true,ignored:"human_outbound_paused"});
+ }
  const phone=jid.replace(/@.*/,"").replace(/\D/g,"");
  if(!/^55\d{10,11}$/.test(phone))return J({ok:true,ignored:"invalid_phone"});
  const body=String(msg.conversation||msg.extendedTextMessage?.text||msg.imageMessage?.caption||msg.videoMessage?.caption||msg.documentMessage?.caption||msg.buttonsResponseMessage?.selectedDisplayText||msg.listResponseMessage?.title||"").trim();
