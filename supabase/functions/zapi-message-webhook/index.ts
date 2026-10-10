@@ -299,14 +299,19 @@ async function operatorSend(a:any,orgId:string,phone:string,message:string){
  const d=await r.json().catch(()=>null);return{ok:r.ok&&Number(d?.sent||0)>0,data:d}
 }
 async function handleAdminCommand(a:any,p:string,message:string,inboundId:string){
- if(!String(message||'').trim())return false;
+ const command=String(message||'').trim();
+ if(!command)return false;
  const {data:settings}=await a.from('whatsapp_settings').select('org_id,alert_phone,alerts_enabled').not('alert_phone','is',null).limit(50),ws=(settings||[]).find((x:any)=>samePhone(x.alert_phone,p));if(!ws?.org_id)return false;
  const orgId=String(ws.org_id),adminPhone=D(p),since=new Date(Date.now()-86400000).toISOString();
  if(inboundId){const {data:seen}=await a.from('audit_logs').select('id').eq('org_id',orgId).eq('action','helena_admin_command').eq('metadata->>external_message_id',inboundId).limit(1).maybeSingle();if(seen?.id)return true}
  const {data:rows}=await a.from('ai_agent_alerts').select('id,client_id,contact_phone,alert_phone,reason,context,status,created_at').eq('org_id',orgId).gt('created_at',since).order('created_at',{ascending:false}).limit(40);
  const pending=(rows||[]).find((x:any)=>samePhone(x.alert_phone,adminPhone)&&String(x.reason||'').startsWith('ADMIN_COMMAND_PENDING_SCHEDULE')&&x.status==='pending');
- const source=pending||(rows||[]).find((x:any)=>samePhone(x.alert_phone,adminPhone)&&!String(x.reason||'').startsWith('ADMIN_COMMAND_'));
- if(!source?.contact_phone){await operatorSend(a,orgId,adminPhone,'Helena aqui. Não encontrei um alerta recente vinculado a esse comando. Responda diretamente ao próximo alerta que eu lhe enviar.');return true}
+ // Mensagens livres no canal administrativo so sao executadas apos pedir instrucao personalizada ou agendamento.
+ const customPending=(rows||[]).find((x:any)=>samePhone(x.alert_phone,adminPhone)&&x.status==='pending'&&String(x.reason||'')==='ADMIN_COMMAND_CUSTOM_INSTRUCTION');
+ const source=pending||customPending||(rows||[]).find((x:any)=>samePhone(x.alert_phone,adminPhone)&&x.status==='pending'&&!String(x.reason||'').startsWith('ADMIN_COMMAND_'));
+ if(!/^[1-5]$/.test(command)&&!pending&&!customPending)return true;
+ // Numero reservado a alertas internos: sem alerta pendente, nao entra no atendimento de clientes.
+ if(!source?.contact_phone&&!customPending?.contact_phone)return true;
  const targetPhone=D(source.contact_phone),x=await context(a,targetPhone,'',false);let clientId=String(source.client_id||x?.v?.client_id||x?.c?.client_id||'')||null,clientName='';
  if(clientId){const {data:cl}=await a.from('clients').select('name').eq('org_id',orgId).eq('id',clientId).maybeSingle();clientName=String(cl?.name||'')}if(!clientName)clientName=String(x?.c?.name||'cliente');
  const cmd=String(message).trim();
