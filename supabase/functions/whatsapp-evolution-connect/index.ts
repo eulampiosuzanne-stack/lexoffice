@@ -43,7 +43,7 @@ Deno.serve(async req=>{
  if(!body)return J({ok:true,ignored:"unsupported_media"});
  const sk=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
  const transformed={phone,senderName:String(data.pushName||""),messageId:String(key.id||""),fromMe:false,fromApi:false,text:{message:body},source:"evolution"};
- const up=await fetch(Deno.env.get("SUPABASE_URL")!+"/functions/v1/zapi-message-webhook",{method:"POST",headers:{"Authorization":"Bearer "+sk,"x-evolution-bridge":"suzanne-lexoffice","Content-Type":"application/json"},body:JSON.stringify(transformed),signal:AbortSignal.timeout(20000)});
+ const up=await fetch(Deno.env.get("SUPABASE_URL")!+"/functions/v1/zapi-message-webhook",{method:"POST",headers:{"Authorization":"Bearer "+sk,"x-evolution-bridge":"suzanne-lexoffice","Content-Type":"application/json"},body:JSON.stringify(transformed),signal:AbortSignal.timeout(55000)});
  const result=await up.json().catch(()=>({}));
  if(!up.ok)return J({ok:false,error:"inbound_bridge_failed",status:up.status},502);
  return J({ok:true,delivered:true,processing:result?.event||result?.ignored||"accepted"});
