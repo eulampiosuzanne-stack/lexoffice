@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect,useState} from 'react';
 import {PlugZap, RefreshCw} from 'lucide-react';
 import {supabase} from '../lib/supabase';
 
@@ -10,6 +10,7 @@ export default function EvolutionOfficeConnect(){
  const [message,setMessage]=useState('');
  const [code,setCode]=useState('');
  const [created,setCreated]=useState(false);
+ useEffect(()=>{void request('status')},[]);
  async function request(action:'status'|'create'|'pair'){
   if(!supabase)return;
   setBusy(true);setMessage('');
@@ -38,7 +39,7 @@ export default function EvolutionOfficeConnect(){
     return;
    }
    if(action==='create'){setCreated(true);setMessage('Instância criada no servidor. Agora solicite o código de pareamento.')}
-   if(action==='status'){setState(data.state||'Sem conexão');setMessage('Estado consultado no servidor.')}
+   if(action==='status'){setState(data.state||'Sem conexão');if(data.instance_status&&data.instance_status!=='not_provisioned')setCreated(true);setMessage(data.state==='open'?'WhatsApp conectado à Evolution. Os envios pelo LexOffice ainda precisam de teste.':'Estado consultado no servidor.')}
    if(action==='pair'){setCode(String(data.pairing_code||''));setMessage('Código gerado. Digite-o no WhatsApp Business antes de expirar.')}
   }catch(e:any){setMessage('Não foi possível executar a operação: '+String(e?.message||'falha de conexão'))}
   finally{setBusy(false)}
@@ -46,7 +47,7 @@ export default function EvolutionOfficeConnect(){
  return <div className="meta-partner-box">
   <div className="meta-config-title"><PlugZap size={17}/><b>Evolution API | WhatsApp do escritório</b></div>
   <p>Instância exclusiva: <strong>suzanne-lexoffice</strong>. Número: <strong>+55 31 99298-4141</strong>. A instância Gláucia não será alterada.</p>
-  {state&&<p>Estado no servidor: <strong>{state}</strong></p>}
+  {state&&<p role="status">Estado da Evolution: <strong>{state==='open'?'Conectado':state}</strong></p>}
   <div className="integration-form">
    <button type="button" className="secondary" disabled={busy} onClick={()=>request('status')}><RefreshCw size={15}/>Consultar conexão</button>
    <button type="button" className="secondary" disabled={busy} onClick={()=>request('create')}>1. Criar instância exclusiva</button>
