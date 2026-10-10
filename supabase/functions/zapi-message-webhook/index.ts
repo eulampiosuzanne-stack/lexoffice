@@ -198,7 +198,7 @@ async function bot(a:any,p:string,ch0:string,t:string,inboundId:string,preClaime
   const {count:activeAgents}=await a.from('ai_agent_policies').select('agent_key',{count:'exact',head:true}).eq('org_id',x.v.org_id).eq('active',true);
   const allow=(await S(a,'ai_test_allowlist')).split(/[,;\s]+/).map(D).filter(Boolean);const testMode=allow.includes(D(p));
   if(!activeAgents&&!testMode)return false;
-  const {data:fc}=await a.from('whatsapp_chatbot_flow_config').select('enabled').eq('org_id',x.v.org_id).maybeSingle();if(fc?.enabled===false)return false;
+  const {data:fc}=await a.from('whatsapp_chatbot_flow_config').select('enabled').eq('org_id',x.v.org_id).maybeSingle();if(fc?.enabled===false&&!testMode)return false;
   const {data:ctl}=await a.from('ai_conversation_controls').select('ai_enabled,human_takeover,resume_at').eq('org_id',x.v.org_id).eq('contact_key',D(p)).maybeSingle();
   if(ctl?.human_takeover===true||ctl?.ai_enabled===false){
     if(!ctl?.resume_at||Date.now()<new Date(ctl.resume_at).getTime())return false;
