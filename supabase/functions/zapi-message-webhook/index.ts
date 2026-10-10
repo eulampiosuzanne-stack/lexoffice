@@ -208,6 +208,8 @@ async function bot(a:any,p:string,ch0:string,t:string,inboundId:string,preClaime
     x.v.bot_ativo=true;x.v.conversation_owner='HELENA';
   }
   if(x.v.conversation_owner==='HUMAN'||x.v.bot_ativo===false)return false;
+  // Resposta da Dra. pelo WhatsApp nativo interrompe a automacao por 20 minutos.
+  if(x.v.last_human_outbound_at&&Date.now()-new Date(x.v.last_human_outbound_at).getTime()<20*60000)return true;
   if(!preClaimed&&!(await claimInbound(a,x,inboundId,t,ch0)))return true;
   // Junta mensagens picadas: espera o cliente terminar de escrever e responde uma vez só.
   if(t&&!ch0&&inboundId){
@@ -243,9 +245,12 @@ async function bot(a:any,p:string,ch0:string,t:string,inboundId:string,preClaime
     if(d?.matched){if(d.handoff){await saveState('agent_conversation',d.path||[]);await a.from('whatsapp_conversations').update({owner_agent_key:'billing',conversation_owner:'HELENA',bot_ativo:true,updated_at:new Date().toISOString()}).eq('id',x.v.id);await runAgent(x.v.org_id,x.v.id,p,'billing','A cliente está com atendimento restrito e selecionou regularização financeira. Atenda exclusivamente a pendência financeira; não trate outros assuntos.',testMode)}else await saveState(String(d.node||'restricted'),d.path||[]);return true}
     await call({org_id:x.v.org_id,conversation_id:x.v.id,phone:p,node:'restricted',path:[]});await saveState('restricted',[]);return true;
   }
-  const menuNodes=['start','new','urgent','agent_conversation'];
-  if(ch0||(t&&!menuNodes.includes(node))){
-    const d=await call({org_id:x.v.org_id,conversation_id:x.v.id,phone:p,node,choice:ch0,text:t,path});
+  // Menus de identificacao prevalecem sobre a interpretacao livre da IA.
+  // O primeiro contato recebe SEMPRE o menu para identificar cliente, lead ou advogado.
+  const menuNodes=['start','new','new_areas','client_menu','lawyer_menu','urgent'];
+  if(menuNodes.includes(node)){
+    const choiceText=String(ch0||t||'').trim();
+    const d=choiceText?await call({org_id:x.v.org_id,conversation_id:x.v.id,phone:p,node,choice:ch0,text:t,path}):{matched:false};
     if(d?.blocked)return true;
     if(d?.matched){
       const newPath=Array.isArray(d.path)?d.path:path;
@@ -254,25 +259,17 @@ async function bot(a:any,p:string,ch0:string,t:string,inboundId:string,preClaime
         const previous=x.v.chatbot_context||{},nextContext=d.context||{};
         const now=new Date().toISOString();
         await a.from('whatsapp_conversations').update({chatbot_context:{...previous,...nextContext},bot_ativo:true,conversation_owner:'HELENA',owner_agent_key:d.agent_key,owner_changed_at:now,updated_at:now}).eq('id',x.v.id);
-        await runAgent(x.v.org_id,x.v.id,p,d.agent_key,`A cliente selecionou: ${String(d?.selected?.label||t||ch0)}. Contexto do atendimento: ${String(nextContext.summary||'')}. Continue o atendimento a partir daqui sem repetir perguntas já respondidas.`,testMode);
+        await runAgent(x.v.org_id,x.v.id,p,d.agent_key,`O contato selecionou: ${String(d?.selected?.label||t||ch0)}. Contexto da triagem: ${String(nextContext.summary||'')}. Identifique se e cliente, novo lead ou advogado conforme o perfil selecionado. Atenda sem repetir perguntas.`,testMode);
       }else await saveState(String(d.node||node),newPath);
       return true;
     }
+    await call({org_id:x.v.org_id,conversation_id:x.v.id,phone:p,node,path});
+    await saveState(node,path);
+    return true;
   }
-  // Boas-vindas: na PRIMEIRA mensagem da pessoa (nunca recebeu nada da Helena/escritório) — qualquer que seja o texto —
-  // ou quando ela só cumprimenta ("oi", "bom dia") depois de 6h sem conversa.
-  if(t){
-    const {data:lastOut}=await a.from('whatsapp_messages').select('created_at').eq('conversation_id',x.v.id).eq('direction','outbound').order('created_at',{ascending:false}).limit(1).maybeSingle();
-    const {data:prevGreet}=await a.from('whatsapp_messages').select('id').eq('conversation_id',x.v.id).eq('direction','outbound').eq('metadata->>kind','greeting').gt('created_at',new Date(Date.now()-12*3600000).toISOString()).limit(1).maybeSingle();
-    const {data:older}=await a.from('whatsapp_messages').select('id').eq('conversation_id',x.v.id).lt('created_at',new Date(Date.now()-15*60000).toISOString()).limit(1).maybeSingle();
-    const firstContact=!lastOut?.created_at&&!older&&!x.v.last_human_outbound_at&&!x.v.human_takeover_at;
-    const onlyGreeting=GREETING.test(t.trim());
-    const stale=!lastOut?.created_at||Date.now()-new Date(lastOut.created_at).getTime()>6*3600000;
-    if(!prevGreet&&(firstContact||(onlyGreeting&&stale))){
-      const ok=await sendGreeting(a,x,p,onlyGreeting);
-      if(ok&&onlyGreeting){await saveState('agent_conversation',[]);if(x.v.owner_agent_key)await a.from('whatsapp_conversations').update({owner_agent_key:null}).eq('id',x.v.id);return true}
-      if(ok)await sleep(2500);
-    }
+  if(ch0&&node==='agent_conversation'){
+    const d=await call({org_id:x.v.org_id,conversation_id:x.v.id,phone:p,node,choice:ch0,text:t,path});
+    if(d?.matched)return true;
   }
   if(t){
     // v44: a cada mensagem o assunto é reavaliado (antes, a conversa ficava presa no último agente).
