@@ -72,13 +72,13 @@ async function aiKillSwitch(a: any, orgId: string, conversationId: string | null
   if (ws?.ai_enabled !== false) return false;
   const p = digits(target);
   const adminPhones = [ws?.alert_phone, ws?.commercial_alert_phone].map(digits).filter(Boolean);
-  if (adminPhones.some((x: string) => x.length >= 8 && x.slice(-8) === p.slice(-8))) return false; // alertas e comandos da Dra.
+  if (adminPhones.some((x: string) => x === p)) return false; // somente os numeros administrativos exatos
   let convId = conversationId;
   if (!convId && p) {
     const { data: ct } = await a.from("whatsapp_contacts").select("id").eq("org_id", orgId).eq("phone", p).limit(1).maybeSingle();
     if (ct) { const { data: cv } = await a.from("whatsapp_conversations").select("id").eq("org_id", orgId).eq("contact_id", ct.id).neq("status", "closed").order("updated_at", { ascending: false }).limit(1).maybeSingle(); convId = cv?.id || null; }
   }
-  if (!convId) return false;
+  if (!convId) return true; // sem conversa validada, IA globalmente desligada
   const since = new Date(Date.now() - 30 * 60000).toISOString();
   const { count } = await a.from("whatsapp_messages").select("id", { count: "exact", head: true }).eq("conversation_id", convId).eq("direction", "inbound").gte("created_at", since);
   return (count || 0) > 0;
