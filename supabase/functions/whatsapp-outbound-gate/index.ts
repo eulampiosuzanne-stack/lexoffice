@@ -4,6 +4,12 @@ import {
   formatWhatsAppAgentReply,
   previewForLog,
 } from "./_shared/whatsapp-reply-format.mjs";
+// v44 — CHAVE GERAL DA IA (08/10/2026): com whatsapp_settings.ai_enabled=false, nenhuma RESPOSTA automática
+//        a mensagem de cliente sai (resposta = cliente escreveu nos últimos 30 min). Avisos proativos
+//        (cobrança, lembretes, andamentos, assinatura) e alertas para a Dra. continuam saindo.
+// v39 — sem assinatura "Helena | Suzanne Figueiredo Advocacia" no topo (pedido da Dra. Suzanne, 29/09/2026). Mantém uma frase por parágrafo.
+// v36 — cada frase em um parágrafo separado por linha em branco.
+// v35 — respostas dos agentes com uma linha em branco entre parágrafos.
 // v34 — grava resposta no histórico.
 // v33 — credenciais Z-API: usa as mesmas do menu (banco) antes das variáveis antigas.
 // v32 — assinatura, tempo de silêncio após atendimento humano e atraso de digitação
@@ -38,55 +44,44 @@ async function runtimeSecret(a: any, key: string) {
     return "";
   }
 }
-async function zapiCfg(a: any) {
-  const instance = (
-    (await runtimeSecret(a, "zapi_instance_id")) ||
-    (await runtimeSecret(a, "ZAPI_INSTANCE_ID")) ||
-    Deno.env.get("ZAPI_INSTANCE_ID") || ""
-  ).trim();
-  const token = (
-    (await runtimeSecret(a, "zapi_instance_token")) ||
-    (await runtimeSecret(a, "zapi_token")) ||
-    (await runtimeSecret(a, "ZAPI_INSTANCE_TOKEN")) ||
-    (await runtimeSecret(a, "ZAPI_TOKEN")) ||
-    Deno.env.get("ZAPI_TOKEN") || ""
-  ).trim();
-  const clientToken = (
-    (await runtimeSecret(a, "zapi_client_token")) ||
-    (await runtimeSecret(a, "ZAPI_CLIENT_TOKEN")) ||
-    Deno.env.get("ZAPI_CLIENT_TOKEN") || ""
-  ).trim();
-  if (!instance || !token || !clientToken) throw new Error("Z-API não configurada no backend");
-  return { instance, token, clientToken };
-}
-async function zapiSend(a: any, phone: string, message: string, delaySeconds = 0, typing = false) {
-  const c = await zapiCfg(a), p = digits(phone);
-  if (!p) throw new Error("Destino inválido");
-  const payload: any = { phone: p, message };
-  const d = Math.max(0, Math.min(15, Math.round(Number(delaySeconds) || 0)));
-  if (d >= 1) {
-    if (typing) payload.delayTyping = d;
-    else payload.delayMessage = d;
-  }
-  const r = await fetch(
-    `https://api.z-api.io/instances/${encodeURIComponent(c.instance)}/token/${encodeURIComponent(c.token)}/send-text`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json", "Client-Token": c.clientToken },
-      body: JSON.stringify(payload),
-    },
-  );
-  const raw = await r.text();
-  let out: any = {};
-  try { out = raw ? JSON.parse(raw) : {}; } catch { out = { raw }; }
-  if (!r.ok) throw new Error(`Z-API ${r.status}: ${String(out?.message || out?.error || raw || "falha").slice(0, 500)}`);
-  return out;
+async function evolutionSend(a:any,orgId:string,phone:string,message:string,delaySeconds=0,typing=false,image:string|null=null,caption:string|null=null){
+ const base=(await runtimeSecret(a,"evolution_api_url")).replace(/\/+$/,"");
+ const key=await runtimeSecret(a,"evolution_api_key");
+ const instance="suzanne-lexoffice",p=digits(phone);
+ if(orgId!=="b3dd3ed0-2a05-4087-8220-307a44352cec")throw new Error("Provedor Evolution não autorizado nesta organização");
+ if(!/^https:\/\//.test(base)||!key||!p)throw new Error("Evolution não configurada ou número inválido");
+ const {data:instanceRow,error:instanceError}=await a.from("whatsapp_evolution_instances").select("status,is_active").eq("org_id",orgId).eq("instance_name",instance).maybeSingle();
+ if(instanceError||instanceRow?.status!=="connected"||instanceRow?.is_active!==true)throw new Error("Instância Evolution não está ativa");
+ const endpoint=image?"message/sendMedia":"message/sendText";
+ const payload=image?{number:p,mediatype:"image",media:image,caption:caption||message||""}:{number:p,text:message,delay:Math.max(0,Math.min(15000,Math.round(Number(delaySeconds)||0)*1000))};
+ const response=await fetch(base+"/"+endpoint+"/"+encodeURIComponent(instance),{method:"POST",headers:{apikey:key,"Content-Type":"application/json"},body:JSON.stringify(payload),signal:AbortSignal.timeout(16000)});
+ const raw=await response.text();let data:any={};try{data=raw?JSON.parse(raw):{}}catch{data={raw:raw.slice(0,240)}}
+ if(!response.ok)throw new Error("Evolution "+response.status+": "+String(data?.message||data?.error||raw||"falha").slice(0,280));
+ return data;
 }
 function sanitize(text: string) {
   return text.replace(/^\s*(suporte|support)\s*:\s*/i, "").replace(/\r\n?/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 function unsafe(text: string) {
   return /(bot_ativo|human_takeover|ai_enabled|resume_at|system prompt|prompt interno|racioc[ií]nio interno|verifica[cç][aã]o de estado|transbordo humano|registro de poss[ií]vel)/i.test(text);
+}
+// Chave geral: a IA está desligada e isto é uma RESPOSTA a cliente (não um aviso proativo nem alerta interno)?
+async function aiKillSwitch(a: any, orgId: string, conversationId: string | null, target: string, agentKey: string) {
+  if (!AGENT_KEYS.has(agentKey) && agentKey !== "system") return false;
+  const { data: ws } = await a.from("whatsapp_settings").select("ai_enabled,alert_phone,commercial_alert_phone").eq("org_id", orgId).maybeSingle();
+  if (ws?.ai_enabled !== false) return false;
+  const p = digits(target);
+  const adminPhones = [ws?.alert_phone, ws?.commercial_alert_phone].map(digits).filter(Boolean);
+  if (adminPhones.some((x: string) => x.length >= 8 && x.slice(-8) === p.slice(-8))) return false; // alertas e comandos da Dra.
+  let convId = conversationId;
+  if (!convId && p) {
+    const { data: ct } = await a.from("whatsapp_contacts").select("id").eq("org_id", orgId).eq("phone", p).limit(1).maybeSingle();
+    if (ct) { const { data: cv } = await a.from("whatsapp_conversations").select("id").eq("org_id", orgId).eq("contact_id", ct.id).neq("status", "closed").order("updated_at", { ascending: false }).limit(1).maybeSingle(); convId = cv?.id || null; }
+  }
+  if (!convId) return false;
+  const since = new Date(Date.now() - 30 * 60000).toISOString();
+  const { count } = await a.from("whatsapp_messages").select("id", { count: "exact", head: true }).eq("conversation_id", convId).eq("direction", "inbound").gte("created_at", since);
+  return (count || 0) > 0;
 }
 async function conversationState(a: any, orgId: string, conversationId: string | null, target: string, cooldownMs: number) {
   let cv: any = null;
@@ -159,8 +154,10 @@ Deno.serve(async (req) => {
       target = String(b.phone || b.to || b.chat_id || "").trim(),
       agentKey = String(b.agent_key || "system").trim(),
       key = String(b.idempotency_key || "").trim() || null,
-      rawMessage = String(b.message || "").trim();
-    if (!orgId || !target || !rawMessage) return json({ ok: false, error: "org_id, destino e mensagem são obrigatórios" }, 400);
+      rawMessage = String(b.message || "").trim(),
+      image = b.image ? String(b.image) : null,
+      caption = b.caption ? String(b.caption) : null;
+    if (!orgId || !target || (!rawMessage && !image)) return json({ ok: false, error: "org_id, destino e mensagem ou imagem são obrigatórios" }, 400);
     const cooldownMin = Number.isFinite(Number(b.human_silence_minutes)) && Number(b.human_silence_minutes) >= 0 ? Number(b.human_silence_minutes) : DEFAULT_COOLDOWN_MIN;
     const cooldownMs = cooldownMin * 60 * 1000;
     const a = admin();
@@ -168,14 +165,16 @@ Deno.serve(async (req) => {
       const { data: existing } = await a.from("whatsapp_outbound_gate_log").select("id,allowed,reason").eq("org_id", orgId).eq("idempotency_key", key).maybeSingle();
       if (existing && existing.allowed === true) return json({ ok: true, duplicate: true, allowed: true, reason: existing.reason });
     }
+    // Envios do painel (whatsapp-operator-send usam chave "operator:") são humanos ou ordens da Dra.: nunca bloqueia.
+    if (b.operator_send !== true && !String(key || "").startsWith("operator:") && await aiKillSwitch(a, orgId, conversationId, target, agentKey)) {
+      await log(a, { org_id: orgId, conversation_id: conversationId, agent_key: agentKey, allowed: false, reason: "ai_disabled_global", body_preview: previewForLog(rawMessage, 240), idempotency_key: key });
+      return json({ ok: true, allowed: false, reason: "ai_disabled_global" });
+    }
     const restriction=await activeFinancialRestriction(a,orgId,conversationId,target);
     if(restriction&&agentKey!=='billing'){await log(a,{org_id:orgId,conversation_id:conversationId,agent_key:agentKey,allowed:false,reason:'financial_service_restriction',body_preview:previewForLog(rawMessage,240),idempotency_key:key});return json({ok:true,allowed:false,reason:'financial_service_restriction'});}
     const automated = AGENT_KEYS.has(agentKey) || b.format_agent_reply === true,
       formatted = automated
-        ? formatWhatsAppAgentReply(rawMessage, {
-            header: typeof b.signature_line === "string" ? b.signature_line : undefined,
-            blankLine: b.blank_line_after_signature !== false,
-          })
+        ? formatWhatsAppAgentReply(rawMessage, { includeHeader: false })
         : { rawAgentOutput: rawMessage, parsedReply: sanitize(rawMessage), formattedReply: sanitize(rawMessage) },
       message = formatted.formattedReply;
     if (!message) return json({ ok: false, error: "Mensagem vazia após formatação" }, 400);
@@ -188,22 +187,21 @@ Deno.serve(async (req) => {
       await log(a, { org_id: orgId, conversation_id: conversationId, agent_key: agentKey, allowed: false, reason: hb.reason, body_preview: previewForLog(message, 240), idempotency_key: key });
       return json({ ok: true, allowed: false, reason: hb.reason, resume_at: hb.state.cooldown_until });
     }
-    await trace(a, orgId, conversationId, agentKey, "ready_to_send", { provider: "zapi" });
+    await trace(a, orgId, conversationId, agentKey, "ready_to_send", { provider: "evolution" });
     try {
-      const provider = await zapiSend(a, target, message, automated ? Number(b.delay_seconds || 0) : 0, b.typing_indicator === true);
-      await log(a, { org_id: orgId, conversation_id: conversationId, agent_key: agentKey, allowed: true, reason: "sent_zapi", body_preview: previewForLog(message, 240), idempotency_key: key });
-      // v34: grava a resposta no histórico da conversa (a IA precisa ver o que já respondeu).
+      const provider = await evolutionSend(a, orgId, target, message, automated ? Number(b.delay_seconds || 0) : 0, b.typing_indicator === true, image, caption);
+      await log(a, { org_id: orgId, conversation_id: conversationId, agent_key: agentKey, allowed: true, reason: "sent_evolution", body_preview: previewForLog(message, 240), idempotency_key: key });
       if (conversationId && automated) {
         try {
-          await a.from("whatsapp_messages").insert({ org_id: orgId, conversation_id: conversationId, direction: "outbound", message_type: "text", body: formatted.parsedReply, status: "sent", sent_at: new Date().toISOString(), external_message_id: String(provider?.zaapId || provider?.messageId || provider?.id || "") || null, metadata: { source: "ai_agent", agent_key: agentKey } });
+          await a.from("whatsapp_messages").insert({ org_id: orgId, conversation_id: conversationId, direction: "outbound", message_type: "text", body: formatted.parsedReply, status: "sent", sent_at: new Date().toISOString(), external_message_id: String(provider?.key?.id || provider?.zaapId || provider?.messageId || provider?.id || "") || null, metadata: { source: "ai_agent", agent_key: agentKey } });
           await a.from("whatsapp_conversations").update({ last_message_at: new Date().toISOString(), last_message_preview: previewForLog(formatted.parsedReply, 120), updated_at: new Date().toISOString() }).eq("id", conversationId);
         } catch (e) { console.error("history_insert", e); }
       }
-      return json({ ok: true, allowed: true, provider: "zapi", phone: digits(target), provider_response: provider, parsed_reply: formatted.parsedReply, formatted_reply: message });
+      return json({ ok: true, allowed: true, provider: "evolution", phone: digits(target), provider_response: provider, parsed_reply: formatted.parsedReply, formatted_reply: message });
     } catch (e) {
       const err = e instanceof Error ? e.message : String(e);
-      await log(a, { org_id: orgId, conversation_id: conversationId, agent_key: agentKey, allowed: false, reason: "zapi_send_failed:" + err.slice(0, 180), body_preview: previewForLog(message, 240), idempotency_key: key });
-      await trace(a, orgId, conversationId, agentKey, "provider_error", { reason: "zapi_send_failed", error: err });
+      await log(a, { org_id: orgId, conversation_id: conversationId, agent_key: agentKey, allowed: false, reason: "evolution_send_failed:" + err.slice(0, 180), body_preview: previewForLog(message, 240), idempotency_key: key });
+      await trace(a, orgId, conversationId, agentKey, "provider_error", { reason: "evolution_send_failed", error: err });
       return json({ ok: false, error: err }, 502);
     }
   } catch (e) {
