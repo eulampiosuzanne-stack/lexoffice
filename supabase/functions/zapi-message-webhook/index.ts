@@ -215,7 +215,7 @@ async function bot(a:any,p:string,ch0:string,t:string,inboundId:string,preClaime
   if(t&&!ch0&&inboundId){
     const {data:me}=await a.from('whatsapp_messages').select('created_at').eq('conversation_id',x.v.id).eq('external_message_id',inboundId).limit(1).maybeSingle();
     if(me?.created_at){
-      await sleep(25000);
+      await sleep(3500);
       const {data:newer}=await a.from('whatsapp_messages').select('id').eq('conversation_id',x.v.id).eq('direction','inbound').gt('created_at',me.created_at).limit(1).maybeSingle();
       if(newer)return true;
       const {data:lastOut}=await a.from('whatsapp_messages').select('created_at').eq('conversation_id',x.v.id).eq('direction','outbound').order('created_at',{ascending:false}).limit(1).maybeSingle();
