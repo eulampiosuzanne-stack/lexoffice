@@ -8,7 +8,7 @@ const A=()=>createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SE
 const norm=(s:string)=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^\p{L}\p{N} ]+/gu,' ').replace(/\s+/g,' ').trim();
 async function secret(a:any,k:string){const {data}=await a.from('system_runtime_secrets').select('secret').eq('key',k).maybeSingle();return String(data?.secret||'').trim()}
 async function cfg(a:any){const base=(await secret(a,'evolution_api_url')).replace(/\/+$/,''),key=await secret(a,'evolution_api_key');if(!/^https:\/\//.test(base)||!key)throw new Error('Evolution não configurada');const {data:i}=await a.from('whatsapp_evolution_instances').select('status,is_active').eq('instance_name','suzanne-lexoffice').maybeSingle();if(i?.status!=='connected'||i?.is_active!==true)throw new Error('Evolution desconectada');return {base,key,instance:'suzanne-lexoffice'}}
-type O={id:string,label:string,next?:string,agent?:string,reply?:string,ctx?:Record<string,unknown>};type N={message:string,options:O[],image?:string};
+type O={id:string,label:string,description?:string,next?:string,agent?:string,reply?:string,ctx?:Record<string,unknown>};type N={message:string,options:O[],image?:string};
 const back:O={id:'menu',label:'↩️ Voltar ao menu',next:'start'};
 export const DEFAULT_NODES:Record<string,N>={
   start:{message:'Olá! 👋 Seja bem-vindo(a) ao escritório Suzanne Figueiredo Advocacia e Soluções Jurídicas.\n\nEscolha uma opção:',image:'https://lexoffice-ashy.vercel.app/file_000000003d3c820ea01435d641ac6df8.png',options:[
@@ -74,7 +74,7 @@ function resolve(nodes:Record<string,N>,node:string,choice:string,text:string):{
 }
 async function blocked(a:any,o:string,id:string|null,p:string){if(id){const {data:v}=await a.from('whatsapp_conversations').select('bot_ativo,conversation_owner,last_human_outbound_at,human_takeover_at').eq('org_id',o).eq('id',id).maybeSingle();if(v?.bot_ativo===false||v?.conversation_owner==='HUMAN')return 'human_owner';const ts=v?.last_human_outbound_at;if(ts&&Date.now()-new Date(ts).getTime()<20*60000)return 'human_cooldown'}const {data:c}=await a.from('ai_conversation_controls').select('ai_enabled,human_takeover,resume_at').eq('org_id',o).eq('contact_key',D(p)).maybeSingle();if(c?.human_takeover===true||c?.ai_enabled===false){if(c?.resume_at&&Date.now()>=new Date(c.resume_at).getTime())return null;return 'human_takeover'}return null}
 async function sendNode(a:any,o:string,id:string|null,p:string,key:string,x:N){
- const options=x.options.map((v,i)=>String(i+1)+'. '+v.label).join('\n');
+ const options=x.options.map((v,i)=>String(i+1)+'. '+v.label+(v.description?'\n   '+v.description:'')).join('\n\n');
  const message=x.message+(options?'\n\n'+options:'')+'\n\nResponda com o número da opção.';
  const sk=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
  const response=await fetch(Deno.env.get('SUPABASE_URL')!+'/functions/v1/whatsapp-outbound-gate',{method:'POST',headers:{Authorization:'Bearer '+sk,apikey:sk,'Content-Type':'application/json'},body:JSON.stringify({org_id:o,conversation_id:id,phone:D(p),message,agent_key:'helena_chatbot',idempotency_key:'chatbot:'+String(id||D(p))+':'+key+':'+Math.floor(Date.now()/120000),format_agent_reply:false}),signal:AbortSignal.timeout(16000)});
@@ -90,6 +90,13 @@ Deno.serve(async req=>{if(req.method!=='POST')return J({ok:false},405);try{
   if(!o||!p)return J({ok:false,error:'org_id e phone obrigatórios'},400);
   const a=A();const {nodes,enabled}=await loadNodes(a,o);
   if(b.action==='nodes')return J({ok:true,nodes:Object.keys(nodes)});
+  if(b.action==='preview'){
+    const x=nodes[k];if(!x)return J({ok:false,error:'node_not_found'},404);
+    const result=(ch||tx)?resolve(nodes,k,ch,tx):null;
+    const chosen=result?.opt||null;
+    return J({ok:true,preview:true,enabled, node:k,message:x.message,options:x.options.map((v:any,i:number)=>({number:i+1,id:v.id,label:v.label,description:v.description||'',next:v.next||null,agent:v.agent||null})),matched:Boolean(result),selected:chosen?{id:chosen.id,label:chosen.label,next:chosen.next||null,agent:chosen.agent||null}:null});
+  }
+
   if(!enabled)return J({ok:true,blocked:true,reason:'flow_disabled',path});
   const why=await blocked(a,o,id,p);if(why)return J({ok:true,blocked:true,reason:why,path});
   if(ch||tx){
@@ -97,7 +104,7 @@ Deno.serve(async req=>{if(req.method!=='POST')return J({ok:false},405);try{
     if(!r)return J({ok:true,matched:false,node:k,known_node:Boolean(nodes[k])});
     const z=r.opt;
     if(z.id==='menu')path=[];else path=[...path,{node:r.node,choice:z.id,label:z.label}];
-    if(z.reply){const resp=await zapi(a,'send-text',{phone:D(p),message:z.reply});await logOut(a,o,id,z.reply,r.node,resp);return J({ok:true,matched:true,replied:true,node:'agent_conversation',path})}
+    if(z.reply){const resp=await sendNode(a,o,id,p,'reply_'+r.node,{message:z.reply,options:[]});await logOut(a,o,id,z.reply,r.node,resp);return J({ok:true,matched:true,replied:true,node:'agent_conversation',path})}
     if(z.agent){const urgent=path.some((s:any)=>s.node==='urgent');return J({ok:true,matched:true,handoff:true,agent_key:z.agent,selected:{node:r.node,choice:z.id,label:z.label},next_node:'agent_conversation',path,context:{path,summary:path.map((s:any)=>String(s.label).replace(/^[^\p{L}\p{N}]+/u,'').trim()).join(' → '),profile:path[0]?.choice||null,urgent,...(z.ctx||{})}})}
     if(z.next){const x=nodes[z.next];if(!x)return J({ok:false,error:`nó inexistente: ${z.next}`},400);const resp=await sendNode(a,o,id,p,z.next,x);return J({ok:true,matched:true,node:z.next,path,provider_response:resp})}
     return J({ok:true,matched:false,node:k});
