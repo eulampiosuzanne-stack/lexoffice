@@ -2,7 +2,7 @@ import {useEffect,useState} from 'react';
 import {PlugZap, RefreshCw} from 'lucide-react';
 import {supabase} from '../lib/supabase';
 
-type Result = {ok?:boolean;error?:string;reason?:string;state?:string|null;status?:string;instance_name?:string;pairing_code?:string;http_status?:number;instance_status?:string};
+type Result = {ok?:boolean;error?:string;reason?:string;state?:string|null;status?:string;instance_name?:string;pairing_code?:string;qr_code?:string;http_status?:number;instance_status?:string};
 
 export default function EvolutionOfficeConnect(){
  const [busy,setBusy]=useState(false);
@@ -10,11 +10,13 @@ export default function EvolutionOfficeConnect(){
  const [message,setMessage]=useState('');
  const [code,setCode]=useState('');
  const [created,setCreated]=useState(false);
+ const [qr,setQr]=useState('');
  useEffect(()=>{void request('status')},[]);
- async function request(action:'status'|'create'|'pair'){
+ async function request(action:'status'|'create'|'pair'|'qr'){
   if(!supabase)return;
   setBusy(true);setMessage('');
   if(action==='pair')setCode('');
+  if(action==='qr')setQr('');
   try{
    const {data,error}=await supabase.functions.invoke<Result>('whatsapp-evolution-connect',{body:{action,...(action==='pair'?{number:'5531992984141'}:{})}});
    if(error){
@@ -41,6 +43,7 @@ export default function EvolutionOfficeConnect(){
    if(action==='create'){setCreated(true);setMessage('Instância criada no servidor. Agora solicite o código de pareamento.')}
    if(action==='status'){setState(data.state||'Sem conexão');if(data.instance_status&&data.instance_status!=='not_provisioned')setCreated(true);setMessage(data.state==='open'?'WhatsApp conectado à Evolution. Os envios pelo LexOffice ainda precisam de teste.':'Estado consultado no servidor.')}
    if(action==='pair'){setCode(String(data.pairing_code||''));setMessage('Código gerado. Digite-o no WhatsApp Business antes de expirar.')}
+   if(action==='qr'){setQr(String(data.qr_code||''));setMessage('QR Code gerado. Escaneie no WhatsApp Business antes de expirar.')}
   }catch(e:any){setMessage('Não foi possível executar a operação: '+String(e?.message||'falha de conexão'))}
   finally{setBusy(false)}
  }
@@ -52,7 +55,9 @@ export default function EvolutionOfficeConnect(){
    <button type="button" className="secondary" disabled={busy} onClick={()=>request('status')}><RefreshCw size={15}/>Consultar conexão</button>
    <button type="button" className="secondary" disabled={busy} onClick={()=>request('create')}>1. Criar instância exclusiva</button>
    <button type="button" className="integration-action" disabled={busy||!created} onClick={()=>request('pair')}>2. Gerar código de pareamento</button>
+   <button type="button" className="integration-action" disabled={busy||!created} onClick={()=>request('qr')}>3. Gerar QR Code</button>
   </div>
+  {qr&&<div className="integration-notice"><strong>QR Code da Evolution</strong><p>Escaneie pelo WhatsApp Business em Aparelhos conectados.</p><img src={qr} alt="QR Code da Evolution" style={{width:260,height:260,maxWidth:'100%'}} /></div>}
   {code&&<div className="integration-notice"><strong>Código de pareamento: {code}</strong><p>No WhatsApp Business do número informado, abra Aparelhos conectados, Conectar aparelho e Conectar com número de telefone. Não envie o código a terceiros.</p></div>}
   {message&&<div className="integration-notice" role="status">{message}</div>}
   <small>Conexão não ativa automaticamente o envio de mensagens do LexOffice. A integração será testada antes da migração.</small>
