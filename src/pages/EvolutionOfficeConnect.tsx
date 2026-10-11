@@ -11,10 +11,10 @@ export default function EvolutionOfficeConnect(){
  const [code,setCode]=useState('');
  const [created,setCreated]=useState(false);
  const [qr,setQr]=useState('');
- useEffect(()=>{void request('status')},[]);
- async function request(action:'status'|'create'|'pair'|'qr'){
+ useEffect(()=>{void request('status');const timer=setInterval(()=>{void request('status',true)},10000);return ()=>clearInterval(timer)},[]);
+ async function request(action:'status'|'create'|'pair'|'qr',silent=false){
   if(!supabase)return;
-  setBusy(true);setMessage('');
+  if(!silent){setBusy(true);setMessage('')}
   if(action==='pair')setCode('');
   if(action==='qr')setQr('');
   try{
@@ -41,11 +41,11 @@ export default function EvolutionOfficeConnect(){
     return;
    }
    if(action==='create'){setCreated(true);setMessage('Instância criada no servidor. Agora solicite o código de pareamento.')}
-   if(action==='status'){setState(data.state||'Sem conexão');if(data.instance_status&&data.instance_status!=='not_provisioned')setCreated(true);setMessage(data.state==='open'?'WhatsApp conectado à Evolution. Os envios pelo LexOffice ainda precisam de teste.':'Estado consultado no servidor.')}
+   if(action==='status'){setState(data.state||'Sem conexão');if(data.instance_status&&data.instance_status!=='not_provisioned')setCreated(true);if(data.state==='open'){setQr('');setCode('');setMessage('WhatsApp conectado à Evolution. Os envios pelo LexOffice ainda precisam de teste.')}else if(!silent)setMessage('Estado consultado no servidor.')}
    if(action==='pair'){setCode(String(data.pairing_code||''));setMessage('Código gerado. Digite-o no WhatsApp Business antes de expirar.')}
    if(action==='qr'){setQr(String(data.qr_code||''));setMessage('QR Code gerado. Escaneie no WhatsApp Business antes de expirar.')}
   }catch(e:any){setMessage('Não foi possível executar a operação: '+String(e?.message||'falha de conexão'))}
-  finally{setBusy(false)}
+  finally{if(!silent)setBusy(false)}
  }
  return <div className="meta-partner-box">
   <div className="meta-config-title"><PlugZap size={17}/><b>Evolution API | WhatsApp do escritório</b></div>
