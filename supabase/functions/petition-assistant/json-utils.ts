@@ -36,3 +36,15 @@ export function parseModelJson(raw: string) {
   candidate = candidate.replace(/,\s*([}\]])/g, "$1");
   return JSON.parse(candidate);
 }
+
+export function dossierJsonRepairPrompt(raw: string) {
+  return `Corrija exclusivamente a sintaxe do JSON abaixo e devolva somente um objeto JSON válido.
+Regras obrigatórias:
+- preserve integralmente os fatos, nomes, datas, valores, fundamentos e conclusões existentes;
+- não acrescente, remova, resuma, reescreva ou interprete conteúdo;
+- não use Markdown nem comentários;
+- quando houver erro de vírgula, aspas, colchetes ou chaves, faça apenas o reparo mínimo necessário.
+
+JSON PARA REPARO:
+${raw}`;
+}
