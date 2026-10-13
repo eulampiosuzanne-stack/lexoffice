@@ -454,7 +454,7 @@ export function Documents() {
         )
       ) : (
         <Card title="Enviar ao escritório">
-          <Text style={u.body}>Escolha um arquivo em PDF ou foto (até 15 MB). Ele chega direto para a equipe.</Text>
+          <Text style={u.body}>Escolha um arquivo em PDF ou foto (até 50 MB). Ele chega direto para a equipe.</Text>
           <Button label={busy === "document" ? "Enviando..." : "Escolher arquivo"} icon="attach-outline" disabled={!!busy} onPress={() => sendFree("document")} />
           <Button variant="outline" label={busy === "payment_receipt" ? "Enviando..." : "Enviar comprovante de pagamento"} icon="receipt-outline" disabled={!!busy} onPress={() => sendFree("payment_receipt")} />
         </Card>
