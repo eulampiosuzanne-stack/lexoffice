@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2.57.4";
-import { parseModelJson } from "./json-utils.ts";
+import { dossierJsonRepairPrompt, parseModelJson } from "./json-utils.ts";
 
 // Estratégia Processual — lê a documentação do caso (PDF/imagem), monta o dossiê, avalia a chance de êxito,
 // emite parecer ao cliente, pede os documentos que faltam, indica o cálculo, ajuda na jurisprudência
@@ -419,7 +419,26 @@ Deno.serve(async (req) => {
       try { dossier = parseModelJson(r.text); }
       catch (parseError) {
         console.error("petition-assistant invalid dossier", { model: r.model, finishReason: r.finishReason || null, textLength: String(r.text || "").length, error: parseError instanceof Error ? parseError.message : String(parseError) });
-        return json({ ok: false, error: "A análise terminou incompleta. A Lex preservou os documentos; tente novamente para concluir o dossiê." }, 422);
+        // Se o motor principal produziu conteúdo completo, mas com sintaxe JSON
+        // inválida, o Gemini corrige somente a estrutura. Isso evita reler o PDF,
+        // preserva os fatos extraídos e mantém o documento já enviado.
+        if (key) {
+          const repaired = await gemini(key, models, {
+            contents: [{ role: "user", parts: [{ text: dossierJsonRepairPrompt(String(r.text || "")) }] }],
+            generationConfig: { temperature: 0, maxOutputTokens: 8192, responseMimeType: "application/json" },
+          }, Date.now() + 45000);
+          if (repaired.ok) {
+            try {
+              dossier = parseModelJson(repaired.text);
+              r = { ...r, model: `${r.model}+${repaired.model}/json-repair` };
+            } catch (repairParseError) {
+              console.error("petition-assistant invalid repaired dossier", { model: repaired.model, textLength: String(repaired.text || "").length, error: repairParseError instanceof Error ? repairParseError.message : String(repairParseError) });
+            }
+          } else {
+            console.error("petition-assistant dossier repair failed", { status: repaired.status, detail: String(repaired.detail || "").slice(0, 220) });
+          }
+        }
+        if (!dossier) return json({ ok: false, error: "A análise terminou incompleta. A Lex preservou os documentos; tente novamente para concluir o dossiê." }, 422);
       }
       if (dossier?.calculo?.calculadora && !CALCULATORS.includes(dossier.calculo.calculadora)) dossier.calculo.calculadora = null;
       if (!dossier || typeof dossier !== "object" || Array.isArray(dossier)) return json({ ok: false, error: "A IA devolveu um dossiê em formato inválido. Tente novamente." }, 422);
