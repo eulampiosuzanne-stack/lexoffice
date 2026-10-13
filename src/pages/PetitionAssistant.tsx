@@ -32,6 +32,8 @@ const chanceCls = (n?: string) => { const k = String(n || '').toLowerCase(); ret
 const brDate = (iso?: string | null) => (iso && /^\d{4}-\d{2}-\d{2}/.test(iso) ? iso.slice(0, 10).split('-').reverse().join('/') : '');
 const daysTo = (iso?: string | null) => (iso && /^\d{4}-\d{2}-\d{2}/.test(iso) ? Math.ceil((new Date(`${iso.slice(0, 10)}T12:00:00-03:00`).getTime() - Date.now()) / 86400000) : null);
 const toItems = (v: any): Item[] => (Array.isArray(v) ? v : []).map((i: any) => (typeof i === 'string' ? { title: i, on: true } : { title: String(i?.titulo || i?.title || ''), description: String(i?.descricao || i?.description || ''), essential: i?.essencial !== false, on: true })).filter((i: Item) => i.title);
+const brl = (v: any) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? '—' : Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }));
+const rangeTxt = (o: any, a: string, b: string, c: string) => [o?.[a], o?.[b], o?.[c]].some(v => v !== null && v !== undefined) ? `${brl(o?.[a])} · ${brl(o?.[b])} · ${brl(o?.[c])}` : 'Sem valores nos documentos para estimar.';
 const OFFICE = { name: 'Suzanne Figueiredo — Advocacia e Soluções Jurídicas', lawyer: 'Suzanne Figueiredo' };
 
 async function invoke(body: Record<string, unknown>) {
@@ -103,7 +105,9 @@ export default function PetitionAssistant() {
   const [jurisText, setJurisText] = useState('');
   const [julgados, setJulgados] = useState<any[]>([]);
   const [jurisPick, setJurisPick] = useState<number[]>([]);
-  const [extraBusy, setExtraBusy] = useState<'' | 'opinion' | 'docs' | 'terms' | 'filter'>('');
+  const [extraBusy, setExtraBusy] = useState<'' | 'opinion' | 'docs' | 'terms' | 'filter' | 'settlement'>('');
+  const [proposal, setProposal] = useState('');
+  const [proposalNotes, setProposalNotes] = useState('');
   const [dirty, setDirty] = useState(false);
 
   async function loadBase() {
@@ -169,7 +173,7 @@ export default function PetitionAssistant() {
       const caseInfo = { cliente: client?.name || prospectName.trim() || null, cpf_cnpj: client?.cpf_cnpj || null, processo: proc?.cnj_number || proc?.internal_number || null, assunto: proc?.subject || null };
       const r = await invoke({ action: 'analyze', area, notes, document_ids: selected, client_id: clientId || null, process_id: processId || null, case_info: caseInfo });
       setRunId(r.run_id); setDossier(r.dossier); setReadInfo({ read: r.read || [], skipped: r.skipped || [] });
-      setOpinion(''); setItems(toItems(r.dossier?.documentos_solicitar)); setJuris(null); setJulgados([]); setJurisPick([]);
+      setOpinion(''); setProposal(''); setItems(toItems(r.dossier?.documentos_solicitar)); setJuris(null); setJulgados([]); setJurisPick([]);
       const c = r.dossier?.calculo;
       setCalcName(c?.necessario && c?.calculadora ? c.calculadora : '');
       setCalcValues(c?.valores || {});
@@ -237,7 +241,7 @@ export default function PetitionAssistant() {
       const path = `${org}/documents/${crypto.randomUUID()}-${safe(opinionTitle)}.${ext}`;
       const { error: ue } = await supabase.storage.from('lexoffice-documents').upload(path, blob, { contentType: mime });
       if (ue) throw ue;
-      const { error: ie } = await supabase.from('documents').insert({ org_id: org, client_id: clientId, process_id: processId || null, name: `${opinionTitle}.${ext}`, file_path: path, mime_type: mime, size_bytes: blob.size, category: 'Parecer', notes: 'Parecer gerado pela Estratégia Processual — revisar antes de enviar', uploaded_by: u.user.id });
+      const { error: ie } = await supabase.from('documents').insert({ org_id: org, client_id: clientId, process_id: processId || null, name: `${opinionTitle}.${ext}`, file_path: path, mime_type: mime, size_bytes: blob.size, category: 'Parecer', notes: 'Parecer gerado pela Jurimetria — revisar antes de enviar', uploaded_by: u.user.id });
       if (ie) { await supabase.storage.from('lexoffice-documents').remove([path]); throw ie; }
       if (runId) await invoke({ action: 'save_opinion', run_id: runId, opinion });
       setNotice({ kind: 'ok', text: 'Parecer salvo na pasta do cliente, em Documentos.' });
@@ -247,6 +251,23 @@ export default function PetitionAssistant() {
   async function downloadOpinion() {
     const { blob, ext } = await wordFile(opinionTitle, opinion);
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${safe(opinionTitle)}.${ext}`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }
+
+  // Jurimetria: minuta de proposta de acordo (valor proposto = faixa "ideal"; mínimo e teto ficam só na tela).
+  const proposalTitle = `Proposta de acordo - ${dossier?.tipo_acao || areaLabel(area)} - ${client?.name || prospectName || 'caso'}`;
+  async function makeProposal() {
+    setExtraBusy('settlement'); setNotice({ kind: 'info', text: 'Redigindo a proposta de acordo. Leva cerca de 1 minuto.' });
+    try {
+      const r = await invoke({ action: 'settlement', run_id: runId, area, dossier, office: OFFICE, client_name: client?.name || prospectName.trim() || '', instructions: proposalNotes });
+      const text = String(r.proposal || '');
+      setProposal(text); setDossier((d: any) => ({ ...d, jurimetria: { ...(d?.jurimetria || {}), proposta_acordo: text } }));
+      setNotice({ kind: 'ok', text: 'Proposta de acordo pronta. Revise antes de enviar.' });
+    } catch (e: any) { setNotice({ kind: 'error', text: e.message }); }
+    finally { setExtraBusy(''); }
+  }
+  async function downloadProposal() {
+    const { blob, ext } = await wordFile(proposalTitle, proposal);
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${safe(proposalTitle)}.${ext}`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }
 
   async function requestDocs() {
@@ -349,7 +370,7 @@ export default function PetitionAssistant() {
   function reopen(r: Run) {
     setRunId(r.id); setArea(r.area); setClientId(r.client_id || ''); setNotes(r.notes || ''); setInstructions(r.instructions || '');
     setDossier(r.dossier || null); setMemorial(r.calculation || ''); setPetition(r.petition || ''); setReadInfo(null);
-    setOpinion(r.opinion || ''); setItems(toItems(r.dossier?.documentos_solicitar)); setJuris(null); setJulgados([]); setJurisPick([]);
+    setOpinion(r.opinion || ''); setProposal(String(r.dossier?.jurimetria?.proposta_acordo || '')); setItems(toItems(r.dossier?.documentos_solicitar)); setJuris(null); setJulgados([]); setJurisPick([]);
     const c = r.dossier?.calculo; setCalcName(c?.necessario && c?.calculadora ? c.calculadora : ''); setCalcValues(c?.valores || {});
     setTimeout(() => { setProcessId(r.process_id || ''); setSelected(r.document_ids || []); }, 50);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -361,8 +382,8 @@ export default function PetitionAssistant() {
     <div className="documents-v2-page petition-page">
       <header className="documents-v2-header">
         <div>
-          <h1>Estratégia Processual</h1>
-          <p>Envie o caso. A IA analisa, aponta a chance de êxito, emite o parecer ao cliente, pede os documentos que faltam, indica o cálculo e monta a petição inicial para a sua revisão.</p>
+          <h1>Jurimetria</h1>
+          <p>Coloque o caso. A IA calcula a chance de ganho, o tempo e o custo do processo, emite o parecer para o cliente, pede os documentos que faltam, indica o cálculo, monta a petição e deixa pronta a proposta de acordo quando ela fizer sentido.</p>
         </div>
       </header>
 
@@ -420,6 +441,32 @@ export default function PetitionAssistant() {
                   <p>{pr.data_limite ? <>Data-limite estimada: <b>{brDate(pr.data_limite)}</b> {d !== null && <b className={`pa-pill ${prCls}`}>{d < 0 ? `possivelmente vencido há ${Math.abs(d)} dia(s)` : `faltam ${d} dia(s)`}</b>}</> : <small>Sem data de início nos documentos — confira.</small>}</p>
                   {pr.observacao && <p><small>{pr.observacao}</small></p>}
                 </div>
+              </div>
+            );
+          })()}
+          {dossier.jurimetria && (() => {
+            const j = dossier.jurimetria; const p = Number(j.probabilidade_exito); const ok = Number.isFinite(p);
+            const cls = !ok ? 'mid' : p >= 65 ? 'low' : p >= 35 ? 'mid' : 'high';
+            const t = j.tempo_estimado_meses || {}; const ac = j.acordo || {};
+            return (
+              <div className={`pa-box pa-chance ${cls}`} style={{ marginTop: 12 }}>
+                <h3><Gauge size={14} /> Jurimetria <small>(uso interno, não vai para o cliente)</small></h3>
+                <div className="pa-cols">
+                  <div>
+                    <p>Probabilidade de êxito: <b className={`pa-pill ${cls}`}>{ok ? `${p}%` : '—'}</b></p>
+                    {ok && <div aria-hidden style={{ height: 8, borderRadius: 6, background: 'rgba(255,255,255,.08)', overflow: 'hidden', margin: '4px 0 8px' }}><div style={{ width: `${Math.max(0, Math.min(100, p))}%`, height: '100%', background: 'linear-gradient(90deg,#8A5726,#C99443,#F2C56D)' }} /></div>}
+                    {j.base && <p><small>{j.base}</small></p>}
+                    <p><small>Perfil do juízo</small><br />{j.perfil_juizo || (processId ? 'Juízo ainda não pesquisado. Rode a pesquisa da vara na Condução Processual e analise de novo.' : 'Caso novo: sem juízo definido ainda.')}</p>
+                  </div>
+                  <div>
+                    <p><small>Condenação estimada (mínimo · provável · máximo)</small><br />{rangeTxt(j.condenacao_estimada, 'minimo', 'provavel', 'maximo')}</p>
+                    <p><small>Tempo até a sentença</small><br />{t.minimo || t.maximo ? `${t.minimo ?? '?'} a ${t.maximo ?? '?'} meses` : '—'}</p>
+                    {j.custo_continuar && <p><small>Custo de continuar x acordo</small><br />{j.custo_continuar}</p>}
+                  </div>
+                </div>
+                <p style={{ marginTop: 6 }}><b>Acordo:</b> {ac.recomendado ? <b className="pa-pill low">recomendado</b> : <b className="pa-pill mid">não é prioridade</b>} {ac.momento && <small> · quando: {ac.momento}</small>}</p>
+                <p><small>Faixa de negociação (mínimo · ideal · teto)</small><br />{rangeTxt(ac, 'minimo', 'ideal', 'teto')}</p>
+                {ac.justificativa && <p><small>{ac.justificativa}</small></p>}
               </div>
             );
           })()}
@@ -540,6 +587,21 @@ export default function PetitionAssistant() {
               <button className="doc-refresh" onClick={() => navigator.clipboard.writeText(petition).then(() => setNotice({ kind: 'ok', text: 'Texto copiado.' }))}><Copy size={17} /> Copiar</button>
               <button className="doc-refresh" onClick={downloadWord}><Download size={17} /> Baixar Word</button>
               <button className="doc-primary" onClick={saveToClient} disabled={busy !== '' || !clientId}>{busy === 'save' ? <Loader2 size={17} className="spin" /> : <Save size={17} />} Salvar na pasta do cliente</button>
+            </div>
+          </>)}
+        </section>
+      )}
+
+      {dossier && (
+        <section className="doc-library-card">
+          <div className="doc-section-title"><span className="doc-section-icon"><Scale size={20} /></span><div><h2>8. Proposta de acordo</h2><p>{dossier.jurimetria?.acordo?.recomendado ? 'A jurimetria indica que um acordo pode valer a pena.' : 'Use se for necessário negociar.'} O valor proposto é o "ideal" da faixa; o mínimo e o teto não aparecem no texto.</p></div></div>
+          <label className="pa-block"><span>Orientações para a proposta (opcional)</span><textarea rows={2} value={proposalNotes} onChange={e => setProposalNotes(e.target.value)} placeholder="Ex.: aceitar parcelar em até 10 vezes; prazo de 10 dias para resposta..." /></label>
+          <div className="pa-row end"><button className="doc-primary" onClick={makeProposal} disabled={busy !== '' || extraBusy !== ''}>{extraBusy === 'settlement' ? <Loader2 size={17} className="spin" /> : <Scale size={17} />} {proposal ? 'Refazer proposta' : 'Gerar proposta de acordo'}</button></div>
+          {proposal && (<>
+            <textarea className="pa-petition" style={{ minHeight: 320 }} value={proposal} onChange={e => setProposal(e.target.value)} spellCheck />
+            <div className="pa-row">
+              <button className="doc-refresh" onClick={() => navigator.clipboard.writeText(proposal).then(() => setNotice({ kind: 'ok', text: 'Proposta copiada.' }))}><Copy size={17} /> Copiar</button>
+              <button className="doc-refresh" onClick={downloadProposal}><Download size={17} /> Baixar Word</button>
             </div>
           </>)}
         </section>
