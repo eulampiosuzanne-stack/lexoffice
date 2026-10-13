@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2.57.4";
+import { parseModelJson } from "./json-utils.ts";
 
 // Estratégia Processual — lê a documentação do caso (PDF/imagem), monta o dossiê, avalia a chance de êxito,
 // emite parecer ao cliente, pede os documentos que faltam, indica o cálculo, ajuda na jurisprudência
@@ -138,7 +139,7 @@ async function maritaca(key: string, prompt: string | any[], maxTokens: number, 
     const r = await fetch("https://chat.maritaca.ai/api/chat/completions", { signal: AbortSignal.timeout(timeoutMs), method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify({ model, messages: [{ role: "system", content: "Você é advogado(a) brasileiro(a) sênior. Responda somente em português do Brasil." }, { role: "user", content: prompt }], temperature: json ? 0.1 : 0.3, max_tokens: maxTokens, ...(Array.isArray(prompt) ? { extraction_effort: "medium" } : {}) }) });
     const out = await r.json().catch(() => null);
     const text = String(out?.choices?.[0]?.message?.content || "").trim();
-    if (r.ok && text) return { ok: true as const, text, model: `maritaca/${model}` };
+    if (r.ok && text) return { ok: true as const, text, model: `maritaca/${model}`, finishReason: out?.choices?.[0]?.finish_reason || null };
     return { ok: false as const, status: r.status, detail: `maritaca/${model}: ${out?.error?.message || out?.detail || "sem resposta"}` };
   } catch (e) {
     return { ok: false as const, status: 502, detail: `maritaca: ${e instanceof Error ? e.message : String(e)}` };
@@ -406,7 +407,7 @@ Deno.serve(async (req) => {
       const payload = { contents: [{ role: "user", parts: [{ text: analyzePrompt(area, caseInfo, notes) }, ...files.parts] }], generationConfig: { temperature: 0.1, maxOutputTokens: 8192, responseMimeType: "application/json" } };
       const started = Date.now();
       // Sabiá-4 (Maritaca) lê os documentos primeiro; o Gemini fica de reserva.
-      let r: any = mKey ? await maritaca(mKey, files.mparts.length ? [...files.mparts, { type: "text", text: analyzePrompt(area, caseInfo, notes) }] : analyzePrompt(area, caseInfo, notes), 6000, true, 110000) : { ok: false, status: 503, detail: "Maritaca não configurada" };
+      let r: any = mKey ? await maritaca(mKey, files.mparts.length ? [...files.mparts, { type: "text", text: analyzePrompt(area, caseInfo, notes) }] : analyzePrompt(area, caseInfo, notes), 8000, true, 110000) : { ok: false, status: 503, detail: "Maritaca não configurada" };
       const firstTry = r;
       if (!r.ok && key) r = await gemini(key, models, payload, started + 140000);
       if (!r.ok) r = { ...r, detail: `${firstTry.detail || firstTry.status} | ${r.detail || r.status}` };
@@ -415,7 +416,11 @@ Deno.serve(async (req) => {
         return json({ ok: false, error: quota ? `A IA não conseguiu ler os documentos agora (${String(r.detail || r.status).slice(0, 220)}). Tente de novo em alguns minutos.` : `A IA não conseguiu ler os documentos (${r.status}${r.detail ? ": " + r.detail : ""}).` }, 502);
       }
       let dossier: any;
-      try { dossier = JSON.parse(stripFence(r.text)); } catch { return json({ ok: false, error: "A IA devolveu um dossiê em formato inválido. Tente novamente." }, 422); }
+      try { dossier = parseModelJson(r.text); }
+      catch (parseError) {
+        console.error("petition-assistant invalid dossier", { model: r.model, finishReason: r.finishReason || null, textLength: String(r.text || "").length, error: parseError instanceof Error ? parseError.message : String(parseError) });
+        return json({ ok: false, error: "A análise terminou incompleta. A Lex preservou os documentos; tente novamente para concluir o dossiê." }, 422);
+      }
       if (dossier?.calculo?.calculadora && !CALCULATORS.includes(dossier.calculo.calculadora)) dossier.calculo.calculadora = null;
       if (!dossier || typeof dossier !== "object" || Array.isArray(dossier)) return json({ ok: false, error: "A IA devolveu um dossiê em formato inválido. Tente novamente." }, 422);
       dossier.jurimetria = cleanJurimetria(dossier.jurimetria, dossier.chance_exito?.nivel);
