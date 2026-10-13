@@ -149,7 +149,7 @@ export default function PetitionAssistant() {
       if (!org || !u?.user) throw new Error('Sessão expirada. Entre novamente.');
       const added: string[] = [];
       for (const file of Array.from(files)) {
-        if (file.size > 50 * 1024 * 1024) throw new Error(`${file.name} passa de 50 MB.`);
+        if (file.size > 30 * 1024 * 1024) throw new Error(`${file.name} passa de 30 MB.`);
         const ext = file.name.includes('.') ? '.' + file.name.split('.').pop() : '';
         const path = `${org}/documents/${crypto.randomUUID()}-${safe(file.name.replace(ext, ''))}${ext}`;
         const { error: ue } = await supabase.storage.from('lexoffice-documents').upload(path, file, { contentType: file.type || 'application/octet-stream', upsert: false });
