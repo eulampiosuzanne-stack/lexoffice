@@ -4,6 +4,8 @@ import { createClient } from "jsr:@supabase/supabase-js@2.57.4";
 // Estratégia Processual — lê a documentação do caso (PDF/imagem), monta o dossiê, avalia a chance de êxito,
 // emite parecer ao cliente, pede os documentos que faltam, indica o cálculo, ajuda na jurisprudência
 // e redige o rascunho da petição inicial para revisão da advogada.
+// v15 (13/10/2026) — JURIMETRIA: probabilidade de êxito em %, perfil do juízo (quando já pesquisado), condenação estimada,
+//      tempo e custo do processo, faixa de acordo (mínimo/ideal/teto, internos) e minuta de proposta de acordo (action "settlement").
 // v9 — a qualificação do(a) autor(a) vem do cadastro do cliente (nome, CPF, RG, estado civil, profissão, endereço, e-mail),
 //      os dados do escritório (OAB, e-mail, endereço) vêm da LexOffice e a data de hoje é preenchida; [PREENCHER] fica só para o que faltar de verdade.
 
@@ -218,6 +220,7 @@ Regras obrigatórias:
 - "documentos_solicitar": documentos concretos que o CLIENTE deve entregar para fortalecer ou viabilizar a ação, em linguagem simples que um leigo entenda (ex.: "Negativa do plano por escrito", "Relatório médico com CID e indicação de urgência"). Não repita o que já foi enviado. Máximo 12. "essencial": true para os indispensáveis.
 - "prazo": prescrição/decadência aplicável (ex.: CDC art. 26 e 27; CC art. 205 e 206; Decreto 20.910/32; 120 dias do mandado de segurança). "data_limite" (AAAA-MM-DD) só se o termo inicial constar dos documentos/anotações; senão null. "risco": "alto" (menos de 90 dias ou possivelmente vencido), "medio", "baixo" ou "indefinido".
 - Em "calculo.valores", use apenas números/datas extraídos dos documentos (datas em AAAA-MM-DD), com as chaves: principal, startDate, endDate, monthlyAmount, paidAmount, correctionPercent, interestPercent, penalty, rate, directLoss, lostProfits, otherLosses, income, percentage, fixedAmount, dependents, claimValue, feesPercentage. Omita o que não constar.
+- "jurimetria" (uso INTERNO da advogada, nunca vai ao cliente): "probabilidade_exito" é um número inteiro de 0 a 100 coerente com "chance_exito.nivel" (alta = 65 a 90; moderada = 35 a 64; baixa = 5 a 34); "base" explica em uma frase de onde vem o número (provas, entendimento dos tribunais e, se informado em "perfil_juizo" nos dados cadastrados, o histórico do juízo). "perfil_juizo" resume como o juízo costuma decidir casos assim, SOMENTE se esse perfil foi informado nos dados cadastrados; senão "". "condenacao_estimada" (mínimo/provável/máximo em reais) e "acordo" (mínimo/ideal/teto em reais) só com base em valores que constem dos documentos, das anotações ou do cálculo; sem base, null. "acordo.recomendado" = true quando um acordo for mais vantajoso que o risco e o tempo do processo; "momento" diz quando propor (antes de ajuizar, na audiência de conciliação, após a contestação...). "tempo_estimado_meses" é a faixa típica até a sentença de 1º grau no rito indicado. "custo_continuar" resume em uma frase o custo de seguir com o processo x fazer acordo (custas, perícia, sucumbência, tempo).
 
 Responda APENAS com JSON válido neste formato:
 {"tipo_acao":"","rito":"","competencia":"","segredo_justica":false,
@@ -234,6 +237,7 @@ Responda APENAS com JSON válido neste formato:
 "documentos_solicitar":[{"titulo":"","descricao":"","essencial":true}],
 "prazo":{"fundamento":"","termo_inicial":"","data_limite":null,"risco":"indefinido","observacao":""},
 "valor_causa_sugerido":null,
+"jurimetria":{"probabilidade_exito":0,"base":"","perfil_juizo":"","condenacao_estimada":{"minimo":null,"provavel":null,"maximo":null},"tempo_estimado_meses":{"minimo":null,"maximo":null},"custo_continuar":"","acordo":{"recomendado":false,"minimo":null,"ideal":null,"teto":null,"momento":"","justificativa":""}},
 "riscos":[""],
 "pendencias":[""]}`;
 }
@@ -283,7 +287,7 @@ Data de hoje: ${todayLong()} (use no fecho).
 DOSSIÊ:
 ${JSON.stringify(dossier, null, 1)}
 
-Estrutura: PARECER JURÍDICO (título); Interessado; Assunto; I – DA CONSULTA (o que o cliente trouxe); II – DOS FATOS (resumo fiel); III – DA ANÁLISE JURÍDICA (fundamentos em linguagem clara, explicando os termos técnicos); IV – DOS RISCOS E DA CHANCE DE ÊXITO (honesta e equilibrada, usando o nível do dossiê, sem porcentagem e sem prometer resultado); V – DOS DOCUMENTOS NECESSÁRIOS; VI – DO PRAZO (se houver risco de prescrição, deixar claro); VII – CONCLUSÃO E RECOMENDAÇÃO (qual medida judicial ou extrajudicial se recomenda); local, data e assinatura.
+Estrutura: PARECER JURÍDICO (título); Interessado; Assunto; I – DA CONSULTA (o que o cliente trouxe); II – DOS FATOS (resumo fiel); III – DA ANÁLISE JURÍDICA (fundamentos em linguagem clara, explicando os termos técnicos); IV – DOS RISCOS E DA CHANCE DE ÊXITO (honesta e equilibrada, usando o nível do dossiê, sem porcentagem e sem prometer resultado; informe o tempo estimado do processo e, se "jurimetria.acordo.recomendado" for true, explique em linguagem simples por que um acordo pode ser vantajoso — sem citar os valores mínimo, ideal ou teto, que são internos); V – DOS DOCUMENTOS NECESSÁRIOS; VI – DO PRAZO (se houver risco de prescrição, deixar claro); VII – CONCLUSÃO E RECOMENDAÇÃO (qual medida judicial ou extrajudicial se recomenda); local, data e assinatura.
 
 Regras:
 - Linguagem formal, porém compreensível para um leigo. Parágrafos curtos.
@@ -291,6 +295,52 @@ Regras:
 - Não mencione honorários, tabela da OAB, inteligência artificial nem a palavra "boutique".
 - Não invente fatos, valores ou julgados. O que faltar escreva como [PREENCHER: descrição].
 - Texto puro, sem markdown nem asteriscos. Títulos em MAIÚSCULAS em linha própria.`;
+}
+
+// ---------- Jurimetria (v15, 13/10/2026) ----------
+// Perfil do juízo já pesquisado pela Condução Processual (judge-analysis); só entra se existir para o processo.
+async function judgeProfile(a: any, orgId: string, processId: string | null) {
+  if (!processId) return null;
+  try {
+    const { data } = await a.from("process_judge_analyses").select("orgao_nome,tribunal,sample_size,result,created_at").eq("org_id", orgId).eq("process_id", processId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (!data?.result) return null;
+    return { orgao: data.orgao_nome || null, tribunal: data.tribunal || null, amostra_publicacoes: data.sample_size || null, analise: JSON.stringify(data.result).slice(0, 3500) };
+  } catch { return null; }
+}
+const money = (v: unknown) => { if (v === null || v === undefined || v === "") return null; const n = typeof v === "number" ? v : Number(String(v).replace(/[^\d,.-]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".")); return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : null; };
+const int = (v: unknown, lo: number, hi: number) => { const n = Math.round(Number(v)); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : null; };
+// Garante números válidos e coerência: percentual dentro da faixa do nível; faixas em ordem crescente.
+function cleanJurimetria(j: any, nivel?: string) {
+  if (!j || typeof j !== "object") return null;
+  const range: Record<string, [number, number]> = { alta: [65, 90], moderada: [35, 64], media: [35, 64], "média": [35, 64], baixa: [5, 34] };
+  const r = range[String(nivel || "").toLowerCase()];
+  let p = int(j.probabilidade_exito, 0, 100);
+  if (r) p = p === null ? Math.round((r[0] + r[1]) / 2) : Math.min(r[1], Math.max(r[0], p));
+  const tri = (o: any, k: string[]) => { const v = k.map((x) => money(o?.[x])); const s = v.filter((x) => x !== null).sort((x, y) => (x as number) - (y as number)); if (s.length === v.length) k.forEach((x, i) => (v[i] = s[i])); return Object.fromEntries(k.map((x, i) => [x, v[i]])); };
+  const t = j.tempo_estimado_meses || {};
+  let tmin = int(t.minimo, 1, 240), tmax = int(t.maximo, 1, 240);
+  if (tmin !== null && tmax !== null && tmin > tmax) [tmin, tmax] = [tmax, tmin];
+  const ac = j.acordo || {};
+  return {
+    probabilidade_exito: p,
+    base: String(j.base || "").slice(0, 600),
+    perfil_juizo: String(j.perfil_juizo || "").slice(0, 900),
+    condenacao_estimada: tri(j.condenacao_estimada, ["minimo", "provavel", "maximo"]),
+    tempo_estimado_meses: { minimo: tmin, maximo: tmax },
+    custo_continuar: String(j.custo_continuar || "").slice(0, 600),
+    acordo: { recomendado: ac.recomendado === true, ...tri(ac, ["minimo", "ideal", "teto"]), momento: String(ac.momento || "").slice(0, 300), justificativa: String(ac.justificativa || "").slice(0, 900) },
+  };
+}
+function settlementPrompt(area: string, dossier: any, office: any, clientName: string, instructions: string) {
+  return `Redija uma PROPOSTA DE ACORDO (minuta para a advogada revisar e enviar à parte contrária ou apresentar em audiência), em nome de ${clientName || "[PREENCHER: nome do cliente]"}, representado(a) pela advogada ${office.lawyer || "Suzanne Figueiredo"}${office.oab ? `, OAB/MG ${office.oab}` : ""} (${office.name || "Suzanne Figueiredo — Advocacia e Soluções Jurídicas"}).
+Data de hoje: ${todayLong()}.
+Área: ${AREAS[area] || AREAS.civel}
+Instruções da advogada: ${instructions || "(nenhuma)"}
+DOSSIÊ E JURIMETRIA:
+${JSON.stringify(dossier, null, 1).slice(0, 14000)}
+
+Estrutura: PROPOSTA DE ACORDO (título); partes; síntese do conflito (2 a 4 parágrafos, firme, mostrando a força do direito do cliente e o risco da outra parte em continuar); a proposta (valor — use "jurimetria.acordo.ideal" como valor proposto; se for null, escreva [PREENCHER: valor]; forma e prazo de pagamento com opção de parcelamento; obrigações de fazer, se houver); multa por descumprimento; quitação restrita ao objeto; custas e honorários de cada parte; prazo de validade da proposta (10 dias); local, data e assinatura.
+Regras: nunca mencione o valor mínimo nem o teto (são limites internos de negociação); não mencione percentual de chance, jurimetria nem inteligência artificial; não invente fatos ou valores; texto puro, títulos em MAIÚSCULAS em linha própria, sem markdown.`;
 }
 
 async function ask(mKey: string, gKey: string, models: string[], prompt: string, asJson: boolean, maxTokens: number) {
@@ -351,7 +401,8 @@ Deno.serve(async (req) => {
       if (!ids.length && notes.trim().length < 40) return json({ ok: false, error: "Envie ao menos um documento ou descreva o caso com mais detalhes." }, 400);
       const files = await loadFiles(a, orgId, ids);
       const party = await partyInfo(a, orgId, b.client_id ? String(b.client_id) : null);
-      const caseInfo = { ...(b.case_info || {}), ...(party ? { qualificacao_autor: party } : {}) };
+      const judge = await judgeProfile(a, orgId, b.process_id ? String(b.process_id) : null);
+      const caseInfo = { ...(b.case_info || {}), ...(party ? { qualificacao_autor: party } : {}), ...(judge ? { perfil_juizo: judge } : {}) };
       const payload = { contents: [{ role: "user", parts: [{ text: analyzePrompt(area, caseInfo, notes) }, ...files.parts] }], generationConfig: { temperature: 0.1, maxOutputTokens: 8192, responseMimeType: "application/json" } };
       const started = Date.now();
       // Sabiá-4 (Maritaca) lê os documentos primeiro; o Gemini fica de reserva.
@@ -366,6 +417,9 @@ Deno.serve(async (req) => {
       let dossier: any;
       try { dossier = JSON.parse(stripFence(r.text)); } catch { return json({ ok: false, error: "A IA devolveu um dossiê em formato inválido. Tente novamente." }, 422); }
       if (dossier?.calculo?.calculadora && !CALCULATORS.includes(dossier.calculo.calculadora)) dossier.calculo.calculadora = null;
+      if (!dossier || typeof dossier !== "object" || Array.isArray(dossier)) return json({ ok: false, error: "A IA devolveu um dossiê em formato inválido. Tente novamente." }, 422);
+      dossier.jurimetria = cleanJurimetria(dossier.jurimetria, dossier.chance_exito?.nivel);
+      if (!judge && dossier.jurimetria) dossier.jurimetria.perfil_juizo = "";
       const { data: run } = await a.from("petition_assistant_runs").insert({ org_id: orgId, created_by: userId, client_id: b.client_id || null, process_id: b.process_id || null, area, notes, document_ids: ids, dossier, status: "analisado", model: r.model }).select("id").maybeSingle();
       return json({ ok: true, run_id: run?.id || null, dossier, read: files.names, skipped: files.skipped, model: r.model });
     }
@@ -398,11 +452,29 @@ Deno.serve(async (req) => {
       const dossier = b.dossier;
       if (!dossier || typeof dossier !== "object") return json({ ok: false, error: "Faça a análise do caso primeiro." }, 400);
       const office = await officeInfo(a, orgId, b.office || {});
-      const r = await ask(mKey, key, models, opinionPrompt(area, dossier, office, String(b.client_name || "")), false, 6000);
+      // O parecer vai ao cliente: a IA não recebe percentual nem faixas internas de negociação (mínimo/ideal/teto, proposta).
+      const jm = dossier.jurimetria || null;
+      const forClient = { ...dossier, jurimetria: jm ? { tempo_estimado_meses: jm.tempo_estimado_meses || null, acordo: { recomendado: jm.acordo?.recomendado === true, momento: jm.acordo?.momento || "" } } : null };
+      const r = await ask(mKey, key, models, opinionPrompt(area, forClient, office, String(b.client_name || "")), false, 6000);
       if (!r.ok) return json({ ok: false, error: `Não foi possível redigir o parecer agora (${String(r.detail || r.status).slice(0, 200)}). Tente de novo em alguns minutos.` }, 502);
       const opinion = r.text.replace(/\*\*/g, "").replace(/^#+\s*/gm, "").trim();
       if (b.run_id) await a.from("petition_assistant_runs").update({ opinion, dossier, updated_at: new Date().toISOString() }).eq("id", b.run_id).eq("org_id", orgId);
       return json({ ok: true, opinion, model: r.model });
+    }
+
+    // Jurimetria: minuta de proposta de acordo (uso da advogada), a partir do dossiê e da faixa de acordo.
+    if (action === "settlement") {
+      const dossier = b.dossier;
+      if (!dossier || typeof dossier !== "object") return json({ ok: false, error: "Faça a análise do caso primeiro." }, 400);
+      const office = await officeInfo(a, orgId, b.office || {});
+      const r = await ask(mKey, key, models, settlementPrompt(area, dossier, office, String(b.client_name || ""), String(b.instructions || "").slice(0, 3000)), false, 3500);
+      if (!r.ok) return json({ ok: false, error: `Não foi possível redigir a proposta de acordo agora (${String(r.detail || r.status).slice(0, 200)}). Tente de novo em alguns minutos.` }, 502);
+      const proposal = r.text.replace(/\*\*/g, "").replace(/^#+\s*/gm, "").trim();
+      if (b.run_id) {
+        const next = { ...dossier, jurimetria: { ...(dossier.jurimetria || {}), proposta_acordo: proposal } };
+        await a.from("petition_assistant_runs").update({ dossier: next, updated_at: new Date().toISOString() }).eq("id", b.run_id).eq("org_id", orgId);
+      }
+      return json({ ok: true, proposal, model: r.model });
     }
 
     if (action === "save_opinion") {
