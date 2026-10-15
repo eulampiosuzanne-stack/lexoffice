@@ -3,6 +3,7 @@ import { ListChecks, Plus, Trash2, Loader2, CalendarDays, AlertTriangle } from '
 import { supabase } from '../lib/supabase';
 import './afazeres.css';
 
+type CalendarAppointment = {id:string;title:string;description:string|null;starts_at:string;event_type:string|null;status:string|null};
 type Resp = 'suzanne' | 'glaucia' | 'ambas';
 type Task = { law_area:string|null; activity_type:string|null; external_person_name:string|null; client_id:string|null; task_status:string; id: string; title: string; notes: string | null; due_date: string | null; responsible: Resp; priority: 'baixa' | 'normal' | 'alta' | 'urgente'; done_at: string | null; created_at: string };
 const AREAS=['Família','Sucessões','Cível','Consumidor','Bancário','Trabalhista','Criminal','Imobiliário','Saúde','Previdenciário','Tributário','Empresarial','Administrativo','Outros'];
@@ -15,6 +16,7 @@ const dataBR = (iso: string) => iso.split('-').reverse().join('/');
 
 export default function Afazeres({ embedded = false }: { embedded?: boolean }) {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [appointments,setAppointments]=useState<CalendarAppointment[]>([]);
   const [clients,setClients]=useState<{id:string;name:string}[]>([]);
   const [vinculo,setVinculo]=useState('cliente');
   const [areaFiltro,setAreaFiltro]=useState('todas');
@@ -32,11 +34,14 @@ export default function Afazeres({ embedded = false }: { embedded?: boolean }) {
     setLoading(false);
     if (error) { setErro('Não foi possível carregar os afazeres.'); return; }
     setErro(''); setTasks((data || []) as Task[]);
+    const day=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+    const {data:appts}=await supabase.from('calendar_events').select('id,title,description,starts_at,event_type,status').gte('starts_at',`${day}T03:00:00Z`).lt('starts_at',new Date(Date.parse(`${day}T03:00:00Z`)+86400000).toISOString()).order('starts_at');
+    setAppointments((appts||[]) as CalendarAppointment[]);
   }
   useEffect(() => {
     carregar();
     if (!supabase) return;
-    const ch = supabase.channel('lexoffice-afazeres').on('postgres_changes', { event: '*', schema: 'public', table: 'office_tasks' }, () => carregar()).subscribe();
+    const ch = supabase.channel('lexoffice-afazeres').on('postgres_changes', { event: '*', schema: 'public', table: 'office_tasks' }, () => carregar()).on('postgres_changes',{event:'*',schema:'public',table:'calendar_events'},()=>carregar()).subscribe();
     return () => { supabase?.removeChannel(ch); };
   }, []);
 
@@ -104,6 +109,7 @@ export default function Afazeres({ embedded = false }: { embedded?: boolean }) {
       </div>
       <input className="afz-notes" placeholder="Observação (opcional)" value={novo.notes} maxLength={2000} onChange={(e) => setNovo({ ...novo, notes: e.target.value })} aria-label="Observação" />
     </form>}
+    <section className="afz-panel" style={{padding:16,marginBottom:16}}><h2>Atendimentos e avisos de hoje</h2><p>Agenda do escritório, atualizada a partir dos compromissos registrados na LexOffice.</p>{appointments.filter(e=>e.status!=='cancelled').length===0?<p>Nenhum compromisso registrado para hoje.</p>:appointments.filter(e=>e.status!=='cancelled').map(e=>{const hour=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(e.starts_at));const isNotice=/prazo|deadline|audi|hearing|aviso|reminder/i.test(e.event_type||'');const person=isNotice?'Aviso jurídico':Number(hour.slice(0,2))<14?'Gláucia, assessora':'Dra. Suzanne';return <div key={e.id} style={{borderBottom:'1px solid #ddd',padding:'12px 0'}}><strong>{hour} · {person}</strong><div>{e.title}</div>{e.description&&<div style={{whiteSpace:'pre-wrap',fontSize:14,marginTop:5}}>{e.description}</div>}<small>Situação: {e.status==='completed'?'Realizado':e.status==='pending'?'Pendente':'Agendado'}</small></div>})}</section>
     {erro && <p className="afz-erro">{erro}</p>}
     {!embedded && <div className="afz-filters">
       <div className="afz-seg" role="tablist" aria-label="Situação">{(['pendentes', 'feitas', 'todas'] as Filtro[]).map((f) => <button key={f} type="button" role="tab" aria-selected={filtro === f} className={filtro === f ? 'active' : ''} onClick={() => setFiltro(f)}>{f === 'pendentes' ? `Pendentes (${pendentes})` : f === 'feitas' ? 'Feitas' : 'Todas'}</button>)}</div>
