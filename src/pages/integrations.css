@@ -13,3 +13,20 @@
 
 /* Client Area mobile cleanup v2 */
 @media(max-width:760px){.client-area .settings-grid{display:flex!important;flex-direction:column!important}.client-area .panel{padding:14px!important}.client-area .integration-card{box-shadow:none!important;background:#17110C!important}.client-area .integration-card b{font-size:15px!important}.client-area .integration-card p{font-size:13px!important;line-height:1.5!important;margin:8px 0!important}.client-area .panel>h2{position:relative!important;margin:0 0 12px!important;padding-bottom:10px!important;border-bottom:1px solid rgba(255,255,255,.08)!important}.client-area .panel label{font-size:13px!important}.client-area .panel textarea{min-height:110px!important}.client-area .panel .check-row{align-items:center!important;padding:8px 0!important}.client-area .panel .check-row input{width:20px!important;height:20px!important;min-height:20px!important;margin:0!important}.client-area .table-wrap{border-radius:12px!important}.client-area .table-wrap table{font-size:12px!important}.client-area .table-wrap th,.client-area .table-wrap td{padding:10px!important}.client-area .notice{position:sticky!important;top:62px!important;z-index:20!important;margin-bottom:12px!important}.client-area .panel button{width:100%!important;justify-content:center!important}.client-area .integration-card button{margin-top:6px!important}.client-area .integration-card>div[style]{display:grid!important;grid-template-columns:1fr!important;width:100%!important}.client-area .page-heading p{font-size:13px!important;line-height:1.45!important}}
+
+
+/* Central de mensagens: contraste elevado, toque confortável e hierarquia visual */
+.lx-inbox-list{display:grid;gap:12px;margin-top:16px}
+.lx-inbox-item{width:100%;display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:14px;align-items:start;text-align:left;border:1px solid #ded5c4;border-radius:16px;background:#fff;color:#242321;padding:18px;min-height:106px;cursor:pointer;box-shadow:0 3px 12px rgba(36,35,33,.045);transition:border-color .15s,box-shadow .15s}
+.lx-inbox-item:hover,.lx-inbox-item:focus-visible{border-color:#b28a4a;box-shadow:0 4px 16px rgba(178,138,74,.16);outline-offset:3px}
+.lx-inbox-unread{background:#fffaf0;border-left:5px solid #b28a4a}
+.lx-inbox-avatar{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;background:#e9dfc9;color:#61471d;font-size:21px;font-weight:800}
+.lx-inbox-main{display:grid;gap:7px;min-width:0}
+.lx-inbox-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:16px}
+.lx-inbox-subject{font-weight:650;font-size:15px;color:#574223}
+.lx-inbox-preview{color:#585650;font-size:14px;line-height:1.5;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.lx-inbox-badge{border-radius:100px;padding:4px 10px;background:#b28a4a;color:#fff;font-size:12px;font-weight:800}
+.lx-inbox-meta{display:grid;justify-items:end;gap:6px;color:#55524c;font-size:12px;white-space:nowrap}
+.lx-inbox-type{background:#f1ede4;border-radius:100px;padding:4px 8px;font-weight:650}
+.lx-inbox-empty{padding:22px;border:1px dashed #b28a4a;border-radius:14px}
+@media(max-width:600px){.lx-inbox-item{grid-template-columns:42px minmax(0,1fr);gap:10px;padding:14px}.lx-inbox-avatar{width:40px;height:40px}.lx-inbox-meta{grid-column:2;display:flex;justify-content:flex-start;gap:8px;align-items:center;flex-wrap:wrap}.lx-inbox-head{font-size:16px}}
