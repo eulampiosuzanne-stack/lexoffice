@@ -83,6 +83,8 @@ async function sendViaGate(
   agentKey: string,
   image: string | null = null,
   caption: string | null = null,
+  document: string | null = null,
+  fileName: string | null = null,
 ) {
   const u = Deno.env.get("SUPABASE_URL")!,
     sk = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -103,6 +105,9 @@ async function sendViaGate(
       format_agent_reply: false,
       image,
       caption,
+      document,
+      file_name: fileName,
+      operator_send: true,
     }),
   });
   const d = await r.json().catch(() => null);
@@ -202,6 +207,21 @@ Deno.serve(async (req) => {
     const message = String(b.message || "").trim();
     let image = b.image ? String(b.image) : null;
     let caption = b.caption ? String(b.caption) : null;
+    const documentIds: string[] = Array.isArray(b.document_ids) ? [...new Set<string>(b.document_ids.map((x: unknown) => String(x).trim()).filter(Boolean))].slice(0, 10) : [];
+    const documents: Array<{ id: string; name: string; url: string }> = [];
+    if (documentIds.length) {
+      const { data: rows, error: documentsError } = await a.from("documents").select("id,name,file_path,mime_type").eq("org_id", ctx.orgId).in("id", documentIds);
+      if (documentsError) throw documentsError;
+      if ((rows || []).length !== documentIds.length) return json({ ok: false, error: "Um ou mais documentos não foram encontrados neste escritório." }, 404);
+      const byId = new Map((rows || []).map((row: any) => [String(row.id), row]));
+      for (const id of documentIds) {
+        const row: any = byId.get(id);
+        if (!row || (!/pdf/i.test(String(row.mime_type || "")) && !/\.pdf$/i.test(String(row.file_path || "")))) return json({ ok: false, error: `O documento "${row?.name || id}" não é um PDF.` }, 400);
+        const { data: signed, error: signedError } = await a.storage.from("lexoffice-documents").createSignedUrl(String(row.file_path), 3600);
+        if (signedError || !signed?.signedUrl) return json({ ok: false, error: `Não foi possível preparar "${row.name}" para envio.` }, 502);
+        documents.push({ id, name: `${String(row.name || "documento").replace(/\.pdf$/i, "")}.pdf`, url: signed.signedUrl });
+      }
+    }
     if (image && /cartilha-lexoffice\.(png|svg)/i.test(image)) {
       const g = await guideUrl(a);
       if (!g)
@@ -219,8 +239,8 @@ Deno.serve(async (req) => {
       typeof b.keep_ai_active === "boolean" ? b.keep_ai_active : null;
     const keepAiActive =
       explicitKeep !== null ? explicitKeep : ctx.internal || Boolean(nextAgent);
-    if (!message && !image)
-      return json({ ok: false, error: "Mensagem ou imagem obrigatória" }, 400);
+    if (!message && !image && !documents.length)
+      return json({ ok: false, error: "Mensagem, imagem ou documento obrigatório" }, 400);
     if (!targets.length)
       return json(
         { ok: false, error: "Selecione ao menos um destinatário" },
@@ -245,16 +265,26 @@ Deno.serve(async (req) => {
     const results: any[] = [];
     for (const t of unique) {
       try {
-        const d = await sendViaGate(
-          ctx.orgId,
-          t.conversation_id,
-          t.phone,
-          message,
-          `operator:${ctx.orgId}:${t.phone}:${crypto.randomUUID()}`,
-          requestedAgent,
-          image,
-          caption,
-        );
+        let d: any = null;
+        const sentDocuments: string[] = [];
+        if (documents.length) {
+          for (const doc of documents) {
+            const docCaption = message || `Segue o documento ${doc.name} para sua assinatura. Após assinar, devolva o arquivo por este WhatsApp.`;
+            d = await sendViaGate(ctx.orgId, t.conversation_id, t.phone, docCaption, `operator:${ctx.orgId}:${t.phone}:${doc.id}:${crypto.randomUUID()}`, requestedAgent, null, docCaption, doc.url, doc.name);
+            sentDocuments.push(doc.name);
+          }
+        } else {
+          d = await sendViaGate(
+            ctx.orgId,
+            t.conversation_id,
+            t.phone,
+            message,
+            `operator:${ctx.orgId}:${t.phone}:${crypto.randomUUID()}`,
+            requestedAgent,
+            image,
+            caption,
+          );
+        }
         const externalId =
           String(
             d?.provider_response?.messageId || d?.provider_response?.id || "",
@@ -268,13 +298,14 @@ Deno.serve(async (req) => {
               conversation_id: t.conversation_id,
               external_message_id: externalId,
               direction: "outbound",
-              message_type: image ? "image" : "text",
+              message_type: documents.length ? "document" : image ? "image" : "text",
               body: caption || message,
               status: "sent",
               sent_at: now,
               metadata: {
-                source: "zapi_operator_send",
-                provider: "zapi",
+                source: "operator_send",
+                provider: "evolution",
+                documents: sentDocuments,
                 fromMe: true,
                 sender_type: keepAiActive ? "system" : "human",
                 operator_user_id: ctx.userId,
@@ -319,6 +350,7 @@ Deno.serve(async (req) => {
           phone: t.phone,
           name: t.name,
           ok: true,
+          documents: sentDocuments,
           conversation_id: t.conversation_id,
           next_agent_key: nextAgent,
           keep_ai_active: keepAiActive,
