@@ -44,7 +44,7 @@ async function runtimeSecret(a: any, key: string) {
     return "";
   }
 }
-async function evolutionSend(a:any,orgId:string,phone:string,message:string,delaySeconds=0,typing=false,image:string|null=null,caption:string|null=null){
+async function evolutionSend(a:any,orgId:string,phone:string,message:string,delaySeconds=0,typing=false,image:string|null=null,caption:string|null=null,document:string|null=null,fileName:string|null=null){
  const base=(await runtimeSecret(a,"evolution_api_url")).replace(/\/+$/,"");
  const key=await runtimeSecret(a,"evolution_api_key");
  const instance="suzanne-lexoffice",p=digits(phone);
@@ -52,8 +52,13 @@ async function evolutionSend(a:any,orgId:string,phone:string,message:string,dela
  if(!/^https:\/\//.test(base)||!key||!p)throw new Error("Evolution não configurada ou número inválido");
  const {data:instanceRow,error:instanceError}=await a.from("whatsapp_evolution_instances").select("status,is_active").eq("org_id",orgId).eq("instance_name",instance).maybeSingle();
  if(instanceError||instanceRow?.status!=="connected"||instanceRow?.is_active!==true)throw new Error("Instância Evolution não está ativa");
- const endpoint=image?"message/sendMedia":"message/sendText";
- const payload=image?{number:p,mediatype:"image",media:image,caption:caption||message||""}:{number:p,text:message,delay:Math.max(0,Math.min(15000,Math.round(Number(delaySeconds)||0)*1000))};
+ const media=document||image;
+ const endpoint=media?"message/sendMedia":"message/sendText";
+ const payload=document
+   ?{number:p,mediatype:"document",media:document,fileName:fileName||"documento.pdf",caption:caption||message||""}
+   :image
+     ?{number:p,mediatype:"image",media:image,caption:caption||message||""}
+     :{number:p,text:message,delay:Math.max(0,Math.min(15000,Math.round(Number(delaySeconds)||0)*1000))};
  const response=await fetch(base+"/"+endpoint+"/"+encodeURIComponent(instance),{method:"POST",headers:{apikey:key,"Content-Type":"application/json"},body:JSON.stringify(payload),signal:AbortSignal.timeout(16000)});
  const raw=await response.text();let data:any={};try{data=raw?JSON.parse(raw):{}}catch{data={raw:raw.slice(0,240)}}
  if(!response.ok)throw new Error("Evolution "+response.status+": "+String(data?.message||data?.error||raw||"falha").slice(0,280));
@@ -157,8 +162,10 @@ Deno.serve(async (req) => {
       key = String(b.idempotency_key || "").trim() || null,
       rawMessage = String(b.message || "").trim(),
       image = b.image ? String(b.image) : null,
+      document = b.document ? String(b.document) : null,
+      fileName = b.file_name ? String(b.file_name).replace(/[\\/]/g, "-").slice(0, 180) : null,
       caption = b.caption ? String(b.caption) : null;
-    if (!orgId || !target || (!rawMessage && !image)) return json({ ok: false, error: "org_id, destino e mensagem ou imagem são obrigatórios" }, 400);
+    if (!orgId || !target || (!rawMessage && !image && !document)) return json({ ok: false, error: "org_id, destino e mensagem ou mídia são obrigatórios" }, 400);
     const cooldownMin = Number.isFinite(Number(b.human_silence_minutes)) && Number(b.human_silence_minutes) >= 0 ? Number(b.human_silence_minutes) : DEFAULT_COOLDOWN_MIN;
     const cooldownMs = cooldownMin * 60 * 1000;
     const a = admin();
@@ -190,11 +197,11 @@ Deno.serve(async (req) => {
     }
     await trace(a, orgId, conversationId, agentKey, "ready_to_send", { provider: "evolution" });
     try {
-      const provider = await evolutionSend(a, orgId, target, message, automated ? Number(b.delay_seconds || 0) : 0, b.typing_indicator === true, image, caption);
+      const provider = await evolutionSend(a, orgId, target, message, automated ? Number(b.delay_seconds || 0) : 0, b.typing_indicator === true, image, caption, document, fileName);
       await log(a, { org_id: orgId, conversation_id: conversationId, agent_key: agentKey, allowed: true, reason: "sent_evolution", body_preview: previewForLog(message, 240), idempotency_key: key });
       if (conversationId && automated) {
         try {
-          await a.from("whatsapp_messages").insert({ org_id: orgId, conversation_id: conversationId, direction: "outbound", message_type: "text", body: formatted.parsedReply, status: "sent", sent_at: new Date().toISOString(), external_message_id: String(provider?.key?.id || provider?.zaapId || provider?.messageId || provider?.id || "") || null, metadata: { source: "ai_agent", agent_key: agentKey } });
+          await a.from("whatsapp_messages").insert({ org_id: orgId, conversation_id: conversationId, direction: "outbound", message_type: document ? "document" : image ? "image" : "text", body: formatted.parsedReply, status: "sent", sent_at: new Date().toISOString(), external_message_id: String(provider?.key?.id || provider?.zaapId || provider?.messageId || provider?.id || "") || null, metadata: { source: "ai_agent", agent_key: agentKey, file_name: fileName } });
           await a.from("whatsapp_conversations").update({ last_message_at: new Date().toISOString(), last_message_preview: previewForLog(formatted.parsedReply, 120), updated_at: new Date().toISOString() }).eq("id", conversationId);
         } catch (e) { console.error("history_insert", e); }
       }
