@@ -210,14 +210,15 @@ Deno.serve(async (req) => {
     const documentIds: string[] = Array.isArray(b.document_ids) ? [...new Set<string>(b.document_ids.map((x: unknown) => String(x).trim()).filter(Boolean))].slice(0, 10) : [];
     const documents: Array<{ id: string; name: string; url: string }> = [];
     if (documentIds.length) {
-      const { data: rows, error: documentsError } = await a.from("documents").select("id,name,file_path,mime_type").eq("org_id", ctx.orgId).in("id", documentIds);
+      const { data: rows, error: documentsError } = await a.from("documents").select("id,name,file_path,mime_type,category").eq("org_id", ctx.orgId).in("id", documentIds);
       if (documentsError) throw documentsError;
       if ((rows || []).length !== documentIds.length) return json({ ok: false, error: "Um ou mais documentos não foram encontrados neste escritório." }, 404);
       const byId = new Map((rows || []).map((row: any) => [String(row.id), row]));
       for (const id of documentIds) {
         const row: any = byId.get(id);
         if (!row || (!/pdf/i.test(String(row.mime_type || "")) && !/\.pdf$/i.test(String(row.file_path || "")))) return json({ ok: false, error: `O documento "${row?.name || id}" não é um PDF.` }, 400);
-        const { data: signed, error: signedError } = await a.storage.from("lexoffice-documents").createSignedUrl(String(row.file_path), 3600);
+        const storageBucket = String(row.category || "") === "client_portal" ? "client-documents" : "lexoffice-documents";
+        const { data: signed, error: signedError } = await a.storage.from(storageBucket).createSignedUrl(String(row.file_path), 3600);
         if (signedError || !signed?.signedUrl) return json({ ok: false, error: `Não foi possível preparar "${row.name}" para envio.` }, 502);
         documents.push({ id, name: `${String(row.name || "documento").replace(/\.pdf$/i, "")}.pdf`, url: signed.signedUrl });
       }
