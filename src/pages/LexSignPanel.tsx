@@ -115,6 +115,27 @@ export default function LexSignPanel() {
       await loadReqs();
     } catch (e: any) { setNotice(e?.message || 'Falha ao enviar.'); } finally { setBusy(''); }
   }
+  async function sendWhatsAppOnly() {
+    if (!supabase || !client || !phone || !docIds.length) return;
+    const selected = docs.filter((d) => docIds.includes(d.id));
+    if (selected.length > 10) { setNotice('Envie no máximo 10 PDFs por vez pelo WhatsApp.'); return; }
+    const question = selected.length > 1
+      ? `Enviar estes ${selected.length} PDFs diretamente para ${client.name} pelo WhatsApp, sem assinatura pela Lex?`
+      : `Enviar "${selected[0]?.name}" diretamente para ${client.name} pelo WhatsApp, sem assinatura pela Lex?`;
+    if (!window.confirm(question)) return;
+    setBusy('whatsapp-only'); setNotice(''); setLink('');
+    try {
+      const localNumber = String(phone).replace(/\D/g, '').replace(/^0+/, '');
+      if (localNumber.length < 10) throw new Error('O WhatsApp cadastrado para este cliente é inválido.');
+      const number = localNumber.startsWith('55') ? localNumber : `55${localNumber}`;
+      const message = `Olá, ${client.name.split(/\s+/)[0]}. Segue${selected.length > 1 ? 'm os documentos' : ' o documento'} para sua assinatura. Após assinar, por favor devolva${selected.length > 1 ? '-os' : ''} por este WhatsApp.`;
+      const { data, error } = await supabase.functions.invoke('whatsapp-operator-send', { body: { message, document_ids: selected.map((d) => d.id), targets: [{ phone: number, name: client.name }], keep_ai_active: true, mirror_to_app: false } });
+      if (error || !data?.ok || Number(data?.failed || 0) > 0) throw new Error(data?.results?.[0]?.error || data?.error || error?.message || 'O WhatsApp não confirmou o envio.');
+      setNotice(`${selected.length} documento${selected.length > 1 ? 's enviados' : ' enviado'} diretamente para ${client.name} pelo WhatsApp. Nenhuma assinatura foi criada na Lex.`);
+      setDocIds([]);
+    } catch (e: any) { setNotice(e?.message || 'Não foi possível enviar os documentos pelo WhatsApp.'); }
+    finally { setBusy(''); }
+  }
   // Sobe um ou mais PDFs do computador para a ficha do cliente e já deixa marcados para assinatura.
   async function addUploads(files: FileList | null) {
     if (!supabase || !files?.length || !clientId) return;
@@ -243,9 +264,15 @@ export default function LexSignPanel() {
         </label>
         <small style={{ color: '#BDB4A6' }}>Pode escolher vários de uma vez; eles entram marcados na lista acima.</small>
       </div>
-      <button style={{ ...S.btn, marginTop: 14, opacity: !docIds.length || !phone || busy || uploading ? 0.5 : 1 }} disabled={!docIds.length || !phone || !!busy || uploading} onClick={send}>
-        {busy === 'send' ? 'Enviando...' : docIds.length > 1 ? `Enviar ${docIds.length} documentos para assinatura pelo WhatsApp` : 'Enviar para assinatura pelo WhatsApp'}
-      </button>
+      <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
+        <button style={{ ...S.btn, opacity: !docIds.length || !phone || busy || uploading ? 0.5 : 1 }} disabled={!docIds.length || !phone || !!busy || uploading} onClick={send}>
+          {busy === 'send' ? 'Criando assinatura...' : 'Assinar pelo sistema LEX'}
+        </button>
+        <button style={{ ...S.btnAlt, opacity: !docIds.length || !phone || busy || uploading ? 0.5 : 1 }} disabled={!docIds.length || !phone || !!busy || uploading} onClick={sendWhatsAppOnly}>
+          {busy === 'whatsapp-only' ? 'Enviando PDFs...' : 'Enviar PDFs pelo WhatsApp (sem assinatura LEX)'}
+        </button>
+      </div>
+      <small style={{ ...S.p, display: 'block', marginTop: 8 }}>A segunda opção apenas entrega os arquivos no WhatsApp. Ela não cria solicitação, biometria ou assinatura dentro da Lex.</small>
       {notice && <p style={S.notice}>{notice}</p>}
       {link && <div style={S.linkBox}><code style={{ wordBreak: 'break-all' }}>{link}</code><button style={S.small} onClick={() => { navigator.clipboard?.writeText(link); setNotice('Link copiado.'); }}>Copiar link</button></div>}
 
@@ -326,6 +353,7 @@ const S: Record<string, React.CSSProperties> = {
   label: { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, color: '#E7DFD0' },
   input: { background: 'rgba(0,0,0,.25)', border: '1px solid rgba(255,255,255,.14)', borderRadius: 10, padding: '10px 12px', color: 'inherit', fontSize: 14 },
   btn: { background: '#C99443', color: '#fff', border: 0, borderRadius: 10, padding: '12px 18px', fontWeight: 600, fontSize: 15, cursor: 'pointer' },
+  btnAlt: { background: 'transparent', color: '#F2C56D', border: '1px solid #C99443', borderRadius: 10, padding: '12px 18px', fontWeight: 600, fontSize: 15, cursor: 'pointer' },
   small: { background: 'rgba(255,255,255,.06)', color: 'inherit', border: '1px solid rgba(255,255,255,.16)', borderRadius: 8, padding: '6px 10px', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' },
   notice: { margin: '10px 0 0', color: '#d9c38f', fontSize: 14 },
   linkBox: { display: 'flex', gap: 10, alignItems: 'center', marginTop: 10, padding: 10, borderRadius: 10, background: 'rgba(0,0,0,.25)', fontSize: 12 },
