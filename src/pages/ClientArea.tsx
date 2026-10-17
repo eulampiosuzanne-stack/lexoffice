@@ -271,7 +271,7 @@ export default function ClientArea() {
         const number = phone.startsWith("55") ? phone : "55" + phone;
         const sent = await supabase.functions.invoke("whatsapp-operator-send", {
           body: {
-            message: `Olá, ${String(c?.name || "cliente").split(/\s+/)[0]}. Segue o documento “${docTitle.trim()}”. Ele também está disponível na sua Área do Cliente.`,
+            message: `Olá, ${String(c?.name || "cliente").split(/\s+/)[0]}. Você recebeu um novo documento no App do Cliente: “${docTitle.trim()}”. Acesse pelo link oficial: https://lexoffice.univittagroup.com.br/cliente\n\nO documento também segue anexado nesta mensagem.`,
             document_ids: [ins.data.id],
             targets: [{ phone: number, name: c?.name }],
             agent_key: "client_schedule_relationship",
