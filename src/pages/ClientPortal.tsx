@@ -1,45 +1,1047 @@
-import React,{useEffect,useMemo,useState} from 'react';
-import {supabase} from '../lib/supabase';
-import './client-portal.css';
-import InstallAppBanner from '../components/InstallAppBanner';
-import {FileText,Mail,FolderOpen,ListChecks,Wallet,Users} from 'lucide-react';
+import React, { useEffect, useMemo, useState } from "react";
+import { supabase } from "../lib/supabase";
+import "./client-portal.css";
+import InstallAppBanner from "../components/InstallAppBanner";
+import {
+  FileText,
+  Mail,
+  FolderOpen,
+  ListChecks,
+  Wallet,
+  Users,
+} from "lucide-react";
 
-const SUPA='https://dcpwcuototomxoiszukt.supabase.co';
-const KEY='sb_publishable_h1gal1BQha__PKo2_wxY_Q_wZfAqoEm';
-const money=(v:any)=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-const date=(v:any)=>v?new Date(v).toLocaleDateString('pt-BR'):'';
-type Tab='home'|'process'|'messages'|'documents'|'steps'|'finance'|'service'|'urgent';
+const SUPA = "https://dcpwcuototomxoiszukt.supabase.co";
+const KEY = "sb_publishable_h1gal1BQha__PKo2_wxY_Q_wZfAqoEm";
+const money = (v: any) =>
+  Number(v || 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+const date = (v: any) => (v ? new Date(v).toLocaleDateString("pt-BR") : "");
+type Tab =
+  | "home"
+  | "process"
+  | "messages"
+  | "documents"
+  | "steps"
+  | "finance"
+  | "service"
+  | "urgent";
 
-export default function ClientPortal(){
- const[session,setSession]=useState<any>(undefined),[cpf,setCpf]=useState(''),[code,setCode]=useState(''),[busy,setBusy]=useState(false),[err,setErr]=useState('');
- const[tab,setTab]=useState<Tab>('home'),[ctx,setCtx]=useState<any>(),[processes,setProcesses]=useState<any[]>([]),[movements,setMovements]=useState<any[]>([]),[messages,setMessages]=useState<any[]>([]),[docs,setDocs]=useState<any[]>([]),[steps,setSteps]=useState<any[]>([]),[finance,setFinance]=useState<any[]>([]),[bookingDate,setBookingDate]=useState(''),[slots,setSlots]=useState<any[]>([]),[bookingBusy,setBookingBusy]=useState(false),[bookingNotice,setBookingNotice]=useState(''),[serviceCtx,setServiceCtx]=useState<any>(null),[clientMsg,setClientMsg]=useState(''),[serviceChoice,setServiceChoice]=useState<'normal'|'extra'|null>(null),[extraReq,setExtraReq]=useState<any>(null),[serviceNotice,setServiceNotice]=useState(''),[docNotice,setDocNotice]=useState(''),[welcomeOpen,setWelcomeOpen]=useState(false),[timeline,setTimeline]=useState<any[]>([]),[processId,setProcessId]=useState('');
- useEffect(()=>{const qs=new URLSearchParams(window.location.search);const previewKey=qs.get('preview_key');const preview=qs.get('preview')==='1'&&previewKey?localStorage.getItem(previewKey):null;if(preview){try{const p=JSON.parse(preview);localStorage.removeItem(previewKey!);if(!p?.admin_preview||!p?.created_at||Date.now()-Number(p.created_at)>60000)throw new Error('Prévia expirada');(async()=>{setBusy(true);try{const r=await fetch(SUPA+'/functions/v1/swift-service?action=client-app-auth',{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY,Authorization:'Bearer '+KEY},body:JSON.stringify({cpf:p.cpf,access_code:p.access_code})});const d=await r.json();if(r.ok&&d?.email&&d?.password){const a=await supabase.auth.signInWithPassword({email:d.email,password:d.password});if(!a.error){setSession(a.data.session);setBusy(false);return}}setErr('Não foi possível abrir a visualização administrativa.')}catch{setErr('Não foi possível abrir a visualização administrativa.')}setBusy(false)})();return}catch{if(previewKey)localStorage.removeItem(previewKey);setErr('A visualização administrativa expirou. Abra novamente pelo cadastro do cliente.')}}supabase.auth.getSession().then(({data})=>setSession(data.session));const{data:{subscription}}=supabase.auth.onAuthStateChange((_e,s)=>setSession(s));return()=>subscription.unsubscribe()},[]);
- useEffect(()=>{if(!session||!supabase)return;const mark=()=>void supabase.rpc('client_app_mark_installed');const standalone=window.matchMedia?.('(display-mode: standalone)').matches||(navigator as any).standalone===true;if(standalone)mark();window.addEventListener('appinstalled',mark);return()=>window.removeEventListener('appinstalled',mark)},[session]);
- useEffect(()=>{if(!session)return;(async()=>{const {data:c}=await supabase.rpc('client_app_context');const x=c?.[0];setCtx(x);const [p,m,d,s,f]=await Promise.all([supabase.rpc('client_app_processes'),x?.client_id?supabase.from('client_office_messages').select('*').eq('client_id',x.client_id).is('archived_at',null).order('sent_at',{ascending:false}):Promise.resolve({data:[]}),x?.client_id?supabase.from('client_document_requests').select('*').eq('client_id',x.client_id).order('created_at'):Promise.resolve({data:[]}),x?.client_id?supabase.from('client_case_steps').select('*').eq('client_id',x.client_id).order('position'):Promise.resolve({data:[]}),supabase.rpc('client_app_finance')]);setProcesses(p.data||[]);setMessages(m.data||[]);setDocs(d.data||[]);setSteps(s.data||[]);setFinance(f.data||[]);if(p.data?.[0]){setProcessId(p.data[0].id);const [mm,tt]=await Promise.all([supabase.rpc('client_app_movements',{p_process_id:p.data[0].id}),supabase.rpc('client_app_timeline',{p_process_id:p.data[0].id})]);setMovements(mm.data||[]);setTimeline(tt.data||[])}})()},[session]);
- async function selectProcess(id:string){setProcessId(id);const [mm,tt]=await Promise.all([supabase.rpc('client_app_movements',{p_process_id:id}),supabase.rpc('client_app_timeline',{p_process_id:id})]);setMovements(mm.data||[]);setTimeline(tt.data||[])}
- async function decideDoc(id:string,authorize:boolean){const{error}=await supabase.rpc('client_app_decide_document_authorization',{p_request_id:id,p_authorize:authorize});if(error)return setDocNotice(error.message);setDocs(v=>v.map((d:any)=>d.id===id?{...d,authorization_status:authorize?'authorized':'denied'}:d));setDocNotice(authorize?'Autorização registrada. O escritório foi informado.':'Sua opção de não autorizar foi registrada. O escritório foi informado.')} async function openClientDoc(id:string){setDocNotice('');const{data,error}=await supabase.rpc('client_app_document_file',{p_request_id:id});const f=Array.isArray(data)?data[0]:data;if(error||!f?.file_path)return setDocNotice('Documento indisponível no momento.');const r=await supabase.storage.from('client-documents').createSignedUrl(f.file_path,300);if(r.error||!r.data?.signedUrl)return setDocNotice('Não foi possível abrir o documento.');window.open(r.data.signedUrl,'_blank','noopener,noreferrer')}
- async function loadServiceContext(){const{data}=await supabase.rpc('client_app_service_context');setServiceCtx(data||null);return data} useEffect(()=>{if(session&&tab==='service')loadServiceContext()},[session,tab]); async function sendClientMessage(){if(!clientMsg.trim())return setServiceNotice('Escreva sua mensagem.');setBookingBusy(true);const ctx=serviceCtx||await loadServiceContext();if(ctx?.outside_business_hours&&!serviceChoice){setBookingBusy(false);return setServiceNotice('Escolha se deseja deixar a mensagem para o próximo expediente ou solicitar atendimento extraordinário.')}if(serviceChoice==='extra'){const{data,error}=await supabase.rpc('client_app_request_extraordinary',{p_body:clientMsg.trim()});setBookingBusy(false);if(error)return setServiceNotice(error.message);setExtraReq({id:data,...ctx});setServiceNotice('Solicitação registrada. Faça o PIX e envie o comprovante. O atendimento somente será confirmado após aceite do escritório.');return}const{error}=await supabase.rpc('client_app_send_deferred_message',{p_body:clientMsg.trim()});setBookingBusy(false);if(error)return setServiceNotice(error.message);setClientMsg('');setServiceChoice(null);setServiceNotice(ctx?.outside_business_hours?'Mensagem registrada para o próximo período de atendimento.':'Mensagem enviada ao escritório.')} async function uploadExtraReceipt(file:File){if(!extraReq?.id||!ctx?.client_id&&!extraReq)return;setBookingBusy(true);const clientId=ctx?.client_id||extraReq?.client_id||'receipt';const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');const path=(ctx?.client_id||clientId)+'/'+extraReq.id+'-'+Date.now()+'-'+safe;const{error}=await supabase.storage.from('client-documents').upload(path,file,{upsert:false});if(error){setBookingBusy(false);return setServiceNotice('Não foi possível enviar o comprovante. '+error.message)}const r=await supabase.rpc('client_app_attach_extraordinary_receipt',{p_request_id:extraReq.id,p_path:path});setBookingBusy(false);if(r.error)return setServiceNotice(r.error.message);setServiceNotice('Comprovante enviado. A solicitação aguarda confirmação do escritório.');setExtraReq({...extraReq,receipt_path:path})}
- async function loadSlots(v:string){setBookingDate(v);setSlots([]);setBookingNotice('');if(!v)return;setBookingBusy(true);const{data,error}=await supabase.rpc('client_app_available_slots',{p_date:v});setBookingBusy(false);if(error)return setBookingNotice('Não foi possível consultar a agenda.');setSlots(data||[]);if(!data?.length)setBookingNotice('Não há horários disponíveis neste dia. Dias com audiência ou prazo processual ficam bloqueados integralmente.')} async function bookSlot(slot:any){if(!window.confirm('Confirmar este atendimento de 30 minutos?'))return;setBookingBusy(true);setBookingNotice('');const{error}=await supabase.rpc('client_app_book_appointment',{p_start:slot.slot_start});setBookingBusy(false);if(error){setBookingNotice(error.message||'Este horário não está mais disponível.');setSlots([]);return}const sync=await supabase.functions.invoke('google-calendar-sync',{body:{}});setBookingNotice(sync.error?'Atendimento confirmado na LexOffice. A sincronização com o Google Agenda ficou pendente.':'Atendimento confirmado na LexOffice e sincronizado com o Google Agenda. Os lembretes foram programados.');await loadSlots(bookingDate)}
- async function login(e:React.FormEvent){e.preventDefault();setBusy(true);setErr('');if(cpf.trim().toUpperCase()==='SUZANNE'&&code.trim().toUpperCase()==='SF2026'){localStorage.setItem('sf-demo','1');setSession({user:{id:'demo',user_metadata:{client_app:true}}});setBusy(false);return}const digits=cpf.replace(/\D/g,'');if(digits.length!==11||!code.trim()){setBusy(false);setErr('Informe seu CPF e o código de acesso fornecido pelo escritório.');return}try{const r=await fetch(SUPA+'/functions/v1/swift-service?action=client-app-auth',{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY,Authorization:'Bearer '+KEY},body:JSON.stringify({cpf:digits,access_code:code.trim()})});const d=await r.json();if(!r.ok||!d?.email||!d?.password)throw 0;const a=await supabase.auth.signInWithPassword({email:d.email,password:d.password});if(a.error)throw 0}catch{setErr('CPF ou código de acesso inválido.')}finally{setBusy(false)}}
- useEffect(()=>{if(session&&localStorage.getItem('sf-client-welcome-seen')!=='1')setWelcomeOpen(true)},[session]); function closeWelcome(){localStorage.setItem('sf-client-welcome-seen','1');setWelcomeOpen(false)}
- const baseSteps=['Contratação','Documentos','Análise do caso','Elaboração da medida','Protocolo','Distribuição','Acompanhamento','Audiências / Decisões','Encerramento'];
- const stepList=steps.length?steps:baseSteps.map((label,i)=>({id:label,label,position:i+1,status:'pending'}));
- const demo=localStorage.getItem('sf-demo')==='1'; const current=processes.find((p:any)=>p.id===processId)||processes[0],contract=finance[0];
- const tiles=useMemo(()=>[
-  ['Meu Processo','process',<FileText/>],['Recados do Escritório','messages',<Mail/>],['Documentos','documents',<FolderOpen/>],['Próximos Passos','steps',<ListChecks/>],['Financeiro','finance',<Wallet/>],['Meu Atendimento','service',<Users/>]
- ] as const,[]);
- if(session===undefined)return <div className="cp-loading">SF</div>;
- if(!session&&localStorage.getItem('sf-demo')!=='1')return <div className="cp-login"><div className="cp-login-card"><div className="cp-seal">SF</div><h1>SUZANNE FIGUEIREDO</h1><small>ADVOCACIA E SOLUÇÕES JURÍDICAS</small><h2>Bem-vinda ao nosso escritório!</h2><p className="cp-script">Mais que direito, soluções para a sua vida.</p><InstallAppBanner/><form onSubmit={login}><input placeholder="Seu CPF ou login de teste" value={cpf} onChange={e=>setCpf(e.target.value)}/><input type="password" placeholder="Código de acesso" value={code} onChange={e=>setCode(e.target.value)}/>{err&&<p className="cp-error">{err}</p>}<button disabled={busy}>{busy?'Entrando...':'Começar'}</button></form></div></div>;
- const Header=({n,title}:{n:string,title:string})=><header className="cp-head"><span>{n}</span><h2>{title}</h2><i/></header>;
- const Back=()=>tab!=='home'?<button className="cp-back" onClick={()=>setTab('home')}>‹ Início</button>:null;
- return <div className="cp-shell"><main className={`cp-phone ${tab==='home'?'cp-home':'cp-inner'}`}><Back/>{tab==='home'&&<InstallAppBanner/>}
- {tab==='home'&&<>{welcomeOpen&&<div className="cp-welcome-overlay"><div className="cp-welcome-card"><div className="cp-seal">SF</div><h2>Olá, {demo?'Suzanne':(ctx?.client_name?.split(' ')[0]||'Cliente')}!</h2><p className="cp-script">Bem-vinda ao seu espaço exclusivo.</p><h3>📱 Para que serve o aplicativo?</h3><p>O aplicativo da <strong>Suzanne Figueiredo Advocacia e Soluções Jurídicas</strong> foi desenvolvido para facilitar sua comunicação com o escritório e permitir que você acompanhe suas informações jurídicas de forma <strong>organizada, segura e prática</strong>.</p><p>Por meio dele, você poderá consultar <strong>informações do seu processo, acompanhar atualizações, acessar documentos, receber comunicados do escritório e utilizar outros serviços disponíveis na sua Área do Cliente</strong>.</p><p>🔐 <strong>O acesso é individual e protegido</strong>, realizado com seu CPF e o código de acesso enviado pelo escritório.</p><p>📲 Assim, você mantém as principais informações do seu atendimento <strong>na palma da mão</strong>, sem precisar procurar mensagens antigas no WhatsApp.</p><strong>Dra. Suzanne Figueiredo</strong><small>Advocacia e Soluções Jurídicas</small><button className="cp-gold" onClick={closeWelcome}>Entrar no meu espaço</button></div></div>}<section className="cp-hero"><img className="cp-monogram" src="/brand/sf-monogram.png" alt="Monograma SF"/><h1>SUZANNE FIGUEIREDO</h1><small>ADVOCACIA E SOLUÇÕES JURÍDICAS</small><p className="cp-brand-slogan">Mais que direito, soluções para a sua vida.</p><h2>Olá, {demo?'Suzanne':(ctx?.client_name?.split(' ')[0]||'Cliente')}!<br/>Bem-vinda ao seu espaço exclusivo.</h2></section><div className="cp-grid">{tiles.map(([label,t,icon])=><button key={t} onClick={()=>setTab(t as Tab)}><b>{icon}</b><span>{label}</span></button>)}</div><button className="cp-talk" onClick={()=>setTab('service')}>✥ &nbsp; Falar com o Escritório</button></>}
- {tab==='process'&&<><Header n="02" title="MEU PROCESSO"/><section className="cp-card"><h3>Meu Processo</h3><p>Acompanhe o andamento do seu caso com informações atualizadas e linguagem simples.</p>{current?<><label>Selecione o processo</label><select className="cp-select" value={current.id} onChange={e=>selectProcess(e.target.value)}>{processes.map((p:any)=><option key={p.id} value={p.id}>{p.cnj_number||p.subject||'Processo'}</option>)}</select><p className="cp-ok">● Em andamento</p><h4>Linha do tempo</h4>{timeline.length?timeline.map((t:any,i:number)=><article className={'cp-step '+String(t.status||'pending')} key={t.id}><span>{t.status==='completed'?'✓':t.status==='current'?'●':i+1}</span><div><b>{t.phase_label}</b><small>{t.status==='completed'?'Concluído':t.status==='current'?'Etapa atual':'Próxima etapa'}</small>{t.summary&&<p>{t.summary}</p>}{t.last_movement_at&&<time>{date(t.last_movement_at)}</time>}</div></article>):<p className="cp-note">A linha do tempo deste processo ainda está sendo preparada.</p>}<h4>Movimentações</h4>{movements.map((m:any)=><article className="cp-move" key={m.id}><b>{m.title||'Atualização processual'}</b><small>{date(m.movement_date)}</small><p>{m.client_message||m.description}</p></article>)}</>:<p>Nenhum processo liberado para exibição.</p>}</section></>}
- {tab==='messages'&&<><Header n="03" title="RECADOS DO ESCRITÓRIO"/><section className="cp-card"><h3>Recados do Escritório</h3><p>Informações importantes sobre seu atendimento.</p>{messages.length?messages.map((m:any)=><article className={'cp-notice '+String(m.category||'').toLowerCase()} key={m.id}><small>{m.category||'INFORMATIVO'}</small><b>{m.title}</b><p>{m.body}</p><time>{new Date(m.sent_at).toLocaleString('pt-BR')}</time></article>):<p>Nenhum recado novo.</p>}</section></>}
- {tab==='documents'&&<><Header n="04" title="DOCUMENTOS"/><section className="cp-card"><h3>Documentos</h3><p>Envie e acesse seus documentos de forma segura.</p><h4>Checklist do seu caso</h4>{docNotice&&<p className="cp-note">{docNotice}</p>}{docs.length?docs.map((d:any)=><article className="cp-doc" key={d.id}><span><FileText size={20}/></span><div><b>{d.title}</b><small>{d.requires_authorization?(d.authorization_status==='authorized'?'Autorizado':d.authorization_status==='denied'?'Não autorizado':'Aguardando sua autorização'):(d.status==='pending'?'Pendente':'Disponível')}</small>{d.document_id&&<button className="cp-gold" onClick={()=>openClientDoc(d.id)}>Visualizar documento</button>}{d.requires_authorization&&d.authorization_status==='pending'&&<div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:8}}><button className="cp-gold" onClick={()=>decideDoc(d.id,true)}>Autorizar envio</button><button className="cp-gold" onClick={()=>decideDoc(d.id,false)}>Não autorizar</button></div>}</div></article>):['Documento de identificação (RG e CPF)','Comprovante de endereço','Certidão de casamento ou nascimento','Comprovantes de renda','Conversas, prints e provas relevantes','Documentos específicos'].map((x,i)=><article className="cp-doc" key={x}><span><FileText size={20}/></span><div><b>{x}</b><small>{i===0?'Recebido':'Pendente'}</small></div></article>)}</section></>}
- {tab==='steps'&&<><Header n="05" title="PRÓXIMOS PASSOS"/><section className="cp-card"><h3>Próximos Passos</h3><p>Entenda as principais etapas do seu caso.</p>{stepList.map((s:any,i:number)=><article className="cp-step" key={s.id}><span>{i+1}</span><div><b>{s.label}</b><small>{s.status==='completed'?'Concluído':s.status==='current'?'Etapa atual':''}</small></div></article>)}<p className="cp-note">Cada processo possui dinâmica própria. Os prazos dos atos do Poder Judiciário não são controlados pelo escritório.</p></section></>}
- {tab==='finance'&&<><Header n="06" title="FINANCEIRO"/><section className="cp-card"><h3>Financeiro</h3><p>Acompanhe seu plano de honorários de forma clara e organizada.</p>{contract?<><div className="cp-summary"><b>Valor contratado</b><strong>{money(contract.total_amount)}</strong><span>Entrada: {money(contract.down_payment_amount)}</span><span>Parcelas: {contract.installments_count}</span><span>Vencimento: {contract.due_day?'dia '+contract.due_day:'conforme contrato'}</span></div>{finance.filter((x:any)=>x.installment_id).slice(0,6).map((x:any)=><article className="cp-install" key={x.installment_id}><span>{date(x.due_date)}</span><b>{money(x.original_amount)}</b><em>{x.installment_status==='paid'?'Paga':x.installment_status}</em></article>)}</>:<p>Nenhum contrato financeiro disponível.</p>}<div className="cp-person"><b>Dra. Gláucia Gomes</b><small>Financeiro e Assessora Jurídica</small></div></section></>}
- {tab==='service'&&<><Header n="07" title="MEU ATENDIMENTO"/><section className="cp-card"><h3>Agendar atendimento</h3><p>Atendimentos online de 30 minutos, entre 12h e 16h, com intervalo de 15 minutos entre horários. Dias com audiência ou prazo processual não são disponibilizados.</p><label>Escolha uma data</label><input type="date" value={bookingDate} min={new Date().toISOString().slice(0,10)} onChange={e=>loadSlots(e.target.value)} />{bookingBusy&&<p>Consultando agenda...</p>}{slots.length>0&&<div style={{display:'flex',gap:8,flexWrap:'wrap',margin:'14px 0'}}>{slots.map((x:any)=><button className="cp-gold" key={x.slot_start} disabled={bookingBusy} onClick={()=>bookSlot(x)}>{new Date(x.slot_start).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Sao_Paulo'})}</button>)}</div>}{bookingNotice&&<p className="cp-note">{bookingNotice}</p>}<hr/><h3>Falar com o escritório</h3>{serviceCtx?.outside_business_hours&&<div className="cp-alert">O expediente está encerrado. Você pode deixar sua mensagem para o próximo período de atendimento ou solicitar atendimento extraordinário.</div>}<textarea rows={4} placeholder="Escreva sua mensagem para o escritório" value={clientMsg} onChange={e=>setClientMsg(e.target.value)} style={{width:'100%',margin:'10px 0',padding:12}} />{serviceCtx?.outside_business_hours&&<div style={{display:'grid',gap:8,marginBottom:12}}><button className="cp-gold" onClick={()=>setServiceChoice('normal')}>Deixar para o próximo expediente</button><button className="cp-gold" onClick={()=>setServiceChoice('extra')}>Solicitar atendimento extraordinário</button>{serviceChoice==='extra'&&<div className="cp-note"><b>Atendimento extraordinário: {money(serviceCtx.fee)}</b><br/>{serviceCtx.fee_rule}. Atendimento de até 30 minutos, sujeito à disponibilidade e confirmação do escritório. Ao prosseguir, você declara ciência da cobrança.</div>}</div>}<button className="cp-gold" disabled={bookingBusy} onClick={sendClientMessage}>{serviceChoice==='extra'?'Solicitar atendimento extraordinário':'Enviar mensagem'}</button>{extraReq&&<div className="cp-summary"><b>Pagamento via PIX</b><strong>{money(extraReq.fee)}</strong><span>Chave PIX: {extraReq.pix_key||'Consulte o escritório'}</span><span>Favorecido: {extraReq.pix_owner||'Suzanne Figueiredo'}</span><label className="cp-gold" style={{display:'block',textAlign:'center',marginTop:10}}>Enviar comprovante<input type="file" accept="image/*,application/pdf" style={{display:'none'}} onChange={e=>e.target.files?.[0]&&uploadExtraReceipt(e.target.files[0])}/></label></div>}{serviceNotice&&<p className="cp-note">{serviceNotice}</p>}<hr/><h3>Meu Atendimento</h3><p>Seus contatos e informações principais, sempre à mão.</p><div className="cp-person"><b>Dra. Suzanne Figueiredo</b><small>Responsável pela condução jurídica do seu caso</small></div><div className="cp-person"><b>Dra. Gláucia Gomes</b><small>Financeiro e Assessora Jurídica</small></div><div className="cp-person"><b>Helena</b><small>Atendimento e organização</small></div><h4>Canais oficiais do escritório</h4><p>☎ (31) 99690-5968<br/>☎ (31) 99298-4141<br/>✉ glauciaadv15@gmail.com<br/>✉ eulampiosuzanne@gmail.com</p><button className="cp-gold" onClick={()=>setTab('urgent')}>Quando nos avisar imediatamente?</button></section></>}
- {tab==='urgent'&&<><Header n="08" title="QUANDO NOS AVISAR"/><section className="cp-card"><h3>Quando nos avisar imediatamente?</h3><p>Entre em contato o quanto antes em situações que possam impactar diretamente o seu caso.</p>{['Risco à vida ou à integridade física.','Ameaça grave relacionada ao caso.','Intimação ou documento com prazo que você acabou de receber.','Fato novo urgente que possa exigir providência jurídica.'].map(x=><div className="cp-alert" key={x}>⚠ {x}</div>)}<div className="cp-letter"><h4>Uma mensagem da Dra. Suzanne</h4><p>É uma satisfação ter você conosco. A partir de agora, seu caso passa a ser acompanhado por uma estrutura jurídica organizada, com atenção, responsabilidade e clareza em cada etapa.</p><strong>Dra. Suzanne Figueiredo</strong><small>OAB/MG</small></div></section></>}
- </main><nav className="cp-nav"><button onClick={()=>setTab('home')}>⌂<small>Início</small></button><button onClick={()=>setTab('messages')}>●<small>Notificações</small></button><button onClick={()=>{localStorage.removeItem('sf-demo');supabase.auth.signOut();setSession(null)}}>♙<small>Sair</small></button></nav></div>
+export default function ClientPortal() {
+  const [session, setSession] = useState<any>(undefined),
+    [cpf, setCpf] = useState(""),
+    [code, setCode] = useState(""),
+    [busy, setBusy] = useState(false),
+    [err, setErr] = useState("");
+  const [tab, setTab] = useState<Tab>("home"),
+    [ctx, setCtx] = useState<any>(),
+    [processes, setProcesses] = useState<any[]>([]),
+    [movements, setMovements] = useState<any[]>([]),
+    [messages, setMessages] = useState<any[]>([]),
+    [docs, setDocs] = useState<any[]>([]),
+    [steps, setSteps] = useState<any[]>([]),
+    [finance, setFinance] = useState<any[]>([]),
+    [bookingDate, setBookingDate] = useState(""),
+    [slots, setSlots] = useState<any[]>([]),
+    [bookingBusy, setBookingBusy] = useState(false),
+    [bookingNotice, setBookingNotice] = useState(""),
+    [serviceCtx, setServiceCtx] = useState<any>(null),
+    [clientMsg, setClientMsg] = useState(""),
+    [serviceChoice, setServiceChoice] = useState<"normal" | "extra" | null>(
+      null,
+    ),
+    [extraReq, setExtraReq] = useState<any>(null),
+    [serviceNotice, setServiceNotice] = useState(""),
+    [docNotice, setDocNotice] = useState(""),
+    [welcomeOpen, setWelcomeOpen] = useState(false),
+    [timeline, setTimeline] = useState<any[]>([]),
+    [processId, setProcessId] = useState("");
+  useEffect(() => {
+    const qs = new URLSearchParams(window.location.search);
+    const previewKey = qs.get("preview_key");
+    const preview =
+      qs.get("preview") === "1" && previewKey
+        ? localStorage.getItem(previewKey)
+        : null;
+    if (preview) {
+      try {
+        const p = JSON.parse(preview);
+        localStorage.removeItem(previewKey!);
+        if (
+          !p?.admin_preview ||
+          !p?.created_at ||
+          Date.now() - Number(p.created_at) > 60000
+        )
+          throw new Error("Prévia expirada");
+        (async () => {
+          setBusy(true);
+          try {
+            const r = await fetch(
+              SUPA + "/functions/v1/swift-service?action=client-app-auth",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  apikey: KEY,
+                  Authorization: "Bearer " + KEY,
+                },
+                body: JSON.stringify({
+                  cpf: p.cpf,
+                  access_code: p.access_code,
+                }),
+              },
+            );
+            const d = await r.json();
+            if (r.ok && d?.email && d?.password) {
+              const a = await supabase.auth.signInWithPassword({
+                email: d.email,
+                password: d.password,
+              });
+              if (!a.error) {
+                setSession(a.data.session);
+                setBusy(false);
+                return;
+              }
+            }
+            setErr("Não foi possível abrir a visualização administrativa.");
+          } catch {
+            setErr("Não foi possível abrir a visualização administrativa.");
+          }
+          setBusy(false);
+        })();
+        return;
+      } catch {
+        if (previewKey) localStorage.removeItem(previewKey);
+        setErr(
+          "A visualização administrativa expirou. Abra novamente pelo cadastro do cliente.",
+        );
+      }
+    }
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    return () => subscription.unsubscribe();
+  }, []);
+  useEffect(() => {
+    if (!session || !supabase) return;
+    const mark = () => void supabase.rpc("client_app_mark_installed");
+    const standalone =
+      window.matchMedia?.("(display-mode: standalone)").matches ||
+      (navigator as any).standalone === true;
+    if (standalone) mark();
+    window.addEventListener("appinstalled", mark);
+    return () => window.removeEventListener("appinstalled", mark);
+  }, [session]);
+  useEffect(() => {
+    if (!session) return;
+    (async () => {
+      const { data: c } = await supabase.rpc("client_app_context");
+      const x = c?.[0];
+      setCtx(x);
+      const [p, m, d, s, f] = await Promise.all([
+        supabase.rpc("client_app_processes"),
+        x?.client_id
+          ? supabase
+              .from("client_office_messages")
+              .select("*")
+              .eq("client_id", x.client_id)
+              .is("archived_at", null)
+              .order("sent_at", { ascending: false })
+          : Promise.resolve({ data: [] }),
+        x?.client_id
+          ? supabase
+              .from("client_document_requests")
+              .select("*")
+              .eq("client_id", x.client_id)
+              .order("created_at")
+          : Promise.resolve({ data: [] }),
+        x?.client_id
+          ? supabase
+              .from("client_case_steps")
+              .select("*")
+              .eq("client_id", x.client_id)
+              .order("position")
+          : Promise.resolve({ data: [] }),
+        supabase.rpc("client_app_finance"),
+      ]);
+      setProcesses(p.data || []);
+      setMessages(m.data || []);
+      setDocs(d.data || []);
+      setSteps(s.data || []);
+      setFinance(f.data || []);
+      if (p.data?.[0]) {
+        setProcessId(p.data[0].id);
+        const [mm, tt] = await Promise.all([
+          supabase.rpc("client_app_movements", { p_process_id: p.data[0].id }),
+          supabase.rpc("client_app_timeline", { p_process_id: p.data[0].id }),
+        ]);
+        setMovements(mm.data || []);
+        setTimeline(tt.data || []);
+      }
+    })();
+  }, [session]);
+  async function selectProcess(id: string) {
+    setProcessId(id);
+    const [mm, tt] = await Promise.all([
+      supabase.rpc("client_app_movements", { p_process_id: id }),
+      supabase.rpc("client_app_timeline", { p_process_id: id }),
+    ]);
+    setMovements(mm.data || []);
+    setTimeline(tt.data || []);
+  }
+  async function decideDoc(id: string, authorize: boolean) {
+    const { error } = await supabase.rpc(
+      "client_app_decide_document_authorization",
+      { p_request_id: id, p_authorize: authorize },
+    );
+    if (error) return setDocNotice(error.message);
+    setDocs((v) =>
+      v.map((d: any) =>
+        d.id === id
+          ? { ...d, authorization_status: authorize ? "authorized" : "denied" }
+          : d,
+      ),
+    );
+    setDocNotice(
+      authorize
+        ? "Autorização registrada. O escritório foi informado."
+        : "Sua opção de não autorizar foi registrada. O escritório foi informado.",
+    );
+  }
+  async function openClientDoc(id: string) {
+    setDocNotice("");
+    const { data, error } = await supabase.rpc("client_app_document_file", {
+      p_request_id: id,
+    });
+    const f = Array.isArray(data) ? data[0] : data;
+    if (error || !f?.file_path)
+      return setDocNotice("Documento indisponível no momento.");
+    const r = await supabase.storage
+      .from("client-documents")
+      .createSignedUrl(f.file_path, 300);
+    if (r.error || !r.data?.signedUrl)
+      return setDocNotice("Não foi possível abrir o documento.");
+    window.open(r.data.signedUrl, "_blank", "noopener,noreferrer");
+  }
+  async function loadServiceContext() {
+    const { data } = await supabase.rpc("client_app_service_context");
+    setServiceCtx(data || null);
+    return data;
+  }
+  useEffect(() => {
+    if (session && tab === "service") loadServiceContext();
+  }, [session, tab]);
+  async function sendClientMessage() {
+    if (!clientMsg.trim()) return setServiceNotice("Escreva sua mensagem.");
+    setBookingBusy(true);
+    const ctx = serviceCtx || (await loadServiceContext());
+    if (ctx?.outside_business_hours && !serviceChoice) {
+      setBookingBusy(false);
+      return setServiceNotice(
+        "Escolha se deseja deixar a mensagem para o próximo expediente ou solicitar atendimento extraordinário.",
+      );
+    }
+    if (serviceChoice === "extra") {
+      const { data, error } = await supabase.rpc(
+        "client_app_request_extraordinary",
+        { p_body: clientMsg.trim() },
+      );
+      setBookingBusy(false);
+      if (error) return setServiceNotice(error.message);
+      setExtraReq({ id: data, ...ctx });
+      setServiceNotice(
+        "Solicitação registrada. Faça o PIX e envie o comprovante. O atendimento somente será confirmado após aceite do escritório.",
+      );
+      return;
+    }
+    const { error } = await supabase.rpc("client_app_send_deferred_message", {
+      p_body: clientMsg.trim(),
+    });
+    setBookingBusy(false);
+    if (error) return setServiceNotice(error.message);
+    setClientMsg("");
+    setServiceChoice(null);
+    setServiceNotice(
+      ctx?.outside_business_hours
+        ? "Mensagem registrada para o próximo período de atendimento."
+        : "Mensagem enviada ao escritório.",
+    );
+  }
+  async function uploadExtraReceipt(file: File) {
+    if (!extraReq?.id || (!ctx?.client_id && !extraReq)) return;
+    setBookingBusy(true);
+    const clientId = ctx?.client_id || extraReq?.client_id || "receipt";
+    const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path =
+      (ctx?.client_id || clientId) +
+      "/" +
+      extraReq.id +
+      "-" +
+      Date.now() +
+      "-" +
+      safe;
+    const { error } = await supabase.storage
+      .from("client-documents")
+      .upload(path, file, { upsert: false });
+    if (error) {
+      setBookingBusy(false);
+      return setServiceNotice(
+        "Não foi possível enviar o comprovante. " + error.message,
+      );
+    }
+    const r = await supabase.rpc("client_app_attach_extraordinary_receipt", {
+      p_request_id: extraReq.id,
+      p_path: path,
+    });
+    setBookingBusy(false);
+    if (r.error) return setServiceNotice(r.error.message);
+    setServiceNotice(
+      "Comprovante enviado. A solicitação aguarda confirmação do escritório.",
+    );
+    setExtraReq({ ...extraReq, receipt_path: path });
+  }
+  async function loadSlots(v: string) {
+    setBookingDate(v);
+    setSlots([]);
+    setBookingNotice("");
+    if (!v) return;
+    setBookingBusy(true);
+      const { data, error } = await supabase.functions.invoke("lazy-probe-tmp", {
+      body: { action: "availability", date: v },
+    });
+    setBookingBusy(false);
+    if (error || data?.error)
+      return setBookingNotice(
+        data?.error ||
+          error?.message ||
+          "Não foi possível consultar a Agenda Google da LEX.",
+      );
+    setSlots(data?.slots || []);
+    if (!data?.slots?.length)
+      setBookingNotice(
+        data?.message || "Não há horários disponíveis neste dia.",
+      );
+  }
+  async function bookSlot(slot: any) {
+    if (
+      !window.confirm(
+        `Confirmar atendimento de 30 minutos com ${slot.professional_name}?`,
+      )
+    )
+      return;
+    setBookingBusy(true);
+    setBookingNotice("");
+      const { data, error } = await supabase.functions.invoke("lazy-probe-tmp", {
+      body: { action: "book", date: bookingDate, slot_start: slot.slot_start },
+    });
+    setBookingBusy(false);
+    if (error || data?.error) {
+      setBookingNotice(
+        data?.error ||
+          error?.message ||
+          "Este horário não está mais disponível.",
+      );
+      setSlots([]);
+      return;
+    }
+    setBookingNotice(
+      `Atendimento confirmado com ${data.professional_name} na Agenda Google da LEX. Os lembretes foram programados.`,
+    );
+    await loadSlots(bookingDate);
+  }
+  async function login(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setErr("");
+    if (
+      cpf.trim().toUpperCase() === "SUZANNE" &&
+      code.trim().toUpperCase() === "SF2026"
+    ) {
+      localStorage.setItem("sf-demo", "1");
+      setSession({ user: { id: "demo", user_metadata: { client_app: true } } });
+      setBusy(false);
+      return;
+    }
+    const digits = cpf.replace(/\D/g, "");
+    if (digits.length !== 11 || !code.trim()) {
+      setBusy(false);
+      setErr("Informe seu CPF e o código de acesso fornecido pelo escritório.");
+      return;
+    }
+    try {
+      const r = await fetch(
+        SUPA + "/functions/v1/swift-service?action=client-app-auth",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: KEY,
+            Authorization: "Bearer " + KEY,
+          },
+          body: JSON.stringify({ cpf: digits, access_code: code.trim() }),
+        },
+      );
+      const d = await r.json();
+      if (!r.ok || !d?.email || !d?.password) throw 0;
+      const a = await supabase.auth.signInWithPassword({
+        email: d.email,
+        password: d.password,
+      });
+      if (a.error) throw 0;
+    } catch {
+      setErr("CPF ou código de acesso inválido.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  useEffect(() => {
+    if (session && localStorage.getItem("sf-client-welcome-seen") !== "1")
+      setWelcomeOpen(true);
+  }, [session]);
+  function closeWelcome() {
+    localStorage.setItem("sf-client-welcome-seen", "1");
+    setWelcomeOpen(false);
+  }
+  const baseSteps = [
+    "Contratação",
+    "Documentos",
+    "Análise do caso",
+    "Elaboração da medida",
+    "Protocolo",
+    "Distribuição",
+    "Acompanhamento",
+    "Audiências / Decisões",
+    "Encerramento",
+  ];
+  const stepList = steps.length
+    ? steps
+    : baseSteps.map((label, i) => ({
+        id: label,
+        label,
+        position: i + 1,
+        status: "pending",
+      }));
+  const demo = localStorage.getItem("sf-demo") === "1";
+  const current =
+      processes.find((p: any) => p.id === processId) || processes[0],
+    contract = finance[0];
+  const tiles = useMemo(
+    () =>
+      [
+        ["Meu Processo", "process", <FileText />],
+        ["Recados do Escritório", "messages", <Mail />],
+        ["Documentos", "documents", <FolderOpen />],
+        ["Próximos Passos", "steps", <ListChecks />],
+        ["Financeiro", "finance", <Wallet />],
+        ["Meu Atendimento", "service", <Users />],
+      ] as const,
+    [],
+  );
+  if (session === undefined) return <div className="cp-loading">SF</div>;
+  if (!session && localStorage.getItem("sf-demo") !== "1")
+    return (
+      <div className="cp-login">
+        <div className="cp-login-card">
+          <div className="cp-seal">SF</div>
+          <h1>SUZANNE FIGUEIREDO</h1>
+          <small>ADVOCACIA E SOLUÇÕES JURÍDICAS</small>
+          <h2>Bem-vinda ao nosso escritório!</h2>
+          <p className="cp-script">
+            Mais que direito, soluções para a sua vida.
+          </p>
+          <InstallAppBanner />
+          <form onSubmit={login}>
+            <input
+              placeholder="Seu CPF ou login de teste"
+              value={cpf}
+              onChange={(e) => setCpf(e.target.value)}
+            />
+            <input
+              type="password"
+              placeholder="Código de acesso"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+            />
+            {err && <p className="cp-error">{err}</p>}
+            <button disabled={busy}>{busy ? "Entrando..." : "Começar"}</button>
+          </form>
+        </div>
+      </div>
+    );
+  const Header = ({ n, title }: { n: string; title: string }) => (
+    <header className="cp-head">
+      <span>{n}</span>
+      <h2>{title}</h2>
+      <i />
+    </header>
+  );
+  const Back = () =>
+    tab !== "home" ? (
+      <button className="cp-back" onClick={() => setTab("home")}>
+        ‹ Início
+      </button>
+    ) : null;
+  return (
+    <div className="cp-shell">
+      <main className={`cp-phone ${tab === "home" ? "cp-home" : "cp-inner"}`}>
+        <Back />
+        {tab === "home" && <InstallAppBanner />}
+        {tab === "home" && (
+          <>
+            {welcomeOpen && (
+              <div className="cp-welcome-overlay">
+                <div className="cp-welcome-card">
+                  <div className="cp-seal">SF</div>
+                  <h2>
+                    Olá,{" "}
+                    {demo
+                      ? "Suzanne"
+                      : ctx?.client_name?.split(" ")[0] || "Cliente"}
+                    !
+                  </h2>
+                  <p className="cp-script">
+                    Bem-vinda ao seu espaço exclusivo.
+                  </p>
+                  <h3>📱 Para que serve o aplicativo?</h3>
+                  <p>
+                    O aplicativo da{" "}
+                    <strong>
+                      Suzanne Figueiredo Advocacia e Soluções Jurídicas
+                    </strong>{" "}
+                    foi desenvolvido para facilitar sua comunicação com o
+                    escritório e permitir que você acompanhe suas informações
+                    jurídicas de forma{" "}
+                    <strong>organizada, segura e prática</strong>.
+                  </p>
+                  <p>
+                    Por meio dele, você poderá consultar{" "}
+                    <strong>
+                      informações do seu processo, acompanhar atualizações,
+                      acessar documentos, receber comunicados do escritório e
+                      utilizar outros serviços disponíveis na sua Área do
+                      Cliente
+                    </strong>
+                    .
+                  </p>
+                  <p>
+                    🔐 <strong>O acesso é individual e protegido</strong>,
+                    realizado com seu CPF e o código de acesso enviado pelo
+                    escritório.
+                  </p>
+                  <p>
+                    📲 Assim, você mantém as principais informações do seu
+                    atendimento <strong>na palma da mão</strong>, sem precisar
+                    procurar mensagens antigas no WhatsApp.
+                  </p>
+                  <strong>Dra. Suzanne Figueiredo</strong>
+                  <small>Advocacia e Soluções Jurídicas</small>
+                  <button className="cp-gold" onClick={closeWelcome}>
+                    Entrar no meu espaço
+                  </button>
+                </div>
+              </div>
+            )}
+            <section className="cp-hero">
+              <img
+                className="cp-monogram"
+                src="/brand/sf-monogram.png"
+                alt="Monograma SF"
+              />
+              <h1>SUZANNE FIGUEIREDO</h1>
+              <small>ADVOCACIA E SOLUÇÕES JURÍDICAS</small>
+              <p className="cp-brand-slogan">
+                Mais que direito, soluções para a sua vida.
+              </p>
+              <h2>
+                Olá,{" "}
+                {demo
+                  ? "Suzanne"
+                  : ctx?.client_name?.split(" ")[0] || "Cliente"}
+                !<br />
+                Bem-vinda ao seu espaço exclusivo.
+              </h2>
+            </section>
+            <div className="cp-grid">
+              {tiles.map(([label, t, icon]) => (
+                <button key={t} onClick={() => setTab(t as Tab)}>
+                  <b>{icon}</b>
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+            <button className="cp-talk" onClick={() => setTab("service")}>
+              ✥ &nbsp; Falar com o Escritório
+            </button>
+          </>
+        )}
+        {tab === "process" && (
+          <>
+            <Header n="02" title="MEU PROCESSO" />
+            <section className="cp-card">
+              <h3>Meu Processo</h3>
+              <p>
+                Acompanhe o andamento do seu caso com informações atualizadas e
+                linguagem simples.
+              </p>
+              {current ? (
+                <>
+                  <label>Selecione o processo</label>
+                  <select
+                    className="cp-select"
+                    value={current.id}
+                    onChange={(e) => selectProcess(e.target.value)}
+                  >
+                    {processes.map((p: any) => (
+                      <option key={p.id} value={p.id}>
+                        {p.cnj_number || p.subject || "Processo"}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="cp-ok">● Em andamento</p>
+                  <h4>Linha do tempo</h4>
+                  {timeline.length ? (
+                    timeline.map((t: any, i: number) => (
+                      <article
+                        className={"cp-step " + String(t.status || "pending")}
+                        key={t.id}
+                      >
+                        <span>
+                          {t.status === "completed"
+                            ? "✓"
+                            : t.status === "current"
+                              ? "●"
+                              : i + 1}
+                        </span>
+                        <div>
+                          <b>{t.phase_label}</b>
+                          <small>
+                            {t.status === "completed"
+                              ? "Concluído"
+                              : t.status === "current"
+                                ? "Etapa atual"
+                                : "Próxima etapa"}
+                          </small>
+                          {t.summary && <p>{t.summary}</p>}
+                          {t.last_movement_at && (
+                            <time>{date(t.last_movement_at)}</time>
+                          )}
+                        </div>
+                      </article>
+                    ))
+                  ) : (
+                    <p className="cp-note">
+                      A linha do tempo deste processo ainda está sendo
+                      preparada.
+                    </p>
+                  )}
+                  <h4>Movimentações</h4>
+                  {movements.map((m: any) => (
+                    <article className="cp-move" key={m.id}>
+                      <b>{m.title || "Atualização processual"}</b>
+                      <small>{date(m.movement_date)}</small>
+                      <p>{m.client_message || m.description}</p>
+                    </article>
+                  ))}
+                </>
+              ) : (
+                <p>Nenhum processo liberado para exibição.</p>
+              )}
+            </section>
+          </>
+        )}
+        {tab === "messages" && (
+          <>
+            <Header n="03" title="RECADOS DO ESCRITÓRIO" />
+            <section className="cp-card">
+              <h3>Recados do Escritório</h3>
+              <p>Informações importantes sobre seu atendimento.</p>
+              {messages.length ? (
+                messages.map((m: any) => (
+                  <article
+                    className={
+                      "cp-notice " + String(m.category || "").toLowerCase()
+                    }
+                    key={m.id}
+                  >
+                    <small>{m.category || "INFORMATIVO"}</small>
+                    <b>{m.title}</b>
+                    <p>{m.body}</p>
+                    <time>{new Date(m.sent_at).toLocaleString("pt-BR")}</time>
+                  </article>
+                ))
+              ) : (
+                <p>Nenhum recado novo.</p>
+              )}
+            </section>
+          </>
+        )}
+        {tab === "documents" && (
+          <>
+            <Header n="04" title="DOCUMENTOS" />
+            <section className="cp-card">
+              <h3>Documentos</h3>
+              <p>Envie e acesse seus documentos de forma segura.</p>
+              <h4>Checklist do seu caso</h4>
+              {docNotice && <p className="cp-note">{docNotice}</p>}
+              {docs.length
+                ? docs.map((d: any) => (
+                    <article className="cp-doc" key={d.id}>
+                      <span>
+                        <FileText size={20} />
+                      </span>
+                      <div>
+                        <b>{d.title}</b>
+                        <small>
+                          {d.requires_authorization
+                            ? d.authorization_status === "authorized"
+                              ? "Autorizado"
+                              : d.authorization_status === "denied"
+                                ? "Não autorizado"
+                                : "Aguardando sua autorização"
+                            : d.status === "pending"
+                              ? "Pendente"
+                              : "Disponível"}
+                        </small>
+                        {d.document_id && (
+                          <button
+                            className="cp-gold"
+                            onClick={() => openClientDoc(d.id)}
+                          >
+                            Visualizar documento
+                          </button>
+                        )}
+                        {d.requires_authorization &&
+                          d.authorization_status === "pending" && (
+                            <div
+                              style={{
+                                display: "flex",
+                                gap: 8,
+                                flexWrap: "wrap",
+                                marginTop: 8,
+                              }}
+                            >
+                              <button
+                                className="cp-gold"
+                                onClick={() => decideDoc(d.id, true)}
+                              >
+                                Autorizar envio
+                              </button>
+                              <button
+                                className="cp-gold"
+                                onClick={() => decideDoc(d.id, false)}
+                              >
+                                Não autorizar
+                              </button>
+                            </div>
+                          )}
+                      </div>
+                    </article>
+                  ))
+                : [
+                    "Documento de identificação (RG e CPF)",
+                    "Comprovante de endereço",
+                    "Certidão de casamento ou nascimento",
+                    "Comprovantes de renda",
+                    "Conversas, prints e provas relevantes",
+                    "Documentos específicos",
+                  ].map((x, i) => (
+                    <article className="cp-doc" key={x}>
+                      <span>
+                        <FileText size={20} />
+                      </span>
+                      <div>
+                        <b>{x}</b>
+                        <small>{i === 0 ? "Recebido" : "Pendente"}</small>
+                      </div>
+                    </article>
+                  ))}
+            </section>
+          </>
+        )}
+        {tab === "steps" && (
+          <>
+            <Header n="05" title="PRÓXIMOS PASSOS" />
+            <section className="cp-card">
+              <h3>Próximos Passos</h3>
+              <p>Entenda as principais etapas do seu caso.</p>
+              {stepList.map((s: any, i: number) => (
+                <article className="cp-step" key={s.id}>
+                  <span>{i + 1}</span>
+                  <div>
+                    <b>{s.label}</b>
+                    <small>
+                      {s.status === "completed"
+                        ? "Concluído"
+                        : s.status === "current"
+                          ? "Etapa atual"
+                          : ""}
+                    </small>
+                  </div>
+                </article>
+              ))}
+              <p className="cp-note">
+                Cada processo possui dinâmica própria. Os prazos dos atos do
+                Poder Judiciário não são controlados pelo escritório.
+              </p>
+            </section>
+          </>
+        )}
+        {tab === "finance" && (
+          <>
+            <Header n="06" title="FINANCEIRO" />
+            <section className="cp-card">
+              <h3>Financeiro</h3>
+              <p>
+                Acompanhe seu plano de honorários de forma clara e organizada.
+              </p>
+              {contract ? (
+                <>
+                  <div className="cp-summary">
+                    <b>Valor contratado</b>
+                    <strong>{money(contract.total_amount)}</strong>
+                    <span>Entrada: {money(contract.down_payment_amount)}</span>
+                    <span>Parcelas: {contract.installments_count}</span>
+                    <span>
+                      Vencimento:{" "}
+                      {contract.due_day
+                        ? "dia " + contract.due_day
+                        : "conforme contrato"}
+                    </span>
+                  </div>
+                  {finance
+                    .filter((x: any) => x.installment_id)
+                    .slice(0, 6)
+                    .map((x: any) => (
+                      <article className="cp-install" key={x.installment_id}>
+                        <span>{date(x.due_date)}</span>
+                        <b>{money(x.original_amount)}</b>
+                        <em>
+                          {x.installment_status === "paid"
+                            ? "Paga"
+                            : x.installment_status}
+                        </em>
+                      </article>
+                    ))}
+                </>
+              ) : (
+                <p>Nenhum contrato financeiro disponível.</p>
+              )}
+              <div className="cp-person">
+                <b>Dra. Gláucia Gomes</b>
+                <small>Financeiro e Assessora Jurídica</small>
+              </div>
+            </section>
+          </>
+        )}
+        {tab === "service" && (
+          <>
+            <Header n="07" title="MEU ATENDIMENTO" />
+            <section className="cp-card">
+              <h3>Agendar atendimento</h3>
+              <p>
+                Atendimentos online de 30 minutos, de segunda a sexta-feira.
+                Das 8h às 14h, com a Dra. Gláucia; das 14h às 18h, com a Dra.
+                Suzanne. Depois de um agendamento, o próximo fica disponível
+                após 2 dias úteis. Os horários são confirmados na Agenda Google
+                da LEX.
+              </p>
+              <label>Escolha uma data</label>
+              <input
+                type="date"
+                value={bookingDate}
+                min={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => loadSlots(e.target.value)}
+              />
+              {bookingBusy && <p>Consultando Agenda Google da LEX...</p>}
+              {slots.length > 0 && (
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    flexWrap: "wrap",
+                    margin: "14px 0",
+                  }}
+                >
+                  {slots.map((x: any) => (
+                    <button
+                      className="cp-gold"
+                      key={x.slot_start}
+                      disabled={bookingBusy}
+                      onClick={() => bookSlot(x)}
+                    >
+                      {new Date(x.slot_start).toLocaleTimeString("pt-BR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        timeZone: "America/Sao_Paulo",
+                      })} · {x.professional_name}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {bookingNotice && <p className="cp-note">{bookingNotice}</p>}
+              <hr />
+              <h3>Falar com o escritório</h3>
+              {serviceCtx?.outside_business_hours && (
+                <div className="cp-alert">
+                  O expediente está encerrado. Você pode deixar sua mensagem
+                  para o próximo período de atendimento ou solicitar atendimento
+                  extraordinário.
+                </div>
+              )}
+              <textarea
+                rows={4}
+                placeholder="Escreva sua mensagem para o escritório"
+                value={clientMsg}
+                onChange={(e) => setClientMsg(e.target.value)}
+                style={{ width: "100%", margin: "10px 0", padding: 12 }}
+              />
+              {serviceCtx?.outside_business_hours && (
+                <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
+                  <button
+                    className="cp-gold"
+                    onClick={() => setServiceChoice("normal")}
+                  >
+                    Deixar para o próximo expediente
+                  </button>
+                  <button
+                    className="cp-gold"
+                    onClick={() => setServiceChoice("extra")}
+                  >
+                    Solicitar atendimento extraordinário
+                  </button>
+                  {serviceChoice === "extra" && (
+                    <div className="cp-note">
+                      <b>Atendimento extraordinário: {money(serviceCtx.fee)}</b>
+                      <br />
+                      {serviceCtx.fee_rule}. Atendimento de até 30 minutos,
+                      sujeito à disponibilidade e confirmação do escritório. Ao
+                      prosseguir, você declara ciência da cobrança.
+                    </div>
+                  )}
+                </div>
+              )}
+              <button
+                className="cp-gold"
+                disabled={bookingBusy}
+                onClick={sendClientMessage}
+              >
+                {serviceChoice === "extra"
+                  ? "Solicitar atendimento extraordinário"
+                  : "Enviar mensagem"}
+              </button>
+              {extraReq && (
+                <div className="cp-summary">
+                  <b>Pagamento via PIX</b>
+                  <strong>{money(extraReq.fee)}</strong>
+                  <span>
+                    Chave PIX: {extraReq.pix_key || "Consulte o escritório"}
+                  </span>
+                  <span>
+                    Favorecido: {extraReq.pix_owner || "Suzanne Figueiredo"}
+                  </span>
+                  <label
+                    className="cp-gold"
+                    style={{
+                      display: "block",
+                      textAlign: "center",
+                      marginTop: 10,
+                    }}
+                  >
+                    Enviar comprovante
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      style={{ display: "none" }}
+                      onChange={(e) =>
+                        e.target.files?.[0] &&
+                        uploadExtraReceipt(e.target.files[0])
+                      }
+                    />
+                  </label>
+                </div>
+              )}
+              {serviceNotice && <p className="cp-note">{serviceNotice}</p>}
+              <hr />
+              <h3>Meu Atendimento</h3>
+              <p>Seus contatos e informações principais, sempre à mão.</p>
+              <div className="cp-person">
+                <b>Dra. Suzanne Figueiredo</b>
+                <small>Responsável pela condução jurídica do seu caso</small>
+              </div>
+              <div className="cp-person">
+                <b>Dra. Gláucia Gomes</b>
+                <small>Financeiro e Assessora Jurídica</small>
+              </div>
+              <div className="cp-person">
+                <b>Helena</b>
+                <small>Atendimento e organização</small>
+              </div>
+              <h4>Canais oficiais do escritório</h4>
+              <p>
+                ☎ (31) 99690-5968
+                <br />☎ (31) 99298-4141
+                <br />✉ glauciaadv15@gmail.com
+                <br />✉ eulampiosuzanne@gmail.com
+              </p>
+              <button className="cp-gold" onClick={() => setTab("urgent")}>
+                Quando nos avisar imediatamente?
+              </button>
+            </section>
+          </>
+        )}
+        {tab === "urgent" && (
+          <>
+            <Header n="08" title="QUANDO NOS AVISAR" />
+            <section className="cp-card">
+              <h3>Quando nos avisar imediatamente?</h3>
+              <p>
+                Entre em contato o quanto antes em situações que possam impactar
+                diretamente o seu caso.
+              </p>
+              {[
+                "Risco à vida ou à integridade física.",
+                "Ameaça grave relacionada ao caso.",
+                "Intimação ou documento com prazo que você acabou de receber.",
+                "Fato novo urgente que possa exigir providência jurídica.",
+              ].map((x) => (
+                <div className="cp-alert" key={x}>
+                  ⚠ {x}
+                </div>
+              ))}
+              <div className="cp-letter">
+                <h4>Uma mensagem da Dra. Suzanne</h4>
+                <p>
+                  É uma satisfação ter você conosco. A partir de agora, seu caso
+                  passa a ser acompanhado por uma estrutura jurídica organizada,
+                  com atenção, responsabilidade e clareza em cada etapa.
+                </p>
+                <strong>Dra. Suzanne Figueiredo</strong>
+                <small>OAB/MG</small>
+              </div>
+            </section>
+          </>
+        )}
+      </main>
+      <nav className="cp-nav">
+        <button onClick={() => setTab("home")}>
+          ⌂<small>Início</small>
+        </button>
+        <button onClick={() => setTab("messages")}>
+          ●<small>Notificações</small>
+        </button>
+        <button
+          onClick={() => {
+            localStorage.removeItem("sf-demo");
+            supabase.auth.signOut();
+            setSession(null);
+          }}
+        >
+          ♙<small>Sair</small>
+        </button>
+      </nav>
+    </div>
+  );
 }
