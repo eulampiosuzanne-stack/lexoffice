@@ -24,7 +24,11 @@ import { humanize, roleLabels } from "../lib/ux";
 import Integrations from "./Integrations";
 import PlatformProcessProviders from "./PlatformProcessProviders";
 
-const DEFAULT_IDEAL_CLIENT_PROFILE = `Demanda compatível com as áreas de atuação do escritório; fornece documentos completos e informações verdadeiras; compreende que a advocacia é obrigação de meio, sem promessa de resultado; respeita horários, canais e regras de atendimento; mantém comunicação respeitosa e objetiva; aceita a formalização por contrato; consegue pagar a entrada e manter parcelas compatíveis com sua renda; demonstra organização e intenção real de cumprir os pagamentos; compreende o escopo contratado e que serviços adicionais exigem nova contratação; participa do caso e atende às solicitações do escritório.`;
+const DEFAULT_IDEAL_CLIENT_PROFILE = `Cliente com renda minimamente estável, entrada disponível e parcela mensal de até 15% da renda, preferencialmente com histórico positivo de pagamentos. A classificação é apenas uma referência interna e não garante o pagamento.`;
+const normalizeFinancialProfile = (value?: string | null) =>
+  !value || value.startsWith("Demanda compatível com as áreas de atuação")
+    ? DEFAULT_IDEAL_CLIENT_PROFILE
+    : value;
 
 const empty = {
   organization_name: "",
@@ -136,10 +140,10 @@ export default function Settings() {
         setForm({
           ...empty,
           ...s,
-          ideal_client_profile:
+          ideal_client_profile: normalizeFinancialProfile(
             s.ideal_client_profile ||
-            localStorage.getItem("lexoffice_ideal_client_profile") ||
-            DEFAULT_IDEAL_CLIENT_PROFILE,
+              localStorage.getItem("lexoffice_ideal_client_profile"),
+          ),
         });
         if (s.logo_storage_path) {
           const { data: u } = await supabase.storage
@@ -391,19 +395,19 @@ export default function Settings() {
               </label>
             ))}
           </div>
-          <h3>Perfil de cliente mais indicado para o escritório</h3>
+          <h3>Perfil financeiro de cliente indicado para o escritório</h3>
           <p>
-            Descreva os critérios que a Lex deve considerar na análise
-            comercial. Esses critérios orientam a avaliação, mas não recusam
-            clientes automaticamente.
+            Defina os critérios financeiros que a Lex deve considerar para
+            reduzir o risco de inadimplência. A análise orienta a negociação,
+            mas não aceita nem recusa clientes automaticamente.
           </p>
           <label>
-            Critérios internos do cliente ideal
+            Critérios financeiros internos
             <textarea
               rows={7}
               value={form.ideal_client_profile || ""}
               onChange={(e) => change("ideal_client_profile", e.target.value)}
-              placeholder="Ex.: compreende o escopo do serviço; fornece documentos completos; aceita as regras de atendimento; demonstra organização financeira; mantém comunicação respeitosa; possui demanda compatível com as áreas de atuação do escritório."
+              placeholder="Ex.: renda estável, entrada disponível, parcela de até 15% da renda e histórico positivo de pagamentos."
             />
           </label>
           {notice && <div className="login-notice">{notice}</div>}
