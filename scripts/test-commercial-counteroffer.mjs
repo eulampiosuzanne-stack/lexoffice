@@ -32,7 +32,12 @@ assert.match(source, /não promete que o cliente pagará em dia/);
 assert.doesNotMatch(source, /Comprometimento mensal de referência/);
 assert.match(source, /const monthlyCap = 15/);
 assert.match(source, /ideal_client_profile/);
-assert.match(settings, /Perfil de cliente mais indicado para o escritório/);
+assert.match(source, /Baixo risco/);
+assert.match(source, /Risco moderado/);
+assert.match(source, /Risco elevado/);
+assert.match(source, /Risco crítico/);
+assert.match(source, /Perfil financeiro indicado pelo escritório/);
+assert.match(settings, /Perfil financeiro de cliente indicado para o escritório/);
 assert.match(settings, /ideal_client_profile/);
 
 const total = (entry, installments, installmentAmount) =>
@@ -45,5 +50,5 @@ assert.equal(total(-100, 0, -20), 0);
 assert.equal(total(1000, 100, 200), 13000);
 
 console.log(
-  "propostas comerciais: 27 cenários de análise e condições aprovados",
+  "propostas comerciais: 32 cenários de análise e condições aprovados",
 );
