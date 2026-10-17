@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "verify": "node scripts/verify-repository.mjs",
     "test:whatsapp-format": "node scripts/test-whatsapp-reply-format.mjs",
-    "test": "npm run test:whatsapp-format && npm run verify"
+    "test:client-calendar": "node scripts/test-client-calendar.mjs",
+    "test": "npm run test:whatsapp-format && npm run test:client-calendar && npm run verify"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
