@@ -85,7 +85,7 @@ async function processOne(): Promise<boolean> {
     return true;
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    const needsIntervention = ['CAPTCHA_BLOCKING','TOTP_SEED_REQUIRED','LOGIN_LAYOUT_NOT_RECOGNIZED','COURT_BASE_URL_REQUIRED','PJE_QUERY_URL_NOT_CONFIGURED','EPROC_QUERY_URL_NOT_CONFIGURED'].some(x => message.includes(x));
+    const needsIntervention = ['CAPTCHA_BLOCKING','TOTP_SEED_REQUIRED','LOGIN_LAYOUT_NOT_RECOGNIZED','COURT_BASE_URL_REQUIRED','PJE_QUERY_URL_NOT_CONFIGURED','EPROC_QUERY_URL_NOT_CONFIGURED','ESAJ_QUERY_URL_NOT_CONFIGURED'].some(x => message.includes(x));
     if (needsIntervention) {
       const { data: connection } = await supabase.from('tribunal_connections').select('*').eq('id', job.connection_id).maybeSingle();
       if (connection) await intervention(job, connection, message.includes('CAPTCHA') ? 'captcha' : 'configuration', message);
