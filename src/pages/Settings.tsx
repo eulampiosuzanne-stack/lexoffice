@@ -1,34 +1,597 @@
-import { useEffect,useState } from 'react';
-import { Save,Upload,Image as ImageIcon,Building2,Users,Headphones,Bot,CalendarDays,Plug,ShieldCheck,Clock3,MessageCircle,Tags,Workflow,UserPlus,Building,KeyRound,ArrowUpRight } from 'lucide-react';
-import { supabase } from '../lib/supabase';
-import { humanize,roleLabels } from '../lib/ux';
-import Integrations from './Integrations';
-import PlatformProcessProviders from './PlatformProcessProviders';
+import { useEffect, useState } from "react";
+import {
+  Save,
+  Upload,
+  Image as ImageIcon,
+  Building2,
+  Users,
+  Headphones,
+  Bot,
+  CalendarDays,
+  Plug,
+  ShieldCheck,
+  Clock3,
+  MessageCircle,
+  Tags,
+  Workflow,
+  UserPlus,
+  Building,
+  KeyRound,
+  ArrowUpRight,
+} from "lucide-react";
+import { supabase } from "../lib/supabase";
+import { humanize, roleLabels } from "../lib/ux";
+import Integrations from "./Integrations";
+import PlatformProcessProviders from "./PlatformProcessProviders";
 
-const empty={organization_name:'',trade_name:'',document_number:'',email:'',phone:'',whatsapp:'',website:'',timezone:'America/Sao_Paulo',locale:'pt-BR',logo_storage_path:'',primary_color:'#C9993F',secondary_color:'#D6AA55'};
-const baseSections=[['office','Escritório',Building2],['team','Equipe',Users],['service','Atendimento',Headphones],['ai','IA',Bot],['agenda','Agenda',CalendarDays],['connections','Conexões',Plug],['security','Segurança',ShieldCheck]] as const;
-const roles=[['admin','Administrador'],['lawyer','Advogado(a)'],['responsible_lawyer','Advogado(a) responsável'],['assistant','Assistente'],['finance','Financeiro'],['marketing','Marketing'],['supervisor','Supervisor'],['support','Atendimento'],['custom','Personalizado']] as const;
-export default function Settings(){
- const [form,setForm]=useState<any>(empty),[orgId,setOrgId]=useState(''),[id,setId]=useState(''),[saving,setSaving]=useState(false),[uploading,setUploading]=useState(false),[logoUrl,setLogoUrl]=useState(''),[notice,setNotice]=useState(''),[section,setSection]=useState('office');
- const [isPlatformAdmin,setIsPlatformAdmin]=useState(false),[members,setMembers]=useState<any[]>([]),[adminNotice,setAdminNotice]=useState(''),[creatingUser,setCreatingUser]=useState(false),[resettingUser,setResettingUser]=useState('');
- const [userForm,setUserForm]=useState<any>({name:'',email:'',password:'',role_key:'lawyer',phone:'',title:'',oab_number:'',oab_uf:''});
- const sections:any[]=[...baseSections,...(isPlatformAdmin?[['administration','Administração',Building] as const]:[])];
- async function loadMembers(oid=orgId){if(!supabase||!oid)return;const {data}=await supabase.from('profiles').select('id,name,email,phone,title,role_key,status,created_at').eq('org_id',oid).order('name');setMembers(data||[])}
- useEffect(()=>{(async()=>{if(!supabase)return;const {data:{user}}=await supabase.auth.getUser();if(!user)return;const {data:p}=await supabase.from('profiles').select('org_id,name,email,phone').eq('id',user.id).maybeSingle();if(!p?.org_id)return;setOrgId(p.org_id);const {data:pa}=await supabase.from('platform_admins').select('user_id').eq('user_id',user.id).eq('status','active').maybeSingle();setIsPlatformAdmin(!!pa);const {data:o}=await supabase.from('organizations').select('name').eq('id',p.org_id).maybeSingle();const {data:s}=await supabase.from('organization_settings').select('*').eq('org_id',p.org_id).maybeSingle();if(s){setId(s.id);setForm({...empty,...s});if(s.logo_storage_path){const {data:u}=await supabase.storage.from('lexoffice-documents').createSignedUrl(s.logo_storage_path,3600);setLogoUrl(u?.signedUrl||'')}}else setForm({...empty,organization_name:o?.name||'',trade_name:o?.name||'',email:p.email||'',phone:p.phone||''});await loadMembers(p.org_id)})()},[]);
- function change(k:string,v:string){setForm((x:any)=>({...x,[k]:v}))}
- async function uploadLogo(file?:File){if(!supabase||!orgId||!file)return;if(!file.type.startsWith('image/')){setNotice('Selecione um arquivo de imagem para a logo.');return}setUploading(true);const ext=(file.name.split('.').pop()||'png').toLowerCase(),path=`${orgId}/branding/logo.${ext}`;const {error}=await supabase.storage.from('lexoffice-documents').upload(path,file,{upsert:true,contentType:file.type});if(error){setNotice('Não foi possível enviar a logo: '+error.message);setUploading(false);return}setForm((x:any)=>({...x,logo_storage_path:path}));const {data:u}=await supabase.storage.from('lexoffice-documents').createSignedUrl(path,3600);setLogoUrl(u?.signedUrl||'');setUploading(false);setNotice('Logo carregada. Clique em Salvar para aplicar ao timbrado.')}
- async function save(){if(!supabase||!orgId)return;setSaving(true);const payload={...form,org_id:orgId,updated_at:new Date().toISOString()};delete payload.id;delete payload.created_at;const q=id?supabase.from('organization_settings').update(payload).eq('id',id).select('id').single():supabase.from('organization_settings').insert(payload).select('id').single();const {data,error}=await q as any;if(!error&&data?.id)setId(data.id);setNotice(error?'Não foi possível salvar: '+error.message:'Configurações salvas com sucesso.');setSaving(false)}
- async function createUser(e:any){e.preventDefault();if(!supabase||!orgId)return;setCreatingUser(true);const {data,error}=await supabase.functions.invoke('create-user',{body:{...userForm,org_id:orgId}});setAdminNotice(error||data?.error?'Não foi possível criar o usuário: '+(data?.error||error?.message):'Usuário criado com sucesso.');if(!error&&!data?.error){setUserForm({name:'',email:'',password:'',role_key:'lawyer',phone:'',title:'',oab_number:'',oab_uf:''});await loadMembers()}setCreatingUser(false)}
- async function resetPassword(member:any){if(!supabase||!member?.id)return;const pwd=window.prompt(`Digite uma nova senha temporária para ${member.name||member.email}.`);if(!pwd||pwd.length<8)return;setResettingUser(member.id);const {data,error}=await supabase.functions.invoke('reset-user-password',{body:{user_id:member.id,new_password:pwd}});setAdminNotice(error||data?.error?'Não foi possível redefinir a senha.':`Senha de ${member.email} redefinida.`);setResettingUser('')}
- const go=(path:string)=>{location.href=path};
- return <div className="module"><div className="page-head"><div><h1>Configurações</h1><p>Empresa, equipe, atendimento, inteligência e conexões do escritório</p></div>{section==='office'&&<button className="primary" onClick={save} disabled={saving}><Save size={15}/>{saving?'Salvando...':'Salvar'}</button>}</div><div className="settings-section-nav">{sections.map(([k,l,I])=><button key={k} className={section===k?'active':''} onClick={()=>setSection(k)}><I size={15}/> {l}</button>)}</div>
- {section==='office'&&<div className="module-box settings-panel"><h3><ImageIcon size={16}/> Identidade do escritório</h3><div className="form-grid"><label>Logo<div style={{display:'flex',gap:12,marginTop:8}}>{logoUrl&&<img src={logoUrl} alt="Logo" style={{width:68,height:68,objectFit:'contain'}}/>}<label className="secondary"><Upload size={15}/>Escolher logo<input type="file" accept="image/*" style={{display:'none'}} onChange={e=>uploadLogo(e.target.files?.[0])}/></label></div></label><div className="office-gold-colors"><span className="office-gold-title">Cores do escritório · ouro degradê</span><div className="office-gold-swatch" style={{background:`linear-gradient(135deg,#6E4914 0%,${form.primary_color||'#C9993F'} 35%,${form.secondary_color||'#D6AA55'} 55%,${form.primary_color||'#C9993F'} 75%,#6E4914 100%)`}} aria-label="Prévia do ouro degradê do escritório"/><div className="office-gold-pickers"><label>Ouro<input type="color" value={form.primary_color} onChange={e=>change('primary_color',e.target.value)}/></label><label>Ouro luminoso<input type="color" value={form.secondary_color} onChange={e=>change('secondary_color',e.target.value)}/></label><button type="button" className="secondary" onClick={()=>{change('primary_color','#C9993F');change('secondary_color','#D6AA55')}}>Restaurar ouro oficial</button></div></div></div><h3>Dados institucionais</h3><div className="form-grid">{[['organization_name','Razão social'],['trade_name','Nome fantasia'],['document_number','CPF/CNPJ'],['email','E-mail'],['phone','Telefone'],['whatsapp','WhatsApp'],['website','Website']].map(([k,l])=><label key={k}>{l}<input value={form[k]||''} onChange={e=>change(k,e.target.value)}/></label>)}</div>{notice&&<div className="login-notice">{notice}</div>}</div>}
- {section==='team'&&<div className="settings-feature-grid"><form className="settings-feature-card wide" onSubmit={createUser}><h3><UserPlus size={17}/> Novo usuário</h3><div className="form-grid"><label>Nome<input value={userForm.name} onChange={e=>setUserForm({...userForm,name:e.target.value})} required/></label><label>E-mail<input type="email" value={userForm.email} onChange={e=>setUserForm({...userForm,email:e.target.value})} required/></label><label>Senha temporária<input type="password" minLength={8} value={userForm.password} onChange={e=>setUserForm({...userForm,password:e.target.value})} required/></label><label>Perfil<select value={userForm.role_key} onChange={e=>setUserForm({...userForm,role_key:e.target.value})}>{roles.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label><label>OAB<input value={userForm.oab_number} onChange={e=>setUserForm({...userForm,oab_number:e.target.value})}/></label><label>UF<input maxLength={2} value={userForm.oab_uf} onChange={e=>setUserForm({...userForm,oab_uf:e.target.value.toUpperCase()})}/></label></div><button className="integration-action" disabled={creatingUser}>Criar usuário</button></form><div className="settings-feature-card wide"><h3><Users size={17}/> Usuários do escritório</h3>{members.map(m=><div key={m.id}><strong>{m.name}</strong> — {m.email} <button className="secondary" onClick={()=>resetPassword(m)} disabled={resettingUser===m.id}><KeyRound size={14}/>Redefinir senha</button></div>)}</div>{adminNotice&&<div className="login-notice">{adminNotice}</div>}</div>}
- {section==='connections'&&<><Integrations embedded/>{isPlatformAdmin&&<PlatformProcessProviders/>}</>}
- {section==='administration'&&isPlatformAdmin&&<div className="settings-feature-grid"><div className="settings-feature-card wide"><h3><Building size={17}/> Administração da plataforma</h3><p>Console global do LEXOFFICE.</p><button className="integration-action" onClick={()=>go('/admin')}><ArrowUpRight size={15}/>Abrir LEXOFFICE Admin</button></div></div>}
- {section==='service'&&<div className="settings-feature-grid"><div className="settings-feature-card"><h3><Headphones size={17}/> Atendimento</h3><button className="integration-action" onClick={()=>go('/atendimento')}>Configurar atendimento</button></div></div>}
- {section==='ai'&&<div className="settings-feature-grid"><div className="settings-feature-card"><h3><Bot size={17}/> Agentes e provedores de IA</h3><button className="integration-action" onClick={()=>go('/agentes-ia')}>Configurar IA</button></div></div>}
- {section==='agenda'&&<div className="settings-feature-grid"><div className="settings-feature-card"><h3><CalendarDays size={17}/> Agenda</h3><button className="integration-action" onClick={()=>go('/agenda')}>Gerenciar horários</button></div></div>}
- {section==='security'&&<div className="settings-feature-grid"><div className="settings-feature-card"><h3><ShieldCheck size={17}/> Segurança</h3><button className="integration-action" onClick={()=>go('/seguranca')}>Abrir Segurança</button></div></div>}
- </div>
+const DEFAULT_IDEAL_CLIENT_PROFILE = `Demanda compatível com as áreas de atuação do escritório; fornece documentos completos e informações verdadeiras; compreende que a advocacia é obrigação de meio, sem promessa de resultado; respeita horários, canais e regras de atendimento; mantém comunicação respeitosa e objetiva; aceita a formalização por contrato; consegue pagar a entrada e manter parcelas compatíveis com sua renda; demonstra organização e intenção real de cumprir os pagamentos; compreende o escopo contratado e que serviços adicionais exigem nova contratação; participa do caso e atende às solicitações do escritório.`;
+
+const empty = {
+  organization_name: "",
+  trade_name: "",
+  document_number: "",
+  email: "",
+  phone: "",
+  whatsapp: "",
+  website: "",
+  timezone: "America/Sao_Paulo",
+  locale: "pt-BR",
+  logo_storage_path: "",
+  primary_color: "#C9993F",
+  secondary_color: "#D6AA55",
+  ideal_client_profile: DEFAULT_IDEAL_CLIENT_PROFILE,
+};
+const baseSections = [
+  ["office", "Escritório", Building2],
+  ["team", "Equipe", Users],
+  ["service", "Atendimento", Headphones],
+  ["ai", "IA", Bot],
+  ["agenda", "Agenda", CalendarDays],
+  ["connections", "Conexões", Plug],
+  ["security", "Segurança", ShieldCheck],
+] as const;
+const roles = [
+  ["admin", "Administrador"],
+  ["lawyer", "Advogado(a)"],
+  ["responsible_lawyer", "Advogado(a) responsável"],
+  ["assistant", "Assistente"],
+  ["finance", "Financeiro"],
+  ["marketing", "Marketing"],
+  ["supervisor", "Supervisor"],
+  ["support", "Atendimento"],
+  ["custom", "Personalizado"],
+] as const;
+export default function Settings() {
+  const [form, setForm] = useState<any>(empty),
+    [orgId, setOrgId] = useState(""),
+    [id, setId] = useState(""),
+    [saving, setSaving] = useState(false),
+    [uploading, setUploading] = useState(false),
+    [logoUrl, setLogoUrl] = useState(""),
+    [notice, setNotice] = useState(""),
+    [section, setSection] = useState("office");
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false),
+    [members, setMembers] = useState<any[]>([]),
+    [adminNotice, setAdminNotice] = useState(""),
+    [creatingUser, setCreatingUser] = useState(false),
+    [resettingUser, setResettingUser] = useState("");
+  const [userForm, setUserForm] = useState<any>({
+    name: "",
+    email: "",
+    password: "",
+    role_key: "lawyer",
+    phone: "",
+    title: "",
+    oab_number: "",
+    oab_uf: "",
+  });
+  const sections: any[] = [
+    ...baseSections,
+    ...(isPlatformAdmin
+      ? [["administration", "Administração", Building] as const]
+      : []),
+  ];
+  async function loadMembers(oid = orgId) {
+    if (!supabase || !oid) return;
+    const { data } = await supabase
+      .from("profiles")
+      .select("id,name,email,phone,title,role_key,status,created_at")
+      .eq("org_id", oid)
+      .order("name");
+    setMembers(data || []);
+  }
+  useEffect(() => {
+    (async () => {
+      if (!supabase) return;
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: p } = await supabase
+        .from("profiles")
+        .select("org_id,name,email,phone")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!p?.org_id) return;
+      setOrgId(p.org_id);
+      const { data: pa } = await supabase
+        .from("platform_admins")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .maybeSingle();
+      setIsPlatformAdmin(!!pa);
+      const { data: o } = await supabase
+        .from("organizations")
+        .select("name")
+        .eq("id", p.org_id)
+        .maybeSingle();
+      const { data: s } = await supabase
+        .from("organization_settings")
+        .select("*")
+        .eq("org_id", p.org_id)
+        .maybeSingle();
+      if (s) {
+        setId(s.id);
+        setForm({
+          ...empty,
+          ...s,
+          ideal_client_profile:
+            s.ideal_client_profile ||
+            localStorage.getItem("lexoffice_ideal_client_profile") ||
+            DEFAULT_IDEAL_CLIENT_PROFILE,
+        });
+        if (s.logo_storage_path) {
+          const { data: u } = await supabase.storage
+            .from("lexoffice-documents")
+            .createSignedUrl(s.logo_storage_path, 3600);
+          setLogoUrl(u?.signedUrl || "");
+        }
+      } else
+        setForm({
+          ...empty,
+          organization_name: o?.name || "",
+          trade_name: o?.name || "",
+          email: p.email || "",
+          phone: p.phone || "",
+        });
+      await loadMembers(p.org_id);
+    })();
+  }, []);
+  function change(k: string, v: string) {
+    setForm((x: any) => ({ ...x, [k]: v }));
+  }
+  async function uploadLogo(file?: File) {
+    if (!supabase || !orgId || !file) return;
+    if (!file.type.startsWith("image/")) {
+      setNotice("Selecione um arquivo de imagem para a logo.");
+      return;
+    }
+    setUploading(true);
+    const ext = (file.name.split(".").pop() || "png").toLowerCase(),
+      path = `${orgId}/branding/logo.${ext}`;
+    const { error } = await supabase.storage
+      .from("lexoffice-documents")
+      .upload(path, file, { upsert: true, contentType: file.type });
+    if (error) {
+      setNotice("Não foi possível enviar a logo: " + error.message);
+      setUploading(false);
+      return;
+    }
+    setForm((x: any) => ({ ...x, logo_storage_path: path }));
+    const { data: u } = await supabase.storage
+      .from("lexoffice-documents")
+      .createSignedUrl(path, 3600);
+    setLogoUrl(u?.signedUrl || "");
+    setUploading(false);
+    setNotice("Logo carregada. Clique em Salvar para aplicar ao timbrado.");
+  }
+  async function save() {
+    if (!supabase || !orgId) return;
+    setSaving(true);
+    const idealClientProfile =
+      form.ideal_client_profile || DEFAULT_IDEAL_CLIENT_PROFILE;
+    localStorage.setItem("lexoffice_ideal_client_profile", idealClientProfile);
+    const payload = {
+      ...form,
+      org_id: orgId,
+      updated_at: new Date().toISOString(),
+    };
+    delete payload.id;
+    delete payload.created_at;
+    delete payload.ideal_client_profile;
+    const q = id
+      ? supabase
+          .from("organization_settings")
+          .update(payload)
+          .eq("id", id)
+          .select("id")
+          .single()
+      : supabase
+          .from("organization_settings")
+          .insert(payload)
+          .select("id")
+          .single();
+    const { data, error } = (await q) as any;
+    if (!error && data?.id) setId(data.id);
+    if (!error) {
+      await supabase
+        .from("organization_settings")
+        .update({ ideal_client_profile: idealClientProfile })
+        .eq("org_id", orgId);
+    }
+    setNotice(
+      error
+        ? "Não foi possível salvar: " + error.message
+        : "Configurações salvas com sucesso.",
+    );
+    setSaving(false);
+  }
+  async function createUser(e: any) {
+    e.preventDefault();
+    if (!supabase || !orgId) return;
+    setCreatingUser(true);
+    const { data, error } = await supabase.functions.invoke("create-user", {
+      body: { ...userForm, org_id: orgId },
+    });
+    setAdminNotice(
+      error || data?.error
+        ? "Não foi possível criar o usuário: " + (data?.error || error?.message)
+        : "Usuário criado com sucesso.",
+    );
+    if (!error && !data?.error) {
+      setUserForm({
+        name: "",
+        email: "",
+        password: "",
+        role_key: "lawyer",
+        phone: "",
+        title: "",
+        oab_number: "",
+        oab_uf: "",
+      });
+      await loadMembers();
+    }
+    setCreatingUser(false);
+  }
+  async function resetPassword(member: any) {
+    if (!supabase || !member?.id) return;
+    const pwd = window.prompt(
+      `Digite uma nova senha temporária para ${member.name || member.email}.`,
+    );
+    if (!pwd || pwd.length < 8) return;
+    setResettingUser(member.id);
+    const { data, error } = await supabase.functions.invoke(
+      "reset-user-password",
+      { body: { user_id: member.id, new_password: pwd } },
+    );
+    setAdminNotice(
+      error || data?.error
+        ? "Não foi possível redefinir a senha."
+        : `Senha de ${member.email} redefinida.`,
+    );
+    setResettingUser("");
+  }
+  const go = (path: string) => {
+    location.href = path;
+  };
+  return (
+    <div className="module">
+      <div className="page-head">
+        <div>
+          <h1>Configurações</h1>
+          <p>
+            Empresa, equipe, atendimento, inteligência e conexões do escritório
+          </p>
+        </div>
+        {section === "office" && (
+          <button className="primary" onClick={save} disabled={saving}>
+            <Save size={15} />
+            {saving ? "Salvando..." : "Salvar"}
+          </button>
+        )}
+      </div>
+      <div className="settings-section-nav">
+        {sections.map(([k, l, I]) => (
+          <button
+            key={k}
+            className={section === k ? "active" : ""}
+            onClick={() => setSection(k)}
+          >
+            <I size={15} /> {l}
+          </button>
+        ))}
+      </div>
+      {section === "office" && (
+        <div className="module-box settings-panel">
+          <h3>
+            <ImageIcon size={16} /> Identidade do escritório
+          </h3>
+          <div className="form-grid">
+            <label>
+              Logo
+              <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+                {logoUrl && (
+                  <img
+                    src={logoUrl}
+                    alt="Logo"
+                    style={{ width: 68, height: 68, objectFit: "contain" }}
+                  />
+                )}
+                <label className="secondary">
+                  <Upload size={15} />
+                  Escolher logo
+                  <input
+                    type="file"
+                    accept="image/*"
+                    style={{ display: "none" }}
+                    onChange={(e) => uploadLogo(e.target.files?.[0])}
+                  />
+                </label>
+              </div>
+            </label>
+            <div className="office-gold-colors">
+              <span className="office-gold-title">
+                Cores do escritório · ouro degradê
+              </span>
+              <div
+                className="office-gold-swatch"
+                style={{
+                  background: `linear-gradient(135deg,#6E4914 0%,${form.primary_color || "#C9993F"} 35%,${form.secondary_color || "#D6AA55"} 55%,${form.primary_color || "#C9993F"} 75%,#6E4914 100%)`,
+                }}
+                aria-label="Prévia do ouro degradê do escritório"
+              />
+              <div className="office-gold-pickers">
+                <label>
+                  Ouro
+                  <input
+                    type="color"
+                    value={form.primary_color}
+                    onChange={(e) => change("primary_color", e.target.value)}
+                  />
+                </label>
+                <label>
+                  Ouro luminoso
+                  <input
+                    type="color"
+                    value={form.secondary_color}
+                    onChange={(e) => change("secondary_color", e.target.value)}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => {
+                    change("primary_color", "#C9993F");
+                    change("secondary_color", "#D6AA55");
+                  }}
+                >
+                  Restaurar ouro oficial
+                </button>
+              </div>
+            </div>
+          </div>
+          <h3>Dados institucionais</h3>
+          <div className="form-grid">
+            {[
+              ["organization_name", "Razão social"],
+              ["trade_name", "Nome fantasia"],
+              ["document_number", "CPF/CNPJ"],
+              ["email", "E-mail"],
+              ["phone", "Telefone"],
+              ["whatsapp", "WhatsApp"],
+              ["website", "Website"],
+            ].map(([k, l]) => (
+              <label key={k}>
+                {l}
+                <input
+                  value={form[k] || ""}
+                  onChange={(e) => change(k, e.target.value)}
+                />
+              </label>
+            ))}
+          </div>
+          <h3>Perfil de cliente mais indicado para o escritório</h3>
+          <p>
+            Descreva os critérios que a Lex deve considerar na análise
+            comercial. Esses critérios orientam a avaliação, mas não recusam
+            clientes automaticamente.
+          </p>
+          <label>
+            Critérios internos do cliente ideal
+            <textarea
+              rows={7}
+              value={form.ideal_client_profile || ""}
+              onChange={(e) => change("ideal_client_profile", e.target.value)}
+              placeholder="Ex.: compreende o escopo do serviço; fornece documentos completos; aceita as regras de atendimento; demonstra organização financeira; mantém comunicação respeitosa; possui demanda compatível com as áreas de atuação do escritório."
+            />
+          </label>
+          {notice && <div className="login-notice">{notice}</div>}
+        </div>
+      )}
+      {section === "team" && (
+        <div className="settings-feature-grid">
+          <form className="settings-feature-card wide" onSubmit={createUser}>
+            <h3>
+              <UserPlus size={17} /> Novo usuário
+            </h3>
+            <div className="form-grid">
+              <label>
+                Nome
+                <input
+                  value={userForm.name}
+                  onChange={(e) =>
+                    setUserForm({ ...userForm, name: e.target.value })
+                  }
+                  required
+                />
+              </label>
+              <label>
+                E-mail
+                <input
+                  type="email"
+                  value={userForm.email}
+                  onChange={(e) =>
+                    setUserForm({ ...userForm, email: e.target.value })
+                  }
+                  required
+                />
+              </label>
+              <label>
+                Senha temporária
+                <input
+                  type="password"
+                  minLength={8}
+                  value={userForm.password}
+                  onChange={(e) =>
+                    setUserForm({ ...userForm, password: e.target.value })
+                  }
+                  required
+                />
+              </label>
+              <label>
+                Perfil
+                <select
+                  value={userForm.role_key}
+                  onChange={(e) =>
+                    setUserForm({ ...userForm, role_key: e.target.value })
+                  }
+                >
+                  {roles.map(([v, l]) => (
+                    <option key={v} value={v}>
+                      {l}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                OAB
+                <input
+                  value={userForm.oab_number}
+                  onChange={(e) =>
+                    setUserForm({ ...userForm, oab_number: e.target.value })
+                  }
+                />
+              </label>
+              <label>
+                UF
+                <input
+                  maxLength={2}
+                  value={userForm.oab_uf}
+                  onChange={(e) =>
+                    setUserForm({
+                      ...userForm,
+                      oab_uf: e.target.value.toUpperCase(),
+                    })
+                  }
+                />
+              </label>
+            </div>
+            <button className="integration-action" disabled={creatingUser}>
+              Criar usuário
+            </button>
+          </form>
+          <div className="settings-feature-card wide">
+            <h3>
+              <Users size={17} /> Usuários do escritório
+            </h3>
+            {members.map((m) => (
+              <div key={m.id}>
+                <strong>{m.name}</strong> — {m.email}{" "}
+                <button
+                  className="secondary"
+                  onClick={() => resetPassword(m)}
+                  disabled={resettingUser === m.id}
+                >
+                  <KeyRound size={14} />
+                  Redefinir senha
+                </button>
+              </div>
+            ))}
+          </div>
+          {adminNotice && <div className="login-notice">{adminNotice}</div>}
+        </div>
+      )}
+      {section === "connections" && (
+        <>
+          <Integrations embedded />
+          {isPlatformAdmin && <PlatformProcessProviders />}
+        </>
+      )}
+      {section === "administration" && isPlatformAdmin && (
+        <div className="settings-feature-grid">
+          <div className="settings-feature-card wide">
+            <h3>
+              <Building size={17} /> Administração da plataforma
+            </h3>
+            <p>Console global do LEXOFFICE.</p>
+            <button className="integration-action" onClick={() => go("/admin")}>
+              <ArrowUpRight size={15} />
+              Abrir LEXOFFICE Admin
+            </button>
+          </div>
+        </div>
+      )}
+      {section === "service" && (
+        <div className="settings-feature-grid">
+          <div className="settings-feature-card">
+            <h3>
+              <Headphones size={17} /> Atendimento
+            </h3>
+            <button
+              className="integration-action"
+              onClick={() => go("/atendimento")}
+            >
+              Configurar atendimento
+            </button>
+          </div>
+        </div>
+      )}
+      {section === "ai" && (
+        <div className="settings-feature-grid">
+          <div className="settings-feature-card">
+            <h3>
+              <Bot size={17} /> Agentes e provedores de IA
+            </h3>
+            <button
+              className="integration-action"
+              onClick={() => go("/agentes-ia")}
+            >
+              Configurar IA
+            </button>
+          </div>
+        </div>
+      )}
+      {section === "agenda" && (
+        <div className="settings-feature-grid">
+          <div className="settings-feature-card">
+            <h3>
+              <CalendarDays size={17} /> Agenda
+            </h3>
+            <button
+              className="integration-action"
+              onClick={() => go("/agenda")}
+            >
+              Gerenciar horários
+            </button>
+          </div>
+        </div>
+      )}
+      {section === "security" && (
+        <div className="settings-feature-grid">
+          <div className="settings-feature-card">
+            <h3>
+              <ShieldCheck size={17} /> Segurança
+            </h3>
+            <button
+              className="integration-action"
+              onClick={() => go("/seguranca")}
+            >
+              Abrir Segurança
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
