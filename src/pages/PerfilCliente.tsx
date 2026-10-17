@@ -9,7 +9,11 @@ const money = (n: number) =>
 const clamp = (n: number, min: number, max: number) =>
   Math.max(min, Math.min(max, n));
 const DEFAULT_IDEAL_CLIENT_PROFILE =
-  "Demanda compatível com as áreas de atuação; entrega documentos completos e informações verdadeiras; compreende a obrigação de meio e o escopo contratado; respeita horários, canais e regras de atendimento; mantém comunicação respeitosa; aceita contrato; demonstra organização e capacidade de cumprir a entrada e as parcelas; participa do caso e atende às solicitações do escritório.";
+  "Cliente com renda minimamente estável, entrada disponível e parcela mensal de até 15% da renda, preferencialmente com histórico positivo de pagamentos. A classificação é apenas uma referência interna e não garante o pagamento.";
+const normalizeFinancialProfile = (value?: string | null) =>
+  !value || value.startsWith("Demanda compatível com as áreas de atuação")
+    ? DEFAULT_IDEAL_CLIENT_PROFILE
+    : value;
 export default function PerfilCliente() {
   const [expectations, setExpectations] = useState(false),
     [documentsReady, setDocumentsReady] = useState(false),
@@ -40,7 +44,8 @@ export default function PerfilCliente() {
       const savedProfile = localStorage.getItem(
         "lexoffice_ideal_client_profile",
       );
-      if (savedProfile) setIdealClientProfile(savedProfile);
+      if (savedProfile)
+        setIdealClientProfile(normalizeFinancialProfile(savedProfile));
       if (!supabase) return;
       const { data: orgId } = await supabase.rpc("current_org_id");
       if (!orgId) return;
@@ -50,10 +55,13 @@ export default function PerfilCliente() {
         .eq("org_id", orgId)
         .maybeSingle();
       if (data?.ideal_client_profile) {
-        setIdealClientProfile(data.ideal_client_profile);
+        const financialProfile = normalizeFinancialProfile(
+          data.ideal_client_profile,
+        );
+        setIdealClientProfile(financialProfile);
         localStorage.setItem(
           "lexoffice_ideal_client_profile",
-          data.ideal_client_profile,
+          financialProfile,
         );
       }
     })();
@@ -83,6 +91,13 @@ export default function PerfilCliente() {
   const boletoIncomePct = income > 0 ? (monthly / income) * 100 : null,
     cardIncomePct = income > 0 ? (cardMonthly / income) * 100 : null,
     cashIncomePct = income > 0 ? (cash / income) * 100 : null;
+  const paymentRisk = (percentage: number | null) => {
+    if (percentage === null) return "Não calculado";
+    if (history === "pendencias" || percentage > 20) return "Risco crítico";
+    if (percentage > 15) return "Risco elevado";
+    if (percentage > 10) return "Risco moderado";
+    return "Baixo risco";
+  };
   const overCapacity =
       recommendation.capacity > 0 && monthly > recommendation.capacity,
     cardOverCapacity =
@@ -431,6 +446,14 @@ export default function PerfilCliente() {
           </div>
           <div className="integration-card">
             <h3>Análise de capacidade e risco de pagamento</h3>
+            <p>
+              <strong>Cartão:</strong> {paymentRisk(cardIncomePct)} · parcela de{" "}
+              {cardIncomePct === null ? "—" : cardIncomePct.toFixed(1) + "%"} da renda.
+            </p>
+            <p>
+              <strong>Boleto:</strong> {paymentRisk(boletoIncomePct)} · parcela de{" "}
+              {boletoIncomePct === null ? "—" : boletoIncomePct.toFixed(1) + "%"} da renda.
+            </p>
             <label className="check-row">
               <input
                 type="checkbox"
@@ -461,7 +484,7 @@ export default function PerfilCliente() {
             <h3>{profile}</h3>
             <p>{rationale}</p>
             <p>
-              <strong>Perfil indicado pelo escritório:</strong>{" "}
+              <strong>Perfil financeiro indicado pelo escritório:</strong>{" "}
               {idealClientProfile || DEFAULT_IDEAL_CLIENT_PROFILE}
             </p>
             <p>
