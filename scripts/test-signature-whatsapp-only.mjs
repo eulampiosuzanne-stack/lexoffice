@@ -16,7 +16,9 @@ assert.match(operator, /category/);
 assert.match(operator, /client_portal[\s\S]+client-documents/);
 assert.match(clientArea, /document_ids: \[ins\.data\.id\]/);
 assert.match(clientArea, /enviado como arquivo pelo WhatsApp/);
+assert.match(clientArea, /Você recebeu um novo documento no App do Cliente/);
+assert.match(clientArea, /https:\/\/lexoffice\.univittagroup\.com\.br\/cliente/);
 assert.match(gate, /mediatype:"document"/);
 assert.match(gate, /message_type: document \? "document"/);
 
-console.log('documentos via WhatsApp: 12 cenários de regressão aprovados');
+console.log('documentos via WhatsApp: 14 cenários de regressão aprovados');
