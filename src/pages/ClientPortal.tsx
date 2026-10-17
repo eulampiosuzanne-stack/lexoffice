@@ -348,7 +348,7 @@ export default function ClientPortal() {
       return;
     }
     setBookingNotice(
-      `Atendimento confirmado com ${data.professional_name} na Agenda Google da LEX. Os lembretes foram programados.`,
+      `Atendimento confirmado com ${data.professional_name} na Agenda Google da LEX.`,
     );
     await loadSlots(bookingDate);
   }
