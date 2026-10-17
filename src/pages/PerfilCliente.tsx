@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./integrations.css";
+import { supabase } from "../lib/supabase";
 const money = (n: number) =>
   Number(n || 0).toLocaleString("pt-BR", {
     style: "currency",
@@ -7,6 +8,8 @@ const money = (n: number) =>
   });
 const clamp = (n: number, min: number, max: number) =>
   Math.max(min, Math.min(max, n));
+const DEFAULT_IDEAL_CLIENT_PROFILE =
+  "Demanda compatível com as áreas de atuação; entrega documentos completos e informações verdadeiras; compreende a obrigação de meio e o escopo contratado; respeita horários, canais e regras de atendimento; mantém comunicação respeitosa; aceita contrato; demonstra organização e capacidade de cumprir a entrada e as parcelas; participa do caso e atende às solicitações do escritório.";
 export default function PerfilCliente() {
   const [expectations, setExpectations] = useState(false),
     [documentsReady, setDocumentsReady] = useState(false),
@@ -20,7 +23,6 @@ export default function PerfilCliente() {
     [entryMode, setEntryMode] = useState<"percent" | "fixed">("percent"),
     [entryPct, setEntryPct] = useState(20),
     [entryAmount, setEntryAmount] = useState(1000),
-    [monthlyCap, setMonthlyCap] = useState(15),
     [cashDiscount, setCashDiscount] = useState(0),
     [cardInstallments, setCardInstallments] = useState(12),
     [cardMarkup, setCardMarkup] = useState(12),
@@ -30,7 +32,32 @@ export default function PerfilCliente() {
     [counterInstallments, setCounterInstallments] = useState(1),
     [counterInstallmentAmount, setCounterInstallmentAmount] = useState(0),
     [notes, setNotes] = useState(""),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useState(""),
+    [idealClientProfile, setIdealClientProfile] = useState("");
+  const monthlyCap = 15;
+  useEffect(() => {
+    (async () => {
+      const savedProfile = localStorage.getItem(
+        "lexoffice_ideal_client_profile",
+      );
+      if (savedProfile) setIdealClientProfile(savedProfile);
+      if (!supabase) return;
+      const { data: orgId } = await supabase.rpc("current_org_id");
+      if (!orgId) return;
+      const { data } = await supabase
+        .from("organization_settings")
+        .select("ideal_client_profile")
+        .eq("org_id", orgId)
+        .maybeSingle();
+      if (data?.ideal_client_profile) {
+        setIdealClientProfile(data.ideal_client_profile);
+        localStorage.setItem(
+          "lexoffice_ideal_client_profile",
+          data.ideal_client_profile,
+        );
+      }
+    })();
+  }, []);
   const recommendation = useMemo(() => {
     const base = Math.max(0, fees),
       salary = Math.max(0, income),
@@ -43,7 +70,7 @@ export default function PerfilCliente() {
     const suggestedMonths =
       cap > 0 ? clamp(Math.ceil((base * 1.25 - entry) / cap), 1, 24) : 12;
     return { entry, suggestedMonths, capacity: cap };
-  }, [fees, income, entryMode, entryPct, entryAmount, monthlyCap]);
+  }, [fees, income, entryMode, entryPct, entryAmount]);
   const cash = Math.max(0, fees) * (1 - clamp(cashDiscount, 0, 100) / 100);
   const cardMonths = clamp(Math.round(cardInstallments) || 1, 1, 24),
     cardTotal = Math.max(0, fees) * (1 + Math.max(0, cardMarkup) / 100),
@@ -220,16 +247,6 @@ export default function PerfilCliente() {
               />
             </label>
           )}
-          <label>
-            Comprometimento mensal de referência (% da renda)
-            <input
-              type="number"
-              min="1"
-              max="100"
-              value={monthlyCap}
-              onChange={(e) => setMonthlyCap(+e.target.value)}
-            />
-          </label>
           <label>
             Desconto opcional para pagamento à vista (%)
             <input
@@ -443,6 +460,10 @@ export default function PerfilCliente() {
             </label>
             <h3>{profile}</h3>
             <p>{rationale}</p>
+            <p>
+              <strong>Perfil indicado pelo escritório:</strong>{" "}
+              {idealClientProfile || DEFAULT_IDEAL_CLIENT_PROFILE}
+            </p>
             <p>
               A Lex não promete que o cliente pagará em dia. O resultado é uma
               estimativa baseada na renda, no comprometimento mensal, na
