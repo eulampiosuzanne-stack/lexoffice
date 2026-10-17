@@ -622,33 +622,24 @@ function SuzanneCard({name}: {name: string}) {
 
 export function Urgency({navigation}: any) {
   const x = useCtx();
+  const [selectedRisk, setSelectedRisk] = useState<"life" | "physical" | null>(null);
   return (
     <Screen>
       <Card>
         <View style={{flexDirection: "row", alignItems: "center", gap: 12}}>
-          <View style={[m.icon, {backgroundColor: C.dangerBg}]}>
-            <Ionicons name="alert-circle-outline" size={26} color={C.danger} />
-          </View>
-          <Text style={[u.title, {flex: 1, fontSize: 20}]}>Quando nos avisar imediatamente?</Text>
+          <View style={[m.icon, {backgroundColor: C.dangerBg}]}><Ionicons name="alert-circle-outline" size={26} color={C.danger} /></View>
+          <Text style={[u.title, {flex: 1, fontSize: 20}]}>Atendimento de urgência</Text>
         </View>
-        <Text style={[u.body, {marginTop: 12}]}>Entre em contato com o escritório quanto antes nestas situações, que podem impactar diretamente o seu caso:</Text>
-        {URGENT.map(([icon, text]) => (
-          <View key={text} style={m.urgent}>
-            <View style={[m.icon, {backgroundColor: C.dangerBg, width: 38, height: 38}]}>
-              <Ionicons name={icon} size={20} color={C.danger} />
-            </View>
-            <Text style={[u.body, {flex: 1}]}>{text}</Text>
-          </View>
-        ))}
-        <Note icon="calendar-outline">
-          Para dúvidas, envio de documentos e assuntos cotidianos, utilize normalmente nossos canais de atendimento: {HOURS.toLowerCase()} A palavra “urgente”, sozinha, não caracteriza emergência.
-        </Note>
-        <Note icon="call-outline" tone="warning">
-          Se houver risco imediato à sua vida, ligue antes para a polícia: 190.
-        </Note>
-        <Button variant="dark" label="Falar agora sobre uma situação urgente" icon="chatbubble-ellipses-outline" onPress={() => navigation.navigate("Comunicação", {urgent: true})} />
+        <Text style={[u.body, {marginTop: 12}]}>Este canal é reservado exclusivamente às duas situações abaixo. Escolha apenas uma:</Text>
+        <Button variant="dark" label="Perigo iminente de morte" icon="alert-circle-outline" onPress={() => setSelectedRisk("life")} />
+        <Button variant="dark" label="Risco à integridade física" icon="shield-outline" onPress={() => setSelectedRisk("physical")} />
+        {selectedRisk ? <>
+          <Note icon="call-outline" tone="warning">Se o risco é imediato, ligue para 190 (Polícia Militar) ou 192 (SAMU), conforme a situação. Não aguarde resposta pelo aplicativo.</Note>
+          <Text style={[u.body, {marginTop: 12}]}>Situação selecionada: {selectedRisk === "life" ? "perigo iminente de morte" : "risco à integridade física"}.</Text>
+          <Button variant="dark" label="Comunicar urgência ao escritório" icon="chatbubble-ellipses-outline" onPress={() => navigation.navigate("Comunicação", {urgent: true, urgencyType: selectedRisk})} />
+        </> : null}
+        <Note icon="calendar-outline">Dúvidas, documentos e pedidos comuns devem seguir os canais regulares do escritório. O aplicativo não substitui serviços de emergência.</Note>
       </Card>
-
       <Section>Uma mensagem da Dra. Suzanne</Section>
       <SuzanneCard name={firstName(x)} />
     </Screen>
