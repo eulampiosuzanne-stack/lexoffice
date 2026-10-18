@@ -104,11 +104,24 @@ export default function ClientOnboardingPanel({ client }: { client: any }) {
       },
     );
     setBusy(false);
-    setNotice(
-      error || !data?.ok
-        ? "Onboarding salvo, mas o aviso no WhatsApp ficou pendente."
-        : "Onboarding iniciado e link enviado ao cliente.",
-    );
+    if (error || !data?.ok) {
+      let reason = data?.results?.find((r: any) => !r.ok)?.error || data?.error || "";
+      if (!reason && error) {
+        try {
+          const body = await (error as any).context?.json?.();
+          reason = body?.error || "";
+        } catch {
+          /* sem detalhe adicional */
+        }
+        reason = reason || (error as any).message || "";
+      }
+      setNotice(
+        "Onboarding salvo, mas o WhatsApp não foi enviado" +
+          (reason ? `. Motivo: ${reason}` : "."),
+      );
+      return;
+    }
+    setNotice("Onboarding iniciado e link enviado ao cliente.");
   }
 
   const fields: [string, string, number][] = [
