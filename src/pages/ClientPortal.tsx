@@ -474,7 +474,7 @@ export default function ClientPortal() {
           ? [["Meu Onboarding", "onboarding", <CheckCircle2 />] as const]
           : []),
       ] as const,
-    [],
+    [onboarding],
   );
   if (session === undefined) return <div className="cp-loading">SF</div>;
   if (!session && localStorage.getItem("sf-demo") !== "1")
@@ -599,6 +599,15 @@ export default function ClientPortal() {
                 !<br />
                 Bem-vinda ao seu espaço exclusivo.
               </h2>
+            </section>
+            <section className="cp-focus" aria-label="Resumo do atendimento">
+              <h3>O que você precisa saber agora</h3>
+              <div className="cp-focus-grid">
+                <button onClick={() => setTab("process")}><b>{current ? "Processo em acompanhamento" : "Nenhum processo disponível"}</b><span>{current?.subject || current?.cnj_number || "Consulte a situação do seu caso"}</span></button>
+                <button onClick={() => setTab("messages")}><b>{messages.length ? `${messages.length} recado(s) do escritório` : "Nenhum recado novo"}</b><span>Veja avisos e orientações recebidas</span></button>
+                <button onClick={() => setTab("documents")}><b>{docs.filter((item:any) => item.status === "pending").length ? "Há documentos pendentes" : "Documentos conferidos"}</b><span>Consulte o checklist e envie arquivos</span></button>
+                <button onClick={() => setTab("steps")}><b>Próximo passo do atendimento</b><span>{stepList.find((item:any) => item.status === "current")?.label || "Veja as etapas do seu caso"}</span></button>
+              </div>
             </section>
             <div className="cp-grid">
               {tiles.map(([label, t, icon]) => (

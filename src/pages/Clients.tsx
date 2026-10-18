@@ -119,7 +119,7 @@ function validCpf(value: any) {
 }
 export default function Clients() {
   const [rows, setRows] = useState<Client[]>([]),
-    [q, setQ] = useState(""),
+    [q, setQ] = useState(() => new URLSearchParams(window.location.search).get("buscar") || ""),
     [page, setPage] = useState(0),
     [total, setTotal] = useState(0),
     [loading, setLoading] = useState(true),

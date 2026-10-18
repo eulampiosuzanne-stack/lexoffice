@@ -83,6 +83,7 @@ import Planejamento from "./pages/Planejamento";
 import Afazeres from "./pages/Afazeres";
 import Donna from "./pages/Donna";
 import Hearings from "./pages/Hearings";
+import GlobalSearch from "./components/GlobalSearch";
 const PRODUCTION_URL = "https://lexoffice-ashy.vercel.app";
 type NavItem = {
   label: string;
@@ -93,7 +94,7 @@ type NavItem = {
   ownerOnly?: boolean;
 };
 type Area = { label: string; icon: any; tabs: NavItem[] };
-/* Menu reorganizado (08/10/2026): 9 áreas; as telas de cada área viram abas no topo. */
+/* Arquitetura por finalidade: menos categorias, sem remover nenhuma rota. */
 const areas: Area[] = [
   {
     label: "Início",
@@ -105,61 +106,43 @@ const areas: Area[] = [
     ],
   },
   {
-    label: "Atendimento",
+    label: "Relacionamento",
     icon: MessageCircle,
     tabs: [
       { label: "Conversas (WhatsApp)", path: "/whatsapp", icon: MessageCircle },
       { label: "Mensagens do app", path: "/app-cliente", icon: Smartphone },
       { label: "Agentes (Helena)", path: "/agentes-ia", icon: Bot },
-    ],
-  },
-  {
-    label: "Clientes",
-    icon: Users,
-    tabs: [
       { label: "Clientes", path: "/clientes", icon: Users },
       { label: "Leads (CRM)", path: "/crm", icon: Filter },
       { label: "Importações", path: "/importacoes", icon: FileUp },
     ],
   },
   {
-    label: "Processos",
+    label: "Gestão jurídica",
     icon: Gavel,
     tabs: [
       { label: "Processos", path: "/processos", icon: Gavel },
       { label: "Andamentos", path: "/andamentos", icon: Activity },
       { label: "Tribunais", path: "/tribunais", icon: Landmark },
       {
-        label: "Condução processual",
+        label: "Condução após ajuizar",
         path: "/conducao-processual",
         icon: Compass,
       },
-    ],
-  },
-  {
-    label: "Agenda",
-    icon: CalendarDays,
-    tabs: [
       { label: "Agenda", path: "/agenda", icon: CalendarDays },
       { label: "Audiências", path: "/audiencias", icon: Gavel },
-      { label: "Afazeres", path: "/afazeres", icon: Clock3 },
-    ],
-  },
-  {
-    label: "Documentos",
-    icon: FileText,
-    tabs: [
       { label: "Documentos", path: "/documentos", icon: FileText },
       { label: "Assinaturas", path: "/assinaturas", icon: PenTool },
     ],
   },
   {
-    label: "Financeiro",
+    label: "Gestão do escritório",
     icon: CircleDollarSign,
     tabs: [
       { label: "Financeiro", path: "/financeiro", icon: CircleDollarSign },
       { label: "Cobrança", path: "/cobranca", icon: BellRing },
-      { label: "Jornada comercial", path: "/jornada-comercial", icon: Target },
+      { label: "Afazeres", path: "/afazeres", icon: Clock3 },
+      { label: "Etapas da contratação", path: "/jornada-comercial", icon: Target },
       {
         label: "Propostas comerciais",
         path: "/perfil-cliente",
@@ -174,11 +157,11 @@ const areas: Area[] = [
     ],
   },
   {
-    label: "Inteligência",
+    label: "Inteligência jurídica",
     icon: Sparkles,
     tabs: [
-      { label: "Jurimetria", path: "/jurimetria", icon: Sparkles },
-      { label: "Revisão da Peça", path: "/revisao-peca", icon: FileCheck2 },
+      { label: "Analisar caso", path: "/jurimetria", icon: Sparkles },
+      { label: "Revisar peça", path: "/revisao-peca", icon: FileCheck2 },
       { label: "Calculadoras", path: "/calculadoras", icon: Calculator },
       { label: "Planejamento", path: "/planejamento", icon: PiggyBank },
       { label: "Sherlock", path: "/consultas", icon: Search },
@@ -1061,9 +1044,7 @@ export default function App() {
             <NavLink className="integration-shortcut" to="/integracoes">
               <Plug size={15} /> Integrações
             </NavLink>
-            <div className="search">
-              <Search size={15} /> Buscar clientes, processos, leads...
-            </div>
+            <GlobalSearch />
             <button>Português⌄</button>
             <Moon size={17} />
             <NavLink
@@ -1109,6 +1090,11 @@ export default function App() {
           </div>
         </header>
         <div className="content">
+          <div className="ux-context-bar" role="status">
+            <span>{area.label}</span>
+            <b>{areaTabs.find((item) => item.path === loc.pathname)?.label || area.label}</b>
+            <small>Escolha uma aba ou use a busca para chegar diretamente ao que precisa.</small>
+          </div>
           {areaTabs.length > 1 && (
             <nav className="area-tabs" aria-label={`Abas de ${area.label}`}>
               {areaTabs.map((t) => (
@@ -1255,13 +1241,20 @@ export default function App() {
           <MessageCircle />
           WhatsApp
         </NavLink>
+        <NavLink
+          to="/agenda"
+          className={({ isActive }) => (isActive ? "active" : "")}
+        >
+          <CalendarDays />
+          Agenda
+        </NavLink>
         <button
           type="button"
           onClick={() => setNavOpen(true)}
           aria-label="Abrir todos os módulos"
         >
           <MoreHorizontal />
-          Mais
+          Todos
         </button>
       </nav>
     </div>

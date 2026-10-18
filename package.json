@@ -11,7 +11,8 @@
     "test:whatsapp-format": "node scripts/test-whatsapp-reply-format.mjs",
     "test:client-calendar": "node scripts/test-client-calendar.mjs",
     "test:release-features": "node scripts/test-release-features.mjs",
-    "test": "npm run test:whatsapp-format && npm run test:client-calendar && npm run test:release-features && npm run verify"
+    "test:ux-navigation": "node scripts/test-ux-navigation.mjs",
+    "test": "npm run test:whatsapp-format && npm run test:client-calendar && npm run test:release-features && npm run test:ux-navigation && npm run verify"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
