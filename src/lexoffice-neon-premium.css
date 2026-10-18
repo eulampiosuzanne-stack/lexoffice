@@ -1,224 +1,128 @@
+/* Autoridade visual global. Deve permanecer como o último import de estilos. */
 :root {
-  --lx-bg: #05050a;
-  --lx-surface: #0e0e16;
-  --lx-surface-2: #161622;
-  --lx-border: #2a2a3a;
-  --lx-text: #f5f3ee;
-  --lx-muted: #a8a6b3;
-  --lx-gold: #d4af37;
-  --lx-gold-glow: #f5d97a;
-  --lx-cyan: #22d3ee;
-  --lx-pink: #f472b6;
-  --lx-purple: #a78bfa;
-  --lx-topic: var(--lx-gold);
-  --lx-shadow:
-    0 10px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  color-scheme: dark;
+  --lx-bg: #05050a; --lx-bg-2:#05050a; --lx-sidebar:#0e0e16;
+  --lx-surface:#0e0e16; --lx-surface-solid:#0e0e16; --lx-surface-2:#161622; --lx-surface-3:#161622;
+  --lx-border:#2a2a3a; --lx-hairline:#2a2a3a; --lx-border-strong:rgba(212,175,55,.52);
+  --lx-text:#f5f3ee; --lx-text-2:#f5f3ee; --lx-muted:#a8a6b3; --lx-subtle:#a8a6b3;
+  --lx-gold: #d4af37; --lx-gold-glow:#f5d97a; --lx-accent:#d4af37; --lx-accent-2:#f5d97a;
+  --lx-accent-dark:#d4af37; --lx-accent-soft:rgba(212,175,55,.12);
+  --lx-cyan:#22d3ee; --lx-pink:#f472b6; --lx-purple:#a78bfa; --lx-topic:var(--lx-gold);
+  --lx-font:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --lx-serif:"Playfair Display",Georgia,serif; --lx-caps:Inter,system-ui,sans-serif;
+  --lx-gold-grad:linear-gradient(135deg,#d4af37,#f5d97a); --lx-gold-text:var(--lx-gold-grad);
+  --lx-shadow:0 10px 30px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.06);
+  --lx-topic-glow:color-mix(in srgb,var(--lx-topic) 25%,transparent);
 }
-html,
-body,
-#root,
-.app {
-  background: var(--lx-bg) !important;
-  color: var(--lx-text) !important;
+
+html,body,#root,html body .app,html body .app.app,.auth-loading,.client-area,.cp-shell {
+  background:#05050a!important;color:#f5f3ee!important;
 }
-body,
-.app,
-input,
-select,
-textarea,
-button,
-table {
-  font-family: Inter, system-ui, sans-serif !important;
+html body,html body .app,html body input,html body select,html body textarea,html body button,html body table {
+  font-family:var(--lx-font)!important;
 }
-h1,
-h2,
-h3,
-.page-title h1,
-.page-heading h1,
-.module h1 {
-  font-family: "Playfair Display", Georgia, serif !important;
-  font-weight: 600 !important;
-  color: var(--lx-text) !important;
+html body .app.app h1,html body .app.app h2,html body .app.app h3,
+html body .app.app .page-title h1,html body .app.app .page-head h1,html body .app.app .page-heading h1,
+html body .app.app .module h1,.legacy-auth h1,.legacy-auth h2,.client-area h1,.client-area h2,.client-area h3 {
+  font-family:var(--lx-serif)!important;font-weight:600!important;color:#f5f3ee!important;letter-spacing:.005em!important;
 }
-.app aside,
-.app > main > header,
-.area-tabs,
-.module-box,
-.table-panel,
-.panel,
-.integration-panel,
-.dashboard-panel,
-.dashboard-kpi,
-.card,
-.smart-card,
-.modal-card,
-.rule-modal,
-.agent-console,
-.signature-row {
-  background: linear-gradient(
-    145deg,
-    var(--lx-surface-2),
-    var(--lx-surface)
-  ) !important;
-  border: 1px solid color-mix(in srgb, var(--lx-topic) 40%, transparent) !important;
-  border-radius: 16px !important;
-  box-shadow:
-    var(--lx-shadow),
-    0 0 18px color-mix(in srgb, var(--lx-topic) 25%, transparent) !important;
-  color: var(--lx-text) !important;
+html body .app.app :is(p,small,label,.muted,.page-title p,.page-head p){color:#a8a6b3}
+html body .app.app::before{background:radial-gradient(circle at 92% 2%,rgba(167,139,250,.07),transparent 34%),radial-gradient(circle at 4% 96%,rgba(34,211,238,.05),transparent 30%),#05050a!important}
+
+/* Cor contextual por módulo. */
+.app:has(a[href="/whatsapp"].active),.app:has(a[href="/atendimento"].active),.app:has(a[href="/agenda"].active),
+.app:has(a[href="/audiencias"].active),.app:has(a[href="/afazeres"].active),.app:has(a[href="/app-cliente"].active){--lx-topic:var(--lx-cyan)}
+.app:has(a[href="/clientes"].active),.app:has(a[href="/perfil-cliente"].active),.app:has(a[href="/crm"].active){--lx-topic:var(--lx-pink)}
+.app:has(a[href="/processos"].active),.app:has(a[href="/andamentos"].active),.app:has(a[href="/documentos"].active),
+.app:has(a[href="/jurimetria"].active),.app:has(a[href="/revisao-peca"].active),.app:has(a[href="/estrategia-processual"].active),
+.app:has(a[href="/conducao-processual"].active),.app:has(a[href="/peticao-ia"].active),.app:has(a[href="/consultas"].active),
+.app:has(a[href="/sherlock"].active){--lx-topic:var(--lx-purple)}
+
+/* Estrutura compartilhada. */
+html body .app.app>aside,html body .app.app aside,html body .app.app .profile,html body .app.app .mobile-bottom-nav{
+  background:#0e0e16!important;border-color:#2a2a3a!important;box-shadow:12px 0 32px rgba(0,0,0,.55)!important;
 }
-.card,
-.smart-card,
-.dashboard-kpi,
-.integration-card {
-  transition:
-    transform 0.18s ease,
-    box-shadow 0.18s ease,
-    border-color 0.18s ease;
+html body .app.app main>header,html body .app.app .topbar,html body .app.app .top-bar,html body .app.app .page-header{
+  background:rgba(14,14,22,.96)!important;border:1px solid #2a2a3a!important;box-shadow:var(--lx-shadow)!important;backdrop-filter:blur(16px);
 }
-.card:hover,
-.smart-card:hover,
-.dashboard-kpi:hover,
-.integration-card:hover {
-  transform: translateY(-3px);
-  box-shadow:
-    var(--lx-shadow),
-    0 0 28px color-mix(in srgb, var(--lx-topic) 45%, transparent) !important;
+html body .app.app aside nav a,html body .app.app .mobile-bottom-nav a{color:#a8a6b3!important;border-color:transparent!important}
+html body .app.app aside nav a:hover,html body .app.app .mobile-bottom-nav a:hover{color:#f5f3ee!important;background:rgba(212,175,55,.06)!important}
+html body .app.app aside nav a.active,html body .app.app .nav-group a.active,html body .app.app .mobile-bottom-nav a.active,
+html body .app.app .area-tabs a.active,html body .app.app .campaign-tabs button.active,html body .app.app [role="tab"][aria-selected="true"]{
+  color:#f5d97a!important;background:linear-gradient(90deg,rgba(212,175,55,.16),rgba(212,175,55,.03))!important;
+  border-color:rgba(212,175,55,.46)!important;border-left:3px solid #d4af37!important;
+  box-shadow:inset 4px 0 12px rgba(212,175,55,.12),0 0 14px rgba(212,175,55,.18)!important;
 }
-.primary,
-.btn-primary,
-.integration-action,
-.legacy-enter {
-  background: linear-gradient(
-    135deg,
-    var(--lx-gold),
-    var(--lx-gold-glow)
-  ) !important;
-  color: #05050a !important;
-  border: 1px solid #f5d97a !important;
-  border-radius: 12px !important;
-  box-shadow: 0 0 18px rgba(212, 175, 55, 0.35) !important;
-  font-weight: 800 !important;
+html body .app.app :is(.input-search,.search,[class*="search"] input){background:#0e0e16!important;color:#f5f3ee!important;border-color:#2a2a3a!important}
+
+/* Cards e painéis. */
+html body .app.app :is(.card,.smart-card,.module-box,.panel,.table-panel,.integration-panel,.integration-card,
+.dashboard-panel,.dashboard-kpi,.settings-panel,.settings-feature-card,.connection-card,.doc-library-card,
+.doc-upload-card,.doc-templates-card,.movement-card,.proc-auto-card,.proc-sync-box,.lead-card,.crm-lead-card,
+.afz-panel,.agenda-side,.agent-console,.signature-row,.jornada-card,.calculator-form,.calculator-result,
+.investigation-card,.campaign-list-card,.cs-panel,.de-block,.cp-card,.cp-insight-card,.cp-summary,.detail-grid){
+  background:linear-gradient(145deg,#161622,#0e0e16)!important;
+  border:1px solid color-mix(in srgb,var(--lx-topic) 40%,transparent)!important;border-radius:16px!important;
+  box-shadow:var(--lx-shadow),0 0 18px var(--lx-topic-glow)!important;color:#f5f3ee!important;
 }
-.secondary,
-.btn-secondary,
-.tools button,
-.area-tabs a {
-  background: transparent !important;
-  color: var(--lx-topic) !important;
-  border: 1px solid color-mix(in srgb, var(--lx-topic) 65%, var(--lx-border)) !important;
-  border-radius: 12px !important;
+html body .app.app :is(.card,.smart-card,.module-box,.dashboard-kpi,.settings-feature-card,.connection-card,
+.doc-library-card,.doc-upload-card,.doc-templates-card,.movement-card,.proc-auto-card,.lead-card,.crm-lead-card,
+.investigation-card,.campaign-list-card){transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease!important}
+@media(hover:hover){html body .app.app :is(.card,.smart-card,.module-box,.dashboard-kpi,.settings-feature-card,.connection-card,
+.doc-library-card,.doc-upload-card,.doc-templates-card,.movement-card,.proc-auto-card,.lead-card,.crm-lead-card,
+.investigation-card,.campaign-list-card):hover{transform:translateY(-3px);border-color:color-mix(in srgb,var(--lx-topic) 68%,transparent)!important;box-shadow:var(--lx-shadow),0 0 28px color-mix(in srgb,var(--lx-topic) 45%,transparent)!important}}
+
+/* Botões e ações. */
+html body .app.app :is(.primary,.btn-primary,.integration-action,.agent-save,.service-send,.doc-primary,.calculator-run),
+html body .app.app button[type="submit"],.legacy-enter,.cp-gold{
+  background:linear-gradient(135deg,#d4af37,#f5d97a)!important;color:#05050a!important;border:1px solid #f5d97a!important;
+  border-radius:12px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 0 18px rgba(212,175,55,.35)!important;font-weight:800!important;
 }
-input,
-select,
-textarea,
-.input-search {
-  background: var(--lx-surface) !important;
-  border: 1px solid var(--lx-border) !important;
-  color: var(--lx-text) !important;
-  border-radius: 12px !important;
+html body .app.app :is(.secondary,.btn-secondary,.ghost,.icon-btn,.back,.tools button,.area-tabs a,.settings-section-nav button){
+  background:transparent!important;color:var(--lx-topic)!important;border:1px solid color-mix(in srgb,var(--lx-topic) 65%,#2a2a3a)!important;border-radius:12px!important;box-shadow:none!important;
 }
-input:focus,
-select:focus,
-textarea:focus {
-  outline: none !important;
-  border-color: var(--lx-gold) !important;
-  box-shadow:
-    0 0 0 3px rgba(212, 175, 55, 0.2),
-    0 0 18px rgba(212, 175, 55, 0.22) !important;
+html body .app.app :is(.danger,[class*="delete"],[class*="remove"],[class*="reject"]){background:rgba(244,114,182,.09)!important;color:#f472b6!important;border-color:rgba(244,114,182,.65)!important}
+
+/* Formulários e tabelas. */
+html body .app.app input:not([type="checkbox"]):not([type="radio"]),html body .app.app select,html body .app.app textarea,
+.legacy-card input,.cp-input,.cp-select{background:#0e0e16!important;border:1px solid #2a2a3a!important;color:#f5f3ee!important;border-radius:12px!important;box-shadow:inset 0 1px 4px rgba(0,0,0,.42)!important}
+html body input::placeholder,html body textarea::placeholder{color:#a8a6b3!important;opacity:.82}
+html body input[type="checkbox"],html body input[type="radio"]{accent-color:#d4af37}
+html body :is(input,select,textarea,button,a):focus-visible{outline:none!important;border-color:#d4af37!important;box-shadow:0 0 0 3px rgba(212,175,55,.2),0 0 18px rgba(212,175,55,.22)!important}
+html body .app.app :is(table,thead,tbody,tr,th,td){border-color:#2a2a3a!important}
+html body .app.app table{background:#0e0e16!important;color:#f5f3ee!important}
+html body .app.app thead,html body .app.app th{background:#161622!important;color:#a8a6b3!important}
+html body .app.app td{color:#f5f3ee!important}
+html body .app.app tbody tr:hover,html body .app.app .table-panel tbody tr:hover,html body .app.app .table-panel .selected-row{background:rgba(212,175,55,.06)!important}
+
+/* Modais, mensagens, vazios e carregamentos. */
+html body :is(.modal-overlay,.bulk-backdrop,.client-share-overlay,.cp-welcome-overlay){background:rgba(5,5,10,.84)!important;backdrop-filter:blur(8px)}
+html body :is(.modal-card,.rule-modal,.bulk-modal,.client-share-modal,.legacy-card,.cp-login-card,.cp-welcome-card){
+  background:linear-gradient(145deg,#161622,#0e0e16)!important;color:#f5f3ee!important;border:1px solid rgba(212,175,55,.45)!important;
+  border-radius:16px!important;box-shadow:var(--lx-shadow),0 0 28px rgba(212,175,55,.2)!important;
 }
-th {
-  color: var(--lx-muted) !important;
-  border-color: var(--lx-border) !important;
+html body .modal-head{background:#0e0e16!important;border-color:#2a2a3a!important}
+html body :is(.toast,[class*="toast"],.notice,[class*="notice"],.alert){background:#161622!important;color:#f5f3ee!important;border:1px solid rgba(212,175,55,.45)!important;box-shadow:var(--lx-shadow),0 0 18px rgba(212,175,55,.18)!important}
+html body :is(.error,.error-text,[class*="error"],[class*="erro"],.alert.error,.login-error,.cp-error){color:#f472b6!important;border-color:rgba(244,114,182,.7)!important}
+html body :is(.warning,[class*="warning"],.integration-notice,.config-warning,.agenda-notice){color:#f5d97a!important;border-color:rgba(212,175,55,.7)!important;background:rgba(212,175,55,.08)!important}
+html body :is(.empty,[class*="empty"],.loading,[class*="loading"]){color:#a8a6b3!important}
+html body :is(.spin,[class*="spinner"],[class*="loader"]){color:var(--lx-topic)!important}
+
+/* Login e portal do cliente. */
+.legacy-auth,.legacy-left,.legacy-right,.client-area,.cp-shell{background:#05050a!important}
+.legacy-card label,.cp-shell label{color:#a8a6b3!important}.cp-nav{background:rgba(14,14,22,.97)!important;border-color:#2a2a3a!important}
+.cp-emergency-action{display:block;width:100%;margin:12px 0;text-align:left;cursor:pointer}
+::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-track{background:#05050a}::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#d4af37,#f5d97a);border-radius:999px}
+
+@media(max-width:900px){
+  html body .app.app .content{padding:0 12px 88px!important}html body .app.app.nav-open>aside{background:#0e0e16!important}
+  html body .app.app .mobile-bottom-nav{background:rgba(14,14,22,.98)!important}
+  html body .app.app :is(.cards,.dashboard-kpis,.settings-feature-grid,.form-grid){grid-template-columns:1fr!important}
+  html body .modal-overlay{padding:10px!important}html body .modal-card{width:100%!important;max-height:96dvh!important;border-radius:14px!important}
 }
-td {
-  color: var(--lx-text) !important;
-  border-color: var(--lx-border) !important;
-}
-tbody tr:hover {
-  background: rgba(212, 175, 55, 0.06) !important;
-}
-.nav-group a.active,
-.area-tabs a.active,
-.campaign-tabs button.active {
-  background: rgba(212, 175, 55, 0.12) !important;
-  color: var(--lx-gold-glow) !important;
-  border-left: 3px solid var(--lx-gold) !important;
-  box-shadow:
-    inset 4px 0 12px rgba(212, 175, 55, 0.12),
-    0 0 14px rgba(212, 175, 55, 0.18) !important;
-}
-.app:has(a[href="/whatsapp"].active),
-.app:has(a[href="/agenda"].active),
-.app:has(a[href="/audiencias"].active),
-.app:has(a[href="/afazeres"].active) {
-  --lx-topic: var(--lx-cyan);
-}
-.app:has(a[href="/clientes"].active),
-.app:has(a[href="/crm"].active) {
-  --lx-topic: var(--lx-pink);
-}
-.app:has(a[href="/processos"].active),
-.app:has(a[href="/documentos"].active),
-.app:has(a[href="/jurimetria"].active),
-.app:has(a[href="/revisao-peca"].active),
-.app:has(a[href="/consultas"].active) {
-  --lx-topic: var(--lx-purple);
-}
-.alert.error,
-.login-error {
-  color: var(--lx-pink) !important;
-  border-color: var(--lx-pink) !important;
-  background: rgba(244, 114, 182, 0.08) !important;
-}
-.integration-notice,
-.warning {
-  color: var(--lx-gold-glow) !important;
-  border-color: var(--lx-gold) !important;
-  background: rgba(212, 175, 55, 0.08) !important;
-}
-.legacy-auth,
-.legacy-left,
-.legacy-right,
-.legacy-card {
-  background: var(--lx-bg) !important;
-  color: var(--lx-text) !important;
-}
-.legacy-card {
-  border: 1px solid rgba(212, 175, 55, 0.45) !important;
-  box-shadow:
-    var(--lx-shadow),
-    0 0 28px rgba(212, 175, 55, 0.2) !important;
-}
-.cp-emergency-action {
-  display: block;
-  width: 100%;
-  margin: 12px 0;
-  text-align: left;
-  cursor: pointer;
-}
-@media (max-width: 700px) {
-  .content {
-    padding: 0 12px 88px !important;
-  }
-  .panel,
-  .integration-panel,
-  .table-panel,
-  .modal-card {
-    border-radius: 14px !important;
-  }
-  .cards {
-    grid-template-columns: 1fr !important;
-  }
-  .app aside {
-    box-shadow: 18px 0 40px rgba(0, 0, 0, 0.7) !important;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    transition: none !important;
-    animation: none !important;
-  }
+@media(max-width:520px){html body .app.app h1{font-size:clamp(25px,8vw,32px)!important}html body .app.app main>header{border-radius:12px!important}html body .app.app :is(.card,.module-box,.panel,.table-panel,.dashboard-panel){border-radius:14px!important}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+@media print{
+  :root{color-scheme:light}body,#root,.app,.print-document,.print-sheet,.cartilha-print{background:#fff!important;color:#111!important;box-shadow:none!important}
+  .print-document *,.print-sheet *,.cartilha-print *{text-shadow:none!important}
 }
