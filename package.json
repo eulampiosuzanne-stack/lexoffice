@@ -10,7 +10,8 @@
     "verify": "node scripts/verify-repository.mjs",
     "test:whatsapp-format": "node scripts/test-whatsapp-reply-format.mjs",
     "test:client-calendar": "node scripts/test-client-calendar.mjs",
-    "test": "npm run test:whatsapp-format && npm run test:client-calendar && npm run verify"
+    "test:release-features": "node scripts/test-release-features.mjs",
+    "test": "npm run test:whatsapp-format && npm run test:client-calendar && npm run test:release-features && npm run verify"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

@@ -9,6 +9,7 @@ import {
   ListChecks,
   Wallet,
   Users,
+  CheckCircle2,
 } from "lucide-react";
 
 const SUPA = "https://dcpwcuototomxoiszukt.supabase.co";
@@ -27,6 +28,7 @@ type Tab =
   | "steps"
   | "finance"
   | "service"
+  | "onboarding"
   | "urgent";
 
 export default function ClientPortal() {
@@ -56,6 +58,7 @@ export default function ClientPortal() {
     [serviceNotice, setServiceNotice] = useState(""),
     [docNotice, setDocNotice] = useState(""),
     [welcomeOpen, setWelcomeOpen] = useState(false),
+    [onboarding, setOnboarding] = useState<any>(null),
     [timeline, setTimeline] = useState<any[]>([]),
     [processId, setProcessId] = useState("");
   useEffect(() => {
@@ -135,6 +138,36 @@ export default function ClientPortal() {
     window.addEventListener("appinstalled", mark);
     return () => window.removeEventListener("appinstalled", mark);
   }, [session]);
+  useEffect(() => {
+    if (!session || !ctx?.client_id) return;
+    supabase
+      .from("client_onboarding")
+      .select("*")
+      .eq("client_id", ctx.client_id)
+      .maybeSingle()
+      .then(({ data }) => {
+        setOnboarding(data || null);
+        if (data?.status === "sent")
+          void supabase
+            .from("client_onboarding")
+            .update({ status: "opened", opened_at: new Date().toISOString() })
+            .eq("id", data.id);
+      });
+  }, [session, ctx?.client_id]);
+  async function acknowledgeOnboarding() {
+    if (!onboarding?.id) return;
+    const now = new Date().toISOString();
+    const { error } = await supabase
+      .from("client_onboarding")
+      .update({ status: "acknowledged", acknowledged_at: now, updated_at: now })
+      .eq("id", onboarding.id);
+    if (!error)
+      setOnboarding({
+        ...onboarding,
+        status: "acknowledged",
+        acknowledged_at: now,
+      });
+  }
   useEffect(() => {
     if (!session) return;
     (async () => {
@@ -309,7 +342,7 @@ export default function ClientPortal() {
     setBookingNotice("");
     if (!v) return;
     setBookingBusy(true);
-      const { data, error } = await supabase.functions.invoke("lazy-probe-tmp", {
+    const { data, error } = await supabase.functions.invoke("lazy-probe-tmp", {
       body: { action: "availability", date: v },
     });
     setBookingBusy(false);
@@ -334,7 +367,7 @@ export default function ClientPortal() {
       return;
     setBookingBusy(true);
     setBookingNotice("");
-      const { data, error } = await supabase.functions.invoke("lazy-probe-tmp", {
+    const { data, error } = await supabase.functions.invoke("lazy-probe-tmp", {
       body: { action: "book", date: bookingDate, slot_start: slot.slot_start },
     });
     setBookingBusy(false);
@@ -437,6 +470,9 @@ export default function ClientPortal() {
         ["Próximos Passos", "steps", <ListChecks />],
         ["Financeiro", "finance", <Wallet />],
         ["Meu Atendimento", "service", <Users />],
+        ...(onboarding
+          ? [["Meu Onboarding", "onboarding", <CheckCircle2 />] as const]
+          : []),
       ] as const,
     [],
   );
@@ -842,8 +878,8 @@ export default function ClientPortal() {
             <section className="cp-card">
               <h3>Agendar atendimento</h3>
               <p>
-                Atendimentos online de 30 minutos, de segunda a sexta-feira.
-                Das 8h às 14h, com a Dra. Gláucia; das 14h às 18h, com a Dra.
+                Atendimentos online de 30 minutos, de segunda a sexta-feira. Das
+                8h às 14h, com a Dra. Gláucia; das 14h às 18h, com a Dra.
                 Suzanne. Depois de um agendamento, o próximo fica disponível
                 após 2 dias úteis. Os horários são confirmados na Agenda Google
                 da LEX.
@@ -876,7 +912,8 @@ export default function ClientPortal() {
                         hour: "2-digit",
                         minute: "2-digit",
                         timeZone: "America/Sao_Paulo",
-                      })} · {x.professional_name}
+                      })}{" "}
+                      · {x.professional_name}
                     </button>
                   ))}
                 </div>
@@ -992,6 +1029,40 @@ export default function ClientPortal() {
             </section>
           </>
         )}
+        {tab === "onboarding" && onboarding && (
+          <>
+            <Header n="08" title="MEU ONBOARDING" />
+            <section className="cp-card">
+              <h3>Boas-vindas ao escritório</h3>
+              <p>{onboarding.content?.welcome_message}</p>
+              <h4>Quem cuidará do seu atendimento</h4>
+              <p>{onboarding.content?.team_message}</p>
+              <h4>Horários e regras de atendimento</h4>
+              <p>{onboarding.content?.service_rules}</p>
+              <h4>Como acompanhar seu caso</h4>
+              <p>{onboarding.content?.process_tracking}</p>
+              <h4>Próximos passos</h4>
+              <p>{onboarding.content?.next_steps}</p>
+              <h4>Primeira reunião</h4>
+              <p>{onboarding.content?.meeting_notes}</p>
+              <div className="cp-person">
+                <b>Advogada responsável</b>
+                <small>
+                  {onboarding.content?.lawyer_name || "Dra. Suzanne Figueiredo"}
+                </small>
+              </div>
+              <button
+                className="cp-gold"
+                disabled={onboarding.status === "acknowledged"}
+                onClick={acknowledgeOnboarding}
+              >
+                {onboarding.status === "acknowledged"
+                  ? "✓ Ciência confirmada"
+                  : "Li e estou ciente"}
+              </button>
+            </section>
+          </>
+        )}
         {tab === "urgent" && (
           <>
             <Header n="08" title="QUANDO NOS AVISAR" />
@@ -1001,15 +1072,33 @@ export default function ClientPortal() {
                 Entre em contato o quanto antes em situações que possam impactar
                 diretamente o seu caso.
               </p>
+              <p>
+                Este canal não substitui Polícia, SAMU ou Bombeiros. Use somente
+                em uma das duas situações abaixo:
+              </p>
               {[
-                "Risco à vida ou à integridade física.",
-                "Ameaça grave relacionada ao caso.",
-                "Intimação ou documento com prazo que você acabou de receber.",
-                "Fato novo urgente que possa exigir providência jurídica.",
-              ].map((x) => (
-                <div className="cp-alert" key={x}>
-                  ⚠ {x}
-                </div>
+                [
+                  "Perigo iminente de morte",
+                  "Estou diante de perigo iminente de morte e preciso avisar o escritório.",
+                ],
+                [
+                  "Risco à integridade física",
+                  "Estou diante de risco à integridade física e preciso avisar o escritório.",
+                ],
+              ].map(([label, message]) => (
+                <button
+                  className="cp-alert cp-emergency-action"
+                  key={label}
+                  onClick={() =>
+                    window.open(
+                      `https://wa.me/5531981125096?text=${encodeURIComponent(message)}`,
+                      "_blank",
+                      "noopener,noreferrer",
+                    )
+                  }
+                >
+                  ⚠ {label}
+                </button>
               ))}
               <div className="cp-letter">
                 <h4>Uma mensagem da Dra. Suzanne</h4>

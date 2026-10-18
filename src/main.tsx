@@ -1,67 +1,154 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
-import App from './App';
-import PlatformAdminEntry from './pages/PlatformAdminEntry';
-import PublicClientForm from './pages/PublicClientForm';
-import Landing from './pages/Landing';
-import OfficeLanding from './pages/OfficeLanding';
-import Planos from './pages/Planos';
-import Checkout from './pages/Checkout';
-import ClientPortal from './pages/ClientPortal';
-import ClientFormShareAction from './components/ClientFormShareAction';
-import ClientMessageActionBridge from './components/ClientMessageActionBridge';
-import BulkClientMessageBridge from './components/BulkClientMessageBridge';
-import OfficeBrandBridge from './OfficeBrandBridge';
-import ThemeController from './ThemeController';
-import './pwa-install';
-import './styles.css';
-import './legacy-auth.css';
-import './interaction-feedback.css';
-import './office-brand.css';
-import './module-fixes.css';
-import './screen-fixes.css';
-import './pages/whatsapp-conversations.css';
-import './pages/agent-advanced.css';
-import './pages/investigation.css';
-import './pages/client-cards.css';
-import './pages/card-layouts.css';
-import './pages/calculator-cards.css';
-import './pages/settings-enhanced.css';
-import './pages/dashboard-premium.css';
-import './pages/signatures.css';
-import './pages/process-movements-premium.css';
-import './ux-maturity.css';
-import './client-intake.css';
-import './table-interaction-fix.css';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import App from "./App";
+import PlatformAdminEntry from "./pages/PlatformAdminEntry";
+import PublicClientForm from "./pages/PublicClientForm";
+import Landing from "./pages/Landing";
+import OfficeLanding from "./pages/OfficeLanding";
+import Planos from "./pages/Planos";
+import Checkout from "./pages/Checkout";
+import ClientPortal from "./pages/ClientPortal";
+import ClientFormShareAction from "./components/ClientFormShareAction";
+import ClientMessageActionBridge from "./components/ClientMessageActionBridge";
+import BulkClientMessageBridge from "./components/BulkClientMessageBridge";
+import OfficeBrandBridge from "./OfficeBrandBridge";
+import ThemeController from "./ThemeController";
+import "./pwa-install";
+import "./styles.css";
+import "./legacy-auth.css";
+import "./interaction-feedback.css";
+import "./office-brand.css";
+import "./module-fixes.css";
+import "./screen-fixes.css";
+import "./pages/whatsapp-conversations.css";
+import "./pages/agent-advanced.css";
+import "./pages/investigation.css";
+import "./pages/client-cards.css";
+import "./pages/card-layouts.css";
+import "./pages/calculator-cards.css";
+import "./pages/settings-enhanced.css";
+import "./pages/dashboard-premium.css";
+import "./pages/signatures.css";
+import "./pages/process-movements-premium.css";
+import "./ux-maturity.css";
+import "./client-intake.css";
+import "./table-interaction-fix.css";
 /* Single design-system authority: tokens, typography and color for every module. */
-import './lexoffice-final-system.css';
+import "./lexoffice-final-system.css";
 /* Mobile-only shell. All rules are scoped to small screens, preserving desktop. */
-import './mobile-shell.css';
+import "./mobile-shell.css";
 /* Final shell geometry override: must be loaded last to beat legacy width rules. */
-import './shell-layout-fix.css';
+import "./shell-layout-fix.css";
 /* Atendimento desktop: block horizontal scrollLeft drift while preserving mobile behavior. */
-import './service-scroll-guard.css';
+import "./service-scroll-guard.css";
 /* Camada visual preto e dourado luxo (identidade SF). Deve ser a última. */
-import './lexoffice-luxe.css';
+import "./lexoffice-luxe.css";
 /* Uniformização final: uma fonte só (a do menu), campos 3D com contorno ouro. Carregar por último. */
-import './lexoffice-uniform.css';
+import "./lexoffice-uniform.css";
 /* Polimento de leitura e espaçamento + véu sobre o fundo (08/10/2026). Carregar por último. */
-import './lexoffice-polish.css';
+import "./lexoffice-polish.css";
+/* Tema global compartilhado, carregado por último em todas as telas internas. */
+import "./lexoffice-neon-premium.css";
 
-const intakePrefix='/formulario-cliente/';
-const path=window.location.pathname.replace(/\/$/,'')||'/';
-const isPublicIntake=window.location.pathname.startsWith(intakePrefix);
-const isPublicLanding=['/apresentacao','/conheca-lexoffice'].includes(path);
-const isOfficeLanding=['/escritorio','/suzanne-figueiredo'].includes(path);
-const isPublicPlans=['/planos','/precos','/pricing'].includes(path);
-const isPublicCheckout=path==='/checkout';
-const isClientPortal=['/cliente','/app-cliente','/area-do-cliente'].includes(path);
-const intakeToken=isPublicIntake?decodeURIComponent(window.location.pathname.slice(intakePrefix.length).split('/')[0]||''):'';
-const RootApp=window.location.pathname.startsWith('/admin')?PlatformAdminEntry:App;
-ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><BrowserRouter>{isPublicIntake?<PublicClientForm token={intakeToken}/>:isOfficeLanding?<OfficeLanding/>:isPublicLanding?<Landing/>:isPublicPlans?<Planos/>:isPublicCheckout?<Checkout/>:isClientPortal?<ClientPortal/>:<OfficeBrandBridge><><RootApp/><ClientFormShareAction/><ClientMessageActionBridge/><BulkClientMessageBridge/><ThemeController/></></OfficeBrandBridge>}</BrowserRouter></React.StrictMode>);
-const dashboardTargets=['/processos','/crm','/clientes','/agenda','/agenda','/andamentos','/assinaturas','/agentes-ia'];
-document.addEventListener('click',(event)=>{const el=(event.target as HTMLElement|null)?.closest?.('.dashboard-kpi') as HTMLElement|null;if(!el)return;const cards=Array.from(document.querySelectorAll('.dashboard-kpi'));const target=dashboardTargets[cards.indexOf(el)];if(target)window.location.assign(target)});
-document.addEventListener('keydown',(event)=>{if(event.key!=='Enter'&&event.key!==' ')return;const el=(event.target as HTMLElement|null)?.closest?.('.dashboard-kpi') as HTMLElement|null;if(!el)return;event.preventDefault();el.click()});
-const decorateDashboardCards=()=>{document.querySelectorAll<HTMLElement>('.dashboard-kpi').forEach((el,index)=>{if(!dashboardTargets[index])return;el.tabIndex=0;el.setAttribute('role','link');el.setAttribute('aria-label',`Abrir ${el.innerText.replace(/\s+/g,' ').trim()}`);el.style.cursor='pointer'})};new MutationObserver(decorateDashboardCards).observe(document.documentElement,{childList:true,subtree:true});decorateDashboardCards();
-if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>undefined)})}
+const intakePrefix = "/formulario-cliente/";
+const path = window.location.pathname.replace(/\/$/, "") || "/";
+const isPublicIntake = window.location.pathname.startsWith(intakePrefix);
+const isPublicLanding = ["/apresentacao", "/conheca-lexoffice"].includes(path);
+const isOfficeLanding = ["/escritorio", "/suzanne-figueiredo"].includes(path);
+const isPublicPlans = ["/planos", "/precos", "/pricing"].includes(path);
+const isPublicCheckout = path === "/checkout";
+const isClientPortal = [
+  "/cliente",
+  "/app-cliente",
+  "/area-do-cliente",
+].includes(path);
+const intakeToken = isPublicIntake
+  ? decodeURIComponent(
+      window.location.pathname.slice(intakePrefix.length).split("/")[0] || "",
+    )
+  : "";
+const RootApp = window.location.pathname.startsWith("/admin")
+  ? PlatformAdminEntry
+  : App;
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <BrowserRouter>
+      {isPublicIntake ? (
+        <PublicClientForm token={intakeToken} />
+      ) : isOfficeLanding ? (
+        <OfficeLanding />
+      ) : isPublicLanding ? (
+        <Landing />
+      ) : isPublicPlans ? (
+        <Planos />
+      ) : isPublicCheckout ? (
+        <Checkout />
+      ) : isClientPortal ? (
+        <ClientPortal />
+      ) : (
+        <OfficeBrandBridge>
+          <>
+            <RootApp />
+            <ClientFormShareAction />
+            <ClientMessageActionBridge />
+            <BulkClientMessageBridge />
+            <ThemeController />
+          </>
+        </OfficeBrandBridge>
+      )}
+    </BrowserRouter>
+  </React.StrictMode>,
+);
+const dashboardTargets = [
+  "/processos",
+  "/crm",
+  "/clientes",
+  "/agenda",
+  "/agenda",
+  "/andamentos",
+  "/assinaturas",
+  "/agentes-ia",
+];
+document.addEventListener("click", (event) => {
+  const el = (event.target as HTMLElement | null)?.closest?.(
+    ".dashboard-kpi",
+  ) as HTMLElement | null;
+  if (!el) return;
+  const cards = Array.from(document.querySelectorAll(".dashboard-kpi"));
+  const target = dashboardTargets[cards.indexOf(el)];
+  if (target) window.location.assign(target);
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  const el = (event.target as HTMLElement | null)?.closest?.(
+    ".dashboard-kpi",
+  ) as HTMLElement | null;
+  if (!el) return;
+  event.preventDefault();
+  el.click();
+});
+const decorateDashboardCards = () => {
+  document
+    .querySelectorAll<HTMLElement>(".dashboard-kpi")
+    .forEach((el, index) => {
+      if (!dashboardTargets[index]) return;
+      el.tabIndex = 0;
+      el.setAttribute("role", "link");
+      el.setAttribute(
+        "aria-label",
+        `Abrir ${el.innerText.replace(/\s+/g, " ").trim()}`,
+      );
+      el.style.cursor = "pointer";
+    });
+};
+new MutationObserver(decorateDashboardCards).observe(document.documentElement, {
+  childList: true,
+  subtree: true,
+});
+decorateDashboardCards();
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+  });
+}

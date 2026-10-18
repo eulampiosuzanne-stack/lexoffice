@@ -1,50 +1,2169 @@
-import { useEffect,useMemo,useState } from 'react';
-import { Search,Plus,X,Save,UserRound,MapPin,FileText,CheckCircle2,Cake,WandSparkles,Eye,Download,Loader2,Scale,ChevronLeft,ChevronRight,MessageCircle,Send,Megaphone,Trash2 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
-import { lookupCpfProviders } from '../lib/cpfLookup';
-import { confirmDiscard } from '../lib/ux';
-import MissingWhatsAppPanel from '../components/MissingWhatsAppPanel';
-type Client={id:string;name:string;cpf_cnpj:string|null;rg:string|null;birth_date:string|null;gender:string|null;mother_name:string|null;marital_status:string|null;profession:string|null;address:any;phone:string|null;whatsapp:string|null;email:string|null;status:string;is_vip?:boolean;relationship_tier:'LEAD'|'CLIENTE'|'CLIENTE_ATIVO'|'CLIENTE_PRIVATE'|'ENCERRADO';relationship_tier_source?:string|null;notes:string|null;created_at:string};
-type Template={id:string;name:string;category:string|null;description:string|null;signature_enabled:boolean|null};
-type Process={id:string;cnj_number:string|null;internal_number:string|null;subject:string|null};type Doc={id:string;name:string;file_path:string;mime_type:string|null;category:string|null;created_at:string;process_id:string|null};
-const PAGE_SIZE=50;const empty:any={name:'',cpf_cnpj:'',rg:'',birth_date:'',gender:'',mother_name:'',marital_status:'',profession:'',address:{},phone:'',whatsapp:'',email:'',status:'active',notes:''};
-const fmtDate=(v:string|null)=>v?new Date(`${v}T12:00:00`).toLocaleDateString('pt-BR'):'Não informado';const maritalLabels:Record<string,string>={single:'Solteiro(a)',married:'Casado(a)',divorced:'Divorciado(a)',widowed:'Viúvo(a)',separated:'Separado(a)'};const clean=(v:any)=>String(v??'').trim();const nullable=(v:any)=>{const s=clean(v);return s||null};const digits=(v:any)=>String(v??'').replace(/\D/g,'');const safeSearch=(v:string)=>v.replace(/[(),]/g,' ').trim();
-function validCpf(value:any){const cpf=digits(value);if(cpf.length!==11||/^(\d)\1{10}$/.test(cpf))return false;let sum=0;for(let i=0;i<9;i++)sum+=Number(cpf[i])*(10-i);let d1=(sum*10)%11;if(d1===10)d1=0;if(d1!==Number(cpf[9]))return false;sum=0;for(let i=0;i<10;i++)sum+=Number(cpf[i])*(11-i);let d2=(sum*10)%11;if(d2===10)d2=0;return d2===Number(cpf[10])}
-export default function Clients(){
- const [rows,setRows]=useState<Client[]>([]),[q,setQ]=useState(''),[page,setPage]=useState(0),[total,setTotal]=useState(0),[loading,setLoading]=useState(true),[selected,setSelected]=useState<Client|null>(null),[form,setForm]=useState<any>(empty),[initialForm,setInitialForm]=useState<any>(empty),[editing,setEditing]=useState(false),[saving,setSaving]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
- const [tab,setTab]=useState<'dados'|'documentos'>('dados'),[templates,setTemplates]=useState<Template[]>([]),[clientDocs,setClientDocs]=useState<Doc[]>([]),[clientProcesses,setClientProcesses]=useState<Process[]>([]),[checked,setChecked]=useState<string[]>([]),[processId,setProcessId]=useState(''),[docSearch,setDocSearch]=useState(''),[generating,setGenerating]=useState(false),[docNotice,setDocNotice]=useState('');const [cpfLookup,setCpfLookup]=useState({loading:false,notice:''});
- const [tierBusy,setTierBusy]=useState(false); const [messageTarget,setMessageTarget]=useState<Client|null>(null),[messageText,setMessageText]=useState(''),[messageBusy,setMessageBusy]=useState(false),[messageNotice,setMessageNotice]=useState(''); const [appAccess,setAppAccess]=useState<any>(null),[appBusy,setAppBusy]=useState(false); const [bulkOpen,setBulkOpen]=useState(false),[bulkClients,setBulkClients]=useState<Client[]>([]),[bulkSelected,setBulkSelected]=useState<string[]>([]),[bulkText,setBulkText]=useState(''),[bulkBusy,setBulkBusy]=useState(false),[bulkNotice,setBulkNotice]=useState('');
- async function load(targetPage=page,term=q){if(!supabase)return;setLoading(true);setError('');const from=targetPage*PAGE_SIZE;let query=supabase.from('clients').select('*',{count:'exact'}).order('name').range(from,from+PAGE_SIZE-1);const s=safeSearch(term);if(s)query=query.or(`name.ilike.%${s}%,cpf_cnpj.ilike.%${s}%,phone.ilike.%${s}%,whatsapp.ilike.%${s}%,email.ilike.%${s}%`);const {data,error,count}=await query;if(error)setError(`Não foi possível carregar os clientes: ${error.message}`);setRows((data||[]) as Client[]);setTotal(count||0);setLoading(false)}
- useEffect(()=>{const id=setTimeout(()=>void load(page,q),300);return()=>clearTimeout(id)},[page,q]);
- const pageCount=Math.max(1,Math.ceil(total/PAGE_SIZE));
- async function loadClientDocuments(clientId:string){if(!supabase)return;setDocNotice('');const [{data:t,error:te},{data:d,error:de},{data:p,error:pe}]=await Promise.all([supabase.from('document_templates').select('id,name,category,description,signature_enabled').eq('active',true).order('category').order('name'),supabase.from('documents').select('id,name,file_path,mime_type,category,created_at,process_id').eq('client_id',clientId).order('created_at',{ascending:false}),supabase.from('processes').select('id,cnj_number,internal_number,subject').eq('client_id',clientId).order('updated_at',{ascending:false})]);if(te||de||pe)setDocNotice((te||de||pe)?.message||'Não foi possível carregar os documentos.');setTemplates((t||[]) as Template[]);setClientDocs((d||[]) as Doc[]);setClientProcesses((p||[]) as Process[])}
- async function loadAppAccess(clientId:string){if(!supabase)return;const{data}=await supabase.from('client_app_access').select('login_cpf,access_code,status,activated_at,revoked_at').eq('client_id',clientId).maybeSingle();setAppAccess(data||null)} function open(c:Client){const v={...c,address:c.address||{}};setSelected(c);setForm(v);setInitialForm(structuredClone(v));setEditing(false);setError('');setNotice('');setCpfLookup({loading:false,notice:''});setTab('dados');setChecked([]);setProcessId('');setDocSearch('');void loadClientDocuments(c.id);void loadAppAccess(c.id)}
- function create(){const v={...empty,address:{}};setSelected(null);setForm(v);setInitialForm(structuredClone(v));setEditing(true);setError('');setNotice('');setCpfLookup({loading:false,notice:''});setTab('dados')}
- function beginEdit(){setInitialForm(structuredClone(form));setEditing(true);setNotice('')}const dirty=editing&&JSON.stringify(form)!==JSON.stringify(initialForm);function closeModal(force=false){if(!force&&dirty&&!confirmDiscard())return;setSelected(null);setEditing(false);setNotice('')}function cancelEdit(){if(dirty&&!confirmDiscard())return;if(selected){const v={...selected,address:selected.address||{}};setForm(v);setInitialForm(structuredClone(v));setEditing(false)}else closeModal(true)}
- async function autofillByCpf(value:any){if(!supabase)return;const cpf=digits(value);if(!cpf){setCpfLookup({loading:false,notice:''});return}if(cpf.length!==11){setCpfLookup({loading:false,notice:'Informe os 11 dígitos do CPF.'});return}if(!validCpf(cpf)){setCpfLookup({loading:false,notice:'CPF inválido. Confira os números informados.'});return}setCpfLookup({loading:true,notice:'Buscando dados autorizados do cliente...'});try{const {data,error}=await supabase.rpc('find_client_by_cpf',{p_cpf:cpf});if(error)throw error;const found=Array.isArray(data)?data[0]:null;if(found){const existing={...found,created_at:''} as Client;const v={...found,address:found.address||{}};setSelected(existing);setForm(v);setInitialForm(structuredClone(v));setEditing(true);setCpfLookup({loading:false,notice:'Cliente localizado no cadastro autorizado do escritório. Os dados foram preenchidos automaticamente.'});return}try{const external=await lookupCpfProviders(cpf);if(external.data){setForm((prev:any)=>({...prev,cpf_cnpj:cpf,name:clean(prev.name)||external.data?.name||'',gender:clean(prev.gender)||external.data?.gender||'',birth_date:clean(prev.birth_date)||external.data?.birth_date||'',mother_name:clean(prev.mother_name)||external.data?.mother_name||''}));const sourceLabel=external.sources.length?` Fontes: ${external.sources.join(', ')}.`:'';setCpfLookup({loading:false,notice:`CPF localizado em fonte autorizada. Os campos disponíveis foram preenchidos automaticamente.${sourceLabel}`});return}}catch(externalError:any){setCpfLookup({loading:false,notice:externalError?.message||'CPF válido, mas nenhuma fonte autorizada retornou dados agora.'});return}setCpfLookup({loading:false,notice:'CPF válido, mas nenhuma fonte autorizada retornou dados. O cadastro pode ser preenchido manualmente.'})}catch(e:any){setCpfLookup({loading:false,notice:e?.message||'Não foi possível consultar o CPF agora.'})}}
- async function previewClientApp(){if(!supabase||!selected)return;setAppBusy(true);setNotice('Preparando visualização do aplicativo...');try{let access=appAccess;if(!access?.access_code){const g=await supabase.rpc('client_app_generate_access',{p_client_id:selected.id});if(g.error)throw g.error;access=Array.isArray(g.data)?g.data[0]:g.data;setAppAccess(access)}const digitsCpf=String(access?.login_cpf||selected.cpf_cnpj||'').replace(/\D/g,'');if(!digitsCpf||!access?.access_code)throw new Error('CPF ou código de acesso indisponível.');const previewKey='lexoffice-client-preview-'+Date.now()+'-'+Math.random().toString(36).slice(2);localStorage.setItem(previewKey,JSON.stringify({cpf:digitsCpf,access_code:access.access_code,client_name:selected.name,admin_preview:true,created_at:Date.now()}));window.open('/cliente?preview=1&preview_key='+encodeURIComponent(previewKey),'_blank','noopener,noreferrer');setTimeout(()=>localStorage.removeItem(previewKey),60000);setNotice('Visualização do aplicativo aberta em modo administrativo.')}catch(e:any){setNotice('Não foi possível abrir a visualização: '+(e?.message||'erro desconhecido'))}finally{setAppBusy(false)}}
- async function generateAppAccess(){if(!supabase||!selected)return;setAppBusy(true);setNotice('Gerando código e enviando acesso pelo WhatsApp...');const{data,error}=await supabase.rpc('client_app_generate_access',{p_client_id:selected.id});if(error){setAppBusy(false);return setNotice('Não foi possível gerar o código: '+error.message)}const generated=Array.isArray(data)?data[0]:data;if(!generated?.access_code){setAppBusy(false);return setNotice('O sistema não retornou o novo código. Tente novamente.')}setAppAccess({...generated,status:generated.status||'not_activated',activated_at:null,revoked_at:null});setNotice(`Código gerado: ${generated.access_code}. Enviando acesso pelo WhatsApp...`);await loadAppAccess(selected.id);const phone=String(selected.whatsapp||selected.phone||'').replace(/\D/g,'');if(!phone){setAppBusy(false);return setNotice('Código gerado, envio pendente: cadastre o WhatsApp do cliente.')}const number=phone.startsWith('55')?phone:`55${phone}`;const message=`Olá, ${selected.name}! ✨\n\n🔐 *SEU ACESSO À ÁREA DO CLIENTE FOI LIBERADO*\n\nSuzanne Figueiredo Advocacia e Soluções Jurídicas\n\n👤 *LOGIN (CPF):* ${generated.login_cpf}\n\n🔑 *CÓDIGO DE ACESSO:* ${generated.access_code}\n\n🔗 *ACESSE SUA ÁREA DO CLIENTE:*\nhttps://lexoffice.univittagroup.com.br/cliente\n\n📱 *COMO INSTALAR NO CELULAR*\nVocê não precisa baixar APK nem procurar o aplicativo na loja. Basta criar o atalho na tela inicial:\n\n🤖 *ANDROID • Google Chrome*\n① Abra o link acima no Chrome.\n\n② Toque nos três pontinhos (⋮), no canto superior direito.\n\n③ Selecione *“Adicionar à tela inicial”* ou *“Instalar aplicativo”*.\n\n④ Toque em *“Adicionar”* para confirmar.\n\n🍎 *IPHONE • Safari*\n① Abra o link acima no Safari.\n\n② Toque no ícone *Compartilhar* (□↑).\n\n③ Selecione *“Adicionar à Tela de Início”*.\n\n④ Toque em *“Adicionar”* para confirmar.\n\n✅ *PRONTO!*\nAbra o ícone do *LexOffice* na tela inicial e entre usando seu CPF e o código de acesso informados acima.\n\n⚠️ *IMPORTANTE*\n• Guarde seu código de acesso.\n\n• Não compartilhe seus dados de acesso com terceiros.\n\n• A cartilha ilustrada com o passo a passo será enviada junto desta mensagem.\n\n🎧 *PRECISA DE AJUDA?*\nResponda a esta mensagem. Nossa equipe de atendimento irá auxiliá-lo.`;const{data:sent,error:sendError}=await supabase.functions.invoke('whatsapp-operator-send',{body:{message,targets:[{phone:number,name:selected.name}],agent_key:'client_schedule_relationship',next_agent_key:'client_schedule_relationship',keep_ai_active:true}});if(sendError||!sent?.ok||sent?.failed){setAppBusy(false);const reason=sendError?.message||sent?.results?.[0]?.error||sent?.error||'falha não identificada';return setNotice('Código gerado, envio pendente: '+reason)}const cartilhaUrl='https://lexoffice.univittagroup.com.br/cartilha-lexoffice.png';await new Promise(resolve=>setTimeout(resolve,1200));const cartilhaMessage='📎 *CARTILHA DE INSTALAÇÃO DO LEXOFFICE*\n\nSegue abaixo o passo a passo ilustrado para instalar o acesso na tela inicial do seu celular. 👇';const{data:cartilhaSent,error:cartilhaError}=await supabase.functions.invoke('whatsapp-operator-send',{body:{message:cartilhaMessage,image:cartilhaUrl,caption:'📱 Passo a passo ilustrado para instalar o LexOffice no seu celular.',targets:[{phone:number,name:selected.name}],agent_key:'client_schedule_relationship',next_agent_key:'client_schedule_relationship',keep_ai_active:true}});setAppBusy(false);if(cartilhaError||!cartilhaSent?.ok||cartilhaSent?.failed){const reason=cartilhaError?.message||cartilhaSent?.results?.[0]?.error||cartilhaSent?.error||'falha não identificada';return setNotice(`Acesso enviado, mas a cartilha ficou pendente: ${reason} | REENVIAR_CARTILHA`)}await loadAppAccess(selected.id);setNotice(`Código ${generated.access_code} gerado e enviado automaticamente pelo Agente de Relacionamento.`)} async function resendAppGuide(){if(!supabase||!selected)return;const phone=String(selected.whatsapp||selected.phone||'').replace(/\D/g,'');if(!phone)return setNotice('Cartilha pendente: cadastre o WhatsApp do cliente para reenviar.');const number=phone.startsWith('55')?phone:`55${phone}`;setAppBusy(true);setNotice('Reenviando somente a cartilha...');const cartilhaUrl='https://lexoffice.univittagroup.com.br/cartilha-lexoffice.png';const message='Cartilha de instalação do LexOffice';const{data,error}=await supabase.functions.invoke('whatsapp-operator-send',{body:{message,image:cartilhaUrl,caption:'Passo a passo para instalar o LexOffice no seu celular.',targets:[{phone:number,name:selected.name}],agent_key:'client_schedule_relationship',next_agent_key:'client_schedule_relationship',keep_ai_active:true}});setAppBusy(false);if(error||!data?.ok||data?.failed){const reason=error?.message||data?.results?.[0]?.error||data?.error||'falha não identificada';return setNotice('Cartilha pendente: '+reason+' | REENVIAR_CARTILHA')}setNotice('Cartilha reenviada com sucesso.')}  async function revokeAppAccess(){if(!supabase||!selected)return;setAppBusy(true);const{error}=await supabase.rpc('client_app_revoke_access',{p_client_id:selected.id});setAppBusy(false);if(error)return setNotice(error.message);await loadAppAccess(selected.id);setNotice('Acesso ao App revogado.')} async function copyAppAccess(){if(!appAccess)return;await navigator.clipboard.writeText(`Login: ${appAccess.login_cpf}\nCódigo de acesso: ${appAccess.access_code}`);setNotice('Login e código copiados.')} async function iniciarOnboarding(){if(!supabase||!selected||saving)return;const ok=window.confirm('Iniciar onboarding de '+selected.name+'? O cliente receberá no aplicativo uma apresentação do escritório e deverá confirmar ciência.');if(!ok)return;setSaving(true);setError('');setNotice('');try{const {data:{user},error:authError}=await supabase.auth.getUser();if(authError||!user)throw new Error('Sessão expirada. Entre novamente.');const {data:profile,error:profileError}=await supabase.from('profiles').select('org_id').eq('id',user.id).single();if(profileError||!profile?.org_id)throw new Error('Escritório não identificado.');const content=['Bem-vindo(a) à Suzanne Figueiredo Advocacia e Soluções Jurídicas.','Equipe: Dra. Suzanne Figueiredo, responsável pela atuação jurídica, e Gláucia, responsável pelo apoio administrativo e atendimento.','Comunicação: utilize os canais oficiais e o aplicativo para documentos, recados e solicitações. O andamento depende dos prazos processuais e das decisões judiciais.','Honorários e pagamentos: consulte o contrato e a proposta individualizados. Não realize pagamentos sem conferir os dados oficiais do escritório.','Próximos passos: acompanhe os recados e documentos enviados no aplicativo e mantenha seus dados atualizados.','Urgências com perigo iminente de morte ou risco à integridade física exigem contato imediato com os serviços públicos de emergência; o aplicativo não substitui atendimento emergencial.','Confirme abaixo que leu e está ciente destas orientações.'].join('\\n\\n');const {error}=await supabase.from('client_office_messages').insert({org_id:profile.org_id,client_id:selected.id,title:'Boas-vindas e orientações iniciais do escritório',body:content,category:'informativo',priority:'normal',requires_ack:true,sent_by:user.id,source_channel:'manual_app',metadata:{manual:true,onboarding:true,version:1}});if(error)throw error;setNotice('Onboarding inicial publicado no aplicativo com confirmação de ciência.');}catch(e:any){setError(e?.message||'Falha ao iniciar onboarding.')}finally{setSaving(false)}}
- async function save(){if(!supabase)return setError('Conexão com o banco indisponível.');if(!clean(form.name))return setError('Informe o nome do cliente.');const marital=nullable(form.marital_status);if(marital&&!['single','married','divorced','widowed','separated'].includes(marital))return setError('Selecione um estado civil válido.');setSaving(true);setError('');setNotice('');try{const payload={name:clean(form.name),cpf_cnpj:nullable(form.cpf_cnpj),rg:nullable(form.rg),birth_date:nullable(form.birth_date),gender:nullable(form.gender),mother_name:nullable(form.mother_name),marital_status:marital,profession:nullable(form.profession),phone:nullable(form.phone),whatsapp:nullable(form.whatsapp),email:nullable(form.email)?.toLowerCase()||null,status:form.status==='inactive'?'inactive':'active',notes:nullable(form.notes),address:form.address&&typeof form.address==='object'?form.address:{}};let r:any;if(selected)r=await supabase.from('clients').update(payload).eq('id',selected.id).select().single();else{const {data:u,error:authError}=await supabase.auth.getUser();if(authError||!u.user)throw new Error('Sua sessão expirou. Entre novamente no LEXOFFICE.');const {data:profile,error:profileError}=await supabase.from('profiles').select('org_id').eq('id',u.user.id).maybeSingle();if(profileError)throw new Error(`Não foi possível identificar o escritório: ${profileError.message}`);if(!profile?.org_id)throw new Error('Seu usuário não está vinculado a um escritório.');r=await supabase.from('clients').insert({...payload,org_id:profile.org_id}).select().single()}if(r.error)throw r.error;await load(page,q);setSelected(r.data);const v={...r.data,address:r.data.address||{}};setForm(v);setInitialForm(structuredClone(v));setEditing(false);setCpfLookup({loading:false,notice:''});setNotice('Cliente salvo com sucesso.');await loadClientDocuments(r.data.id)}catch(e:any){setError(e?.message||'Não foi possível salvar o cliente.')}finally{setSaving(false)}}
- async function toggleVip(){if(!supabase||!selected||saving)return;const next=!selected.is_vip;setSaving(true);setError('');setNotice('');try{const {data,error}=await supabase.from('clients').update({is_vip:next}).eq('id',selected.id).select().single();if(error)throw error;setSelected(data);await load(page,q);if(next){await supabase.from('whatsapp_conversations').update({priority:'urgent'}).eq('client_id',selected.id).neq('status','closed');setNotice('Cliente marcado como VIP. As próximas mensagens serão priorizadas e encaminhadas à Dra. Suzanne.')}else setNotice('Cliente retirado da categoria VIP.')}catch(e:any){setError(e?.message||'Não foi possível atualizar o status VIP.')}finally{setSaving(false)}} async function setPrivateRelationship(makePrivate:boolean){if(!supabase||!selected||tierBusy)return;const next=makePrivate?'CLIENTE_PRIVATE':'CLIENTE_ATIVO';const action=makePrivate?'promover para Cliente Private':'retirar da categoria Private';if(!window.confirm(`Deseja ${action} ${selected.name}? Esta classificação é interna e não será exibida ao cliente.`))return;setTierBusy(true);setNotice('');setError('');try{const {data,error}=await supabase.from('clients').update({relationship_tier:next,relationship_tier_source:'manual',relationship_tier_updated_at:new Date().toISOString()}).eq('id',selected.id).select().single();if(error)throw error;setSelected(data as Client);setForm((v:any)=>({...v,relationship_tier:data.relationship_tier,relationship_tier_source:data.relationship_tier_source}));setRows(v=>v.map(c=>c.id===data.id?data as Client:c));setNotice(makePrivate?'Cliente promovido para acompanhamento Private. A classificação permanece exclusivamente interna.':'Classificação Private removida. O cliente voltou ao acompanhamento ativo padrão.')}catch(e:any){setError(e?.message||'Não foi possível alterar a classificação de relacionamento.')}finally{setTierBusy(false)}}
- function toggleTemplate(id:string){setChecked(v=>v.includes(id)?v.filter(x=>x!==id):[...v,id])}
- async function generateSelected(){if(!supabase||!selected||!checked.length)return;setGenerating(true);setDocNotice('');let ok=0;const failures:string[]=[];for(const id of checked){const t=templates.find(x=>x.id===id);if(!t)continue;try{const {data,error}=await supabase.functions.invoke('document-generate',{body:{template_id:t.id,client_id:selected.id,process_id:processId||null,title:t.name,include_logo:true,signature_requested:t.signature_enabled!==false}});if(error)throw error;if((data as any)?.error)throw new Error((data as any).error);ok++}catch(e:any){failures.push(`${t.name}: ${e?.message||'falha'}`)}}await loadClientDocuments(selected.id);setGenerating(false);if(ok)setChecked([]);setDocNotice(failures.length?`${ok} documento(s) gerado(s). ${failures.length} não puderam ser gerados.`:`${ok} documento(s) gerado(s) e salvo(s) na ficha do cliente e na Biblioteca de Documentos.`)}
- async function openDoc(d:Doc,download=false){if(!supabase)return;const {data,error}=await supabase.storage.from('lexoffice-documents').createSignedUrl(d.file_path,300,{download:download?d.name:undefined});if(error||!data?.signedUrl)return setDocNotice(error?.message||'Não foi possível abrir o documento.');window.open(data.signedUrl,'_blank','noopener,noreferrer')}
- async function deleteClient(c:Client){if(!supabase)return;setError('');setNotice('');const count=async(t:string)=>{const {count:n}=await supabase!.from(t).select('id',{count:'exact',head:true}).eq('client_id',c.id);return n||0};const [procs,contracts,installments,entries,docs,sigs]=await Promise.all(['processes','fee_contracts','fee_installments','financial_entries','documents','signature_requests'].map(count));const links=[procs&&`${procs} processo(s)`,contracts&&`${contracts} contrato(s)`,installments&&`${installments} parcela(s)`,entries&&`${entries} lançamento(s) financeiro(s)`,docs&&`${docs} documento(s)`,sigs&&`${sigs} assinatura(s)`].filter(Boolean) as string[];if(links.length){const typed=window.prompt(`${c.name} tem ${links.join(', ')} vinculados.\n\nContratos e parcelas serão apagados junto; processos, documentos e assinaturas ficam sem cliente.\n\nPara confirmar a exclusão definitiva, digite EXCLUIR:`);if((typed||'').trim().toUpperCase()!=='EXCLUIR'){setNotice('Exclusão cancelada.');return}}else if(!window.confirm(`Excluir definitivamente o cliente ${c.name}? Esta ação não pode ser desfeita.`))return;const {error:e}=await supabase.from('clients').delete().eq('id',c.id);if(e){setError('Não foi possível excluir o cliente: '+e.message);return}if(selected?.id===c.id)setSelected(null);setRows(v=>v.filter(x=>x.id!==c.id));setTotal(t=>Math.max(0,t-1));setNotice(`Cliente ${c.name} excluído.`)}
- function messageClient(c:Client){const phone=digits(c.whatsapp||c.phone);if(!phone){setNotice('Cadastre o WhatsApp do cliente antes de enviar uma mensagem.');return}setMessageTarget(c);setMessageText('');setMessageNotice('')}
- async function openBulkMessage(){if(!supabase)return;setBulkOpen(true);setBulkNotice('Carregando clientes ativos...');const {data,error}=await supabase.from('clients').select('*').eq('status','active').order('name').limit(2000);if(error){setBulkClients([]);return setBulkNotice(error.message)}const eligible=((data||[]) as Client[]).filter(x=>digits(x.whatsapp||x.phone).length>=10);setBulkClients(eligible);setBulkSelected([]);setBulkText('');setBulkNotice(eligible.length+' cliente(s) ativo(s) com WhatsApp disponível(is).')}
- function toggleBulk(id:string){setBulkSelected(v=>v.includes(id)?v.filter(x=>x!==id):[...v,id])}
- async function sendBulkMessage(){if(!supabase||bulkBusy)return;const message=bulkText.trim(),targets=bulkClients.filter(x=>bulkSelected.includes(x.id));if(!message||!targets.length)return;if(!window.confirm('Confirmar envio para '+targets.length+' cliente(s)?'))return;setBulkBusy(true);let sent=0,failed=0;const seen=new Set<string>();for(const client of targets){const raw=digits(client.whatsapp||client.phone),phone=raw.startsWith('55')?raw:'55'+raw;if(seen.has(phone))continue;seen.add(phone);try{const {data,error}=await supabase.functions.invoke('whatsapp-operator-send',{body:{message,targets:[{phone,name:client.name}],agent_key:'client_schedule_relationship',next_agent_key:'client_schedule_relationship',keep_ai_active:true}});if(error||!data?.ok||Number(data?.sent||0)<1)throw new Error('não confirmado');sent++}catch{failed++}setBulkNotice('Enviando... '+sent+' confirmado(s), '+failed+' falha(s).');await new Promise(r=>setTimeout(r,1200))}setBulkBusy(false);setBulkNotice('Envio concluído: '+sent+' confirmado(s)'+(failed?', '+failed+' falha(s).':'.'))}
- async function sendClientMessage(){if(!supabase||!messageTarget||messageBusy)return;const phone=digits(messageTarget.whatsapp||messageTarget.phone),message=messageText.trim();if(!phone)return setMessageNotice('Este cliente não possui WhatsApp válido.');if(!message)return setMessageNotice('Digite a mensagem antes de enviar.');setMessageBusy(true);setMessageNotice('');try{let conversationId:string|null=null;const {data:contact}=await supabase.from('whatsapp_contacts').select('id').eq('client_id',messageTarget.id).order('updated_at',{ascending:false}).limit(1).maybeSingle();if(contact?.id){const {data:conv}=await supabase.from('whatsapp_conversations').select('id').eq('contact_id',contact.id).neq('status','closed').order('updated_at',{ascending:false}).limit(1).maybeSingle();conversationId=conv?.id||null}const {data,error}=await supabase.functions.invoke('whatsapp-operator-send',{body:{message,targets:[{phone,conversation_id:conversationId,name:messageTarget.name}]}});if(error)throw error;if((data as any)?.error)throw new Error((data as any).error);if(Number((data as any)?.sent||0)!==1){const first=(data as any)?.results?.[0];throw new Error(first?.error||'A Meta não confirmou o envio.')}setNotice(`Mensagem enviada para ${messageTarget.name} pelo WhatsApp oficial.`);setMessageTarget(null);setMessageText('')}catch(e:any){setMessageNotice(e?.message||'Não foi possível enviar a mensagem.')}finally{setMessageBusy(false)}}
- const visibleTemplates=useMemo(()=>{const s=docSearch.trim().toLowerCase();return templates.filter(t=>!s||`${t.name} ${t.category||''} ${t.description||''}`.toLowerCase().includes(s))},[templates,docSearch]);const a=form.address||{};
- return <div className="module"><div className="page-head"><div><h1>Clientes</h1><p>Selecione qualquer cliente para abrir a ficha completa com os dados importados.</p></div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><button className="secondary" onClick={openBulkMessage}><Megaphone size={15}/> Envio em massa</button><button className="primary" onClick={create}><Plus size={15}/> Novo cliente</button></div></div><MissingWhatsAppPanel onSaved={()=>{void load()}}/>{error&&<div className="alert error" role="alert">{error}</div>}{notice&&<div className="integration-notice" role="status" aria-live="polite"><CheckCircle2 size={15}/>{notice}</div>}<div className="table-panel"><div className="table-tools ux-toolbar"><div className="input-search"><Search size={15}/><input value={q} onChange={e=>{setQ(e.target.value);setPage(0)}} placeholder="Buscar por nome, CPF/CNPJ, telefone ou e-mail" aria-label="Buscar clientes"/></div><span>{total} cliente(s)</span><div className="ux-actions"><button className="secondary ux-icon-button" type="button" aria-label="Página anterior" disabled={page===0||loading} onClick={()=>setPage(p=>Math.max(0,p-1))}><ChevronLeft size={16}/></button><span>Página {page+1} de {pageCount}</span><button className="secondary ux-icon-button" type="button" aria-label="Próxima página" disabled={page+1>=pageCount||loading} onClick={()=>setPage(p=>Math.min(pageCount-1,p+1))}><ChevronRight size={16}/></button></div></div>{loading?<div className="empty">Carregando clientes...</div>:rows.length===0?<div className="empty">Nenhum cliente encontrado.</div>:<div className="table-wrap"><table><thead><tr><th>Ação</th><th>Cliente</th><th>CPF/CNPJ</th><th>E-mail</th><th>Telefone / WhatsApp</th><th>Nascimento</th><th>Status</th></tr></thead><tbody>{rows.map(c=><tr key={c.id} tabIndex={0} role="button" aria-label={`Abrir ficha de ${c.name}`} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open(c)}}} onClick={()=>open(c)} className={`ux-clickable-row ${selected?.id===c.id?'selected-row':''}`}><td><div className="row-actions" style={{display:'flex',gap:6,flexWrap:'wrap'}}><button type="button" className={selected?.id===c.id?'primary':'secondary'} onClick={e=>{e.stopPropagation();open(c)}}>{selected?.id===c.id?<><CheckCircle2 size={14}/> Selecionado</>:<>Abrir</>}</button><button type="button" className="secondary" onClick={e=>{e.stopPropagation();messageClient(c)}} title="Enviar mensagem pelo WhatsApp"><MessageCircle size={14}/> Mensagem</button><button type="button" className="secondary client-delete-btn" onClick={e=>{e.stopPropagation();deleteClient(c)}} title="Excluir cliente" aria-label={`Excluir cliente ${c.name}`}><Trash2 size={14}/> Excluir</button></div></td><td><b>{c.name}</b><small>{[c.address?.city,c.address?.state].filter(Boolean).join(' / ')||'Abrir ficha'}</small><small style={{display:'block',marginTop:4,fontWeight:700}}>{({LEAD:'Lead',CLIENTE:'Cliente',CLIENTE_ATIVO:'Cliente ativo',CLIENTE_PRIVATE:'Cliente Private',ENCERRADO:'Encerrado'} as any)[c.relationship_tier]||'Cliente'}</small></td><td>{c.cpf_cnpj||'—'}</td><td>{c.email||'—'}</td><td>{c.whatsapp||c.phone||'—'}</td><td>{fmtDate(c.birth_date)}</td><td><span className={`badge ${c.status}`}>{c.status==='active'?'Ativo':'Inativo'}</span></td></tr>)}</tbody></table></div>}</div>
- {(selected||editing)&&<div className="modal-overlay" onClick={e=>{if(e.target===e.currentTarget)closeModal()}}><div className="modal-card" style={{maxWidth:1100,maxHeight:'92vh',overflowY:'auto'}}><div className="modal-head"><div><h2><UserRound size={20}/> {selected?selected.name:'Novo cliente'}</h2><p>{selected?'Ficha completa do cliente.':'Cadastre os dados do cliente.'} {dirty&&<span className="ux-unsaved">Alterações não salvas.</span>}</p></div><button className="icon-btn ux-modal-close" aria-label="Fechar ficha" title="Fechar" onClick={()=>closeModal()}><X size={20}/></button></div>
- {selected&&!editing&&<div style={{padding:'0 0 12px'}}><button type="button" className="primary" disabled={saving} onClick={iniciarOnboarding}>Iniciar onboarding do cliente</button></div>}
- {selected&&!editing&&<div style={{display:'flex',gap:10,padding:'0 0 18px',borderBottom:'1px solid rgba(128,128,128,.25)',marginBottom:20,flexWrap:'wrap'}}><button className={tab==='dados'?'primary':'secondary'} onClick={()=>setTab('dados')}><UserRound size={15}/> Dados do cliente</button><button className={tab==='documentos'?'primary':'secondary'} onClick={()=>setTab('documentos')}><FileText size={15}/> Documentos personalizados <span style={{marginLeft:5}}>({clientDocs.length})</span></button><button type="button" className={selected.is_vip?'primary':'secondary'} disabled={saving} onClick={()=>void toggleVip()} style={{minHeight:48,fontSize:16}}>{saving?'Salvando…':selected.is_vip?'★ Cliente VIP — desativar':'☆ Marcar cliente como VIP'}</button><button className="secondary" onClick={()=>messageClient(selected)}><MessageCircle size={15}/> Enviar mensagem</button><button className="primary" type="button" onClick={()=>window.dispatchEvent(new CustomEvent('lexoffice:share-client-form',{detail:{clientId:selected.id,clientName:selected.name,phone:selected.whatsapp||selected.phone||''}}))}><Send size={15}/> Enviar ficha de cadastro</button></div>}
- {!editing&&selected&&tab==='dados'?<div className="client-detail">{selected.is_vip&&<div role="status" style={{border:'2px solid #c9a44c',background:'#201b10',color:'#fff',borderRadius:12,padding:16,marginBottom:16,fontSize:17,lineHeight:1.5}}><strong style={{color:'#e7c56a'}}>Cliente VIP</strong><br/>A próxima mensagem vai para o topo da fila. Helena envia uma saudação personalizada e passa o atendimento para a Dra. Suzanne.</div>}<div className="cards"><div className="card"><span>Relacionamento</span><strong>{({LEAD:'Lead',CLIENTE:'Cliente',CLIENTE_ATIVO:'Cliente ativo',CLIENTE_PRIVATE:'Cliente Private',ENCERRADO:'Encerrado'} as any)[selected.relationship_tier]||'Cliente'}</strong></div><div className="card"><span>CPF/CNPJ</span><strong>{selected.cpf_cnpj||'Não informado'}</strong></div><div className="card"><span>RG</span><strong>{selected.rg||'Não informado'}</strong></div><div className="card"><span>WhatsApp</span><strong>{selected.whatsapp||selected.phone||'Não informado'}</strong></div><div className="card"><span><Cake size={14}/> Nascimento</span><strong>{fmtDate(selected.birth_date)}</strong></div></div><div className="detail-grid"><p><b>E-mail:</b> {selected.email||'Não informado'}</p><p><b>Sexo/Gênero:</b> {selected.gender||'Não informado'}</p><p><b>Nome da mãe:</b> {selected.mother_name||'Não informado'}</p><p><b>Estado civil:</b> {selected.marital_status?maritalLabels[selected.marital_status]||selected.marital_status:'Não informado'}</p><p><b>Profissão:</b> {selected.profession||'Não informado'}</p><p><b>Endereço:</b> {[selected.address?.street,selected.address?.number,selected.address?.complement,selected.address?.neighborhood,selected.address?.city,selected.address?.state,selected.address?.zip].filter(Boolean).join(', ')||'Não informado'}</p><p><b>Observações:</b> {selected.notes||'Nenhuma'}</p></div><div className="integration-notice"><Cake size={15}/> Clientes com data de nascimento e WhatsApp/telefone recebem felicitação automática no dia do aniversário.</div><div style={{border:'1px solid rgba(180,145,80,.45)',borderRadius:12,padding:18,margin:'16px 0',background:'rgba(180,145,80,.06)'}}><h3 style={{marginTop:0}}>Acesso ao App do Cliente</h3><p><b>Login:</b> {appAccess?.login_cpf||digits(selected.cpf_cnpj)||'CPF não cadastrado'}</p><p><b>Código:</b> {appAccess?.access_code||'Ainda não gerado'}</p><p><b>Status:</b> {appAccess?.status==='active'?'Ativo':appAccess?.status==='revoked'?'Revogado':'Não ativado'}</p><div style={{display:'flex',gap:8,flexWrap:'wrap'}}><button className="primary" disabled={appBusy} onClick={generateAppAccess}>{appAccess?.status==='revoked'?'Gerar novo código':appAccess?'Redefinir código':'Gerar código'}</button>{appAccess&&<button className="secondary" onClick={copyAppAccess}>Copiar acesso</button>}{appAccess?.status!=='revoked'&&appAccess&&<button className="secondary" disabled={appBusy} onClick={revokeAppAccess}>Revogar App</button>}<button className="secondary" disabled={appBusy} onClick={previewClientApp}><Eye size={15}/> Visualizar aplicativo</button>{notice.includes('REENVIAR_CARTILHA')&&<button className="primary" disabled={appBusy} onClick={resendAppGuide}>Reenviar cartilha</button>}</div>{notice.includes('REENVIAR_CARTILHA')&&<p style={{marginTop:10}}><b>Cartilha pendente de envio.</b> Use o botão acima para reenviar somente a cartilha, sem gerar novo código.</p>}</div><div style={{display:'flex',gap:10,flexWrap:'wrap'}}><button className="primary" onClick={beginEdit}>Editar / completar dados</button><button className="secondary" onClick={()=>messageClient(selected)}><MessageCircle size={15}/> Enviar mensagem</button>{selected.relationship_tier==='CLIENTE_PRIVATE'?<button className="secondary" disabled={tierBusy} onClick={()=>setPrivateRelationship(false)}>{tierBusy?'Alterando...':'Retirar Private'}</button>:<button className="secondary" disabled={tierBusy} onClick={()=>setPrivateRelationship(true)}>{tierBusy?'Alterando...':'Promover para Private'}</button>}</div></div>
- :!editing&&selected&&tab==='documentos'?<div><div style={{padding:18,border:'1px solid rgba(128,128,128,.28)',borderRadius:12,marginBottom:18}}><div style={{display:'flex',justifyContent:'space-between',gap:16,alignItems:'start',flexWrap:'wrap'}}><div><h3 style={{margin:'0 0 6px'}}>Gerar documentos para {selected.name}</h3><p style={{margin:0}}>Marque todos os modelos que precisa. Os dados cadastrados serão preenchidos automaticamente.</p></div>{clientProcesses.length>0&&<label style={{minWidth:300}}><span style={{display:'flex',gap:6,alignItems:'center',marginBottom:6}}><Scale size={14}/> Processo (opcional)</span><select value={processId} onChange={e=>setProcessId(e.target.value)} style={{width:'100%',minHeight:46}}><option value="">Sem processo específico</option>{clientProcesses.map(p=><option key={p.id} value={p.id}>{p.cnj_number||p.internal_number||p.subject||'Processo'}</option>)}</select></label>}</div><div className="input-search" style={{marginTop:16}}><Search size={15}/><input value={docSearch} onChange={e=>setDocSearch(e.target.value)} placeholder="Buscar procuração, contrato, petição, declaração..."/></div><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:10,marginTop:14,maxHeight:330,overflowY:'auto',paddingRight:4}}>{visibleTemplates.map(t=><label key={t.id} style={{display:'flex',gap:12,alignItems:'flex-start',padding:14,border:checked.includes(t.id)?'2px solid #C99443':'1px solid rgba(128,128,128,.3)',borderRadius:10,cursor:'pointer',background:checked.includes(t.id)?'rgba(201,148,67,.08)':'transparent'}}><input type="checkbox" checked={checked.includes(t.id)} onChange={()=>toggleTemplate(t.id)} style={{width:20,height:20,marginTop:2}}/><div><b>{t.name}</b><small style={{display:'block',marginTop:4}}>{t.category||'Documento jurídico'}</small></div></label>)}</div><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,marginTop:16,flexWrap:'wrap'}}><b>{checked.length} modelo(s) selecionado(s)</b><button className="primary" disabled={!checked.length||generating} onClick={generateSelected}>{generating?<Loader2 size={16} className="spin"/>:<WandSparkles size={16}/>} {generating?'Gerando documentos...':'Gerar documentos selecionados'}</button></div></div>{docNotice&&<div className="integration-notice" style={{marginBottom:18}} role="status"><CheckCircle2 size={15}/>{docNotice}</div>}<div><h3>Documentos deste cliente</h3><p>Também permanecem disponíveis na Biblioteca de Documentos do LEXOFFICE.</p>{clientDocs.length===0?<div className="empty"><FileText size={28}/> Nenhum documento vinculado a este cliente.</div>:<div className="table-wrap"><table><thead><tr><th>Documento</th><th>Categoria</th><th>Data</th><th>Ações</th></tr></thead><tbody>{clientDocs.map(d=><tr key={d.id}><td><b>{d.name}</b></td><td>{d.category||'Outros'}</td><td>{new Date(d.created_at).toLocaleDateString('pt-BR')}</td><td><div style={{display:'flex',gap:8}}><button className="secondary" onClick={()=>openDoc(d)}><Eye size={15}/> Abrir</button><button className="secondary" onClick={()=>openDoc(d,true)}><Download size={15}/> Baixar</button></div></td></tr>)}</tbody></table></div>}</div></div>
- :<div className="form-grid"><label>Nome completo<input value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})} required aria-required="true"/></label><label>CPF/CNPJ<input value={form.cpf_cnpj||''} placeholder="Digite o CPF para buscar dados" onChange={e=>{setForm({...form,cpf_cnpj:e.target.value});setCpfLookup({loading:false,notice:''})}} onBlur={e=>autofillByCpf(e.target.value)}/>{cpfLookup.loading&&<small style={{display:'flex',gap:6,alignItems:'center',marginTop:6}}><Loader2 size={13} className="spin"/> Buscando dados...</small>}{!cpfLookup.loading&&cpfLookup.notice&&<small style={{display:'block',marginTop:6}}>{cpfLookup.notice}</small>}</label><label>RG<input value={form.rg||''} onChange={e=>setForm({...form,rg:e.target.value})}/></label><label>Data de nascimento<input type="date" value={form.birth_date||''} onChange={e=>setForm({...form,birth_date:e.target.value})}/></label><label>Sexo / gênero<input value={form.gender||''} onChange={e=>setForm({...form,gender:e.target.value})}/></label><label>Nome da mãe<input value={form.mother_name||''} onChange={e=>setForm({...form,mother_name:e.target.value})}/></label><label>Estado civil<select value={form.marital_status||''} onChange={e=>setForm({...form,marital_status:e.target.value})}><option value="">Não informado</option><option value="single">Solteiro(a)</option><option value="married">Casado(a)</option><option value="divorced">Divorciado(a)</option><option value="widowed">Viúvo(a)</option><option value="separated">Separado(a)</option></select></label><label>Profissão<input value={form.profession||''} onChange={e=>setForm({...form,profession:e.target.value})}/></label><label>Telefone<input value={form.phone||''} onChange={e=>setForm({...form,phone:e.target.value})}/></label><label>WhatsApp<input value={form.whatsapp||''} onChange={e=>setForm({...form,whatsapp:e.target.value})}/></label><label className="wide">E-mail<input type="email" value={form.email||''} onChange={e=>setForm({...form,email:e.target.value})}/></label><label className="wide"><MapPin size={14}/> Endereço<input placeholder="Rua / Avenida" value={a.street||''} onChange={e=>setForm({...form,address:{...a,street:e.target.value}})}/></label><label>Número<input value={a.number||''} onChange={e=>setForm({...form,address:{...a,number:e.target.value}})}/></label><label>Complemento<input value={a.complement||''} onChange={e=>setForm({...form,address:{...a,complement:e.target.value}})}/></label><label>Bairro<input value={a.neighborhood||''} onChange={e=>setForm({...form,address:{...a,neighborhood:e.target.value}})}/></label><label>Cidade<input value={a.city||''} onChange={e=>setForm({...form,address:{...a,city:e.target.value}})}/></label><label>UF<input value={a.state||''} onChange={e=>setForm({...form,address:{...a,state:e.target.value.toUpperCase().slice(0,2)}})}/></label><label>CEP<input value={a.zip||''} onChange={e=>setForm({...form,address:{...a,zip:e.target.value}})}/></label><label className="wide"><FileText size={14}/> Observações<textarea value={form.notes||''} onChange={e=>setForm({...form,notes:e.target.value})}/></label><div className="wide modal-actions"><button className="secondary" disabled={saving} onClick={cancelEdit}>Cancelar</button><button className="primary" disabled={saving||!clean(form.name)} onClick={save}><Save size={15}/>{saving?' Salvando...':' Salvar cliente'}</button></div></div>}
- </div></div>}
- {bulkOpen&&<div className="modal-overlay" style={{zIndex:1750}} onClick={e=>{if(e.target===e.currentTarget&&!bulkBusy)setBulkOpen(false)}}><div className="modal-card" style={{maxWidth:760,maxHeight:"90vh",overflowY:"auto"}}><div className="modal-head"><div><h2><Megaphone size={20}/> Envio em massa</h2><p>Selecione os clientes ativos que receberão a mensagem pelo WhatsApp.</p></div><button className="icon-btn ux-modal-close" disabled={bulkBusy} onClick={()=>setBulkOpen(false)}><X size={20}/></button></div><div style={{maxHeight:300,overflowY:"auto",border:"1px solid rgba(128,128,128,.25)",borderRadius:10,padding:8}}>{bulkClients.map(client=><label key={client.id} style={{display:"flex",gap:10,alignItems:"center",padding:"9px 7px",cursor:"pointer"}}><input type="checkbox" checked={bulkSelected.includes(client.id)} onChange={()=>toggleBulk(client.id)}/><div><b>{client.name}</b><small style={{display:"block"}}>{client.whatsapp||client.phone}</small></div></label>)}</div><div style={{display:"flex",gap:8,marginTop:10}}><button className="secondary" disabled={bulkBusy} onClick={()=>setBulkSelected(bulkClients.map(x=>x.id))}>Selecionar todos</button><button className="secondary" disabled={bulkBusy} onClick={()=>setBulkSelected([])}>Limpar seleção</button><b style={{marginLeft:"auto"}}>{bulkSelected.length} selecionado(s)</b></div><textarea value={bulkText} maxLength={4000} onChange={e=>setBulkText(e.target.value)} placeholder="Digite a mensagem da campanha..." style={{width:"100%",minHeight:150,resize:"vertical",boxSizing:"border-box",marginTop:14}}/>{bulkNotice&&<div className="integration-notice" style={{marginTop:12}}>{bulkNotice}</div>}<div className="modal-actions"><button className="secondary" disabled={bulkBusy} onClick={()=>setBulkOpen(false)}>Cancelar</button><button className="primary" disabled={bulkBusy||!bulkText.trim()||!bulkSelected.length} onClick={sendBulkMessage}>{bulkBusy?<Loader2 size={15} className="spin"/>:<Send size={15}/>} {bulkBusy?"Enviando...":"Revisar e enviar"}</button></div></div></div>}
- {messageTarget&&<div className="modal-overlay" style={{zIndex:1800}} onClick={e=>{if(e.target===e.currentTarget&&!messageBusy)setMessageTarget(null)}}><div className="modal-card" style={{maxWidth:580}}><div className="modal-head"><div><h2><MessageCircle size={20}/> Enviar mensagem</h2><p>{messageTarget.name} · {messageTarget.whatsapp||messageTarget.phone}</p></div><button className="icon-btn ux-modal-close" aria-label="Fechar" disabled={messageBusy} onClick={()=>setMessageTarget(null)}><X size={20}/></button></div><div style={{padding:'4px 0 12px'}}><label style={{display:'block'}}><span style={{display:'block',fontWeight:700,fontSize:12,marginBottom:7}}>Mensagem pelo WhatsApp Oficial</span><textarea autoFocus value={messageText} maxLength={4000} onChange={e=>setMessageText(e.target.value)} placeholder="Digite a mensagem para o cliente..." style={{width:'100%',minHeight:150,resize:'vertical',boxSizing:'border-box'}}/></label><small style={{display:'block',textAlign:'right',marginTop:5,opacity:.65}}>{messageText.length}/4000</small>{messageNotice&&<div className="alert error" style={{marginTop:12}}>{messageNotice}</div>}</div><div className="modal-actions"><button className="secondary" disabled={messageBusy} onClick={()=>setMessageTarget(null)}>Cancelar</button><button className="primary" disabled={messageBusy||!messageText.trim()} onClick={sendClientMessage}>{messageBusy?<Loader2 size={15} className="spin"/>:<Send size={15}/>} {messageBusy?'Enviando...':'Enviar mensagem'}</button></div></div></div>}
- </div>
+import { useEffect, useMemo, useState } from "react";
+import {
+  Search,
+  Plus,
+  X,
+  Save,
+  UserRound,
+  MapPin,
+  FileText,
+  CheckCircle2,
+  Cake,
+  WandSparkles,
+  Eye,
+  Download,
+  Loader2,
+  Scale,
+  ChevronLeft,
+  ChevronRight,
+  MessageCircle,
+  Send,
+  Megaphone,
+  Trash2,
+} from "lucide-react";
+import { supabase } from "../lib/supabase";
+import { lookupCpfProviders } from "../lib/cpfLookup";
+import { confirmDiscard } from "../lib/ux";
+import MissingWhatsAppPanel from "../components/MissingWhatsAppPanel";
+import ClientOnboardingPanel from "../components/ClientOnboardingPanel";
+type Client = {
+  id: string;
+  name: string;
+  cpf_cnpj: string | null;
+  rg: string | null;
+  birth_date: string | null;
+  gender: string | null;
+  mother_name: string | null;
+  marital_status: string | null;
+  profession: string | null;
+  address: any;
+  phone: string | null;
+  whatsapp: string | null;
+  email: string | null;
+  status: string;
+  is_vip?: boolean;
+  relationship_tier:
+    "LEAD" | "CLIENTE" | "CLIENTE_ATIVO" | "CLIENTE_PRIVATE" | "ENCERRADO";
+  relationship_tier_source?: string | null;
+  notes: string | null;
+  created_at: string;
+};
+type Template = {
+  id: string;
+  name: string;
+  category: string | null;
+  description: string | null;
+  signature_enabled: boolean | null;
+};
+type Process = {
+  id: string;
+  cnj_number: string | null;
+  internal_number: string | null;
+  subject: string | null;
+};
+type Doc = {
+  id: string;
+  name: string;
+  file_path: string;
+  mime_type: string | null;
+  category: string | null;
+  created_at: string;
+  process_id: string | null;
+};
+const PAGE_SIZE = 50;
+const empty: any = {
+  name: "",
+  cpf_cnpj: "",
+  rg: "",
+  birth_date: "",
+  gender: "",
+  mother_name: "",
+  marital_status: "",
+  profession: "",
+  address: {},
+  phone: "",
+  whatsapp: "",
+  email: "",
+  status: "active",
+  notes: "",
+};
+const fmtDate = (v: string | null) =>
+  v ? new Date(`${v}T12:00:00`).toLocaleDateString("pt-BR") : "Não informado";
+const maritalLabels: Record<string, string> = {
+  single: "Solteiro(a)",
+  married: "Casado(a)",
+  divorced: "Divorciado(a)",
+  widowed: "Viúvo(a)",
+  separated: "Separado(a)",
+};
+const clean = (v: any) => String(v ?? "").trim();
+const nullable = (v: any) => {
+  const s = clean(v);
+  return s || null;
+};
+const digits = (v: any) => String(v ?? "").replace(/\D/g, "");
+const safeSearch = (v: string) => v.replace(/[(),]/g, " ").trim();
+function validCpf(value: any) {
+  const cpf = digits(value);
+  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+  let sum = 0;
+  for (let i = 0; i < 9; i++) sum += Number(cpf[i]) * (10 - i);
+  let d1 = (sum * 10) % 11;
+  if (d1 === 10) d1 = 0;
+  if (d1 !== Number(cpf[9])) return false;
+  sum = 0;
+  for (let i = 0; i < 10; i++) sum += Number(cpf[i]) * (11 - i);
+  let d2 = (sum * 10) % 11;
+  if (d2 === 10) d2 = 0;
+  return d2 === Number(cpf[10]);
+}
+export default function Clients() {
+  const [rows, setRows] = useState<Client[]>([]),
+    [q, setQ] = useState(""),
+    [page, setPage] = useState(0),
+    [total, setTotal] = useState(0),
+    [loading, setLoading] = useState(true),
+    [selected, setSelected] = useState<Client | null>(null),
+    [form, setForm] = useState<any>(empty),
+    [initialForm, setInitialForm] = useState<any>(empty),
+    [editing, setEditing] = useState(false),
+    [saving, setSaving] = useState(false),
+    [error, setError] = useState(""),
+    [notice, setNotice] = useState("");
+  const [tab, setTab] = useState<"dados" | "documentos">("dados"),
+    [templates, setTemplates] = useState<Template[]>([]),
+    [clientDocs, setClientDocs] = useState<Doc[]>([]),
+    [clientProcesses, setClientProcesses] = useState<Process[]>([]),
+    [checked, setChecked] = useState<string[]>([]),
+    [processId, setProcessId] = useState(""),
+    [docSearch, setDocSearch] = useState(""),
+    [generating, setGenerating] = useState(false),
+    [docNotice, setDocNotice] = useState("");
+  const [cpfLookup, setCpfLookup] = useState({ loading: false, notice: "" });
+  const [tierBusy, setTierBusy] = useState(false);
+  const [messageTarget, setMessageTarget] = useState<Client | null>(null),
+    [messageText, setMessageText] = useState(""),
+    [messageBusy, setMessageBusy] = useState(false),
+    [messageNotice, setMessageNotice] = useState("");
+  const [appAccess, setAppAccess] = useState<any>(null),
+    [appBusy, setAppBusy] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false),
+    [bulkClients, setBulkClients] = useState<Client[]>([]),
+    [bulkSelected, setBulkSelected] = useState<string[]>([]),
+    [bulkText, setBulkText] = useState(""),
+    [bulkBusy, setBulkBusy] = useState(false),
+    [bulkNotice, setBulkNotice] = useState("");
+  async function load(targetPage = page, term = q) {
+    if (!supabase) return;
+    setLoading(true);
+    setError("");
+    const from = targetPage * PAGE_SIZE;
+    let query = supabase
+      .from("clients")
+      .select("*", { count: "exact" })
+      .order("name")
+      .range(from, from + PAGE_SIZE - 1);
+    const s = safeSearch(term);
+    if (s)
+      query = query.or(
+        `name.ilike.%${s}%,cpf_cnpj.ilike.%${s}%,phone.ilike.%${s}%,whatsapp.ilike.%${s}%,email.ilike.%${s}%`,
+      );
+    const { data, error, count } = await query;
+    if (error)
+      setError(`Não foi possível carregar os clientes: ${error.message}`);
+    setRows((data || []) as Client[]);
+    setTotal(count || 0);
+    setLoading(false);
+  }
+  useEffect(() => {
+    const id = setTimeout(() => void load(page, q), 300);
+    return () => clearTimeout(id);
+  }, [page, q]);
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  async function loadClientDocuments(clientId: string) {
+    if (!supabase) return;
+    setDocNotice("");
+    const [
+      { data: t, error: te },
+      { data: d, error: de },
+      { data: p, error: pe },
+    ] = await Promise.all([
+      supabase
+        .from("document_templates")
+        .select("id,name,category,description,signature_enabled")
+        .eq("active", true)
+        .order("category")
+        .order("name"),
+      supabase
+        .from("documents")
+        .select("id,name,file_path,mime_type,category,created_at,process_id")
+        .eq("client_id", clientId)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("processes")
+        .select("id,cnj_number,internal_number,subject")
+        .eq("client_id", clientId)
+        .order("updated_at", { ascending: false }),
+    ]);
+    if (te || de || pe)
+      setDocNotice(
+        (te || de || pe)?.message || "Não foi possível carregar os documentos.",
+      );
+    setTemplates((t || []) as Template[]);
+    setClientDocs((d || []) as Doc[]);
+    setClientProcesses((p || []) as Process[]);
+  }
+  async function loadAppAccess(clientId: string) {
+    if (!supabase) return;
+    const { data } = await supabase
+      .from("client_app_access")
+      .select("login_cpf,access_code,status,activated_at,revoked_at")
+      .eq("client_id", clientId)
+      .maybeSingle();
+    setAppAccess(data || null);
+  }
+  function open(c: Client) {
+    const v = { ...c, address: c.address || {} };
+    setSelected(c);
+    setForm(v);
+    setInitialForm(structuredClone(v));
+    setEditing(false);
+    setError("");
+    setNotice("");
+    setCpfLookup({ loading: false, notice: "" });
+    setTab("dados");
+    setChecked([]);
+    setProcessId("");
+    setDocSearch("");
+    void loadClientDocuments(c.id);
+    void loadAppAccess(c.id);
+  }
+  function create() {
+    const v = { ...empty, address: {} };
+    setSelected(null);
+    setForm(v);
+    setInitialForm(structuredClone(v));
+    setEditing(true);
+    setError("");
+    setNotice("");
+    setCpfLookup({ loading: false, notice: "" });
+    setTab("dados");
+  }
+  function beginEdit() {
+    setInitialForm(structuredClone(form));
+    setEditing(true);
+    setNotice("");
+  }
+  const dirty = editing && JSON.stringify(form) !== JSON.stringify(initialForm);
+  function closeModal(force = false) {
+    if (!force && dirty && !confirmDiscard()) return;
+    setSelected(null);
+    setEditing(false);
+    setNotice("");
+  }
+  function cancelEdit() {
+    if (dirty && !confirmDiscard()) return;
+    if (selected) {
+      const v = { ...selected, address: selected.address || {} };
+      setForm(v);
+      setInitialForm(structuredClone(v));
+      setEditing(false);
+    } else closeModal(true);
+  }
+  async function autofillByCpf(value: any) {
+    if (!supabase) return;
+    const cpf = digits(value);
+    if (!cpf) {
+      setCpfLookup({ loading: false, notice: "" });
+      return;
+    }
+    if (cpf.length !== 11) {
+      setCpfLookup({ loading: false, notice: "Informe os 11 dígitos do CPF." });
+      return;
+    }
+    if (!validCpf(cpf)) {
+      setCpfLookup({
+        loading: false,
+        notice: "CPF inválido. Confira os números informados.",
+      });
+      return;
+    }
+    setCpfLookup({
+      loading: true,
+      notice: "Buscando dados autorizados do cliente...",
+    });
+    try {
+      const { data, error } = await supabase.rpc("find_client_by_cpf", {
+        p_cpf: cpf,
+      });
+      if (error) throw error;
+      const found = Array.isArray(data) ? data[0] : null;
+      if (found) {
+        const existing = { ...found, created_at: "" } as Client;
+        const v = { ...found, address: found.address || {} };
+        setSelected(existing);
+        setForm(v);
+        setInitialForm(structuredClone(v));
+        setEditing(true);
+        setCpfLookup({
+          loading: false,
+          notice:
+            "Cliente localizado no cadastro autorizado do escritório. Os dados foram preenchidos automaticamente.",
+        });
+        return;
+      }
+      try {
+        const external = await lookupCpfProviders(cpf);
+        if (external.data) {
+          setForm((prev: any) => ({
+            ...prev,
+            cpf_cnpj: cpf,
+            name: clean(prev.name) || external.data?.name || "",
+            gender: clean(prev.gender) || external.data?.gender || "",
+            birth_date:
+              clean(prev.birth_date) || external.data?.birth_date || "",
+            mother_name:
+              clean(prev.mother_name) || external.data?.mother_name || "",
+          }));
+          const sourceLabel = external.sources.length
+            ? ` Fontes: ${external.sources.join(", ")}.`
+            : "";
+          setCpfLookup({
+            loading: false,
+            notice: `CPF localizado em fonte autorizada. Os campos disponíveis foram preenchidos automaticamente.${sourceLabel}`,
+          });
+          return;
+        }
+      } catch (externalError: any) {
+        setCpfLookup({
+          loading: false,
+          notice:
+            externalError?.message ||
+            "CPF válido, mas nenhuma fonte autorizada retornou dados agora.",
+        });
+        return;
+      }
+      setCpfLookup({
+        loading: false,
+        notice:
+          "CPF válido, mas nenhuma fonte autorizada retornou dados. O cadastro pode ser preenchido manualmente.",
+      });
+    } catch (e: any) {
+      setCpfLookup({
+        loading: false,
+        notice: e?.message || "Não foi possível consultar o CPF agora.",
+      });
+    }
+  }
+  async function previewClientApp() {
+    if (!supabase || !selected) return;
+    setAppBusy(true);
+    setNotice("Preparando visualização do aplicativo...");
+    try {
+      let access = appAccess;
+      if (!access?.access_code) {
+        const g = await supabase.rpc("client_app_generate_access", {
+          p_client_id: selected.id,
+        });
+        if (g.error) throw g.error;
+        access = Array.isArray(g.data) ? g.data[0] : g.data;
+        setAppAccess(access);
+      }
+      const digitsCpf = String(
+        access?.login_cpf || selected.cpf_cnpj || "",
+      ).replace(/\D/g, "");
+      if (!digitsCpf || !access?.access_code)
+        throw new Error("CPF ou código de acesso indisponível.");
+      const previewKey =
+        "lexoffice-client-preview-" +
+        Date.now() +
+        "-" +
+        Math.random().toString(36).slice(2);
+      localStorage.setItem(
+        previewKey,
+        JSON.stringify({
+          cpf: digitsCpf,
+          access_code: access.access_code,
+          client_name: selected.name,
+          admin_preview: true,
+          created_at: Date.now(),
+        }),
+      );
+      window.open(
+        "/cliente?preview=1&preview_key=" + encodeURIComponent(previewKey),
+        "_blank",
+        "noopener,noreferrer",
+      );
+      setTimeout(() => localStorage.removeItem(previewKey), 60000);
+      setNotice("Visualização do aplicativo aberta em modo administrativo.");
+    } catch (e: any) {
+      setNotice(
+        "Não foi possível abrir a visualização: " +
+          (e?.message || "erro desconhecido"),
+      );
+    } finally {
+      setAppBusy(false);
+    }
+  }
+  async function generateAppAccess() {
+    if (!supabase || !selected) return;
+    setAppBusy(true);
+    setNotice("Gerando código e enviando acesso pelo WhatsApp...");
+    const { data, error } = await supabase.rpc("client_app_generate_access", {
+      p_client_id: selected.id,
+    });
+    if (error) {
+      setAppBusy(false);
+      return setNotice("Não foi possível gerar o código: " + error.message);
+    }
+    const generated = Array.isArray(data) ? data[0] : data;
+    if (!generated?.access_code) {
+      setAppBusy(false);
+      return setNotice(
+        "O sistema não retornou o novo código. Tente novamente.",
+      );
+    }
+    setAppAccess({
+      ...generated,
+      status: generated.status || "not_activated",
+      activated_at: null,
+      revoked_at: null,
+    });
+    setNotice(
+      `Código gerado: ${generated.access_code}. Enviando acesso pelo WhatsApp...`,
+    );
+    await loadAppAccess(selected.id);
+    const phone = String(selected.whatsapp || selected.phone || "").replace(
+      /\D/g,
+      "",
+    );
+    if (!phone) {
+      setAppBusy(false);
+      return setNotice(
+        "Código gerado, envio pendente: cadastre o WhatsApp do cliente.",
+      );
+    }
+    const number = phone.startsWith("55") ? phone : `55${phone}`;
+    const message = `Olá, ${selected.name}! ✨\n\n🔐 *SEU ACESSO À ÁREA DO CLIENTE FOI LIBERADO*\n\nSuzanne Figueiredo Advocacia e Soluções Jurídicas\n\n👤 *LOGIN (CPF):* ${generated.login_cpf}\n\n🔑 *CÓDIGO DE ACESSO:* ${generated.access_code}\n\n🔗 *ACESSE SUA ÁREA DO CLIENTE:*\nhttps://lexoffice.univittagroup.com.br/cliente\n\n📱 *COMO INSTALAR NO CELULAR*\nVocê não precisa baixar APK nem procurar o aplicativo na loja. Basta criar o atalho na tela inicial:\n\n🤖 *ANDROID • Google Chrome*\n① Abra o link acima no Chrome.\n\n② Toque nos três pontinhos (⋮), no canto superior direito.\n\n③ Selecione *“Adicionar à tela inicial”* ou *“Instalar aplicativo”*.\n\n④ Toque em *“Adicionar”* para confirmar.\n\n🍎 *IPHONE • Safari*\n① Abra o link acima no Safari.\n\n② Toque no ícone *Compartilhar* (□↑).\n\n③ Selecione *“Adicionar à Tela de Início”*.\n\n④ Toque em *“Adicionar”* para confirmar.\n\n✅ *PRONTO!*\nAbra o ícone do *LexOffice* na tela inicial e entre usando seu CPF e o código de acesso informados acima.\n\n⚠️ *IMPORTANTE*\n• Guarde seu código de acesso.\n\n• Não compartilhe seus dados de acesso com terceiros.\n\n• A cartilha ilustrada com o passo a passo será enviada junto desta mensagem.\n\n🎧 *PRECISA DE AJUDA?*\nResponda a esta mensagem. Nossa equipe de atendimento irá auxiliá-lo.`;
+    const { data: sent, error: sendError } = await supabase.functions.invoke(
+      "whatsapp-operator-send",
+      {
+        body: {
+          message,
+          targets: [{ phone: number, name: selected.name }],
+          agent_key: "client_schedule_relationship",
+          next_agent_key: "client_schedule_relationship",
+          keep_ai_active: true,
+        },
+      },
+    );
+    if (sendError || !sent?.ok || sent?.failed) {
+      setAppBusy(false);
+      const reason =
+        sendError?.message ||
+        sent?.results?.[0]?.error ||
+        sent?.error ||
+        "falha não identificada";
+      return setNotice("Código gerado, envio pendente: " + reason);
+    }
+    const cartilhaUrl =
+      "https://lexoffice.univittagroup.com.br/cartilha-lexoffice.png";
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    const cartilhaMessage =
+      "📎 *CARTILHA DE INSTALAÇÃO DO LEXOFFICE*\n\nSegue abaixo o passo a passo ilustrado para instalar o acesso na tela inicial do seu celular. 👇";
+    const { data: cartilhaSent, error: cartilhaError } =
+      await supabase.functions.invoke("whatsapp-operator-send", {
+        body: {
+          message: cartilhaMessage,
+          image: cartilhaUrl,
+          caption:
+            "📱 Passo a passo ilustrado para instalar o LexOffice no seu celular.",
+          targets: [{ phone: number, name: selected.name }],
+          agent_key: "client_schedule_relationship",
+          next_agent_key: "client_schedule_relationship",
+          keep_ai_active: true,
+        },
+      });
+    setAppBusy(false);
+    if (cartilhaError || !cartilhaSent?.ok || cartilhaSent?.failed) {
+      const reason =
+        cartilhaError?.message ||
+        cartilhaSent?.results?.[0]?.error ||
+        cartilhaSent?.error ||
+        "falha não identificada";
+      return setNotice(
+        `Acesso enviado, mas a cartilha ficou pendente: ${reason} | REENVIAR_CARTILHA`,
+      );
+    }
+    await loadAppAccess(selected.id);
+    setNotice(
+      `Código ${generated.access_code} gerado e enviado automaticamente pelo Agente de Relacionamento.`,
+    );
+  }
+  async function resendAppGuide() {
+    if (!supabase || !selected) return;
+    const phone = String(selected.whatsapp || selected.phone || "").replace(
+      /\D/g,
+      "",
+    );
+    if (!phone)
+      return setNotice(
+        "Cartilha pendente: cadastre o WhatsApp do cliente para reenviar.",
+      );
+    const number = phone.startsWith("55") ? phone : `55${phone}`;
+    setAppBusy(true);
+    setNotice("Reenviando somente a cartilha...");
+    const cartilhaUrl =
+      "https://lexoffice.univittagroup.com.br/cartilha-lexoffice.png";
+    const message = "Cartilha de instalação do LexOffice";
+    const { data, error } = await supabase.functions.invoke(
+      "whatsapp-operator-send",
+      {
+        body: {
+          message,
+          image: cartilhaUrl,
+          caption: "Passo a passo para instalar o LexOffice no seu celular.",
+          targets: [{ phone: number, name: selected.name }],
+          agent_key: "client_schedule_relationship",
+          next_agent_key: "client_schedule_relationship",
+          keep_ai_active: true,
+        },
+      },
+    );
+    setAppBusy(false);
+    if (error || !data?.ok || data?.failed) {
+      const reason =
+        error?.message ||
+        data?.results?.[0]?.error ||
+        data?.error ||
+        "falha não identificada";
+      return setNotice("Cartilha pendente: " + reason + " | REENVIAR_CARTILHA");
+    }
+    setNotice("Cartilha reenviada com sucesso.");
+  }
+  async function revokeAppAccess() {
+    if (!supabase || !selected) return;
+    setAppBusy(true);
+    const { error } = await supabase.rpc("client_app_revoke_access", {
+      p_client_id: selected.id,
+    });
+    setAppBusy(false);
+    if (error) return setNotice(error.message);
+    await loadAppAccess(selected.id);
+    setNotice("Acesso ao App revogado.");
+  }
+  async function copyAppAccess() {
+    if (!appAccess) return;
+    await navigator.clipboard.writeText(
+      `Login: ${appAccess.login_cpf}\nCódigo de acesso: ${appAccess.access_code}`,
+    );
+    setNotice("Login e código copiados.");
+  }
+  async function save() {
+    if (!supabase) return setError("Conexão com o banco indisponível.");
+    if (!clean(form.name)) return setError("Informe o nome do cliente.");
+    const marital = nullable(form.marital_status);
+    if (
+      marital &&
+      !["single", "married", "divorced", "widowed", "separated"].includes(
+        marital,
+      )
+    )
+      return setError("Selecione um estado civil válido.");
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      const payload = {
+        name: clean(form.name),
+        cpf_cnpj: nullable(form.cpf_cnpj),
+        rg: nullable(form.rg),
+        birth_date: nullable(form.birth_date),
+        gender: nullable(form.gender),
+        mother_name: nullable(form.mother_name),
+        marital_status: marital,
+        profession: nullable(form.profession),
+        phone: nullable(form.phone),
+        whatsapp: nullable(form.whatsapp),
+        email: nullable(form.email)?.toLowerCase() || null,
+        status: form.status === "inactive" ? "inactive" : "active",
+        notes: nullable(form.notes),
+        address:
+          form.address && typeof form.address === "object" ? form.address : {},
+      };
+      let r: any;
+      if (selected)
+        r = await supabase
+          .from("clients")
+          .update(payload)
+          .eq("id", selected.id)
+          .select()
+          .single();
+      else {
+        const { data: u, error: authError } = await supabase.auth.getUser();
+        if (authError || !u.user)
+          throw new Error("Sua sessão expirou. Entre novamente no LEXOFFICE.");
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("org_id")
+          .eq("id", u.user.id)
+          .maybeSingle();
+        if (profileError)
+          throw new Error(
+            `Não foi possível identificar o escritório: ${profileError.message}`,
+          );
+        if (!profile?.org_id)
+          throw new Error("Seu usuário não está vinculado a um escritório.");
+        r = await supabase
+          .from("clients")
+          .insert({ ...payload, org_id: profile.org_id })
+          .select()
+          .single();
+      }
+      if (r.error) throw r.error;
+      await load(page, q);
+      setSelected(r.data);
+      const v = { ...r.data, address: r.data.address || {} };
+      setForm(v);
+      setInitialForm(structuredClone(v));
+      setEditing(false);
+      setCpfLookup({ loading: false, notice: "" });
+      setNotice("Cliente salvo com sucesso.");
+      await loadClientDocuments(r.data.id);
+    } catch (e: any) {
+      setError(e?.message || "Não foi possível salvar o cliente.");
+    } finally {
+      setSaving(false);
+    }
+  }
+  async function toggleVip() {
+    if (!supabase || !selected || saving) return;
+    const next = !selected.is_vip;
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      const { data, error } = await supabase
+        .from("clients")
+        .update({ is_vip: next })
+        .eq("id", selected.id)
+        .select()
+        .single();
+      if (error) throw error;
+      setSelected(data);
+      await load(page, q);
+      if (next) {
+        await supabase
+          .from("whatsapp_conversations")
+          .update({ priority: "urgent" })
+          .eq("client_id", selected.id)
+          .neq("status", "closed");
+        setNotice(
+          "Cliente marcado como VIP. As próximas mensagens serão priorizadas e encaminhadas à Dra. Suzanne.",
+        );
+      } else setNotice("Cliente retirado da categoria VIP.");
+    } catch (e: any) {
+      setError(e?.message || "Não foi possível atualizar o status VIP.");
+    } finally {
+      setSaving(false);
+    }
+  }
+  async function setPrivateRelationship(makePrivate: boolean) {
+    if (!supabase || !selected || tierBusy) return;
+    const next = makePrivate ? "CLIENTE_PRIVATE" : "CLIENTE_ATIVO";
+    const action = makePrivate
+      ? "promover para Cliente Private"
+      : "retirar da categoria Private";
+    if (
+      !window.confirm(
+        `Deseja ${action} ${selected.name}? Esta classificação é interna e não será exibida ao cliente.`,
+      )
+    )
+      return;
+    setTierBusy(true);
+    setNotice("");
+    setError("");
+    try {
+      const { data, error } = await supabase
+        .from("clients")
+        .update({
+          relationship_tier: next,
+          relationship_tier_source: "manual",
+          relationship_tier_updated_at: new Date().toISOString(),
+        })
+        .eq("id", selected.id)
+        .select()
+        .single();
+      if (error) throw error;
+      setSelected(data as Client);
+      setForm((v: any) => ({
+        ...v,
+        relationship_tier: data.relationship_tier,
+        relationship_tier_source: data.relationship_tier_source,
+      }));
+      setRows((v) => v.map((c) => (c.id === data.id ? (data as Client) : c)));
+      setNotice(
+        makePrivate
+          ? "Cliente promovido para acompanhamento Private. A classificação permanece exclusivamente interna."
+          : "Classificação Private removida. O cliente voltou ao acompanhamento ativo padrão.",
+      );
+    } catch (e: any) {
+      setError(
+        e?.message ||
+          "Não foi possível alterar a classificação de relacionamento.",
+      );
+    } finally {
+      setTierBusy(false);
+    }
+  }
+  function toggleTemplate(id: string) {
+    setChecked((v) =>
+      v.includes(id) ? v.filter((x) => x !== id) : [...v, id],
+    );
+  }
+  async function generateSelected() {
+    if (!supabase || !selected || !checked.length) return;
+    setGenerating(true);
+    setDocNotice("");
+    let ok = 0;
+    const failures: string[] = [];
+    for (const id of checked) {
+      const t = templates.find((x) => x.id === id);
+      if (!t) continue;
+      try {
+        const { data, error } = await supabase.functions.invoke(
+          "document-generate",
+          {
+            body: {
+              template_id: t.id,
+              client_id: selected.id,
+              process_id: processId || null,
+              title: t.name,
+              include_logo: true,
+              signature_requested: t.signature_enabled !== false,
+            },
+          },
+        );
+        if (error) throw error;
+        if ((data as any)?.error) throw new Error((data as any).error);
+        ok++;
+      } catch (e: any) {
+        failures.push(`${t.name}: ${e?.message || "falha"}`);
+      }
+    }
+    await loadClientDocuments(selected.id);
+    setGenerating(false);
+    if (ok) setChecked([]);
+    setDocNotice(
+      failures.length
+        ? `${ok} documento(s) gerado(s). ${failures.length} não puderam ser gerados.`
+        : `${ok} documento(s) gerado(s) e salvo(s) na ficha do cliente e na Biblioteca de Documentos.`,
+    );
+  }
+  async function openDoc(d: Doc, download = false) {
+    if (!supabase) return;
+    const { data, error } = await supabase.storage
+      .from("lexoffice-documents")
+      .createSignedUrl(d.file_path, 300, {
+        download: download ? d.name : undefined,
+      });
+    if (error || !data?.signedUrl)
+      return setDocNotice(
+        error?.message || "Não foi possível abrir o documento.",
+      );
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  }
+  async function deleteClient(c: Client) {
+    if (!supabase) return;
+    setError("");
+    setNotice("");
+    const count = async (t: string) => {
+      const { count: n } = await supabase!
+        .from(t)
+        .select("id", { count: "exact", head: true })
+        .eq("client_id", c.id);
+      return n || 0;
+    };
+    const [procs, contracts, installments, entries, docs, sigs] =
+      await Promise.all(
+        [
+          "processes",
+          "fee_contracts",
+          "fee_installments",
+          "financial_entries",
+          "documents",
+          "signature_requests",
+        ].map(count),
+      );
+    const links = [
+      procs && `${procs} processo(s)`,
+      contracts && `${contracts} contrato(s)`,
+      installments && `${installments} parcela(s)`,
+      entries && `${entries} lançamento(s) financeiro(s)`,
+      docs && `${docs} documento(s)`,
+      sigs && `${sigs} assinatura(s)`,
+    ].filter(Boolean) as string[];
+    if (links.length) {
+      const typed = window.prompt(
+        `${c.name} tem ${links.join(", ")} vinculados.\n\nContratos e parcelas serão apagados junto; processos, documentos e assinaturas ficam sem cliente.\n\nPara confirmar a exclusão definitiva, digite EXCLUIR:`,
+      );
+      if ((typed || "").trim().toUpperCase() !== "EXCLUIR") {
+        setNotice("Exclusão cancelada.");
+        return;
+      }
+    } else if (
+      !window.confirm(
+        `Excluir definitivamente o cliente ${c.name}? Esta ação não pode ser desfeita.`,
+      )
+    )
+      return;
+    const { error: e } = await supabase.from("clients").delete().eq("id", c.id);
+    if (e) {
+      setError("Não foi possível excluir o cliente: " + e.message);
+      return;
+    }
+    if (selected?.id === c.id) setSelected(null);
+    setRows((v) => v.filter((x) => x.id !== c.id));
+    setTotal((t) => Math.max(0, t - 1));
+    setNotice(`Cliente ${c.name} excluído.`);
+  }
+  function messageClient(c: Client) {
+    const phone = digits(c.whatsapp || c.phone);
+    if (!phone) {
+      setNotice("Cadastre o WhatsApp do cliente antes de enviar uma mensagem.");
+      return;
+    }
+    setMessageTarget(c);
+    setMessageText("");
+    setMessageNotice("");
+  }
+  async function openBulkMessage() {
+    if (!supabase) return;
+    setBulkOpen(true);
+    setBulkNotice("Carregando clientes ativos...");
+    const { data, error } = await supabase
+      .from("clients")
+      .select("*")
+      .eq("status", "active")
+      .order("name")
+      .limit(2000);
+    if (error) {
+      setBulkClients([]);
+      return setBulkNotice(error.message);
+    }
+    const eligible = ((data || []) as Client[]).filter(
+      (x) => digits(x.whatsapp || x.phone).length >= 10,
+    );
+    setBulkClients(eligible);
+    setBulkSelected([]);
+    setBulkText("");
+    setBulkNotice(
+      eligible.length + " cliente(s) ativo(s) com WhatsApp disponível(is).",
+    );
+  }
+  function toggleBulk(id: string) {
+    setBulkSelected((v) =>
+      v.includes(id) ? v.filter((x) => x !== id) : [...v, id],
+    );
+  }
+  async function sendBulkMessage() {
+    if (!supabase || bulkBusy) return;
+    const message = bulkText.trim(),
+      targets = bulkClients.filter((x) => bulkSelected.includes(x.id));
+    if (!message || !targets.length) return;
+    if (
+      !window.confirm("Confirmar envio para " + targets.length + " cliente(s)?")
+    )
+      return;
+    setBulkBusy(true);
+    let sent = 0,
+      failed = 0;
+    const seen = new Set<string>();
+    for (const client of targets) {
+      const raw = digits(client.whatsapp || client.phone),
+        phone = raw.startsWith("55") ? raw : "55" + raw;
+      if (seen.has(phone)) continue;
+      seen.add(phone);
+      try {
+        const { data, error } = await supabase.functions.invoke(
+          "whatsapp-operator-send",
+          {
+            body: {
+              message,
+              targets: [{ phone, name: client.name }],
+              agent_key: "client_schedule_relationship",
+              next_agent_key: "client_schedule_relationship",
+              keep_ai_active: true,
+            },
+          },
+        );
+        if (error || !data?.ok || Number(data?.sent || 0) < 1)
+          throw new Error("não confirmado");
+        sent++;
+      } catch {
+        failed++;
+      }
+      setBulkNotice(
+        "Enviando... " + sent + " confirmado(s), " + failed + " falha(s).",
+      );
+      await new Promise((r) => setTimeout(r, 1200));
+    }
+    setBulkBusy(false);
+    setBulkNotice(
+      "Envio concluído: " +
+        sent +
+        " confirmado(s)" +
+        (failed ? ", " + failed + " falha(s)." : "."),
+    );
+  }
+  async function sendClientMessage() {
+    if (!supabase || !messageTarget || messageBusy) return;
+    const phone = digits(messageTarget.whatsapp || messageTarget.phone),
+      message = messageText.trim();
+    if (!phone)
+      return setMessageNotice("Este cliente não possui WhatsApp válido.");
+    if (!message) return setMessageNotice("Digite a mensagem antes de enviar.");
+    setMessageBusy(true);
+    setMessageNotice("");
+    try {
+      let conversationId: string | null = null;
+      const { data: contact } = await supabase
+        .from("whatsapp_contacts")
+        .select("id")
+        .eq("client_id", messageTarget.id)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (contact?.id) {
+        const { data: conv } = await supabase
+          .from("whatsapp_conversations")
+          .select("id")
+          .eq("contact_id", contact.id)
+          .neq("status", "closed")
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        conversationId = conv?.id || null;
+      }
+      const { data, error } = await supabase.functions.invoke(
+        "whatsapp-operator-send",
+        {
+          body: {
+            message,
+            targets: [
+              {
+                phone,
+                conversation_id: conversationId,
+                name: messageTarget.name,
+              },
+            ],
+          },
+        },
+      );
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      if (Number((data as any)?.sent || 0) !== 1) {
+        const first = (data as any)?.results?.[0];
+        throw new Error(first?.error || "A Meta não confirmou o envio.");
+      }
+      setNotice(
+        `Mensagem enviada para ${messageTarget.name} pelo WhatsApp oficial.`,
+      );
+      setMessageTarget(null);
+      setMessageText("");
+    } catch (e: any) {
+      setMessageNotice(e?.message || "Não foi possível enviar a mensagem.");
+    } finally {
+      setMessageBusy(false);
+    }
+  }
+  const visibleTemplates = useMemo(() => {
+    const s = docSearch.trim().toLowerCase();
+    return templates.filter(
+      (t) =>
+        !s ||
+        `${t.name} ${t.category || ""} ${t.description || ""}`
+          .toLowerCase()
+          .includes(s),
+    );
+  }, [templates, docSearch]);
+  const a = form.address || {};
+  return (
+    <div className="module">
+      <div className="page-head">
+        <div>
+          <h1>Clientes</h1>
+          <p>
+            Selecione qualquer cliente para abrir a ficha completa com os dados
+            importados.
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button className="secondary" onClick={openBulkMessage}>
+            <Megaphone size={15} /> Envio em massa
+          </button>
+          <button className="primary" onClick={create}>
+            <Plus size={15} /> Novo cliente
+          </button>
+        </div>
+      </div>
+      <MissingWhatsAppPanel
+        onSaved={() => {
+          void load();
+        }}
+      />
+      {error && (
+        <div className="alert error" role="alert">
+          {error}
+        </div>
+      )}
+      {notice && (
+        <div className="integration-notice" role="status" aria-live="polite">
+          <CheckCircle2 size={15} />
+          {notice}
+        </div>
+      )}
+      <div className="table-panel">
+        <div className="table-tools ux-toolbar">
+          <div className="input-search">
+            <Search size={15} />
+            <input
+              value={q}
+              onChange={(e) => {
+                setQ(e.target.value);
+                setPage(0);
+              }}
+              placeholder="Buscar por nome, CPF/CNPJ, telefone ou e-mail"
+              aria-label="Buscar clientes"
+            />
+          </div>
+          <span>{total} cliente(s)</span>
+          <div className="ux-actions">
+            <button
+              className="secondary ux-icon-button"
+              type="button"
+              aria-label="Página anterior"
+              disabled={page === 0 || loading}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <span>
+              Página {page + 1} de {pageCount}
+            </span>
+            <button
+              className="secondary ux-icon-button"
+              type="button"
+              aria-label="Próxima página"
+              disabled={page + 1 >= pageCount || loading}
+              onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+        {loading ? (
+          <div className="empty">Carregando clientes...</div>
+        ) : rows.length === 0 ? (
+          <div className="empty">Nenhum cliente encontrado.</div>
+        ) : (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ação</th>
+                  <th>Cliente</th>
+                  <th>CPF/CNPJ</th>
+                  <th>E-mail</th>
+                  <th>Telefone / WhatsApp</th>
+                  <th>Nascimento</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((c) => (
+                  <tr
+                    key={c.id}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Abrir ficha de ${c.name}`}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        open(c);
+                      }
+                    }}
+                    onClick={() => open(c)}
+                    className={`ux-clickable-row ${selected?.id === c.id ? "selected-row" : ""}`}
+                  >
+                    <td>
+                      <div
+                        className="row-actions"
+                        style={{ display: "flex", gap: 6, flexWrap: "wrap" }}
+                      >
+                        <button
+                          type="button"
+                          className={
+                            selected?.id === c.id ? "primary" : "secondary"
+                          }
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            open(c);
+                          }}
+                        >
+                          {selected?.id === c.id ? (
+                            <>
+                              <CheckCircle2 size={14} /> Selecionado
+                            </>
+                          ) : (
+                            <>Abrir</>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          className="secondary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            messageClient(c);
+                          }}
+                          title="Enviar mensagem pelo WhatsApp"
+                        >
+                          <MessageCircle size={14} /> Mensagem
+                        </button>
+                        <button
+                          type="button"
+                          className="secondary client-delete-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteClient(c);
+                          }}
+                          title="Excluir cliente"
+                          aria-label={`Excluir cliente ${c.name}`}
+                        >
+                          <Trash2 size={14} /> Excluir
+                        </button>
+                      </div>
+                    </td>
+                    <td>
+                      <b>{c.name}</b>
+                      <small>
+                        {[c.address?.city, c.address?.state]
+                          .filter(Boolean)
+                          .join(" / ") || "Abrir ficha"}
+                      </small>
+                      <small
+                        style={{
+                          display: "block",
+                          marginTop: 4,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {(
+                          {
+                            LEAD: "Lead",
+                            CLIENTE: "Cliente",
+                            CLIENTE_ATIVO: "Cliente ativo",
+                            CLIENTE_PRIVATE: "Cliente Private",
+                            ENCERRADO: "Encerrado",
+                          } as any
+                        )[c.relationship_tier] || "Cliente"}
+                      </small>
+                    </td>
+                    <td>{c.cpf_cnpj || "—"}</td>
+                    <td>{c.email || "—"}</td>
+                    <td>{c.whatsapp || c.phone || "—"}</td>
+                    <td>{fmtDate(c.birth_date)}</td>
+                    <td>
+                      <span className={`badge ${c.status}`}>
+                        {c.status === "active" ? "Ativo" : "Inativo"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+      {(selected || editing) && (
+        <div
+          className="modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeModal();
+          }}
+        >
+          <div
+            className="modal-card"
+            style={{ maxWidth: 1100, maxHeight: "92vh", overflowY: "auto" }}
+          >
+            <div className="modal-head">
+              <div>
+                <h2>
+                  <UserRound size={20} />{" "}
+                  {selected ? selected.name : "Novo cliente"}
+                </h2>
+                <p>
+                  {selected
+                    ? "Ficha completa do cliente."
+                    : "Cadastre os dados do cliente."}{" "}
+                  {dirty && (
+                    <span className="ux-unsaved">Alterações não salvas.</span>
+                  )}
+                </p>
+              </div>
+              <button
+                className="icon-btn ux-modal-close"
+                aria-label="Fechar ficha"
+                title="Fechar"
+                onClick={() => closeModal()}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            {selected && !editing && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  padding: "0 0 18px",
+                  borderBottom: "1px solid rgba(128,128,128,.25)",
+                  marginBottom: 20,
+                  flexWrap: "wrap",
+                }}
+              >
+                <button
+                  className={tab === "dados" ? "primary" : "secondary"}
+                  onClick={() => setTab("dados")}
+                >
+                  <UserRound size={15} /> Dados do cliente
+                </button>
+                <button
+                  className={tab === "documentos" ? "primary" : "secondary"}
+                  onClick={() => setTab("documentos")}
+                >
+                  <FileText size={15} /> Documentos personalizados{" "}
+                  <span style={{ marginLeft: 5 }}>({clientDocs.length})</span>
+                </button>
+                <button
+                  type="button"
+                  className={selected.is_vip ? "primary" : "secondary"}
+                  disabled={saving}
+                  onClick={() => void toggleVip()}
+                  style={{ minHeight: 48, fontSize: 16 }}
+                >
+                  {saving
+                    ? "Salvando…"
+                    : selected.is_vip
+                      ? "★ Cliente VIP — desativar"
+                      : "☆ Marcar cliente como VIP"}
+                </button>
+                <button
+                  className="secondary"
+                  onClick={() => messageClient(selected)}
+                >
+                  <MessageCircle size={15} /> Enviar mensagem
+                </button>
+                <button
+                  className="primary"
+                  type="button"
+                  onClick={() =>
+                    window.dispatchEvent(
+                      new CustomEvent("lexoffice:share-client-form", {
+                        detail: {
+                          clientId: selected.id,
+                          clientName: selected.name,
+                          phone: selected.whatsapp || selected.phone || "",
+                        },
+                      }),
+                    )
+                  }
+                >
+                  <Send size={15} /> Enviar ficha de cadastro
+                </button>
+              </div>
+            )}
+            {!editing && selected && tab === "dados" ? (
+              <div className="client-detail">
+                {selected.is_vip && (
+                  <div
+                    role="status"
+                    style={{
+                      border: "2px solid #c9a44c",
+                      background: "#201b10",
+                      color: "#fff",
+                      borderRadius: 12,
+                      padding: 16,
+                      marginBottom: 16,
+                      fontSize: 17,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    <strong style={{ color: "#e7c56a" }}>Cliente VIP</strong>
+                    <br />A próxima mensagem vai para o topo da fila. Helena
+                    envia uma saudação personalizada e passa o atendimento para
+                    a Dra. Suzanne.
+                  </div>
+                )}
+                <div className="cards">
+                  <div className="card">
+                    <span>Relacionamento</span>
+                    <strong>
+                      {(
+                        {
+                          LEAD: "Lead",
+                          CLIENTE: "Cliente",
+                          CLIENTE_ATIVO: "Cliente ativo",
+                          CLIENTE_PRIVATE: "Cliente Private",
+                          ENCERRADO: "Encerrado",
+                        } as any
+                      )[selected.relationship_tier] || "Cliente"}
+                    </strong>
+                  </div>
+                  <div className="card">
+                    <span>CPF/CNPJ</span>
+                    <strong>{selected.cpf_cnpj || "Não informado"}</strong>
+                  </div>
+                  <div className="card">
+                    <span>RG</span>
+                    <strong>{selected.rg || "Não informado"}</strong>
+                  </div>
+                  <div className="card">
+                    <span>WhatsApp</span>
+                    <strong>
+                      {selected.whatsapp || selected.phone || "Não informado"}
+                    </strong>
+                  </div>
+                  <div className="card">
+                    <span>
+                      <Cake size={14} /> Nascimento
+                    </span>
+                    <strong>{fmtDate(selected.birth_date)}</strong>
+                  </div>
+                </div>
+                <div className="detail-grid">
+                  <p>
+                    <b>E-mail:</b> {selected.email || "Não informado"}
+                  </p>
+                  <p>
+                    <b>Sexo/Gênero:</b> {selected.gender || "Não informado"}
+                  </p>
+                  <p>
+                    <b>Nome da mãe:</b>{" "}
+                    {selected.mother_name || "Não informado"}
+                  </p>
+                  <p>
+                    <b>Estado civil:</b>{" "}
+                    {selected.marital_status
+                      ? maritalLabels[selected.marital_status] ||
+                        selected.marital_status
+                      : "Não informado"}
+                  </p>
+                  <p>
+                    <b>Profissão:</b> {selected.profession || "Não informado"}
+                  </p>
+                  <p>
+                    <b>Endereço:</b>{" "}
+                    {[
+                      selected.address?.street,
+                      selected.address?.number,
+                      selected.address?.complement,
+                      selected.address?.neighborhood,
+                      selected.address?.city,
+                      selected.address?.state,
+                      selected.address?.zip,
+                    ]
+                      .filter(Boolean)
+                      .join(", ") || "Não informado"}
+                  </p>
+                  <p>
+                    <b>Observações:</b> {selected.notes || "Nenhuma"}
+                  </p>
+                </div>
+                <div className="integration-notice">
+                  <Cake size={15} /> Clientes com data de nascimento e
+                  WhatsApp/telefone recebem felicitação automática no dia do
+                  aniversário.
+                </div>
+                <div
+                  style={{
+                    border: "1px solid rgba(180,145,80,.45)",
+                    borderRadius: 12,
+                    padding: 18,
+                    margin: "16px 0",
+                    background: "rgba(180,145,80,.06)",
+                  }}
+                >
+                  <h3 style={{ marginTop: 0 }}>Acesso ao App do Cliente</h3>
+                  <p>
+                    <b>Login:</b>{" "}
+                    {appAccess?.login_cpf ||
+                      digits(selected.cpf_cnpj) ||
+                      "CPF não cadastrado"}
+                  </p>
+                  <p>
+                    <b>Código:</b>{" "}
+                    {appAccess?.access_code || "Ainda não gerado"}
+                  </p>
+                  <p>
+                    <b>Status:</b>{" "}
+                    {appAccess?.status === "active"
+                      ? "Ativo"
+                      : appAccess?.status === "revoked"
+                        ? "Revogado"
+                        : "Não ativado"}
+                  </p>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button
+                      className="primary"
+                      disabled={appBusy}
+                      onClick={generateAppAccess}
+                    >
+                      {appAccess?.status === "revoked"
+                        ? "Gerar novo código"
+                        : appAccess
+                          ? "Redefinir código"
+                          : "Gerar código"}
+                    </button>
+                    {appAccess && (
+                      <button className="secondary" onClick={copyAppAccess}>
+                        Copiar acesso
+                      </button>
+                    )}
+                    {appAccess?.status !== "revoked" && appAccess && (
+                      <button
+                        className="secondary"
+                        disabled={appBusy}
+                        onClick={revokeAppAccess}
+                      >
+                        Revogar App
+                      </button>
+                    )}
+                    <button
+                      className="secondary"
+                      disabled={appBusy}
+                      onClick={previewClientApp}
+                    >
+                      <Eye size={15} /> Visualizar aplicativo
+                    </button>
+                    {notice.includes("REENVIAR_CARTILHA") && (
+                      <button
+                        className="primary"
+                        disabled={appBusy}
+                        onClick={resendAppGuide}
+                      >
+                        Reenviar cartilha
+                      </button>
+                    )}
+                  </div>
+                  {notice.includes("REENVIAR_CARTILHA") && (
+                    <p style={{ marginTop: 10 }}>
+                      <b>Cartilha pendente de envio.</b> Use o botão acima para
+                      reenviar somente a cartilha, sem gerar novo código.
+                    </p>
+                  )}
+                </div>
+                <ClientOnboardingPanel client={selected} />
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <button className="primary" onClick={beginEdit}>
+                    Editar / completar dados
+                  </button>
+                  <button
+                    className="secondary"
+                    onClick={() => messageClient(selected)}
+                  >
+                    <MessageCircle size={15} /> Enviar mensagem
+                  </button>
+                  {selected.relationship_tier === "CLIENTE_PRIVATE" ? (
+                    <button
+                      className="secondary"
+                      disabled={tierBusy}
+                      onClick={() => setPrivateRelationship(false)}
+                    >
+                      {tierBusy ? "Alterando..." : "Retirar Private"}
+                    </button>
+                  ) : (
+                    <button
+                      className="secondary"
+                      disabled={tierBusy}
+                      onClick={() => setPrivateRelationship(true)}
+                    >
+                      {tierBusy ? "Alterando..." : "Promover para Private"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : !editing && selected && tab === "documentos" ? (
+              <div>
+                <div
+                  style={{
+                    padding: 18,
+                    border: "1px solid rgba(128,128,128,.28)",
+                    borderRadius: 12,
+                    marginBottom: 18,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 16,
+                      alignItems: "start",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div>
+                      <h3 style={{ margin: "0 0 6px" }}>
+                        Gerar documentos para {selected.name}
+                      </h3>
+                      <p style={{ margin: 0 }}>
+                        Marque todos os modelos que precisa. Os dados
+                        cadastrados serão preenchidos automaticamente.
+                      </p>
+                    </div>
+                    {clientProcesses.length > 0 && (
+                      <label style={{ minWidth: 300 }}>
+                        <span
+                          style={{
+                            display: "flex",
+                            gap: 6,
+                            alignItems: "center",
+                            marginBottom: 6,
+                          }}
+                        >
+                          <Scale size={14} /> Processo (opcional)
+                        </span>
+                        <select
+                          value={processId}
+                          onChange={(e) => setProcessId(e.target.value)}
+                          style={{ width: "100%", minHeight: 46 }}
+                        >
+                          <option value="">Sem processo específico</option>
+                          {clientProcesses.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.cnj_number ||
+                                p.internal_number ||
+                                p.subject ||
+                                "Processo"}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
+                  </div>
+                  <div className="input-search" style={{ marginTop: 16 }}>
+                    <Search size={15} />
+                    <input
+                      value={docSearch}
+                      onChange={(e) => setDocSearch(e.target.value)}
+                      placeholder="Buscar procuração, contrato, petição, declaração..."
+                    />
+                  </div>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))",
+                      gap: 10,
+                      marginTop: 14,
+                      maxHeight: 330,
+                      overflowY: "auto",
+                      paddingRight: 4,
+                    }}
+                  >
+                    {visibleTemplates.map((t) => (
+                      <label
+                        key={t.id}
+                        style={{
+                          display: "flex",
+                          gap: 12,
+                          alignItems: "flex-start",
+                          padding: 14,
+                          border: checked.includes(t.id)
+                            ? "2px solid #C99443"
+                            : "1px solid rgba(128,128,128,.3)",
+                          borderRadius: 10,
+                          cursor: "pointer",
+                          background: checked.includes(t.id)
+                            ? "rgba(201,148,67,.08)"
+                            : "transparent",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked.includes(t.id)}
+                          onChange={() => toggleTemplate(t.id)}
+                          style={{ width: 20, height: 20, marginTop: 2 }}
+                        />
+                        <div>
+                          <b>{t.name}</b>
+                          <small style={{ display: "block", marginTop: 4 }}>
+                            {t.category || "Documento jurídico"}
+                          </small>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 12,
+                      marginTop: 16,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <b>{checked.length} modelo(s) selecionado(s)</b>
+                    <button
+                      className="primary"
+                      disabled={!checked.length || generating}
+                      onClick={generateSelected}
+                    >
+                      {generating ? (
+                        <Loader2 size={16} className="spin" />
+                      ) : (
+                        <WandSparkles size={16} />
+                      )}{" "}
+                      {generating
+                        ? "Gerando documentos..."
+                        : "Gerar documentos selecionados"}
+                    </button>
+                  </div>
+                </div>
+                {docNotice && (
+                  <div
+                    className="integration-notice"
+                    style={{ marginBottom: 18 }}
+                    role="status"
+                  >
+                    <CheckCircle2 size={15} />
+                    {docNotice}
+                  </div>
+                )}
+                <div>
+                  <h3>Documentos deste cliente</h3>
+                  <p>
+                    Também permanecem disponíveis na Biblioteca de Documentos do
+                    LEXOFFICE.
+                  </p>
+                  {clientDocs.length === 0 ? (
+                    <div className="empty">
+                      <FileText size={28} /> Nenhum documento vinculado a este
+                      cliente.
+                    </div>
+                  ) : (
+                    <div className="table-wrap">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Documento</th>
+                            <th>Categoria</th>
+                            <th>Data</th>
+                            <th>Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {clientDocs.map((d) => (
+                            <tr key={d.id}>
+                              <td>
+                                <b>{d.name}</b>
+                              </td>
+                              <td>{d.category || "Outros"}</td>
+                              <td>
+                                {new Date(d.created_at).toLocaleDateString(
+                                  "pt-BR",
+                                )}
+                              </td>
+                              <td>
+                                <div style={{ display: "flex", gap: 8 }}>
+                                  <button
+                                    className="secondary"
+                                    onClick={() => openDoc(d)}
+                                  >
+                                    <Eye size={15} /> Abrir
+                                  </button>
+                                  <button
+                                    className="secondary"
+                                    onClick={() => openDoc(d, true)}
+                                  >
+                                    <Download size={15} /> Baixar
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="form-grid">
+                <label>
+                  Nome completo
+                  <input
+                    value={form.name || ""}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    required
+                    aria-required="true"
+                  />
+                </label>
+                <label>
+                  CPF/CNPJ
+                  <input
+                    value={form.cpf_cnpj || ""}
+                    placeholder="Digite o CPF para buscar dados"
+                    onChange={(e) => {
+                      setForm({ ...form, cpf_cnpj: e.target.value });
+                      setCpfLookup({ loading: false, notice: "" });
+                    }}
+                    onBlur={(e) => autofillByCpf(e.target.value)}
+                  />
+                  {cpfLookup.loading && (
+                    <small
+                      style={{
+                        display: "flex",
+                        gap: 6,
+                        alignItems: "center",
+                        marginTop: 6,
+                      }}
+                    >
+                      <Loader2 size={13} className="spin" /> Buscando dados...
+                    </small>
+                  )}
+                  {!cpfLookup.loading && cpfLookup.notice && (
+                    <small style={{ display: "block", marginTop: 6 }}>
+                      {cpfLookup.notice}
+                    </small>
+                  )}
+                </label>
+                <label>
+                  RG
+                  <input
+                    value={form.rg || ""}
+                    onChange={(e) => setForm({ ...form, rg: e.target.value })}
+                  />
+                </label>
+                <label>
+                  Data de nascimento
+                  <input
+                    type="date"
+                    value={form.birth_date || ""}
+                    onChange={(e) =>
+                      setForm({ ...form, birth_date: e.target.value })
+                    }
+                  />
+                </label>
+                <label>
+                  Sexo / gênero
+                  <input
+                    value={form.gender || ""}
+                    onChange={(e) =>
+                      setForm({ ...form, gender: e.target.value })
+                    }
+                  />
+                </label>
+                <label>
+                  Nome da mãe
+                  <input
+                    value={form.mother_name || ""}
+                    onChange={(e) =>
+                      setForm({ ...form, mother_name: e.target.value })
+                    }
+                  />
+                </label>
+                <label>
+                  Estado civil
+                  <select
+                    value={form.marital_status || ""}
+                    onChange={(e) =>
+                      setForm({ ...form, marital_status: e.target.value })
+                    }
+                  >
+                    <option value="">Não informado</option>
+                    <option value="single">Solteiro(a)</option>
+                    <option value="married">Casado(a)</option>
+                    <option value="divorced">Divorciado(a)</option>
+                    <option value="widowed">Viúvo(a)</option>
+                    <option value="separated">Separado(a)</option>
+                  </select>
+                </label>
+                <label>
+                  Profissão
+                  <input
+                    value={form.profession || ""}
+                    onChange={(e) =>
+                      setForm({ ...form, profession: e.target.value })
+                    }
+                  />
+                </label>
+                <label>
+                  Telefone
+                  <input
+                    value={form.phone || ""}
+                    onChange={(e) =>
+                      setForm({ ...form, phone: e.target.value })
+                    }
+                  />
+                </label>
+                <label>
+                  WhatsApp
+                  <input
+                    value={form.whatsapp || ""}
+                    onChange={(e) =>
+                      setForm({ ...form, whatsapp: e.target.value })
+                    }
+                  />
+                </label>
+                <label className="wide">
+                  E-mail
+                  <input
+                    type="email"
+                    value={form.email || ""}
+                    onChange={(e) =>
+                      setForm({ ...form, email: e.target.value })
+                    }
+                  />
+                </label>
+                <label className="wide">
+                  <MapPin size={14} /> Endereço
+                  <input
+                    placeholder="Rua / Avenida"
+                    value={a.street || ""}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        address: { ...a, street: e.target.value },
+                      })
+                    }
+                  />
+                </label>
+                <label>
+                  Número
+                  <input
+                    value={a.number || ""}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        address: { ...a, number: e.target.value },
+                      })
+                    }
+                  />
+                </label>
+                <label>
+                  Complemento
+                  <input
+                    value={a.complement || ""}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        address: { ...a, complement: e.target.value },
+                      })
+                    }
+                  />
+                </label>
+                <label>
+                  Bairro
+                  <input
+                    value={a.neighborhood || ""}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        address: { ...a, neighborhood: e.target.value },
+                      })
+                    }
+                  />
+                </label>
+                <label>
+                  Cidade
+                  <input
+                    value={a.city || ""}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        address: { ...a, city: e.target.value },
+                      })
+                    }
+                  />
+                </label>
+                <label>
+                  UF
+                  <input
+                    value={a.state || ""}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        address: {
+                          ...a,
+                          state: e.target.value.toUpperCase().slice(0, 2),
+                        },
+                      })
+                    }
+                  />
+                </label>
+                <label>
+                  CEP
+                  <input
+                    value={a.zip || ""}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        address: { ...a, zip: e.target.value },
+                      })
+                    }
+                  />
+                </label>
+                <label className="wide">
+                  <FileText size={14} /> Observações
+                  <textarea
+                    value={form.notes || ""}
+                    onChange={(e) =>
+                      setForm({ ...form, notes: e.target.value })
+                    }
+                  />
+                </label>
+                <div className="wide modal-actions">
+                  <button
+                    className="secondary"
+                    disabled={saving}
+                    onClick={cancelEdit}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    className="primary"
+                    disabled={saving || !clean(form.name)}
+                    onClick={save}
+                  >
+                    <Save size={15} />
+                    {saving ? " Salvando..." : " Salvar cliente"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {bulkOpen && (
+        <div
+          className="modal-overlay"
+          style={{ zIndex: 1750 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !bulkBusy) setBulkOpen(false);
+          }}
+        >
+          <div
+            className="modal-card"
+            style={{ maxWidth: 760, maxHeight: "90vh", overflowY: "auto" }}
+          >
+            <div className="modal-head">
+              <div>
+                <h2>
+                  <Megaphone size={20} /> Envio em massa
+                </h2>
+                <p>
+                  Selecione os clientes ativos que receberão a mensagem pelo
+                  WhatsApp.
+                </p>
+              </div>
+              <button
+                className="icon-btn ux-modal-close"
+                disabled={bulkBusy}
+                onClick={() => setBulkOpen(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div
+              style={{
+                maxHeight: 300,
+                overflowY: "auto",
+                border: "1px solid rgba(128,128,128,.25)",
+                borderRadius: 10,
+                padding: 8,
+              }}
+            >
+              {bulkClients.map((client) => (
+                <label
+                  key={client.id}
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    alignItems: "center",
+                    padding: "9px 7px",
+                    cursor: "pointer",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={bulkSelected.includes(client.id)}
+                    onChange={() => toggleBulk(client.id)}
+                  />
+                  <div>
+                    <b>{client.name}</b>
+                    <small style={{ display: "block" }}>
+                      {client.whatsapp || client.phone}
+                    </small>
+                  </div>
+                </label>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+              <button
+                className="secondary"
+                disabled={bulkBusy}
+                onClick={() => setBulkSelected(bulkClients.map((x) => x.id))}
+              >
+                Selecionar todos
+              </button>
+              <button
+                className="secondary"
+                disabled={bulkBusy}
+                onClick={() => setBulkSelected([])}
+              >
+                Limpar seleção
+              </button>
+              <b style={{ marginLeft: "auto" }}>
+                {bulkSelected.length} selecionado(s)
+              </b>
+            </div>
+            <textarea
+              value={bulkText}
+              maxLength={4000}
+              onChange={(e) => setBulkText(e.target.value)}
+              placeholder="Digite a mensagem da campanha..."
+              style={{
+                width: "100%",
+                minHeight: 150,
+                resize: "vertical",
+                boxSizing: "border-box",
+                marginTop: 14,
+              }}
+            />
+            {bulkNotice && (
+              <div className="integration-notice" style={{ marginTop: 12 }}>
+                {bulkNotice}
+              </div>
+            )}
+            <div className="modal-actions">
+              <button
+                className="secondary"
+                disabled={bulkBusy}
+                onClick={() => setBulkOpen(false)}
+              >
+                Cancelar
+              </button>
+              <button
+                className="primary"
+                disabled={bulkBusy || !bulkText.trim() || !bulkSelected.length}
+                onClick={sendBulkMessage}
+              >
+                {bulkBusy ? (
+                  <Loader2 size={15} className="spin" />
+                ) : (
+                  <Send size={15} />
+                )}{" "}
+                {bulkBusy ? "Enviando..." : "Revisar e enviar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {messageTarget && (
+        <div
+          className="modal-overlay"
+          style={{ zIndex: 1800 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !messageBusy)
+              setMessageTarget(null);
+          }}
+        >
+          <div className="modal-card" style={{ maxWidth: 580 }}>
+            <div className="modal-head">
+              <div>
+                <h2>
+                  <MessageCircle size={20} /> Enviar mensagem
+                </h2>
+                <p>
+                  {messageTarget.name} ·{" "}
+                  {messageTarget.whatsapp || messageTarget.phone}
+                </p>
+              </div>
+              <button
+                className="icon-btn ux-modal-close"
+                aria-label="Fechar"
+                disabled={messageBusy}
+                onClick={() => setMessageTarget(null)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ padding: "4px 0 12px" }}>
+              <label style={{ display: "block" }}>
+                <span
+                  style={{
+                    display: "block",
+                    fontWeight: 700,
+                    fontSize: 12,
+                    marginBottom: 7,
+                  }}
+                >
+                  Mensagem pelo WhatsApp Oficial
+                </span>
+                <textarea
+                  autoFocus
+                  value={messageText}
+                  maxLength={4000}
+                  onChange={(e) => setMessageText(e.target.value)}
+                  placeholder="Digite a mensagem para o cliente..."
+                  style={{
+                    width: "100%",
+                    minHeight: 150,
+                    resize: "vertical",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </label>
+              <small
+                style={{
+                  display: "block",
+                  textAlign: "right",
+                  marginTop: 5,
+                  opacity: 0.65,
+                }}
+              >
+                {messageText.length}/4000
+              </small>
+              {messageNotice && (
+                <div className="alert error" style={{ marginTop: 12 }}>
+                  {messageNotice}
+                </div>
+              )}
+            </div>
+            <div className="modal-actions">
+              <button
+                className="secondary"
+                disabled={messageBusy}
+                onClick={() => setMessageTarget(null)}
+              >
+                Cancelar
+              </button>
+              <button
+                className="primary"
+                disabled={messageBusy || !messageText.trim()}
+                onClick={sendClientMessage}
+              >
+                {messageBusy ? (
+                  <Loader2 size={15} className="spin" />
+                ) : (
+                  <Send size={15} />
+                )}{" "}
+                {messageBusy ? "Enviando..." : "Enviar mensagem"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

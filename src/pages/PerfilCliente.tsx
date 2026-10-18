@@ -31,6 +31,8 @@ export default function PerfilCliente() {
     [cardInstallments, setCardInstallments] = useState(12),
     [cardMarkup, setCardMarkup] = useState(12),
     [boletoMarkup, setBoletoMarkup] = useState(25),
+    [boletoReleased, setBoletoReleased] = useState(false),
+    [recurringLink, setRecurringLink] = useState(""),
     [hasCounteroffer, setHasCounteroffer] = useState(false),
     [counterEntry, setCounterEntry] = useState(0),
     [counterInstallments, setCounterInstallments] = useState(1),
@@ -137,15 +139,15 @@ export default function PerfilCliente() {
       counterMonths * Math.max(0, counterInstallmentAmount);
   const feasibleBoleto = income > 0 && monthly <= recommendation.capacity;
   const feasibleCard = income > 0 && cardMonthly <= recommendation.capacity;
-  const best =
-    feasibleBoleto && (!feasibleCard || monthly <= cardMonthly)
-      ? "Boleto parcelado, se a entrada for viável"
-      : feasibleCard
-        ? "Cartão parcelado, por ter parcela mensal mais compatível"
-        : "À vista, somente se houver disponibilidade, ou revisão das condições parceladas";
-  const why = `À vista: ${money(cash)}, equivalente a ${cashIncomePct === null ? "—" : cashIncomePct.toFixed(1) + "%"} de uma renda mensal declarada. Cartão: total de ${money(cardTotal)}, acréscimo de ${money(cardTotal - Math.max(0, fees))} (${cardMarkup}%), em ${cardMonths} parcela(s) de ${money(cardMonthly)}, comprometendo ${cardIncomePct === null ? "—" : cardIncomePct.toFixed(1) + "%"} da renda por mês. Boleto: total de ${money(boleto)}, acréscimo de ${money(boleto - Math.max(0, fees))} (${boletoMarkup}%), entrada de ${money(entry)} e ${months} parcela(s) de ${money(monthly)}, comprometendo ${boletoIncomePct === null ? "—" : boletoIncomePct.toFixed(1) + "%"} da renda por mês.`;
-  const customerSuggestion = `Podemos apresentar três alternativas: à vista por ${money(cash)}; cartão em ${cardMonths} parcela(s) de aproximadamente ${money(cardMonthly)}, total de ${money(cardTotal)}; ou boleto com entrada de ${money(entry)} e ${months} parcela(s) de aproximadamente ${money(monthly)}, total de ${money(boleto)}. A escolha final depende da aprovação do escritório e da condição mais segura para o cliente.`;
-  const proposal = `PROPOSTA DE HONORÁRIOS ADVOCATÍCIOS\nSuzanne Figueiredo Advocacia e Soluções Jurídicas\n\nInteressado(a): ${name.trim() || "[nome do cliente]"}\nDemanda: ${kind}\nValor informado da ação: ${money(claim)}\n\nOPÇÃO 1 · PAGAMENTO À VISTA\nHonorários: ${money(cash)}${cashDiscount > 0 ? ` (desconto de ${cashDiscount}% sobre o valor-base)` : ""}\n\nOPÇÃO 2 · CARTÃO PARCELADO\nHonorários totais: ${money(cardTotal)}\nAcréscimo da modalidade: ${money(cardTotal - Math.max(0, fees))} (${cardMarkup}%)\n${cardMonths} parcela(s) de aproximadamente ${money(cardMonthly)}.\n\nOPÇÃO 3 · BOLETO PARCELADO\nHonorários totais: ${money(boleto)}\nAcréscimo da modalidade: ${money(boleto - Math.max(0, fees))} (${boletoMarkup}%)\nEntrada: ${money(entry)}\nSaldo: ${money(balance)}\n${months} parcelas de aproximadamente ${money(monthly)}; eventual diferença de arredondamento será ajustada na última parcela.${hasCounteroffer ? `\n\nCONTRAPROPOSTA APRESENTADA PELO CLIENTE\nEntrada: ${money(counterEntry)}\n${counterMonths} parcela(s) de ${money(counterInstallmentAmount)}\nTotal da contraproposta: ${money(counterTotal)}\nSituação: pendente de análise e aprovação expressa do escritório.` : ""}\n\n${notes.trim() ? notes.trim() + "\n\n" : ""}Proposta sujeita à aprovação do escritório, formalização contratual e verificação de conformidade com a tabela da OAB aplicável. O valor da causa não equivale aos honorários.\n\nValidade e início dos serviços: conforme contrato a ser celebrado.`;
+  const best = feasibleCard
+    ? "Cartão com cobrança recorrente pela InfinitePay"
+    : "Pagamento à vista ou revisão das condições";
+  const why = `À vista: ${money(cash)}. Cartão recorrente: ${cardMonths} cobranças mensais de ${money(cardMonthly)}, comprometendo ${cardIncomePct === null ? "—" : cardIncomePct.toFixed(1) + "%"} da renda por mês e ocupando apenas o valor mensal no limite. ${boletoReleased ? `Boleto excepcional: entrada de ${money(entry)} e ${months} parcelas de ${money(monthly)}.` : "Boleto não liberado para esta proposta."}`;
+  const customerSuggestion = `Apresentamos o pagamento à vista por Pix ou transferência e, para parcelamento, a cobrança recorrente pela InfinitePay: uma cobrança por mês, ocupando somente o valor da parcela no limite do cartão.${boletoReleased ? ` Excepcionalmente, foi liberado boleto com entrada de ${money(entry)} e ${months} parcelas.` : ""}`;
+  const boletoText = boletoReleased
+    ? `\n\nOPÇÃO 3 · BOLETO PARCELADO — EXCEÇÃO AUTORIZADA\nHonorários totais: ${money(boleto)}\nEntrada: ${money(entry)}\n${months} parcelas de aproximadamente ${money(monthly)}.`
+    : "";
+  const proposal = `PROPOSTA DE HONORÁRIOS ADVOCATÍCIOS\nSuzanne Figueiredo Advocacia e Soluções Jurídicas\n\nInteressado(a): ${name.trim() || "[nome do cliente]"}\nDemanda: ${kind}\nValor da causa: ${money(claim)}\nHonorários-base: ${money(fees)}\n\nOPÇÃO 1 · PAGAMENTO À VISTA\nPix ou transferência: ${money(cash)}\n\nOPÇÃO 2 · CARTÃO COM COBRANÇA RECORRENTE — RECOMENDADA\n${cardMonths} cobranças mensais de aproximadamente ${money(cardMonthly)}. O cartão é cobrado mês a mês e ocupa do limite somente o valor da parcela.\n${recurringLink ? `Link InfinitePay: ${recurringLink}` : "O link da InfinitePay será enviado após a criação manual da recorrência pelo escritório."}${boletoText}${hasCounteroffer ? `\n\nCONTRAPROPOSTA DO CLIENTE — PENDENTE DE APROVAÇÃO\nEntrada: ${money(counterEntry)}\n${counterMonths} parcelas de ${money(counterInstallmentAmount)}\nTotal: ${money(counterTotal)}` : ""}\n\nSem confirmação da entrada, o trabalho não é iniciado. Nenhuma cobrança ao cliente é feita automaticamente pela LEX sem conferência do escritório.\n\n${notes.trim() ? notes.trim() + "\n\n" : ""}Proposta sujeita à aprovação do escritório e formalização contratual.`;
   function copy() {
     navigator.clipboard
       .writeText(proposal)
@@ -168,6 +170,19 @@ export default function PerfilCliente() {
       "<html><head><title>Proposta de honorários</title><style>body{font:15px/1.7 Georgia,serif;max-width:760px;margin:60px auto;color:#30221e}pre{white-space:pre-wrap;font:inherit}h1{color:#743128}</style></head><body><h1>SUZANNE FIGUEIREDO ADVOCACIA</h1><hr/><pre>" +
         safe +
         "</pre></body></html>",
+    );
+    w.document.close();
+    w.focus();
+    w.print();
+  }
+  function printPaymentGuide() {
+    const w = window.open("", "_blank");
+    if (!w) return setNotice("Permita janelas pop-up para gerar a cartilha.");
+    const boleto = boletoReleased
+      ? `<div class="exception">Boleto: liberado excepcionalmente nesta proposta, com entrada obrigatória.</div>`
+      : `<div class="exception">Boleto: somente sob consulta e aprovação do escritório.</div>`;
+    w.document.write(
+      `<html><head><title>Cartilha de Pagamento</title><style>@page{size:A4;margin:18mm}*{box-sizing:border-box}body{font:15px/1.55 Inter,Arial;color:#17130d;background:#fff;margin:0}header{border-bottom:3px solid #c99443;padding-bottom:18px;margin-bottom:24px}h1,h2{font-family:Georgia,serif}h1{margin:0;color:#17130d}h2{color:#7a571d}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.card{border:1px solid #d8bd86;border-radius:14px;padding:16px;min-height:190px}.recommended{border:3px solid #c99443}.recommended b{color:#8b611b}.path{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:24px 0}.step{border:1px solid #c99443;border-radius:999px;padding:9px;text-align:center;flex:1}.exception{background:#f5efe6;border-left:5px solid #c99443;padding:13px;margin:16px 0}footer{margin-top:28px;border-top:1px solid #c99443;padding-top:15px;font-style:italic}@media(max-width:650px){.cards{grid-template-columns:1fr}.path{display:grid;grid-template-columns:1fr}.step{border-radius:10px}}</style></head><body><header><h1>Cartilha de Pagamento de Honorários</h1><p>Suzanne Figueiredo — Advocacia e Soluções Jurídicas</p></header><p>Para o parcelamento, utilizamos cobrança recorrente no cartão. O valor é cobrado mês a mês e ocupa somente a parcela mensal no limite.</p><div class="cards"><div class="card"><h2>Pix à vista</h2><p>Pagamento único, com confirmação após a conferência do escritório.</p></div><div class="card recommended"><b>RECOMENDADA</b><h2>Cartão recorrente</h2><p>Uma cobrança por mês pela InfinitePay. Ocupa apenas o valor mensal no limite do cartão.</p></div><div class="card"><h2>Cartão parcelado</h2><p>Alternativa tradicional. Pode comprometer o valor total no limite e, se aprovado, ser dividido em dois cartões.</p></div></div>${boleto}<h2>Como funciona</h2><div class="path"><div class="step">Contrato assinado</div><div>→</div><div class="step">Entrada confirmada</div><div>→</div><div class="step">Cartão cadastrado</div><div>→</div><div class="step">Parcela mensal</div><div>→</div><div class="step">Encerramento</div></div><h2>Ativação</h2><ol><li>Abra o link da InfinitePay enviado pelo escritório.</li><li>Confira o valor, a quantidade de cobranças e a data inicial.</li><li>Cadastre o cartão com segurança na página da InfinitePay.</li><li>Conclua a autorização e guarde o comprovante.</li></ol><h2>Dúvidas frequentes</h2><p><b>O valor total ocupa o limite?</b> Na cobrança recorrente, somente a parcela mensal.</p><p><b>O escritório guarda os dados do cartão?</b> Não. O cadastro ocorre no ambiente da InfinitePay.</p><p><b>E se a cobrança for recusada?</b> O escritório confere a situação antes de enviar qualquer cobrança. Poderão incidir multa de 2% e juros de 1% ao mês, conforme o contrato.</p><p><b>Posso trocar o cartão?</b> Solicite ao escritório o procedimento de atualização.</p><footer>WhatsApp: (31) 99298-4141 · eulampiosuzanne@gmail.com<br/>Dra. Suzanne Figueiredo — Advocacia e Soluções Jurídicas</footer></body></html>`,
     );
     w.document.close();
     w.focus();
@@ -273,7 +288,7 @@ export default function PerfilCliente() {
             />
           </label>
           <label>
-            Parcelas no cartão
+            Cobranças mensais no cartão recorrente
             <input
               type="number"
               min="1"
@@ -283,7 +298,7 @@ export default function PerfilCliente() {
             />
           </label>
           <label>
-            Acréscimo/juros do cartão (%)
+            Acréscimo da recorrência InfinitePay (%)
             <input
               type="number"
               min="0"
@@ -309,6 +324,22 @@ export default function PerfilCliente() {
               value={boletoMarkup}
               onChange={(e) => setBoletoMarkup(+e.target.value)}
             />
+          </label>
+          <label>
+            Link da cobrança recorrente InfinitePay
+            <input
+              value={recurringLink}
+              onChange={(e) => setRecurringLink(e.target.value)}
+              placeholder="Cole depois de criar a recorrência no app"
+            />
+          </label>
+          <label className="check-row">
+            <input
+              type="checkbox"
+              checked={boletoReleased}
+              onChange={(e) => setBoletoReleased(e.target.checked)}
+            />{" "}
+            Liberar boleto excepcionalmente para este cliente
           </label>
           <label className="check-row">
             <input
@@ -394,28 +425,33 @@ export default function PerfilCliente() {
             </p>
           </div>
           <div className="integration-card">
-            <b>2. Cartão parcelado (+{cardMarkup}%)</b>
+            <b>
+              2. Cartão recorrente InfinitePay — recomendado (+{cardMarkup}%)
+            </b>
             <h2>{money(cardTotal)}</h2>
             <p>
               Acréscimo/juros: {money(cardTotal - Math.max(0, fees))}.{" "}
-              {cardMonths} parcela(s) de {money(cardMonthly)}, equivalentes a{" "}
+              {cardMonths} cobranças mensais de {money(cardMonthly)}, ocupando
+              somente a parcela no limite e equivalentes a{" "}
               {cardIncomePct === null ? "—" : cardIncomePct.toFixed(1) + "%"} da
               renda mensal.
             </p>
           </div>
-          <div className="integration-card">
-            <b>3. Boleto parcelado (+{boletoMarkup}%)</b>
-            <h2>{money(boleto)}</h2>
-            <p>
-              Acréscimo: {money(boleto - Math.max(0, fees))}. Entrada{" "}
-              {money(entry)} + {months} parcelas de aproximadamente{" "}
-              {money(monthly)}, equivalentes a{" "}
-              {boletoIncomePct === null
-                ? "—"
-                : boletoIncomePct.toFixed(1) + "%"}{" "}
-              da renda mensal.
-            </p>
-          </div>
+          {boletoReleased && (
+            <div className="integration-card">
+              <b>3. Boleto parcelado (+{boletoMarkup}%)</b>
+              <h2>{money(boleto)}</h2>
+              <p>
+                Acréscimo: {money(boleto - Math.max(0, fees))}. Entrada{" "}
+                {money(entry)} + {months} parcelas de aproximadamente{" "}
+                {money(monthly)}, equivalentes a{" "}
+                {boletoIncomePct === null
+                  ? "—"
+                  : boletoIncomePct.toFixed(1) + "%"}{" "}
+                da renda mensal.
+              </p>
+            </div>
+          )}
           {hasCounteroffer && (
             <div className="integration-card">
               <b>Contraproposta do cliente · pendente</b>
@@ -447,12 +483,19 @@ export default function PerfilCliente() {
           <div className="integration-card">
             <h3>Análise de capacidade e risco de pagamento</h3>
             <p>
-              <strong>Cartão:</strong> {paymentRisk(cardIncomePct)} · parcela de{" "}
-              {cardIncomePct === null ? "—" : cardIncomePct.toFixed(1) + "%"} da renda.
+              <strong>Cartão recorrente:</strong> {paymentRisk(cardIncomePct)} ·
+              cobrança mensal de{" "}
+              {cardIncomePct === null ? "—" : cardIncomePct.toFixed(1) + "%"} da
+              renda.
             </p>
             <p>
-              <strong>Boleto:</strong> {paymentRisk(boletoIncomePct)} · parcela de{" "}
-              {boletoIncomePct === null ? "—" : boletoIncomePct.toFixed(1) + "%"} da renda.
+              <strong>Boleto excepcional:</strong>{" "}
+              {boletoReleased ? paymentRisk(boletoIncomePct) : "não liberado"} ·
+              parcela de{" "}
+              {boletoIncomePct === null
+                ? "—"
+                : boletoIncomePct.toFixed(1) + "%"}{" "}
+              da renda.
             </p>
             <label className="check-row">
               <input
@@ -529,6 +572,13 @@ export default function PerfilCliente() {
             </button>
             <button className="btn-secondary" type="button" onClick={print}>
               Imprimir / salvar PDF
+            </button>
+            <button
+              className="btn-secondary"
+              type="button"
+              onClick={printPaymentGuide}
+            >
+              Gerar cartilha de pagamento
             </button>
           </div>
           {notice && <p role="status">{notice}</p>}

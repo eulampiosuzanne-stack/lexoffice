@@ -1,0 +1,224 @@
+:root {
+  --lx-bg: #05050a;
+  --lx-surface: #0e0e16;
+  --lx-surface-2: #161622;
+  --lx-border: #2a2a3a;
+  --lx-text: #f5f3ee;
+  --lx-muted: #a8a6b3;
+  --lx-gold: #d4af37;
+  --lx-gold-glow: #f5d97a;
+  --lx-cyan: #22d3ee;
+  --lx-pink: #f472b6;
+  --lx-purple: #a78bfa;
+  --lx-topic: var(--lx-gold);
+  --lx-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+html,
+body,
+#root,
+.app {
+  background: var(--lx-bg) !important;
+  color: var(--lx-text) !important;
+}
+body,
+.app,
+input,
+select,
+textarea,
+button,
+table {
+  font-family: Inter, system-ui, sans-serif !important;
+}
+h1,
+h2,
+h3,
+.page-title h1,
+.page-heading h1,
+.module h1 {
+  font-family: "Playfair Display", Georgia, serif !important;
+  font-weight: 600 !important;
+  color: var(--lx-text) !important;
+}
+.app aside,
+.app > main > header,
+.area-tabs,
+.module-box,
+.table-panel,
+.panel,
+.integration-panel,
+.dashboard-panel,
+.dashboard-kpi,
+.card,
+.smart-card,
+.modal-card,
+.rule-modal,
+.agent-console,
+.signature-row {
+  background: linear-gradient(
+    145deg,
+    var(--lx-surface-2),
+    var(--lx-surface)
+  ) !important;
+  border: 1px solid color-mix(in srgb, var(--lx-topic) 40%, transparent) !important;
+  border-radius: 16px !important;
+  box-shadow:
+    var(--lx-shadow),
+    0 0 18px color-mix(in srgb, var(--lx-topic) 25%, transparent) !important;
+  color: var(--lx-text) !important;
+}
+.card,
+.smart-card,
+.dashboard-kpi,
+.integration-card {
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+.card:hover,
+.smart-card:hover,
+.dashboard-kpi:hover,
+.integration-card:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    var(--lx-shadow),
+    0 0 28px color-mix(in srgb, var(--lx-topic) 45%, transparent) !important;
+}
+.primary,
+.btn-primary,
+.integration-action,
+.legacy-enter {
+  background: linear-gradient(
+    135deg,
+    var(--lx-gold),
+    var(--lx-gold-glow)
+  ) !important;
+  color: #05050a !important;
+  border: 1px solid #f5d97a !important;
+  border-radius: 12px !important;
+  box-shadow: 0 0 18px rgba(212, 175, 55, 0.35) !important;
+  font-weight: 800 !important;
+}
+.secondary,
+.btn-secondary,
+.tools button,
+.area-tabs a {
+  background: transparent !important;
+  color: var(--lx-topic) !important;
+  border: 1px solid color-mix(in srgb, var(--lx-topic) 65%, var(--lx-border)) !important;
+  border-radius: 12px !important;
+}
+input,
+select,
+textarea,
+.input-search {
+  background: var(--lx-surface) !important;
+  border: 1px solid var(--lx-border) !important;
+  color: var(--lx-text) !important;
+  border-radius: 12px !important;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none !important;
+  border-color: var(--lx-gold) !important;
+  box-shadow:
+    0 0 0 3px rgba(212, 175, 55, 0.2),
+    0 0 18px rgba(212, 175, 55, 0.22) !important;
+}
+th {
+  color: var(--lx-muted) !important;
+  border-color: var(--lx-border) !important;
+}
+td {
+  color: var(--lx-text) !important;
+  border-color: var(--lx-border) !important;
+}
+tbody tr:hover {
+  background: rgba(212, 175, 55, 0.06) !important;
+}
+.nav-group a.active,
+.area-tabs a.active,
+.campaign-tabs button.active {
+  background: rgba(212, 175, 55, 0.12) !important;
+  color: var(--lx-gold-glow) !important;
+  border-left: 3px solid var(--lx-gold) !important;
+  box-shadow:
+    inset 4px 0 12px rgba(212, 175, 55, 0.12),
+    0 0 14px rgba(212, 175, 55, 0.18) !important;
+}
+.app:has(a[href="/whatsapp"].active),
+.app:has(a[href="/agenda"].active),
+.app:has(a[href="/audiencias"].active),
+.app:has(a[href="/afazeres"].active) {
+  --lx-topic: var(--lx-cyan);
+}
+.app:has(a[href="/clientes"].active),
+.app:has(a[href="/crm"].active) {
+  --lx-topic: var(--lx-pink);
+}
+.app:has(a[href="/processos"].active),
+.app:has(a[href="/documentos"].active),
+.app:has(a[href="/jurimetria"].active),
+.app:has(a[href="/revisao-peca"].active),
+.app:has(a[href="/consultas"].active) {
+  --lx-topic: var(--lx-purple);
+}
+.alert.error,
+.login-error {
+  color: var(--lx-pink) !important;
+  border-color: var(--lx-pink) !important;
+  background: rgba(244, 114, 182, 0.08) !important;
+}
+.integration-notice,
+.warning {
+  color: var(--lx-gold-glow) !important;
+  border-color: var(--lx-gold) !important;
+  background: rgba(212, 175, 55, 0.08) !important;
+}
+.legacy-auth,
+.legacy-left,
+.legacy-right,
+.legacy-card {
+  background: var(--lx-bg) !important;
+  color: var(--lx-text) !important;
+}
+.legacy-card {
+  border: 1px solid rgba(212, 175, 55, 0.45) !important;
+  box-shadow:
+    var(--lx-shadow),
+    0 0 28px rgba(212, 175, 55, 0.2) !important;
+}
+.cp-emergency-action {
+  display: block;
+  width: 100%;
+  margin: 12px 0;
+  text-align: left;
+  cursor: pointer;
+}
+@media (max-width: 700px) {
+  .content {
+    padding: 0 12px 88px !important;
+  }
+  .panel,
+  .integration-panel,
+  .table-panel,
+  .modal-card {
+    border-radius: 14px !important;
+  }
+  .cards {
+    grid-template-columns: 1fr !important;
+  }
+  .app aside {
+    box-shadow: 18px 0 40px rgba(0, 0, 0, 0.7) !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
