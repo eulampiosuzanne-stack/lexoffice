@@ -26,6 +26,7 @@ import {
   Search,
   Bell,
   Moon,
+  Sun,
   LogOut,
   LockKeyhole,
   Workflow,
@@ -52,6 +53,7 @@ import ClientRegistrationShortcut from "./components/ClientRegistrationShortcut"
 import AssinarPublico from "./pages/AssinarPublico";
 import VerificarPublico from "./pages/VerificarPublico";
 import GlobalSearch from "./components/GlobalSearch";
+import { applyLexTheme, readLexTheme, type LexTheme } from "./ThemeController";
 
 const Prospecting = lazy(() => import("./pages/Prospecting"));
 const Clients = lazy(() => import("./pages/Clients"));
@@ -938,10 +940,12 @@ export default function App() {
     (!i.superAdminOnly || isPlatformAdmin) &&
     (!i.ownerOnly || canAccessAudit) &&
     !(financeBlocked && (i.path === "/financeiro" || i.path === "/cobranca"));
+  const [lexTheme, setLexTheme] = useState<LexTheme>(readLexTheme);
+  const changeTheme = () => { const next = lexTheme === "dark" ? "light" : "dark"; setLexTheme(next); applyLexTheme(next); };
   const area = areaOf(loc.pathname);
   const areaTabs = area.tabs.filter(canSee);
   return (
-    <div className={`app ${navOpen ? "nav-open" : ""} ${loc.pathname === "/" ? "home-route" : ""} ${loc.pathname === "/whatsapp" ? "inbox-route" : ""} ${loc.pathname === "/whatsapp" ? "inbox-route" : ""}`}>
+    <div className={`app ${navOpen ? "nav-open" : ""} ${loc.pathname === "/" ? "home-route" : ""} ${loc.pathname === "/whatsapp" ? "inbox-route" : ""}`}>
       <a className="skip-link" href="#conteudo-principal">
         Ir para o conteúdo principal
       </a>
@@ -1086,6 +1090,7 @@ export default function App() {
             <strong>{areaTabs.find((item) => item.path === loc.pathname)?.label || area.label}</strong>
           </div>
           <div className="tools">
+            <button type="button" className="lex-theme-toggle" onClick={changeTheme} aria-label={lexTheme === "dark" ? "Ativar tema claro" : "Ativar tema escuro"} title={lexTheme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}>{lexTheme === "dark" ? <Sun size={16}/> : <Moon size={16}/>}<span>{lexTheme === "dark" ? "Tema claro" : "Tema escuro"}</span></button>
             <ClientRegistrationShortcut />
             <NavLink className="integration-shortcut" to="/integracoes">
               <Plug size={15} /> Integrações
