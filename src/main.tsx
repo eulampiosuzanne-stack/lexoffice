@@ -55,6 +55,9 @@ import "./ux-senior-modernization.css";
 /* Alternancia claro/escuro, depois de todas as camadas legadas. */
 import "./lexoffice-light-theme.css";
 
+// Apply saved preference before React renders to prevent dark-theme flash.
+try { const theme = localStorage.getItem("lexoffice-theme") === "light" ? "light" : "dark"; document.documentElement.dataset.lexTheme = theme; document.documentElement.style.colorScheme = theme; } catch { document.documentElement.dataset.lexTheme = "dark"; }
+
 const intakePrefix = "/formulario-cliente/";
 const path = window.location.pathname.replace(/\/$/, "") || "/";
 const isPublicIntake = window.location.pathname.startsWith(intakePrefix);
