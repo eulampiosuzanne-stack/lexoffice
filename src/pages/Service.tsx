@@ -78,6 +78,43 @@ const css=`
 @media(max-width:1350px){.service-shell{grid-template-columns:270px minmax(0,1fr) 280px}.service-metrics{width:100%}}
 @media(max-width:1100px){.service-shell{grid-template-columns:270px minmax(0,1fr)}.service-details{display:none}}
 @media(max-width:760px){.service-chat-page{min-height:560px;height:calc(100dvh - 80px)}.service-metrics{display:none}.service-shell{grid-template-columns:1fr}.service-sidebar,.service-main{border-radius:0}}
+
+/* Layout isolado da caixa de entrada: sobrepõe o tema global e elimina o overflow */
+.service-chat-page{box-sizing:border-box!important;display:grid!important;grid-template-columns:minmax(0,1fr)!important;grid-template-rows:auto minmax(0,1fr)!important;gap:12px!important;width:100%!important;max-width:none!important;min-width:0!important;height:calc(100dvh - 110px)!important;min-height:560px!important;padding:0!important;background:#071423!important;color:#eaf1fb!important}
+.service-chat-page *{box-sizing:border-box!important}
+.service-chat-page .page-title{grid-row:1;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:8px!important;align-items:center!important;min-height:0!important;padding:0 4px!important;margin:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+.service-chat-page .page-title h1{font-family:Georgia,'Times New Roman',serif!important;color:#edc87b!important;font-size:clamp(27px,2.1vw,36px)!important;line-height:1.12!important;margin:4px 0!important;padding:0!important}
+.service-chat-page .page-title p{margin:0!important;color:#b6c6db!important;font-size:12px!important}
+.service-chat-page .service-breadcrumb{color:#94a9c4!important;font-size:10px!important}
+.service-chat-page .service-toolbar-btn{background:#0c2035!important;border:1px solid #34526f!important;border-radius:9px!important;color:#dcb86e!important;font-size:11px!important;padding:10px!important}
+.service-chat-page .service-metrics{grid-row:2;grid-column:1;z-index:1;align-self:start;justify-self:end;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:9px!important;width:min(720px,67%)!important;margin:0!important;padding:0!important;position:relative!important;top:0!important}
+.service-chat-page .service-metric{display:flex!important;min-width:0!important;min-height:67px!important;padding:9px 11px!important;background:#10233a!important;border:1px solid #274561!important;border-radius:12px!important;box-shadow:none!important}
+.service-chat-page .service-metric span{font-size:11px!important;color:#d0dded!important}.service-chat-page .service-metric em{font-size:24px!important;color:#fff!important}
+.service-chat-page .service-shell{grid-row:2;grid-column:1;display:grid!important;grid-template-columns:minmax(265px,32%) minmax(0,1fr)!important;gap:9px!important;min-width:0!important;min-height:0!important;height:100%!important;margin:0!important;padding-top:78px!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:hidden!important}
+.service-chat-page .service-shell.has-selection{grid-template-columns:minmax(265px,30%) minmax(0,1fr) minmax(275px,27%)!important}
+.service-chat-page .service-sidebar,.service-chat-page .service-main,.service-chat-page .service-details{min-width:0!important;min-height:0!important;max-width:100%!important;height:100%!important}
+.service-chat-page .service-sidebar,.service-chat-page .service-main{border:1px solid #294764!important;border-radius:12px!important;background:#091a2d!important;box-shadow:none!important;overflow:hidden!important}
+.service-chat-page .service-sidebar{display:flex!important;flex-direction:column!important}
+.service-chat-page .service-sidebar-head{padding:12px!important;flex:0 0 auto!important;background:#0b2036!important}
+.service-chat-page .service-search{display:flex!important;align-items:center!important;width:100%!important;min-width:0!important;margin:0!important;padding:9px 10px!important;background:#102941!important;border:1px solid #34516e!important;border-radius:9px!important}
+.service-chat-page .service-search input{flex:1!important;min-width:0!important;width:100%!important;font-size:12px!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;color:#e7eef9!important}
+.service-chat-page .service-filters{display:flex!important;flex-wrap:nowrap!important;overflow-x:auto!important;gap:5px!important;padding-top:10px!important}
+.service-chat-page .service-filters button{flex:0 0 auto!important;min-height:33px!important;padding:7px 9px!important;border:1px solid #2a4561!important;border-radius:8px!important;background:#0d2339!important;color:#cbd9eb!important;font-size:10px!important;white-space:nowrap!important}
+.service-chat-page .service-filters button.selected{background:#e9c36e!important;border-color:#e9c36e!important;color:#12243a!important}
+.service-chat-page .service-list{flex:1!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;padding:6px!important}
+.service-chat-page .service-conv{width:100%!important;min-width:0!important;min-height:77px!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:7px!important;padding:10px!important;border-bottom:1px solid #23394f!important;border-radius:9px!important;background:transparent!important}
+.service-chat-page .service-conv.active{background:#152d45!important;border:1px solid #e5b95c!important}
+.service-chat-page .service-conv strong{min-width:0!important;display:flex!important;align-items:center!important;overflow:hidden!important}.service-chat-page .service-conv-name{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+.service-chat-page .service-conv small{margin-left:50px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}.service-chat-page .service-conv-state{display:inline-block!important;margin-left:50px!important;font-size:10px!important}
+.service-chat-page .service-main{display:flex!important;flex-direction:column!important}.service-chat-page .service-empty{flex:1!important;display:grid!important;place-items:center!important;background:#081727!important}
+.service-chat-page .service-chat-head{display:flex!important;align-items:center!important;gap:8px!important;flex-wrap:wrap!important;padding:12px!important;background:#0c2137!important}
+.service-chat-page .service-messages{flex:1!important;min-height:0!important;overflow-y:auto!important;background:#071726!important}.service-chat-page .service-compose{flex:0 0 auto!important}
+.service-chat-page .service-details{display:flex!important;flex-direction:column!important;overflow-y:auto!important;gap:9px!important;background:transparent!important;border:0!important;box-shadow:none!important}
+.service-chat-page .service-details .service-card{flex-shrink:0!important;margin:0!important;background:#0d2136!important;border:1px solid #2b4966!important;border-radius:12px!important}
+.service-chat-page .service-detail-tabs{display:flex!important;flex-wrap:nowrap!important;overflow-x:auto!important}.service-chat-page .service-detail-tabs button{flex:0 0 auto!important}
+@media(max-width:1280px){.service-chat-page .service-shell.has-selection{grid-template-columns:minmax(250px,34%) minmax(0,1fr)!important}.service-chat-page .service-details{display:none!important}.service-chat-page .service-metrics{width:min(700px,70%)!important}}
+@media(max-width:950px){.service-chat-page .service-metrics{width:100%!important;position:relative!important}.service-chat-page .service-shell,.service-chat-page .service-shell.has-selection{grid-template-columns:minmax(230px,36%) minmax(0,1fr)!important}.service-chat-page .service-details{display:none!important}}
+@media(max-width:650px){.service-chat-page{height:calc(100dvh - 80px)!important}.service-chat-page .page-title{display:none!important}.service-chat-page .service-metrics{display:none!important}.service-chat-page .service-shell,.service-chat-page .service-shell.has-selection{grid-row:1!important;grid-template-columns:1fr!important;padding-top:0!important}.service-chat-page .service-sidebar{display:flex!important}.service-chat-page .service-shell.has-selection .service-sidebar{display:none!important}.service-chat-page .service-shell:not(.has-selection) .service-main{display:none!important}}
 `;
 
 const phoneDigits=(v?:string)=>String(v||'').replace(/\D/g,'');
