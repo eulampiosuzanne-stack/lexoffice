@@ -190,3 +190,9 @@ html body .legacy-auth.legacy-auth .legacy-card{min-height:0!important;width:min
 html body .legacy-auth.legacy-auth .legacy-card-logo{display:none!important}
 html body .legacy-auth.legacy-auth .legacy-card :is(label,input,button,a,p){font-size:max(16px,1em)!important}
 @media (max-width:900px){html body .legacy-auth.legacy-auth{grid-template-columns:1fr!important}html body .legacy-auth.legacy-auth .legacy-left{min-height:42vh!important}html body .legacy-auth.legacy-auth .legacy-right{padding:20px 16px 32px!important}}
+
+/* Inbox route: remove o limite global de largura e o padding de dashboard */
+html body .app.app.app.app.app.app.app.app.inbox-route main .content{width:100%!important;max-width:none!important;margin:0!important;padding:12px 18px 16px!important;min-width:0!important}
+html body .app.inbox-route main{min-width:0!important;overflow:hidden!important}
+html body .app.inbox-route main .content .service-chat-page{width:100%!important;max-width:none!important;min-width:0!important}
+@media(max-width:800px){html body .app.app.app.app.app.app.app.app.inbox-route main .content{padding:0!important}}
