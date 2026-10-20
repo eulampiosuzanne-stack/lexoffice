@@ -1,0 +1,76 @@
+name: LexOffice CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lexoffice-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Testes, Hooks e build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Instalar dependencias de forma reproduzivel
+        run: npm ci
+      - name: Verificar ordem dos Hooks React
+        run: node scripts/check-react-hooks.mjs
+      - name: Executar testes existentes
+        run: npm test
+      - name: TypeScript e build de producao
+        run: npm run build
+      - name: Verificar artefato compilado
+        run: |
+          test -s dist/index.html
+          test -d dist/assets
+          find dist/assets -type f -name '*.js' | grep -q .
+      - name: Guardar build para auditoria
+        uses: actions/upload-artifact@v4
+        with:
+          name: lexoffice-dist
+          path: dist/
+          retention-days: 7
+
+  smoke:
+    name: Smoke test HTTP
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: lexoffice-dist
+          path: dist/
+      - name: Iniciar servidor de preview
+        run: |
+          (npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/lexoffice-preview.log 2>&1 &)
+          for i in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4173/ -o /tmp/lexoffice-index.html; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/lexoffice-preview.log
+          exit 1
+      - name: Verificar SPA e arquivos estaticos
+        run: node scripts/check-preview-smoke.mjs
