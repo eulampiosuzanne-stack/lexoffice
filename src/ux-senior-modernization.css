@@ -1,0 +1,78 @@
+/* LEXOFFICE — UX senior modernization
+   Uma camada final e deliberadamente pequena: hierarquia, navegação, toque e leitura.
+   Preserva a identidade preto + dourado e não altera regras de negócio. */
+
+:root{
+  --ux-shell:272px;
+  --ux-content:1480px;
+  --ux-radius-sm:10px;
+  --ux-radius-md:14px;
+  --ux-radius-lg:20px;
+  --ux-ease:cubic-bezier(.2,.8,.2,1);
+}
+
+html{scroll-behavior:smooth}
+body{font-feature-settings:"kern" 1,"liga" 1;text-rendering:optimizeLegibility}
+.skip-link{position:fixed;z-index:30000;top:10px;left:10px;transform:translateY(-150%);padding:11px 16px;border-radius:10px;background:#f5d97a;color:#05050a;font-weight:800;text-decoration:none;box-shadow:0 12px 30px #000}
+.skip-link:focus{transform:none}
+
+/* Navegação legível e previsível no desktop: sem depender de hover para descobrir nomes. */
+@media(min-width:1101px){
+  .app>aside,.app>aside:hover{width:var(--ux-shell)!important;min-width:var(--ux-shell)!important;max-width:var(--ux-shell)!important;overflow:hidden!important}
+  .app>main{margin-left:var(--ux-shell)!important;width:calc(100% - var(--ux-shell))!important}
+  .app>aside .brand{height:82px!important;padding:0 18px!important}
+  .app>aside .brand>div:not(.logo),.app>aside:hover .brand>div:not(.logo){opacity:1!important;visibility:visible!important;width:auto!important;overflow:visible!important;transform:none!important}
+  .app>aside nav{padding:14px 10px 96px!important}
+  .app>aside .nav-group a,.app>aside:hover .nav-group a{width:100%!important;max-width:none!important;min-height:44px!important;height:auto!important;justify-content:flex-start!important;padding:9px 12px!important;font-size:13px!important;border-radius:12px!important}
+  .app>aside .profile,.app>aside:hover .profile{min-height:76px!important;padding:12px 14px!important;gap:10px!important;justify-content:flex-start!important;flex-direction:row!important}
+  .app>aside .profile-copy,.app>aside:hover .profile-copy{display:block!important}
+}
+
+.app main>header{position:sticky!important;top:0!important;z-index:800!important;height:72px!important;margin:0!important;border-width:0 0 1px!important;border-radius:0!important;padding:0 clamp(16px,2.4vw,34px)!important}
+.topbar-context{display:flex;align-items:center;gap:8px;min-width:180px;color:#a8a6b3;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.topbar-context strong{max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#f5f3ee;font-size:12px}
+.app main>header .tools{flex:1;justify-content:flex-end;min-width:0}
+.app main>header .global-search{order:-1;margin-right:auto;max-width:560px}
+.global-search-field kbd{flex:0 0 auto;padding:3px 7px;border:1px solid #3a3a49;border-bottom-color:#505061;border-radius:6px;color:#a8a6b3;background:#161622;font:600 10px/1.4 Inter,sans-serif;box-shadow:inset 0 -1px 0 rgba(255,255,255,.05)}
+
+.app .content{width:min(100%,var(--ux-content));max-width:var(--ux-content)!important;margin:0 auto!important;padding:24px clamp(16px,2.6vw,38px) 72px!important}
+.ux-context-bar{margin-bottom:14px!important;min-height:58px;padding:12px 16px!important}
+.area-tabs{position:sticky;top:72px;z-index:650;display:flex!important;gap:6px!important;margin:0 0 24px!important;padding:7px!important;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:none;background:rgba(14,14,22,.92)!important;border:1px solid #2a2a3a!important;border-radius:14px!important;backdrop-filter:blur(16px)}
+.area-tabs::-webkit-scrollbar{display:none}.area-tabs a{flex:0 0 auto;min-height:38px!important;display:inline-flex!important;align-items:center!important;padding:8px 13px!important;border-radius:9px!important;white-space:nowrap;text-decoration:none}
+
+/* Hierarquia: o glow identifica ação/estado, não cada caixa da tela. */
+html body .app.app :is(.card,.smart-card,.module-box,.panel,.table-panel,.integration-panel,.dashboard-panel,.dashboard-kpi,.settings-panel,.doc-library-card,.movement-card,.lead-card,.crm-lead-card){box-shadow:0 12px 30px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.045)!important}
+html body .app.app :is(.primary,.btn-primary,button[type="submit"]){min-height:44px;padding-inline:16px;transition:transform .16s var(--ux-ease),filter .16s var(--ux-ease),box-shadow .16s var(--ux-ease)}
+@media(hover:hover){html body .app.app :is(.primary,.btn-primary,button[type="submit"]):hover{transform:translateY(-1px);filter:brightness(1.06)}}
+html body .app.app :is(button,a,input,select,textarea){transition:border-color .16s var(--ux-ease),background-color .16s var(--ux-ease),color .16s var(--ux-ease),box-shadow .16s var(--ux-ease)}
+html body .app.app button:disabled{cursor:not-allowed!important;filter:saturate(.35)!important;opacity:.55!important;box-shadow:none!important}
+
+.table-wrap{border-radius:12px}.app table{font-variant-numeric:tabular-nums}.app th{position:sticky;top:0;z-index:1}.app tbody tr{transition:background-color .14s ease}
+.empty,[class*="empty-state"]{min-height:180px;padding:30px;text-align:center;border:1px dashed #3a3a49;border-radius:14px;background:rgba(255,255,255,.018)}
+.route-loading{min-height:260px;display:flex;align-items:center;justify-content:center;gap:14px;color:#f5f3ee}
+.route-loading>div{display:grid;gap:4px}.route-loading small{color:#a8a6b3}
+.route-loading-mark{width:34px;height:34px;border:2px solid rgba(212,175,55,.25);border-top-color:#f5d97a;border-radius:50%;animation:ux-route-spin .8s linear infinite;box-shadow:0 0 16px rgba(212,175,55,.18)}
+@keyframes ux-route-spin{to{transform:rotate(360deg)}}
+
+@media(max-width:1100px) and (min-width:761px){
+  .app>aside,.app>aside:hover{width:76px!important;max-width:76px!important}.app>main{margin-left:76px!important;width:calc(100% - 76px)!important}
+  .app main>header .integration-shortcut{display:none!important}.topbar-context{min-width:auto}.topbar-context span,.topbar-context svg{display:none}
+}
+
+@media(max-width:760px){
+  body.nav-drawer-open{overflow:hidden}
+  .app main>header{height:64px!important;min-height:64px!important;padding:0 12px!important}
+  .mobile-menu-btn{display:grid!important;place-items:center!important;width:42px!important;height:42px!important;min-width:42px!important;border:1px solid #2a2a3a!important;border-radius:12px!important;background:#161622!important;color:#f5d97a!important}
+  .topbar-context{min-width:0;flex:1}.topbar-context span,.topbar-context svg{display:none}.topbar-context strong{max-width:100%;font-size:11px}
+  .app main>header .tools{flex:0 0 auto}.app main>header .tools>*:not(a[href="/app-cliente"]){display:none!important}
+  .app .content{padding:16px 12px calc(92px + env(safe-area-inset-bottom))!important}
+  .ux-context-bar{min-height:0;padding:10px 12px!important}.ux-context-bar b{font-size:12px!important}
+  .area-tabs{top:64px;margin-inline:-4px!important;margin-bottom:18px!important;border-radius:12px!important}
+  .mobile-bottom-nav{grid-template-columns:repeat(5,minmax(0,1fr))!important;height:70px!important}
+  .mobile-bottom-nav a,.mobile-bottom-nav button{min-height:58px!important;font-size:9px!important}
+  .app :is(.page-head,.page-title){gap:12px!important}.app :is(.page-head,.page-title)>button{width:100%}
+  .global-search-field kbd{display:none}
+}
+
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+

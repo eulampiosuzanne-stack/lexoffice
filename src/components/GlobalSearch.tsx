@@ -52,8 +52,19 @@ export default function GlobalSearch() {
     const close = (event: MouseEvent) => {
       if (!root.current?.contains(event.target as Node)) setOpen(false);
     };
+    const shortcut = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        root.current?.querySelector<HTMLInputElement>("input")?.focus();
+        setOpen(true);
+      }
+    };
     document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
+    document.addEventListener("keydown", shortcut);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", shortcut);
+    };
   }, []);
 
   useEffect(() => {
@@ -106,11 +117,13 @@ export default function GlobalSearch() {
           placeholder="Buscar cliente, processo, lead ou função..."
           aria-label="Busca global"
           aria-expanded={open}
+          aria-controls="global-search-results"
         />
+        <kbd aria-hidden="true">Ctrl K</kbd>
         {query && <button type="button" aria-label="Limpar busca" onClick={() => setQuery("")}><X size={15} /></button>}
       </label>
       {open && query.trim() && (
-        <div className="global-search-results" role="listbox" aria-label="Resultados da busca">
+        <div id="global-search-results" className="global-search-results" role="listbox" aria-label="Resultados da busca">
           {results.length ? results.map((item) => (
             <button type="button" role="option" key={`${item.kind}-${item.id}`} onClick={() => choose(item)}>
               <span><small>{item.kind}</small><b>{item.title}</b><em>{item.detail}</em></span>

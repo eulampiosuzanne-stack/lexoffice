@@ -50,6 +50,8 @@ import "./lexoffice-uniform.css";
 import "./lexoffice-polish.css";
 /* Tema global compartilhado, carregado por último em todas as telas internas. */
 import "./lexoffice-neon-premium.css";
+/* Camada final de UX: navegação, hierarquia, acessibilidade e responsividade. */
+import "./ux-senior-modernization.css";
 
 const intakePrefix = "/formulario-cliente/";
 const path = window.location.pathname.replace(/\/$/, "") || "/";

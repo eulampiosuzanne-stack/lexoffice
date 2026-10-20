@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import {
   NavLink,
   Navigate,
@@ -41,49 +41,51 @@ import {
   PiggyBank,
   BellRing,
   FileCheck2,
+  Menu,
+  ChevronRight,
 } from "lucide-react";
 import { supabase, supabaseConfigured } from "./lib/supabase";
 import { humanize, roleLabels } from "./lib/ux";
-import Prospecting from "./pages/Prospecting";
-import Clients from "./pages/Clients";
-import Processes from "./pages/Processes";
-import Dossier from "./pages/Dossier";
-import ProcessMovements from "./pages/ProcessMovements";
-import Tribunals from "./pages/Tribunals";
-import CRM from "./pages/CRM";
-import Agents from "./pages/Agents";
-import WhatsApp from "./pages/WhatsApp";
-import Integrations from "./pages/Integrations";
-import Signatures from "./pages/Signatures";
-import Agenda from "./pages/Agenda";
-import Imports from "./pages/Imports";
-import Calculators from "./pages/Calculators";
-import PetitionAssistant from "./pages/PetitionAssistant";
-import ConducaoProcessual from "./pages/ConducaoProcessual";
-import RevisaoPeca from "./pages/RevisaoPeca";
-import Consultations from "./pages/Consultations";
-import Documents from "./pages/Documents";
-import Finance from "./pages/Finance";
-import Security from "./pages/Security";
-import Reports from "./pages/Reports";
-import OrgSettings from "./pages/Settings";
 import CadastroPublico from "./pages/CadastroPublico";
 import ClientRegistrationShortcut from "./components/ClientRegistrationShortcut";
 import AssinarPublico from "./pages/AssinarPublico";
 import VerificarPublico from "./pages/VerificarPublico";
-import WhatsAppFlow from "./pages/WhatsAppFlow";
-import Dashboard from "./pages/DashboardOverview";
-import PartnerPanel from "./pages/PartnerPanel";
-import Audit from "./pages/Audit";
-import JornadaComercial from "./pages/JornadaComercial";
-import ClientArea from "./pages/ClientArea";
-import PerfilCliente from "./pages/PerfilCliente";
-import Marketing from "./pages/Marketing";
-import Planejamento from "./pages/Planejamento";
-import Afazeres from "./pages/Afazeres";
-import Donna from "./pages/Donna";
-import Hearings from "./pages/Hearings";
 import GlobalSearch from "./components/GlobalSearch";
+
+const Prospecting = lazy(() => import("./pages/Prospecting"));
+const Clients = lazy(() => import("./pages/Clients"));
+const Processes = lazy(() => import("./pages/Processes"));
+const Dossier = lazy(() => import("./pages/Dossier"));
+const ProcessMovements = lazy(() => import("./pages/ProcessMovements"));
+const Tribunals = lazy(() => import("./pages/Tribunals"));
+const CRM = lazy(() => import("./pages/CRM"));
+const Agents = lazy(() => import("./pages/Agents"));
+const WhatsApp = lazy(() => import("./pages/WhatsApp"));
+const Integrations = lazy(() => import("./pages/Integrations"));
+const Signatures = lazy(() => import("./pages/Signatures"));
+const Agenda = lazy(() => import("./pages/Agenda"));
+const Imports = lazy(() => import("./pages/Imports"));
+const Calculators = lazy(() => import("./pages/Calculators"));
+const PetitionAssistant = lazy(() => import("./pages/PetitionAssistant"));
+const ConducaoProcessual = lazy(() => import("./pages/ConducaoProcessual"));
+const RevisaoPeca = lazy(() => import("./pages/RevisaoPeca"));
+const Consultations = lazy(() => import("./pages/Consultations"));
+const Documents = lazy(() => import("./pages/Documents"));
+const Finance = lazy(() => import("./pages/Finance"));
+const Security = lazy(() => import("./pages/Security"));
+const Reports = lazy(() => import("./pages/Reports"));
+const OrgSettings = lazy(() => import("./pages/Settings"));
+const Dashboard = lazy(() => import("./pages/DashboardOverview"));
+const PartnerPanel = lazy(() => import("./pages/PartnerPanel"));
+const Audit = lazy(() => import("./pages/Audit"));
+const JornadaComercial = lazy(() => import("./pages/JornadaComercial"));
+const ClientArea = lazy(() => import("./pages/ClientArea"));
+const PerfilCliente = lazy(() => import("./pages/PerfilCliente"));
+const Marketing = lazy(() => import("./pages/Marketing"));
+const Planejamento = lazy(() => import("./pages/Planejamento"));
+const Afazeres = lazy(() => import("./pages/Afazeres"));
+const Donna = lazy(() => import("./pages/Donna"));
+const Hearings = lazy(() => import("./pages/Hearings"));
 const PRODUCTION_URL = "https://lexoffice-ashy.vercel.app";
 type NavItem = {
   label: string;
@@ -760,6 +762,24 @@ export default function App() {
     [vipAlert, setVipAlert] = useState<any>(null),
     loc = useLocation();
   useEffect(() => {
+    setNavOpen(false);
+    const currentArea = areaOf(loc.pathname);
+    const currentPage = currentArea.tabs.find((item) => item.path === loc.pathname)?.label;
+    document.title = `${currentPage || currentArea.label} | LEXOFFICE`;
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [loc.pathname]);
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setNavOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    document.body.classList.toggle("nav-drawer-open", navOpen);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.classList.remove("nav-drawer-open");
+    };
+  }, [navOpen]);
+  useEffect(() => {
     if (!supabase) {
       setReady(true);
       return;
@@ -906,6 +926,9 @@ export default function App() {
   const areaTabs = area.tabs.filter(canSee);
   return (
     <div className={`app ${navOpen ? "nav-open" : ""}`}>
+      <a className="skip-link" href="#conteudo-principal">
+        Ir para o conteúdo principal
+      </a>
       {navOpen && (
         <div className="nav-overlay" onClick={() => setNavOpen(false)} />
       )}
@@ -1036,17 +1059,19 @@ export default function App() {
             onClick={() => setNavOpen(!navOpen)}
             aria-label="Abrir menu completo"
           >
-            ☰
+            <Menu size={21} />
           </button>
-          <div className="crumb">LEXOFFICE</div>
+          <div className="topbar-context" aria-label="Localização atual">
+            <span>LEXOFFICE</span>
+            <ChevronRight size={13} aria-hidden="true" />
+            <strong>{areaTabs.find((item) => item.path === loc.pathname)?.label || area.label}</strong>
+          </div>
           <div className="tools">
             <ClientRegistrationShortcut />
             <NavLink className="integration-shortcut" to="/integracoes">
               <Plug size={15} /> Integrações
             </NavLink>
             <GlobalSearch />
-            <button>Português⌄</button>
-            <Moon size={17} />
             <NavLink
               to="/app-cliente"
               onClick={() => {
@@ -1089,11 +1114,11 @@ export default function App() {
             </NavLink>
           </div>
         </header>
-        <div className="content">
+        <div className="content" id="conteudo-principal" tabIndex={-1}>
           <div className="ux-context-bar" role="status">
             <span>{area.label}</span>
             <b>{areaTabs.find((item) => item.path === loc.pathname)?.label || area.label}</b>
-            <small>Escolha uma aba ou use a busca para chegar diretamente ao que precisa.</small>
+            <small>Escolha uma aba ou pressione Ctrl + K para buscar.</small>
           </div>
           {areaTabs.length > 1 && (
             <nav className="area-tabs" aria-label={`Abas de ${area.label}`}>
@@ -1109,6 +1134,17 @@ export default function App() {
               ))}
             </nav>
           )}
+          <Suspense
+            fallback={
+              <div className="route-loading" role="status" aria-live="polite">
+                <span className="route-loading-mark" aria-hidden="true" />
+                <div>
+                  <strong>Preparando esta área</strong>
+                  <small>Carregando somente o necessário…</small>
+                </div>
+              </div>
+            }
+          >
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/painel" element={<PartnerPanel />} />
@@ -1202,7 +1238,9 @@ export default function App() {
             />
             <Route path="/relatorios" element={<Reports />} />
             <Route path="/configuracoes" element={<OrgSettings />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          </Suspense>
           {!supabaseConfigured && (
             <div className="config-warning">
               Configure as variáveis públicas do Supabase no ambiente de
@@ -1218,7 +1256,7 @@ export default function App() {
           className={({ isActive }) => (isActive ? "active" : "")}
         >
           <LayoutDashboard />
-          Dashboard
+          Início
         </NavLink>
         <NavLink
           to="/clientes"
@@ -1226,13 +1264,6 @@ export default function App() {
         >
           <Users />
           Clientes
-        </NavLink>
-        <NavLink
-          to="/processos"
-          className={({ isActive }) => (isActive ? "active" : "")}
-        >
-          <Gavel />
-          Processos
         </NavLink>
         <NavLink
           to="/whatsapp"
