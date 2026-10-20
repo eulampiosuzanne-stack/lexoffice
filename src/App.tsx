@@ -15,6 +15,7 @@ import {
   Bot,
   Calculator,
   MessageCircle,
+  Megaphone,
   CalendarDays,
   FileText,
   PenTool,
