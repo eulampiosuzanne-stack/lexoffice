@@ -9,3 +9,44 @@
 .hc-calm{display:grid;place-items:center;gap:5px;min-height:170px;padding:24px;color:#8290a5;text-align:center}.hc-calm svg{color:#51d69d}.hc-calm b{color:#dce3ed;font-size:13px}.hc-calm span{font-size:10px}.hc-calm.compact{min-height:115px}.hc-skeleton{min-height:180px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.035),transparent);background-size:200% 100%;animation:hc-load 1.2s linear infinite}@keyframes hc-load{to{background-position:-200% 0}}.hc-mobile-add{display:none}
 @media(max-width:1150px){.hc-metrics{grid-template-columns:repeat(2,1fr)}.hc-main-grid,.hc-bottom-grid{grid-template-columns:1fr}}
 @media(max-width:700px){.home-command{gap:15px}.hc-greeting{align-items:flex-start}.hc-greeting h1{font-size:27px}.hc-greeting p{font-size:12px}.hc-primary{display:none}.hc-metrics{grid-template-columns:1fr 1fr;gap:9px}.hc-metrics>button{gap:9px;padding:13px 11px}.hc-metrics span{width:32px;height:32px}.hc-metrics b{font-size:18px}.hc-metrics b.money{font-size:13px}.hc-panel-title{padding:14px}.hc-main-grid,.hc-bottom-grid{gap:13px}.hc-mobile-add{position:fixed;right:18px;bottom:83px;z-index:700;display:grid;place-items:center;width:50px;height:50px;border:1px solid #f5d97a;border-radius:50%;background:linear-gradient(135deg,#d4af37,#f5d97a);color:#07101d;box-shadow:0 8px 25px rgba(0,0,0,.45)}}
+
+/* Isolamento visual do centro de comando. A aplicação possui folhas antigas
+   muito específicas; estas regras impedem que elas transformem o protótipo
+   azul-marinho em cartões marrons e tipografia desproporcional. */
+html body .app.app.app.app.home-route>main{background:radial-gradient(900px 420px at 80% -10%,rgba(41,73,122,.19),transparent 62%),#080d17!important}
+html body .app.app.app.app.home-route .content{width:min(100%,1460px)!important;max-width:1460px!important;padding:28px clamp(24px,3vw,44px) 64px!important}
+html body .app.app.app.app .home-command{gap:22px!important;color:#f5f7fb!important;font-family:Inter,sans-serif!important}
+html body .app.app.app.app .hc-greeting{padding:0 2px 4px!important}
+html body .app.app.app.app .hc-greeting h1{margin:6px 0 5px!important;color:#fff!important;font-family:"Playfair Display",Georgia,serif!important;font-size:36px!important;font-weight:600!important;letter-spacing:-.02em!important}
+html body .app.app.app.app .hc-greeting :is(p,small){color:#9ca9bd!important;font-size:12px!important}
+html body .app.app.app.app .hc-primary{border:1px solid #edcf69!important;background:linear-gradient(135deg,#c99d2f,#f1d36a)!important;color:#09101c!important;box-shadow:0 8px 22px rgba(212,175,55,.18)!important}
+html body .app.app.app.app .hc-metrics>button{min-height:104px!important;padding:18px!important;border:1px solid #2a3b56!important;border-radius:15px!important;background:linear-gradient(145deg,#17263d,#101a2b)!important;color:#f5f7fb!important;box-shadow:0 12px 28px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.035)!important}
+html body .app.app.app.app .hc-metrics>button:hover{border-color:#4c6589!important;background:linear-gradient(145deg,#1b2c47,#111d30)!important}
+html body .app.app.app.app .hc-metrics small{color:#97a5ba!important;font-size:11px!important;font-weight:600!important}
+html body .app.app.app.app .hc-metrics b{color:#fff!important;font-size:23px!important;line-height:1.15!important}
+html body .app.app.app.app .hc-metrics b.money{font-size:18px!important}
+html body .app.app.app.app .hc-metrics em{color:#718097!important;font-size:10px!important}
+html body .app.app.app.app .hc-panel{border:1px solid #2b3d58!important;border-radius:17px!important;background:linear-gradient(145deg,#17263d,#101a2b)!important;box-shadow:0 15px 34px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.035)!important}
+html body .app.app.app.app .hc-panel-title{padding:18px 20px!important;border-bottom:1px solid rgba(103,125,157,.21)!important;background:rgba(8,14,25,.13)!important}
+html body .app.app.app.app .hc-panel-title h2{margin:0!important;color:#f5f7fb!important;font-size:15px!important;letter-spacing:0!important}
+html body .app.app.app.app .hc-panel-title p{margin:3px 0 0!important;color:#8492a8!important;font-size:10px!important}
+html body .app.app.app.app .hc-panel-title>button{border:0!important;background:transparent!important;color:#d8bd62!important;box-shadow:none!important;font-size:11px!important}
+html body .app.app.app.app .hc-panel-title>button:hover{color:#f5d97a!important;transform:none!important}
+html body .app.app.app.app .hc-panel-title>b{background:rgba(244,114,182,.12)!important;color:#f58abd!important;font-size:12px!important}
+html body .app.app.app.app .hc-attention li button{padding:13px 19px!important;border:0!important;border-bottom:1px solid rgba(103,125,157,.16)!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:#f5f7fb!important}
+html body .app.app.app.app .hc-attention li button:hover{background:rgba(93,126,177,.08)!important;transform:none!important}
+html body .app.app.app.app .hc-attention li b,
+html body .app.app.app.app .hc-agenda li b,
+html body .app.app.app.app .hc-tasks li b{color:#e9edf4!important;font-size:12px!important}
+html body .app.app.app.app :is(.hc-attention,.hc-agenda,.hc-tasks) li small{color:#7f8da3!important;font-size:10px!important}
+html body .app.app.app.app .hc-agenda time{color:#f1d36a!important;font-size:12px!important}
+html body .app.app.app.app .hc-tasks li{border-bottom-color:rgba(103,125,157,.16)!important}
+html body .app.app.app.app .hc-finance-grid{background:rgba(103,125,157,.18)!important}
+html body .app.app.app.app .hc-finance-grid>div{background:#101b2e!important}
+html body .app.app.app.app .hc-finance-grid small{color:#8795aa!important;font-size:10px!important}
+html body .app.app.app.app .hc-finance-grid b{color:#f1d36a!important;font-size:20px!important}
+html body .app.app.app.app .hc-calm{color:#7e8ca2!important}
+html body .app.app.app.app .hc-calm b{color:#dce4ef!important;font-size:13px!important}
+html body .app.app.app.app .hc-calm span{color:#7e8ca2!important;font-size:10px!important}
+@media(max-width:1150px){html body .app.app.app.app.home-route .content{padding-inline:22px!important}}
+@media(max-width:700px){html body .app.app.app.app.home-route .content{padding:18px 12px 96px!important}html body .app.app.app.app .hc-greeting h1{font-size:28px!important}html body .app.app.app.app .hc-metrics>button{min-height:92px!important;padding:13px!important}html body .app.app.app.app .hc-metrics b{font-size:19px!important}}

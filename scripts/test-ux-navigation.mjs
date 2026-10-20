@@ -27,6 +27,8 @@ const tests = [
   ["início usa centro de comando", read("src/pages/DashboardOverview.tsx").includes("home-command")],
   ["início consulta dados reais", read("src/pages/DashboardOverview.tsx").includes("process_deadlines") && read("src/pages/DashboardOverview.tsx").includes("client_app_inbox")],
   ["início sem cabeçalho duplicado", app.includes("home-route") && read("src/ux-senior-modernization.css").includes(".app.home-route .ux-context-bar")],
+  ["abas do início não são renderizadas", app.includes('loc.pathname !== "/" && areaTabs.length > 1')],
+  ["dashboard isolado de estilos antigos", read("src/pages/dashboard-home.css").includes("Isolamento visual do centro de comando")],
   ["portal resume situação atual", portal.includes("cp-focus-grid")],
   ["onboarding atualiza após carregar", portal.includes("[onboarding]")],
   ["busca responsiva estilizada", css.includes(".global-search-results")],
