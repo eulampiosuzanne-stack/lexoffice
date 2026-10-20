@@ -1090,7 +1090,7 @@ export default function App() {
             <strong>{areaTabs.find((item) => item.path === loc.pathname)?.label || area.label}</strong>
           </div>
           <div className="tools">
-            <button type="button" className="lex-theme-toggle" onClick={changeTheme} aria-label={lexTheme === "dark" ? "Ativar tema claro" : "Ativar tema escuro"} title={lexTheme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}>{lexTheme === "dark" ? <Sun size={16}/> : <Moon size={16}/>}<span>{lexTheme === "dark" ? "Tema claro" : "Tema escuro"}</span></button>
+            <button type="button" data-testid="lex-theme-toggle" className="lex-theme-toggle" onClick={changeTheme} aria-label={lexTheme === "dark" ? "Ativar tema claro" : "Ativar tema escuro"} title={lexTheme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}>{lexTheme === "dark" ? <Sun size={16}/> : <Moon size={16}/>}<span>{lexTheme === "dark" ? "Tema claro" : "Tema escuro"}</span></button>
             <ClientRegistrationShortcut />
             <NavLink className="integration-shortcut" to="/integracoes">
               <Plug size={15} /> Integrações
