@@ -134,6 +134,19 @@ const css=`
 .service-chat-page .service-details{display:none!important}
 @media(max-width:1050px){.service-chat-page .service-shell,.service-chat-page .service-shell.has-selection{grid-template-columns:minmax(275px,36%) minmax(0,1fr)!important}}
 @media(max-width:650px){.service-chat-page{height:calc(100dvh - 64px)!important}.service-chat-page .page-title{display:none!important}.service-chat-page .service-metrics{display:none!important}.service-chat-page .service-shell,.service-chat-page .service-shell.has-selection{grid-template-columns:1fr!important}.service-chat-page .service-shell.has-selection .service-sidebar{display:none!important}.service-chat-page .service-shell:not(.has-selection) .service-main{display:none!important}}
+
+/* Workspace full bleed: indicadores compactos e lista de leitura confortável */
+.service-chat-page{grid-template-rows:auto auto minmax(0,1fr)!important;height:calc(100dvh - 95px)!important;min-height:550px!important;gap:8px!important}
+.service-chat-page .page-title{grid-row:1!important;grid-column:1!important;min-height:0!important;padding:0!important}
+.service-chat-page .service-metrics{grid-row:2!important;grid-column:1!important;justify-self:stretch!important;align-self:auto!important;width:100%!important;max-width:none!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important}
+.service-chat-page .service-metric{min-height:57px!important;justify-content:flex-start!important}
+.service-chat-page .service-shell,.service-chat-page .service-shell.has-selection{grid-row:3!important;grid-column:1!important;padding:0!important;grid-template-columns:minmax(300px,350px) minmax(0,1fr)!important;min-height:0!important;width:100%!important;max-width:none!important;gap:8px!important}
+.service-chat-page .service-shell.has-selection{grid-template-columns:minmax(300px,350px) minmax(0,1fr) minmax(260px,310px)!important}
+.service-chat-page .service-sidebar,.service-chat-page .service-search,.service-chat-page .service-conv,.service-chat-page .service-main{width:100%!important;max-width:none!important;min-width:0!important}
+.service-chat-page .service-filters{width:100%!important;flex-wrap:nowrap!important;overflow-x:auto!important}
+@media(max-width:1280px){.service-chat-page .service-shell.has-selection{grid-template-columns:minmax(285px,320px) minmax(0,1fr)!important}.service-chat-page .service-details{display:none!important}}
+@media(max-width:900px){.service-chat-page .service-shell,.service-chat-page .service-shell.has-selection{grid-template-columns:minmax(245px,300px) minmax(0,1fr)!important}}
+@media(max-width:650px){.service-chat-page{grid-template-rows:minmax(0,1fr)!important;height:calc(100dvh - 80px)!important}.service-chat-page .service-shell,.service-chat-page .service-shell.has-selection{grid-row:1!important;grid-template-columns:1fr!important}.service-chat-page .page-title,.service-chat-page .service-metrics{display:none!important}}
 `;
 
 const phoneDigits=(v?:string)=>String(v||'').replace(/\D/g,'');
