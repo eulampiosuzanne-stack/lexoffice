@@ -52,6 +52,8 @@ import "./lexoffice-polish.css";
 import "./lexoffice-neon-premium.css";
 /* Camada final de UX: navegação, hierarquia, acessibilidade e responsividade. */
 import "./ux-senior-modernization.css";
+/* Alternancia claro/escuro, depois de todas as camadas legadas. */
+import "./lexoffice-light-theme.css";
 
 const intakePrefix = "/formulario-cliente/";
 const path = window.location.pathname.replace(/\/$/, "") || "/";
