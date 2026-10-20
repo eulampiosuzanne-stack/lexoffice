@@ -35,6 +35,7 @@ const tests = [
   ["rotas carregadas sob demanda", app.includes('lazy(() => import("./pages/Clients"))')],
   ["feedback durante troca de área", app.includes("route-loading")],
   ["camada UX carregada por último", main.trim().includes('import "./ux-senior-modernization.css";')],
+  ["título correto antes da autenticação", app.includes('document.title = "Acessar | LEXOFFICE"')],
 ];
 
 let failed = 0;

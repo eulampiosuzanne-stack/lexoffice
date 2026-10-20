@@ -763,11 +763,19 @@ export default function App() {
     loc = useLocation();
   useEffect(() => {
     setNavOpen(false);
+    if (!ready) {
+      document.title = "LEXOFFICE";
+      return;
+    }
+    if (!session) {
+      document.title = "Acessar | LEXOFFICE";
+      return;
+    }
     const currentArea = areaOf(loc.pathname);
     const currentPage = currentArea.tabs.find((item) => item.path === loc.pathname)?.label;
     document.title = `${currentPage || currentArea.label} | LEXOFFICE`;
     window.scrollTo({ top: 0, behavior: "auto" });
-  }, [loc.pathname]);
+  }, [loc.pathname, ready, session]);
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setNavOpen(false);
