@@ -102,8 +102,8 @@ type Area = { label: string; description: string; icon: any; tabs: NavItem[] };
 /* Arquitetura por finalidade: menos categorias, sem remover nenhuma rota. */
 const areas: Area[] = [
   {
-    label: "Início",
-    description: "Visão geral e prioridades",
+    label: "Visão geral",
+    description: "Painel e prioridades",
     icon: LayoutDashboard,
     tabs: [
       { label: "Início", path: "/", icon: LayoutDashboard },
@@ -145,8 +145,8 @@ const areas: Area[] = [
     ],
   },
   {
-    label: "Gestão do escritório",
-    description: "Financeiro e operação",
+    label: "Comercial e financeiro",
+    description: "Contratação e receitas",
     icon: CircleDollarSign,
     tabs: [
       { label: "Financeiro", path: "/financeiro", icon: CircleDollarSign },
@@ -179,7 +179,7 @@ const areas: Area[] = [
     ],
   },
   {
-    label: "Configurações",
+    label: "Operação e administração",
     description: "Equipe e integrações",
     icon: Settings,
     tabs: [
@@ -1007,6 +1007,7 @@ export default function App() {
               );
             })}
           </div>
+          <div className="lex2-favorites"><span>FAVORITOS</span><NavLink to="/whatsapp" onClick={() => setNavOpen(false)}><MessageCircle size={16}/> Caixa de Entrada</NavLink><NavLink to="/processos" onClick={() => setNavOpen(false)}><Gavel size={16}/> Processos</NavLink><NavLink to="/agenda" onClick={() => setNavOpen(false)}><CalendarDays size={16}/> Agenda</NavLink><NavLink to="/jornada-comercial" onClick={() => setNavOpen(false)}><Target size={16}/> Jornada comercial</NavLink></div>
         </nav>
         <div className="profile">
           <div className="avatar">{initials}</div>
@@ -1075,7 +1076,7 @@ export default function App() {
             </div>
           </aside>
         )}
-        <header>
+        <header className="lex2-topbar">
           <button
             className="mobile-menu-btn"
             type="button"
@@ -1144,7 +1145,7 @@ export default function App() {
             <b>{areaTabs.find((item) => item.path === loc.pathname)?.label || area.label}</b>
             <small>Escolha uma aba ou pressione Ctrl + K para buscar.</small>
           </div>}
-          {loc.pathname !== "/" && loc.pathname !== "/whatsapp" && areaTabs.length > 1 && (
+          {loc.pathname !== "/" && areaTabs.length > 1 && loc.pathname !== "/whatsapp" && (
             <nav className="area-tabs" aria-label={`Abas de ${area.label}`}>
               {areaTabs.map((t) => (
                 <NavLink
