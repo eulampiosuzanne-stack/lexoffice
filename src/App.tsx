@@ -904,6 +904,7 @@ export default function App() {
       supabase.removeChannel(vipChannel);
     };
   }, [session]);
+  const [lexTheme, setLexTheme] = useState<LexTheme>(readLexTheme);
   if (window.location.pathname === "/cadastro") return <CadastroPublico />;
   if (window.location.pathname.startsWith("/assinar/"))
     return <AssinarPublico />;
@@ -940,7 +941,6 @@ export default function App() {
     (!i.superAdminOnly || isPlatformAdmin) &&
     (!i.ownerOnly || canAccessAudit) &&
     !(financeBlocked && (i.path === "/financeiro" || i.path === "/cobranca"));
-  const [lexTheme, setLexTheme] = useState<LexTheme>(readLexTheme);
   const changeTheme = () => { const next = lexTheme === "dark" ? "light" : "dark"; setLexTheme(next); applyLexTheme(next); };
   const area = areaOf(loc.pathname);
   const areaTabs = area.tabs.filter(canSee);
