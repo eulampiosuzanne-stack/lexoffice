@@ -941,7 +941,7 @@ export default function App() {
   const area = areaOf(loc.pathname);
   const areaTabs = area.tabs.filter(canSee);
   return (
-    <div className={`app ${navOpen ? "nav-open" : ""} ${loc.pathname === "/" ? "home-route" : ""}`}>
+    <div className={`app ${navOpen ? "nav-open" : ""} ${loc.pathname === "/" ? "home-route" : ""} ${loc.pathname === "/whatsapp" ? "inbox-route" : ""}`}>
       <a className="skip-link" href="#conteudo-principal">
         Ir para o conteúdo principal
       </a>
@@ -1133,7 +1133,7 @@ export default function App() {
             </NavLink>
           </div>
         </header>
-        <div className="content" id="conteudo-principal" tabIndex={-1}>
+        <div className={`content ${loc.pathname === "/whatsapp" ? "inbox-content" : ""}`} id="conteudo-principal" tabIndex={-1}>
           {loc.pathname !== "/" && loc.pathname !== "/whatsapp" && <div className="ux-context-bar" role="status">
             <span>{area.label}</span>
             <b>{areaTabs.find((item) => item.path === loc.pathname)?.label || area.label}</b>
