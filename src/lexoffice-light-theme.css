@@ -49,3 +49,39 @@ html[data-lex-theme="light"] body .app.app.inbox-route .service-chat-page .servi
 .lex-theme-toggle{display:inline-flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap;padding:9px 12px;border:1px solid #c7a65a;border-radius:10px;background:#15151e;color:#f3d48a;cursor:pointer;font-size:12px;font-weight:700}
 html[data-lex-theme="light"] .lex-theme-toggle{background:#fff!important;color:#233955!important;border:1px solid #c6d2e2!important}
 @media(max-width:900px){.lex-theme-toggle{padding:9px!important}.lex-theme-toggle span{display:none!important}}
+
+/* Strong scoped overrides: legacy premium styles use !important and html body .app.app. */
+html[data-lex-theme="light"],html[data-lex-theme="light"] body,html[data-lex-theme="light"] #root{background:#eef3fc!important;color:#17263c!important}
+html[data-lex-theme="light"] body .app.app{background:#eef3fc!important;color:#17263c!important}
+html[data-lex-theme="light"] body .app.app main{background:#eef3fc!important;color:#17263c!important}
+html[data-lex-theme="light"] body .app.app main>.content{background:#eef3fc!important;color:#17263c!important}
+html[data-lex-theme="light"] body .app.app>aside{background:#172b4d!important;color:#fff!important}
+html[data-lex-theme="light"] body .app.app>main>header{background:#fff!important;color:#17263c!important;border-bottom:1px solid #d4deeb!important}
+html[data-lex-theme="light"] body .app.app>main>header .topbar-context,
+html[data-lex-theme="light"] body .app.app>main>header .topbar-context strong,
+html[data-lex-theme="light"] body .app.app>main>header .topbar-context span{color:#263a57!important}
+html[data-lex-theme="light"] body .app.app h1,html[data-lex-theme="light"] body .app.app h2,html[data-lex-theme="light"] body .app.app h3,
+html[data-lex-theme="light"] body .app.app .page-title h1,
+html[data-lex-theme="light"] body .app.app .page-head h1{color:#1b2b42!important;text-shadow:none!important}
+html[data-lex-theme="light"] body .app.app .module,html[data-lex-theme="light"] body .app.app .card,
+html[data-lex-theme="light"] body .app.app .panel,html[data-lex-theme="light"] body .app.app .dashboard-panel,
+html[data-lex-theme="light"] body .app.app .dashboard-kpi{background:#fff!important;color:#1b2b42!important;border-color:#d6dfed!important;box-shadow:0 3px 12px #213f6716!important}
+html[data-lex-theme="light"] body .app.app :is(.module,.card,.panel,.dashboard-panel,.dashboard-kpi) :is(h1,h2,h3,h4,b,strong,span,p,small,label){color:#243854!important}
+html[data-lex-theme="light"] body .app.app :is(input,select,textarea){background:#fff!important;color:#1d304a!important;border:1px solid #b7c7da!important}
+html[data-lex-theme="light"] body .app.app :is(button.primary,.primary){background:#185be9!important;color:#fff!important;border-color:#185be9!important}
+html[data-lex-theme="light"] body .app.app :is(button.primary,.primary) :is(span,svg){color:#fff!important}
+html[data-lex-theme="light"] body .app.app .lex-theme-toggle{display:inline-flex!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:3!important;background:#fff!important;color:#173354!important;border:1px solid #aabed9!important;box-shadow:0 2px 4px #12345516!important}
+html[data-lex-theme="dark"] body .app.app .lex-theme-toggle{display:inline-flex!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:3!important}
+html[data-lex-theme="light"] body .app.app.inbox-route .service-chat-page,
+html[data-lex-theme="light"] body .app.app.inbox-route .service-chat-page .service-shell,
+html[data-lex-theme="light"] body .app.app.inbox-route .service-chat-page .service-messages{background:#edf3fc!important;color:#182b46!important}
+html[data-lex-theme="light"] body .app.app.inbox-route .service-chat-page .service-sidebar,
+html[data-lex-theme="light"] body .app.app.inbox-route .service-chat-page .service-main,
+html[data-lex-theme="light"] body .app.app.inbox-route .service-chat-page .service-chat-head,
+html[data-lex-theme="light"] body .app.app.inbox-route .service-chat-page .service-compose{background:#fff!important;color:#182b46!important;border-color:#d5dfeb!important}
+html[data-lex-theme="light"] body .app.app.inbox-route .service-chat-page .service-metric{background:#fff!important;color:#1c304b!important;border-color:#d5dfeb!important}
+html[data-lex-theme="light"] body .app.app.inbox-route .service-chat-page .service-metric :is(span,em){color:#1c304b!important}
+html[data-lex-theme="light"] body .app.app.inbox-route .service-chat-page .service-conv{background:#fff!important;color:#1b2d45!important}
+html[data-lex-theme="light"] body .app.app.inbox-route .service-chat-page .service-conv.active{background:#e6efff!important;border-color:#2762ca!important}
+html[data-lex-theme="light"] body .app.app.inbox-route .service-chat-page .service-conv :is(strong,small,span){color:#1b2d45!important}
+@media(max-width:1200px){html body .app.app>main>header .tools .lex-theme-toggle{min-width:37px!important;flex-shrink:0!important}}
