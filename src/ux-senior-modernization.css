@@ -102,3 +102,7 @@ html body .app.app button:disabled{cursor:not-allowed!important;filter:saturate(
 
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 
+/* A tela inicial já tem sua própria hierarquia. Evita repetir título e abas. */
+.app.home-route .ux-context-bar,.app.home-route .area-tabs{display:none!important}
+.app.home-route .content{padding-top:22px!important}
+
