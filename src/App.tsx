@@ -95,11 +95,12 @@ type NavItem = {
   superAdminOnly?: boolean;
   ownerOnly?: boolean;
 };
-type Area = { label: string; icon: any; tabs: NavItem[] };
+type Area = { label: string; description: string; icon: any; tabs: NavItem[] };
 /* Arquitetura por finalidade: menos categorias, sem remover nenhuma rota. */
 const areas: Area[] = [
   {
     label: "Início",
+    description: "Visão geral e prioridades",
     icon: LayoutDashboard,
     tabs: [
       { label: "Início", path: "/", icon: LayoutDashboard },
@@ -109,6 +110,7 @@ const areas: Area[] = [
   },
   {
     label: "Relacionamento",
+    description: "Clientes e atendimento",
     icon: MessageCircle,
     tabs: [
       { label: "Conversas (WhatsApp)", path: "/whatsapp", icon: MessageCircle },
@@ -121,6 +123,7 @@ const areas: Area[] = [
   },
   {
     label: "Gestão jurídica",
+    description: "Processos, prazos e peças",
     icon: Gavel,
     tabs: [
       { label: "Processos", path: "/processos", icon: Gavel },
@@ -139,6 +142,7 @@ const areas: Area[] = [
   },
   {
     label: "Gestão do escritório",
+    description: "Financeiro e operação",
     icon: CircleDollarSign,
     tabs: [
       { label: "Financeiro", path: "/financeiro", icon: CircleDollarSign },
@@ -160,6 +164,7 @@ const areas: Area[] = [
   },
   {
     label: "Inteligência jurídica",
+    description: "Análise e estratégia",
     icon: Sparkles,
     tabs: [
       { label: "Analisar caso", path: "/jurimetria", icon: Sparkles },
@@ -171,6 +176,7 @@ const areas: Area[] = [
   },
   {
     label: "Configurações",
+    description: "Equipe e integrações",
     icon: Settings,
     tabs: [
       { label: "Escritório", path: "/configuracoes", icon: Settings },
@@ -967,7 +973,10 @@ export default function App() {
                   aria-label={a.label}
                 >
                   <a.icon size={18} />
-                  {a.label}
+                  <span className="nav-area-copy">
+                    <b>{a.label}</b>
+                    <small>{a.description}</small>
+                  </span>
                   {a.label === "Atendimento" && clientInboxUnread > 0 && (
                     <span
                       style={{

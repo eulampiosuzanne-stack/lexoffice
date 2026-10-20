@@ -28,6 +28,31 @@ body{font-feature-settings:"kern" 1,"liga" 1;text-rendering:optimizeLegibility}
   .app>aside .profile-copy,.app>aside:hover .profile-copy{display:block!important}
 }
 
+/* Linguagem visual inspirada no painel de referência: marinho institucional,
+   módulos nomeados e superfícies com elevação tátil. */
+.app>aside{background:linear-gradient(180deg,#111d32 0%,#0b1424 68%,#080e19 100%)!important;border-right:1px solid rgba(212,175,55,.24)!important}
+.app>aside .brand{background:rgba(5,9,17,.32)!important;border-bottom:1px solid rgba(212,175,55,.22)!important}
+.app>aside .brand b{font-family:Inter,sans-serif!important;font-size:14px!important;letter-spacing:.045em!important;text-transform:uppercase}
+.app>aside .brand small{color:#aeb8ca!important;letter-spacing:.08em!important}
+.app>aside .logo{background:#050812!important;border:1px solid #d4af37!important;box-shadow:0 0 0 4px rgba(212,175,55,.08),0 8px 22px rgba(0,0,0,.4)!important}
+.nav-area-copy{display:grid;min-width:0;gap:3px}.nav-area-copy b{overflow:hidden;text-overflow:ellipsis;font-size:13px;line-height:1.2}.nav-area-copy small{overflow:hidden;text-overflow:ellipsis;color:#94a0b5!important;font-size:9.5px!important;line-height:1.2;margin:0!important}
+.app>aside nav a.active .nav-area-copy small{color:#f5d97a!important}
+.app>aside nav a.active{position:relative}.app>aside nav a.active::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:3px;border-radius:999px;background:linear-gradient(90deg,#d4af37,#f5d97a);box-shadow:0 0 12px rgba(245,217,122,.6)}
+.app>aside .profile{background:rgba(5,9,17,.76)!important;border-top-color:rgba(212,175,55,.22)!important}
+
+.ux-context-bar{grid-template-columns:auto minmax(0,1fr)!important;gap:5px 18px!important;min-height:118px!important;padding:22px 28px!important;background:linear-gradient(118deg,#121d31 0%,#111a2b 58%,#0d1627 100%)!important;border:1px solid rgba(212,175,55,.64)!important;border-radius:16px!important;box-shadow:0 8px 0 rgba(166,116,24,.68),0 18px 42px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.06)!important}
+.ux-context-bar span{align-self:start;grid-row:auto!important;width:max-content;padding:6px 10px;border-radius:7px;background:#f5d97a;color:#101827!important;font-size:9px!important;letter-spacing:.1em!important;box-shadow:0 4px 0 #9d721e!important}
+.ux-context-bar b{grid-column:1/-1;font-family:Playfair Display,Georgia,serif!important;font-size:clamp(26px,3vw,38px)!important;font-weight:600!important;line-height:1.08;color:#fff!important}
+.ux-context-bar small{grid-column:1/-1;color:#c3cad7!important;font-size:12px!important;line-height:1.5}
+
+.area-tabs{padding:8px!important;gap:9px!important;background:#111a2b!important;border-color:#2d3a50!important;box-shadow:0 5px 0 #080d17,0 12px 26px rgba(0,0,0,.28)!important}
+.area-tabs a{min-height:44px!important;padding:9px 16px!important;background:#151f33!important;border:1px solid #35445d!important;color:#dce2ec!important;box-shadow:0 4px 0 #080d17,inset 0 1px 0 rgba(255,255,255,.05)!important;font-weight:800!important}
+.area-tabs a:hover{border-color:rgba(212,175,55,.58)!important;color:#fff!important;transform:translateY(-1px)}
+.area-tabs a.active{background:linear-gradient(135deg,#d4af37,#f5d97a)!important;color:#07101f!important;border-color:#f5d97a!important;border-left:1px solid #f5d97a!important;box-shadow:0 4px 0 #986b15,0 0 18px rgba(212,175,55,.22)!important}
+
+html body .app.app :is(.card,.smart-card,.module-box,.panel,.table-panel,.integration-panel,.dashboard-panel,.dashboard-kpi,.settings-panel,.doc-library-card,.movement-card,.lead-card,.crm-lead-card){border-color:#344157!important;background:linear-gradient(145deg,#172238,#101827)!important;box-shadow:0 5px 0 #080d17,0 16px 34px rgba(0,0,0,.36),inset 0 1px 0 rgba(255,255,255,.055)!important}
+html body .app.app :is(.card,.smart-card,.module-box,.dashboard-kpi,.settings-panel,.doc-library-card,.lead-card,.crm-lead-card):hover{border-color:rgba(212,175,55,.62)!important;box-shadow:0 5px 0 #8d6519,0 20px 38px rgba(0,0,0,.42),0 0 20px rgba(212,175,55,.12)!important}
+
 .app main>header{position:sticky!important;top:0!important;z-index:800!important;height:72px!important;margin:0!important;border-width:0 0 1px!important;border-radius:0!important;padding:0 clamp(16px,2.4vw,34px)!important}
 .topbar-context{display:flex;align-items:center;gap:8px;min-width:180px;color:#a8a6b3;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
 .topbar-context strong{max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#f5f3ee;font-size:12px}
@@ -67,6 +92,7 @@ html body .app.app button:disabled{cursor:not-allowed!important;filter:saturate(
   .app main>header .tools{flex:0 0 auto}.app main>header .tools>*:not(a[href="/app-cliente"]){display:none!important}
   .app .content{padding:16px 12px calc(92px + env(safe-area-inset-bottom))!important}
   .ux-context-bar{min-height:0;padding:10px 12px!important}.ux-context-bar b{font-size:12px!important}
+  .ux-context-bar{display:grid!important;gap:7px!important;padding:15px!important;box-shadow:0 5px 0 rgba(166,116,24,.68),0 12px 28px rgba(0,0,0,.34)!important}.ux-context-bar b{grid-column:1/-1;font-size:24px!important}.ux-context-bar small{display:block!important;grid-column:1/-1;font-size:10px!important}.ux-context-bar span{font-size:8px!important}
   .area-tabs{top:64px;margin-inline:-4px!important;margin-bottom:18px!important;border-radius:12px!important}
   .mobile-bottom-nav{grid-template-columns:repeat(5,minmax(0,1fr))!important;height:70px!important}
   .mobile-bottom-nav a,.mobile-bottom-nav button{min-height:58px!important;font-size:9px!important}
