@@ -941,7 +941,7 @@ export default function App() {
   const area = areaOf(loc.pathname);
   const areaTabs = area.tabs.filter(canSee);
   return (
-    <div className={`app ${navOpen ? "nav-open" : ""} ${loc.pathname === "/" ? "home-route" : ""} ${loc.pathname === "/whatsapp" ? "inbox-route" : ""}`}>
+    <div className={`app ${navOpen ? "nav-open" : ""} ${loc.pathname === "/" ? "home-route" : ""} ${loc.pathname === "/whatsapp" ? "inbox-route" : ""} ${loc.pathname === "/whatsapp" ? "inbox-route" : ""}`}>
       <a className="skip-link" href="#conteudo-principal">
         Ir para o conteúdo principal
       </a>
