@@ -1133,12 +1133,12 @@ export default function App() {
           </div>
         </header>
         <div className="content" id="conteudo-principal" tabIndex={-1}>
-          {loc.pathname !== "/" && <div className="ux-context-bar" role="status">
+          {loc.pathname !== "/" && loc.pathname !== "/whatsapp" && <div className="ux-context-bar" role="status">
             <span>{area.label}</span>
             <b>{areaTabs.find((item) => item.path === loc.pathname)?.label || area.label}</b>
             <small>Escolha uma aba ou pressione Ctrl + K para buscar.</small>
           </div>}
-          {loc.pathname !== "/" && areaTabs.length > 1 && (
+          {loc.pathname !== "/" && loc.pathname !== "/whatsapp" && areaTabs.length > 1 && (
             <nav className="area-tabs" aria-label={`Abas de ${area.label}`}>
               {areaTabs.map((t) => (
                 <NavLink
