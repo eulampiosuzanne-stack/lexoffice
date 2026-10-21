@@ -11,8 +11,8 @@
 :where(.app main .content) header{height:auto;margin:0;border:0;border-radius:0;background:none;padding:0;box-shadow:none}
 
 /* ---- 1. Escala tipográfica: nada ilegível ---- */
-html body .app.app.app.app main .content :is(.page-head,.page-title,.dr-head) p{font-size:14px!important;line-height:1.5!important;color:#BDB4A6!important;text-transform:none!important;letter-spacing:0!important}
-html body .app.app.app.app main .content :is(.smart-card) p{text-transform:none!important;letter-spacing:0!important;font-size:13.5px!important;line-height:1.5!important;color:#BDB4A6!important}
+html body .app.app.app.app main .content :is(.page-head,.page-title,.dr-head) p{font-size:14px!important;line-height:1.5!important;color:var(--lx-text-muted)!important;text-transform:none!important;letter-spacing:0!important}
+html body .app.app.app.app main .content :is(.smart-card) p{text-transform:none!important;letter-spacing:0!important;font-size:13.5px!important;line-height:1.5!important;color:var(--lx-text-muted)!important}
 html body .app.app.app.app main .content :is(.smart-status,.smart-status b,.system-bar,.system-bar span,.status-dot,.crm-lane-head span,.crm-empty,.table-tools span,.ux-actions span){font-size:12px!important}
 html body .app.app.app.app main .content .crm-agent{text-transform:none!important;letter-spacing:0!important}
 html body .app.app.app.app main .content th{font-size:11.5px!important;letter-spacing:.06em!important;white-space:nowrap}
@@ -44,7 +44,7 @@ html body .app.app.app.app main .content .crm-ruler-step strong{position:static!
 /* ---- 8. Busca: um contorno só (sem caixa dentro da caixa) — o campo em
         relevo fica, a moldura externa some ---- */
 html body .app.app.app.app main .content .input-search{border:0!important;background:none!important;box-shadow:none!important;padding:0!important;gap:10px!important}
-html body .app.app.app.app main .content .input-search>svg{flex:none;color:#C99443}
+html body .app.app.app.app main .content .input-search>svg{flex:none;color:var(--lx-accent)}
 html body .app.app.app.app main .content .input-search input{flex:1;min-width:0;padding:10px 14px!important}
 
 /* ---- 9. Tabelas: linhas compactas, ações lado a lado ---- */
@@ -96,25 +96,25 @@ html body{background:radial-gradient(1200px 500px at 70% -10%,rgba(201,148,67,.0
 html body .app.app.app.app .dash-essential{max-width:880px;margin:8px auto 40px;display:grid;gap:44px}
 html body .app.app.app.app .de-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
 html body .app.app.app.app .de-head h1{font-size:30px!important;margin:0!important}
-html body .app.app.app.app .de-head p{margin:6px 0 0!important;color:#BDB4A6!important;font-size:15px!important}
-html body .app.app.app.app .de-new{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:12px;padding:11px 18px;font:inherit;font-weight:700;font-size:14px;cursor:pointer;color:#120d06;background:linear-gradient(135deg,#8A5726,#C99443 45%,#F2C56D)}
+html body .app.app.app.app .de-head p{margin:6px 0 0!important;color:var(--lx-text-muted)!important;font-size:15px!important}
+html body .app.app.app.app .de-new{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:12px;padding:11px 18px;font:inherit;font-weight:700;font-size:14px;cursor:pointer;color:#120d06;background:linear-gradient(135deg,#8A5726,var(--lx-accent) 45%,#F2C56D)}
 html body .app.app.app.app .de-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 14px;padding-bottom:10px;border-bottom:1px solid rgba(201,148,67,.18)}
-html body .app.app.app.app .de-title h2{margin:0!important;font-size:13px!important;font-weight:800!important;letter-spacing:.12em!important;text-transform:uppercase;color:#D6AA55!important}
-html body .app.app.app.app .de-title button{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-size:13.5px;font-weight:600;color:#BDB4A6}
+html body .app.app.app.app .de-title h2{margin:0!important;font-size:13px!important;font-weight:800!important;letter-spacing:.12em!important;text-transform:uppercase;color:var(--lx-accent)!important}
+html body .app.app.app.app .de-title button{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-size:13.5px;font-weight:600;color:var(--lx-text-muted)}
 html body .app.app.app.app .de-title button:hover,html body .app.app.app.app .de-title button:focus-visible{color:#F2C56D}
 html body .app.app.app.app .de-events{list-style:none;margin:0;padding:0;display:grid}
 html body .app.app.app.app .de-events li+li{border-top:1px solid rgba(201,148,67,.10)}
 html body .app.app.app.app .de-events button{all:unset;box-sizing:border-box;cursor:pointer;width:100%;display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:16px;align-items:center;padding:14px 4px;border-radius:10px}
 html body .app.app.app.app .de-events button:hover{background:rgba(201,148,67,.06)}
-html body .app.app.app.app .de-events time{display:grid;text-align:center;font-size:12.5px;color:#BDB4A6;line-height:1.3}
-html body .app.app.app.app .de-events time b{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#D6AA55}
+html body .app.app.app.app .de-events time{display:grid;text-align:center;font-size:12.5px;color:var(--lx-text-muted);line-height:1.3}
+html body .app.app.app.app .de-events time b{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--lx-accent)}
 html body .app.app.app.app .de-ev-body{min-width:0;display:grid;gap:3px}
-html body .app.app.app.app .de-ev-body b{font-size:15px;color:#F5F1E8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-html body .app.app.app.app .de-ev-body small{font-size:13px;color:#BDB4A6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html body .app.app.app.app .de-ev-body b{font-size:15px;color:var(--lx-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html body .app.app.app.app .de-ev-body small{font-size:13px;color:var(--lx-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 html body .app.app.app.app .de-hour{font-size:15px;font-weight:700;color:#F2C56D}
-html body .app.app.app.app .de-amount{display:flex;align-items:center;gap:12px;margin:4px 0 0!important;font-size:32px!important;font-weight:700;color:#F5F1E8!important;letter-spacing:-.01em}
-html body .app.app.app.app .de-amount svg{color:#C99443}
-html body .app.app.app.app .de-empty{display:flex;align-items:center;gap:8px;margin:6px 0!important;color:#BDB4A6!important;font-size:14px!important}
+html body .app.app.app.app .de-amount{display:flex;align-items:center;gap:12px;margin:4px 0 0!important;font-size:32px!important;font-weight:700;color:var(--lx-text)!important;letter-spacing:-.01em}
+html body .app.app.app.app .de-amount svg{color:var(--lx-accent)}
+html body .app.app.app.app .de-empty{display:flex;align-items:center;gap:8px;margin:6px 0!important;color:var(--lx-text-muted)!important;font-size:14px!important}
 /* Afazeres dentro da tela inicial: uma linha para anotar e a lista limpa */
 html body .app.app.app.app .afz-embedded{margin:0!important}
 html body .app.app.app.app .afz-quick{display:flex;gap:10px;margin:0 0 14px}
@@ -148,18 +148,18 @@ html body .app.app.app.app main .content :is(.card,.dr-card,.smart-card,.afz-pan
 html body .app.app.app.app .dash-essential{gap:22px}
 html body .app.app.app.app .dash-essential>section{position:relative;overflow:hidden;border-radius:20px;padding:22px 26px 22px 30px;border:1px solid var(--bd);background:linear-gradient(160deg,var(--t1),var(--t2));box-shadow:0 1px 0 rgba(255,236,190,.14) inset,0 18px 40px -14px rgba(0,0,0,.75)}
 html body .app.app.app.app .dash-essential>section::before{content:'';position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--ac)}
-html body .app.app.app.app .dash-essential>section:nth-of-type(1){--t1:#2a1f12;--t2:#17110b;--bd:rgba(242,197,109,.45);--ac:linear-gradient(#F2C56D,#C99443)}
+html body .app.app.app.app .dash-essential>section:nth-of-type(1){--t1:#2a1f12;--t2:#17110b;--bd:rgba(242,197,109,.45);--ac:linear-gradient(#F2C56D,var(--lx-accent))}
 html body .app.app.app.app .dash-essential>section:nth-of-type(2){--t1:#2b1a0e;--t2:#160f09;--bd:rgba(176,112,52,.6);--ac:linear-gradient(#D08A45,#8A5726)}
-html body .app.app.app.app .dash-essential>section:nth-of-type(3){--t1:#2e2a22;--t2:#18150f;--bd:rgba(245,241,232,.35);--ac:linear-gradient(#F5F1E8,#BDB4A6)}
+html body .app.app.app.app .dash-essential>section:nth-of-type(3){--t1:#2e2a22;--t2:#18150f;--bd:rgba(245,241,232,.35);--ac:linear-gradient(var(--lx-text),var(--lx-text-muted))}
 html body .app.app.app.app .dash-essential .de-title{border-bottom-color:rgba(255,255,255,.12)}
 html body .app.app.app.app .dash-essential .de-title h2{font-size:16px!important;color:#F2C56D!important}
 html body .app.app.app.app .dash-essential>section:nth-of-type(2) .de-title h2{color:#E0A266!important}
-html body .app.app.app.app .dash-essential>section:nth-of-type(3) .de-title h2{color:#F5F1E8!important}
-html body .app.app.app.app .dash-essential .de-title button{font-size:15px;color:#E7DFD0}
+html body .app.app.app.app .dash-essential>section:nth-of-type(3) .de-title h2{color:var(--lx-text)!important}
+html body .app.app.app.app .dash-essential .de-title button{font-size:15px;color:var(--lx-text)}
 html body .app.app.app.app .de-head h1{font-size:34px!important}
-html body .app.app.app.app .de-head p{font-size:17px!important;color:#E7DFD0!important}
+html body .app.app.app.app .de-head p{font-size:17px!important;color:var(--lx-text)!important}
 html body .app.app.app.app .de-ev-body b{font-size:17px}
-html body .app.app.app.app .de-ev-body small,html body .app.app.app.app .de-empty{font-size:15px!important;color:#E7DFD0!important}
+html body .app.app.app.app .de-ev-body small,html body .app.app.app.app .de-empty{font-size:15px!important;color:var(--lx-text)!important}
 html body .app.app.app.app :is(.de-events time b,.de-hour){font-size:16px}
 html body .app.app.app.app .de-amount{font-size:38px!important}
 
@@ -169,15 +169,15 @@ html body .app.app.app.app aside .nav-areas>small{display:none}
 html body .app.app.app.app aside .nav-areas a{font-size:16px!important;font-weight:600!important;min-height:46px!important;padding:11px 14px!important;gap:12px!important;border-radius:12px!important}
 html body .app.app.app.app main .content .area-tabs{display:flex;flex-wrap:wrap;gap:8px;max-width:1240px;margin:0 auto 26px}
 html body .app.app.app.app main .content .area-tabs a{display:inline-flex;align-items:center;min-height:44px;padding:10px 18px;border-radius:12px;font-size:16px!important;font-weight:600;color:#E2DACB!important;text-decoration:none;background:#19130D;border:1px solid rgba(214,170,85,.30)}
-html body .app.app.app.app main .content .area-tabs a:hover{border-color:#C99443}
-html body .app.app.app.app main .content .area-tabs a.active{color:#140E06!important;background:linear-gradient(135deg,#C99443,#F2C56D);border-color:transparent;font-weight:700}
+html body .app.app.app.app main .content .area-tabs a:hover{border-color:var(--lx-accent)}
+html body .app.app.app.app main .content .area-tabs a.active{color:#140E06!important;background:linear-gradient(135deg,var(--lx-accent),#F2C56D);border-color:transparent;font-weight:700}
 html body .app.app.app.app main .content .area-tabs a:focus-visible{outline:3px solid #F2C56D;outline-offset:2px}
 
 /* ---- 19. Cards em toda a aplicação: sólidos, contorno visível e faixa de cor
         lateral alternando ouro, bronze e marfim (ajuda a separar assuntos) ---- */
-html body .app.app.app.app main .content :is(.card,.smart-card,.integration-head,.investigation-kpi,.report-card,.afz-panel,.panel){border-radius:18px!important;border:1px solid rgba(214,170,85,.32)!important;box-shadow:inset 6px 0 0 #D6AA55,0 1px 0 rgba(255,236,190,.10),0 16px 34px -14px rgba(0,0,0,.75)!important;padding-left:max(26px,1.6em)!important}
+html body .app.app.app.app main .content :is(.card,.smart-card,.integration-head,.investigation-kpi,.report-card,.afz-panel,.panel){border-radius:18px!important;border:1px solid rgba(214,170,85,.32)!important;box-shadow:inset 6px 0 0 var(--lx-accent),0 1px 0 rgba(255,236,190,.10),0 16px 34px -14px rgba(0,0,0,.75)!important;padding-left:max(26px,1.6em)!important}
 html body .app.app.app.app main .content :is(.card,.smart-card,.investigation-kpi,.report-card):nth-child(3n+2){box-shadow:inset 6px 0 0 #B8733A,0 1px 0 rgba(255,236,190,.10),0 16px 34px -14px rgba(0,0,0,.75)!important;border-color:rgba(184,115,58,.45)!important}
-html body .app.app.app.app main .content :is(.card,.smart-card,.investigation-kpi,.report-card):nth-child(3n+3){box-shadow:inset 6px 0 0 #E7DFD0,0 1px 0 rgba(255,236,190,.10),0 16px 34px -14px rgba(0,0,0,.75)!important;border-color:rgba(245,241,232,.30)!important}
+html body .app.app.app.app main .content :is(.card,.smart-card,.investigation-kpi,.report-card):nth-child(3n+3){box-shadow:inset 6px 0 0 var(--lx-text),0 1px 0 rgba(255,236,190,.10),0 16px 34px -14px rgba(0,0,0,.75)!important;border-color:rgba(245,241,232,.30)!important}
 
 /* ---- 20. Tela de entrada: a foto oficial ocupa a metade esquerda (sem
         logos repetidas) e o formulário fica do lado, centralizado ---- */

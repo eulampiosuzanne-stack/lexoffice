@@ -55,7 +55,7 @@ html[data-lex-theme="light"],html[data-lex-theme="light"] body,html[data-lex-the
 html[data-lex-theme="light"] body .app.app{background:#eef3fc!important;color:#17263c!important}
 html[data-lex-theme="light"] body .app.app main{background:#eef3fc!important;color:#17263c!important}
 html[data-lex-theme="light"] body .app.app main>.content{background:#eef3fc!important;color:#17263c!important}
-html[data-lex-theme="light"] body .app.app>aside{background:#172b4d!important;color:#fff!important}
+html[data-lex-theme="light"] body .app.app>aside{background:var(--lx-text)!important;color:#fff!important}
 html[data-lex-theme="light"] body .app.app>main>header{background:#fff!important;color:#17263c!important;border-bottom:1px solid #d4deeb!important}
 html[data-lex-theme="light"] body .app.app>main>header .topbar-context,
 html[data-lex-theme="light"] body .app.app>main>header .topbar-context strong,

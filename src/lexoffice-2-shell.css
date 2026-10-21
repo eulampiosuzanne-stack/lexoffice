@@ -1,14 +1,14 @@
 /* LexOffice 2.0: dashboard and authenticated shell only.
    Semantic design tokens, scoped overrides; no changes to business logic. */
 html[data-lex-theme="light"] {
-  --lex2-page:#eef3fa; --lex2-card:#ffffff; --lex2-ink:#172b4d;
-  --lex2-muted:#63748e; --lex2-line:#e1e8f2; --lex2-action:#205de0;
-  --lex2-soft:#f4f7fc; --lex2-shadow:0 10px 32px rgba(21,46,86,.055);
+  --lex2-page:var(--lx-canvas); --lex2-card:#ffffff; --lex2-ink:var(--lx-text);
+  --lex2-muted:#63748e; --lex2-line:var(--lx-border); --lex2-action:var(--lx-primary);
+  --lex2-soft:var(--lx-surface-raised); --lex2-shadow:0 10px 32px rgba(21,46,86,.055);
 }
 html[data-lex-theme="dark"], html:not([data-lex-theme]) {
-  --lex2-page:#071422; --lex2-card:#102237; --lex2-ink:#e8eef8;
-  --lex2-muted:#a9b9cb; --lex2-line:#263a50; --lex2-action:#8bb8ff;
-  --lex2-soft:#162a40; --lex2-shadow:0 10px 32px rgba(0,0,0,.17);
+  --lex2-page:var(--lx-canvas); --lex2-card:var(--lx-surface); --lex2-ink:var(--lx-text);
+  --lex2-muted:var(--lx-text-muted); --lex2-line:var(--lx-border); --lex2-action:var(--lx-primary);
+  --lex2-soft:var(--lx-surface-raised); --lex2-shadow:0 10px 32px rgba(0,0,0,.17);
 }
 @media(min-width:1101px) {
   html body .app>aside {width:252px!important;min-width:252px!important;max-width:252px!important;background:#071e37!important;border-right:1px solid #23405a!important}
