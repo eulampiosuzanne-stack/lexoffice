@@ -1,0 +1,8 @@
+/* Reusable LexOffice controls. Opt-in classes, no global element selectors. */
+.lx-panel{background:var(--lx-surface);border:1px solid var(--lx-border);border-radius:var(--lx-radius-md);color:var(--lx-text)}
+.lx-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:8px 12px;border:1px solid var(--lx-border);border-radius:var(--lx-radius-sm);background:var(--lx-surface-raised);color:var(--lx-text);font:inherit;cursor:pointer}
+.lx-button:hover{border-color:var(--lx-primary)}
+.lx-button--primary{background:var(--lx-primary);border-color:var(--lx-primary);color:var(--lx-primary-contrast)}
+.lx-field{width:100%;min-width:0;border:1px solid var(--lx-border);border-radius:var(--lx-radius-sm);background:var(--lx-surface-raised);color:var(--lx-text);font:inherit}
+.lx-button:focus-visible,.lx-field:focus-visible{outline:2px solid var(--lx-focus);outline-offset:2px}
+.lx-button:disabled{opacity:.55;cursor:not-allowed}
