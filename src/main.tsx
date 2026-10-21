@@ -19,8 +19,6 @@ import "./styles.css";
 import "./legacy-auth.css";
 import "./interaction-feedback.css";
 import "./office-brand.css";
-import "./module-fixes.css";
-import "./screen-fixes.css";
 import "./pages/whatsapp-conversations.css";
 import "./pages/agent-advanced.css";
 import "./pages/investigation.css";
@@ -32,14 +30,12 @@ import "./pages/dashboard-premium.css";
 import "./pages/signatures.css";
 import "./pages/process-movements-premium.css";
 import "./client-intake.css";
-import "./table-interaction-fix.css";
 /* Single design-system authority: tokens, typography and color for every module. */
 /* Mobile-only shell. All rules are scoped to small screens, preserving desktop. */
 import "./mobile-shell.css";
 /* Final shell geometry override: must be loaded last to beat legacy width rules. */
 import "./shell-layout-fix.css";
 /* Atendimento desktop: block horizontal scrollLeft drift while preserving mobile behavior. */
-import "./service-scroll-guard.css";
 /* Camada visual preto e dourado luxo (identidade SF). Deve ser a última. */
 /* Uniformização final: uma fonte só (a do menu), campos 3D com contorno ouro. Carregar por último. */
 /* Polimento de leitura e espaçamento + véu sobre o fundo (08/10/2026). Carregar por último. */
