@@ -12,7 +12,8 @@
     "test:client-calendar": "node scripts/test-client-calendar.mjs",
     "test:release-features": "node scripts/test-release-features.mjs",
     "test:ux-navigation": "node scripts/test-ux-navigation.mjs",
-    "test": "npm run test:whatsapp-format && npm run test:client-calendar && npm run test:release-features && npm run test:ux-navigation && npm run verify"
+    "test": "npm run test:whatsapp-format && npm run test:client-calendar && npm run test:release-features && npm run test:ux-navigation && npm run verify && npm run test:design-system",
+    "test:design-system": "node scripts/test-design-system.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
