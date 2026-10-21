@@ -31,7 +31,6 @@ import "./pages/settings-enhanced.css";
 import "./pages/dashboard-premium.css";
 import "./pages/signatures.css";
 import "./pages/process-movements-premium.css";
-import "./ux-maturity.css";
 import "./client-intake.css";
 import "./table-interaction-fix.css";
 /* Single design-system authority: tokens, typography and color for every module. */
@@ -46,9 +45,7 @@ import "./service-scroll-guard.css";
 /* Polimento de leitura e espaçamento + véu sobre o fundo (08/10/2026). Carregar por último. */
 /* Tema global compartilhado, carregado por último em todas as telas internas. */
 /* Camada final de UX: navegação, hierarquia, acessibilidade e responsividade. */
-import "./ux-senior-modernization.css";
 /* Alternancia claro/escuro, depois de todas as camadas legadas. */
-import "./lexoffice-2-shell.css";
 /* Design system loaded after legacy CSS while modules migrate. */
 import "./design-system/tokens.css";
 import "./design-system/components.css";
