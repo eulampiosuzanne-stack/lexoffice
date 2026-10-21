@@ -138,7 +138,7 @@
   .mobile-bottom-nav svg{width:20px!important;height:20px!important;flex:0 0 auto!important}
   .mobile-bottom-nav a.active{
     background:var(--lx-accent-soft)!important;
-    color:#D6AA55!important;
+    color:var(--lx-accent)!important;
   }
   .mobile-bottom-nav button:active,.mobile-bottom-nav a:active{transform:scale(.96)}
 

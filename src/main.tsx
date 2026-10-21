@@ -31,11 +31,9 @@ import "./pages/settings-enhanced.css";
 import "./pages/dashboard-premium.css";
 import "./pages/signatures.css";
 import "./pages/process-movements-premium.css";
-import "./ux-maturity.css";
 import "./client-intake.css";
 import "./table-interaction-fix.css";
 /* Single design-system authority: tokens, typography and color for every module. */
-import "./lexoffice-final-system.css";
 /* Mobile-only shell. All rules are scoped to small screens, preserving desktop. */
 import "./mobile-shell.css";
 /* Final shell geometry override: must be loaded last to beat legacy width rules. */
@@ -43,18 +41,11 @@ import "./shell-layout-fix.css";
 /* Atendimento desktop: block horizontal scrollLeft drift while preserving mobile behavior. */
 import "./service-scroll-guard.css";
 /* Camada visual preto e dourado luxo (identidade SF). Deve ser a última. */
-import "./lexoffice-luxe.css";
 /* Uniformização final: uma fonte só (a do menu), campos 3D com contorno ouro. Carregar por último. */
-import "./lexoffice-uniform.css";
 /* Polimento de leitura e espaçamento + véu sobre o fundo (08/10/2026). Carregar por último. */
-import "./lexoffice-polish.css";
 /* Tema global compartilhado, carregado por último em todas as telas internas. */
-import "./lexoffice-neon-premium.css";
 /* Camada final de UX: navegação, hierarquia, acessibilidade e responsividade. */
-import "./ux-senior-modernization.css";
 /* Alternancia claro/escuro, depois de todas as camadas legadas. */
-import "./lexoffice-light-theme.css";
-import "./lexoffice-2-shell.css";
 /* Design system loaded after legacy CSS while modules migrate. */
 import "./design-system/tokens.css";
 import "./design-system/components.css";

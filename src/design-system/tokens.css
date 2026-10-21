@@ -1,16 +1,79 @@
-/* LexOffice design-system v1: single semantic source of truth.
-   Scoped to internal application surfaces; public portals remain unchanged. */
-html[data-lex-theme="light"]{
-  --lx-canvas:#f1f5fa;--lx-surface:#ffffff;--lx-surface-raised:#f7f9fd;
-  --lx-text:#182d47;--lx-text-muted:#62758e;--lx-border:#dce5ef;
-  --lx-primary:#245bb6;--lx-primary-contrast:#ffffff;--lx-accent:#b48b4b;
-  --lx-focus:#2874d8;--lx-danger:#bf4260;--lx-shadow:0 8px 28px rgba(23,43,68,.09);
-  --lx-radius-sm:8px;--lx-radius-md:12px;--lx-radius-lg:16px;
+/* LexOffice semantic tokens: one theme contract for all authenticated modules.
+   Public routes are not restyled by this file. */
+html[data-lex-theme="light"] {
+  color-scheme: light;
+  --lx-canvas: #f1f5fa;
+  --lx-surface: #ffffff;
+  --lx-surface-raised: #f7f9fd;
+  --lx-surface-hover: #edf3fb;
+  --lx-surface-selected: #e5eefc;
+  --lx-text: #182d47;
+  --lx-text-muted: #62758e;
+  --lx-border: #dce5ef;
+  --lx-border-strong: #b9cadc;
+  --lx-primary: #245bb6;
+  --lx-primary-hover: #19488f;
+  --lx-primary-contrast: #ffffff;
+  --lx-accent: #b48b4b;
+  --lx-accent-soft: #f5ecdd;
+  --lx-focus: #2874d8;
+  --lx-success: #217c60;
+  --lx-warning: #9d641e;
+  --lx-danger: #bf4260;
+  --lx-shadow: 0 8px 28px rgba(23,43,68,.09);
+  --lx-overlay: rgba(11,25,43,.55);
 }
-html[data-lex-theme="dark"],html:not([data-lex-theme]){
-  --lx-canvas:#081725;--lx-surface:#102338;--lx-surface-raised:#162d45;
-  --lx-text:#edf4fd;--lx-text-muted:#a5b8ce;--lx-border:#2a425a;
-  --lx-primary:#79b0ff;--lx-primary-contrast:#081725;--lx-accent:#d5b36a;
-  --lx-focus:#94c3ff;--lx-danger:#f28aa3;--lx-shadow:0 8px 28px rgba(0,0,0,.18);
-  --lx-radius-sm:8px;--lx-radius-md:12px;--lx-radius-lg:16px;
+html[data-lex-theme="dark"], html:not([data-lex-theme]) {
+  color-scheme: dark;
+  --lx-canvas: #081725;
+  --lx-surface: #102338;
+  --lx-surface-raised: #162d45;
+  --lx-surface-hover: #203b56;
+  --lx-surface-selected: #244568;
+  --lx-text: #edf4fd;
+  --lx-text-muted: #a5b8ce;
+  --lx-border: #2a425a;
+  --lx-border-strong: #46627e;
+  --lx-primary: #79b0ff;
+  --lx-primary-hover: #a4c9ff;
+  --lx-primary-contrast: #081725;
+  --lx-accent: #d5b36a;
+  --lx-accent-soft: #342e23;
+  --lx-focus: #94c3ff;
+  --lx-success: #75d7b3;
+  --lx-warning: #f0c47a;
+  --lx-danger: #f28aa3;
+  --lx-shadow: 0 8px 28px rgba(0,0,0,.18);
+  --lx-overlay: rgba(0,0,0,.72);
+}
+:root {
+  --lx-font: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --lx-font-xs: .75rem;
+  --lx-font-sm: .8125rem;
+  --lx-font-md: .875rem;
+  --lx-font-lg: 1rem;
+  --lx-font-xl: 1.375rem;
+  --lx-radius-sm: 8px;
+  --lx-radius-md: 12px;
+  --lx-radius-lg: 16px;
+  --lx-space-1: 4px;
+  --lx-space-2: 8px;
+  --lx-space-3: 12px;
+  --lx-space-4: 16px;
+  --lx-space-5: 20px;
+  --lx-space-6: 24px;
+  --lx-space-8: 32px;
+  --lx-transition: 160ms ease;
+}
+/* Backwards-compatible aliases allow one theme switch to reach all modules
+   while individual component migrations remove legacy CSS dependencies. */
+html {
+  --lex2-page: var(--lx-canvas);
+  --lex2-card: var(--lx-surface);
+  --lex2-ink: var(--lx-text);
+  --lex2-muted: var(--lx-text-muted);
+  --lex2-line: var(--lx-border);
+  --lex2-action: var(--lx-primary);
+  --lex2-soft: var(--lx-surface-raised);
+  --lex2-shadow: var(--lx-shadow);
 }

@@ -47,7 +47,7 @@
 .app input:focus-visible,
 .app select:focus-visible,
 .app textarea:focus-visible {
-  outline: 2px solid #C99443!important;
+  outline: 2px solid var(--lx-accent)!important;
   outline-offset: 2px!important;
 }
 
@@ -66,8 +66,8 @@
 .app .agent-item:hover,
 .app .agent-item.selected,
 .app [role="button"][aria-pressed="true"] {
-  border-color: #C99443!important;
-  background: #17110C!important;
+  border-color: var(--lx-accent)!important;
+  background: var(--lx-surface)!important;
 }
 
 .app .doc-template-card.selected,
@@ -88,7 +88,7 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: #C99443;
+  background: var(--lx-accent);
   color: #fff;
   font-size: 11px;
   font-weight: 800;
@@ -108,7 +108,7 @@
 
 .app tbody tr[data-clickable="true"]:hover,
 .app .signature-row[data-clickable="true"]:hover {
-  background: #17110C!important;
+  background: var(--lx-surface)!important;
 }
 
 @media (prefers-reduced-motion: reduce) {
