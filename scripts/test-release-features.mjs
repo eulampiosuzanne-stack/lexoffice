@@ -5,7 +5,7 @@ const portal = read("src/pages/ClientPortal.tsx");
 const fees = read("src/pages/PerfilCliente.tsx");
 const review = read("src/pages/RevisaoPeca.tsx");
 const app = read("src/App.tsx");
-const css = read("src/lexoffice-neon-premium.css");
+const css = read("src/design-system/tokens.css");
 const checks = [
   ["onboarding iniciado somente pelo escritório", onboarding.includes("Iniciar onboarding")],
   ["cliente confirma ciência", portal.includes("Li e estou ciente")],
@@ -24,7 +24,7 @@ const checks = [
       .includes("nenhuma fonte, jurisprudência, fato ou nota foi inventada"),
   ],
   ["rota Revisão da Peça", app.includes('path="/revisao-peca"')],
-  ["tema global com tokens", css.includes("--lx-bg: #05050a") && css.includes("--lx-gold: #d4af37")],
+  ["tema global com tokens", css.includes("--lx-canvas:") && css.includes("--lx-accent:") && css.includes('html[data-lex-theme="light"]') && css.includes('html[data-lex-theme="dark"]')],
 ];
 let failed = 0;
 for (const [name, ok] of checks) { console.log(`${ok ? "PASS" : "FAIL"} ${name}`); if (!ok) failed++; }
