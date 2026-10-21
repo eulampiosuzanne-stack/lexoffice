@@ -1,0 +1,16 @@
+/* LexOffice design-system v1: single semantic source of truth.
+   Scoped to internal application surfaces; public portals remain unchanged. */
+html[data-lex-theme="light"]{
+  --lx-canvas:#f1f5fa;--lx-surface:#ffffff;--lx-surface-raised:#f7f9fd;
+  --lx-text:#182d47;--lx-text-muted:#62758e;--lx-border:#dce5ef;
+  --lx-primary:#245bb6;--lx-primary-contrast:#ffffff;--lx-accent:#b48b4b;
+  --lx-focus:#2874d8;--lx-danger:#bf4260;--lx-shadow:0 8px 28px rgba(23,43,68,.09);
+  --lx-radius-sm:8px;--lx-radius-md:12px;--lx-radius-lg:16px;
+}
+html[data-lex-theme="dark"],html:not([data-lex-theme]){
+  --lx-canvas:#081725;--lx-surface:#102338;--lx-surface-raised:#162d45;
+  --lx-text:#edf4fd;--lx-text-muted:#a5b8ce;--lx-border:#2a425a;
+  --lx-primary:#79b0ff;--lx-primary-contrast:#081725;--lx-accent:#d5b36a;
+  --lx-focus:#94c3ff;--lx-danger:#f28aa3;--lx-shadow:0 8px 28px rgba(0,0,0,.18);
+  --lx-radius-sm:8px;--lx-radius-md:12px;--lx-radius-lg:16px;
+}
