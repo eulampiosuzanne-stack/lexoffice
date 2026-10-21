@@ -1,5 +1,4 @@
 /* Bulk send dialog: scoped to the Inbox; uses shared semantic tokens. */
-.service-chat-page 
 .service-chat-page .bulk-backdrop{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.68);display:grid;place-items:center;padding:20px}
 .service-chat-page .bulk-modal{width:min(760px,96vw);max-height:88vh;overflow:auto;background:var(--lx-surface);border:1px solid var(--lx-border);border-radius:16px;padding:18px;box-shadow:0 25px 80px rgba(0,0,0,.55)}
 .service-chat-page .bulk-head{display:flex;justify-content:space-between;gap:12px;align-items:start}
@@ -21,7 +20,7 @@
 .service-chat-page .bulk-compose textarea{width:100%;min-height:110px;resize:vertical;box-sizing:border-box;border:1px solid var(--lx-border);background:var(--lx-surface-raised);color:var(--lx-text);border-radius:12px;padding:12px;font:inherit}
 .service-chat-page .bulk-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
 .service-chat-page .bulk-footer span{color:var(--lx-text-muted);font-size:12px}
-.service-chat-page .bulk-send{border:1px solid var(--lx-primary);background:var(--lx-primary);color:var(--lx-text);border-radius:10px;padding:10px 14px;font-weight:800;display:flex;align-items:center;gap:7px;cursor:pointer}
+.service-chat-page .bulk-send{border:1px solid var(--lx-primary);background:var(--lx-primary);color:var(--lx-primary-contrast);border-radius:10px;padding:10px 14px;font-weight:800;display:flex;align-items:center;gap:7px;cursor:pointer}
 .service-chat-page .bulk-send:disabled{opacity:.5;cursor:not-allowed}
 
 @media(max-width:760px){.service-chat-page .bulk-backdrop{padding:8px}.service-chat-page .bulk-modal{max-height:94vh}}
