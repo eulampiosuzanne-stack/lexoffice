@@ -3,3 +3,4 @@
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms;transition-duration:.01ms;scroll-behavior:auto}}@media(max-width:760px){.vision-dock{bottom:80px;right:8px}.vision-dock span{display:none}h1{font-size:26px}}
 
 .homologation-notice{position:relative;padding:8px 16px;background:var(--lx-surface-raised);color:var(--lx-text-muted);border-bottom:1px solid var(--lx-border);font:12px/1.5 var(--lx-font);text-align:center}
+

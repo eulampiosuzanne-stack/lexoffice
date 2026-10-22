@@ -1,0 +1,21 @@
+/* Opt-in visual accessibility, shared by public and authenticated routes. */
+html[data-lex-vision="enhanced"] #root :is(button, input:not([type=hidden]), select, textarea, [role=button]) {
+  border: 2px solid var(--lx-border);
+  box-shadow: var(--lx-control-shadow);
+  font-size: max(1rem, 16px);
+}
+html[data-lex-vision="enhanced"] #root :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]), select, textarea) {
+  min-height: var(--lx-control-height);
+  background: var(--lx-surface-raised);
+  color: var(--lx-text);
+}
+html[data-lex-vision="enhanced"] #root :is(input,textarea)::placeholder {color:var(--lx-text-muted);opacity:1}
+html[data-lex-vision="enhanced"] #root :is(button,a,input,select,textarea,summary,[tabindex]):focus-visible {outline:3px solid var(--lx-focus);outline-offset:3px}
+html[data-lex-vision="enhanced"] #root :is(.panel,.lx-panel,.integration-panel,.workspace-panel,.workspace-hub-card,dialog,.modal-content,.app-inbox-reader,.app-inbox-sidebar) {border-color:var(--lx-border);box-shadow:var(--lx-shadow)}
+html[data-lex-vision="enhanced"] #root :is(p,label,td,th,small) {font-size:max(1em, .9375rem);line-height:1.6}
+html[data-lex-vision="enhanced"] #root :is(input[type=checkbox],input[type=radio]) {min-width:20px;min-height:20px}
+html[data-lex-vision="enhanced"] #root :is(button:disabled,input:disabled,select:disabled,textarea:disabled) {opacity:.8;cursor:not-allowed}
+.vision-dock .vision-visibility {display:inline-flex;align-items:center;gap:8px;white-space:normal}
+.vision-dock .vision-visibility[aria-pressed=true] {background:var(--lx-surface-selected);color:var(--lx-text);border:2px solid var(--lx-border-strong)}
+@media(max-width:760px) {.vision-dock{max-width:calc(100vw - 16px);flex-wrap:wrap}.vision-dock .vision-visibility{font-size:14px;min-height:44px}.vision-dock .vision-theme{font-size:14px}}
+@media(forced-colors:active) {html[data-lex-vision="enhanced"] #root :is(button,input,select,textarea,[role=button]){box-shadow:none;border:2px solid ButtonText}}
