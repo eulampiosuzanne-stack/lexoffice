@@ -12,7 +12,7 @@
     "test:client-calendar": "node scripts/test-client-calendar.mjs",
     "test:release-features": "node scripts/test-release-features.mjs",
     "test:ux-navigation": "node scripts/test-ux-navigation.mjs",
-    "test": "npm run test:whatsapp-format && npm run test:client-calendar && npm run test:release-features && npm run test:ux-navigation && npm run verify && npm run test:design-system && npm run test:visual-contract && npm run test:workspaces && npm run test:internal-navigation && npm run test:configuration && npm run test:collections && npm run test:management && npm run test:reports && npm run test:client-app && npm run test:client-import && npm run test:process-workspace && npm run test:monitoring && npm run test:agenda-workspace && npm run test:production-export",
+    "test": "npm run test:whatsapp-format && npm run test:client-calendar && npm run test:release-features && npm run test:ux-navigation && npm run verify && npm run test:design-system && npm run test:visual-contract && npm run test:workspaces && npm run test:internal-navigation && npm run test:configuration && npm run test:collections && npm run test:management && npm run test:reports && npm run test:client-app && npm run test:client-import && npm run test:process-workspace && npm run test:monitoring && npm run test:agenda-workspace && npm run test:production-export && npm run test:visual-preferences",
     "test:design-system": "node scripts/test-design-system.mjs",
     "test:visual-contract": "node scripts/test-visual-contract.mjs",
     "test:workspaces": "node scripts/test-workspace-navigation.mjs",
@@ -27,7 +27,8 @@
     "test:process-workspace": "node scripts/test-process-workspace.mjs",
     "test:monitoring": "node scripts/test-monitoring-workspace.mjs",
     "test:agenda-workspace": "node scripts/test-agenda-workspace.mjs",
-    "test:production-export": "node scripts/test-production-export.mjs"
+    "test:production-export": "node scripts/test-production-export.mjs",
+    "test:visual-preferences": "node scripts/test-visual-preferences.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

@@ -14,6 +14,7 @@ import ClientMessageActionBridge from "./components/ClientMessageActionBridge";
 import BulkClientMessageBridge from "./components/BulkClientMessageBridge";
 import OfficeBrandBridge from "./OfficeBrandBridge";
 import ThemeController from "./ThemeController";
+import { applyVisibility, readVisibility } from "./lib/visualPreferences";
 import "./pwa-install";
 import "./design-system/tokens.css";
 import "./design-system/foundations.css";
@@ -37,6 +38,8 @@ import "./design-system/shell.css";
 import "./mobile-shell.css";
 import "./design-system/workspaces.css";
 import "./design-system/navigation.css";
+import "./design-system/accessibility.css";
+applyVisibility(readVisibility());
 // Apply saved preference before React renders to prevent dark-theme flash.
 try {
     const theme = localStorage.getItem("lexoffice-theme") === "light" ? "light" : "dark";

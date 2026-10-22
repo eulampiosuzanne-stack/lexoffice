@@ -79,3 +79,25 @@ html {
   --lex2-soft: var(--lx-surface-raised);
   --lex2-shadow: var(--lx-shadow);
 }
+
+/* Optional low-vision palette: boundary contrast complements elevation. */
+html[data-lex-vision="enhanced"] {
+  --lx-border: #8fa9c6;
+  --lx-border-strong: #bad2ed;
+  --lx-text-muted: #c7d6e8;
+  --lx-focus: #b7d6ff;
+  --lx-shadow: 0 0 0 1px var(--lx-border), 0 6px 16px rgba(0,0,0,.42);
+  --lx-control-shadow: 0 2px 5px rgba(0,0,0,.4);
+  --lx-font-xs: .875rem;
+  --lx-font-sm: .9375rem;
+  --lx-font-md: 1rem;
+  --lx-control-height: 48px;
+}
+html[data-lex-vision="enhanced"][data-lex-theme~="light"] {
+  --lx-border: #61738b;
+  --lx-border-strong: #465b75;
+  --lx-text-muted: #3e526d;
+  --lx-focus: #164ca8;
+  --lx-shadow: 0 0 0 1px var(--lx-border), 0 6px 16px rgba(23,43,68,.2);
+  --lx-control-shadow: 0 2px 5px rgba(23,43,68,.2);
+}
