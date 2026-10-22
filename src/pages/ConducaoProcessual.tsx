@@ -1,3 +1,4 @@
+import InternalNavigation from '../components/InternalNavigation';
 import { useEffect, useMemo, useState } from "react";
 import {
   Compass,
@@ -324,6 +325,7 @@ async function fnError(error: any) {
 }
 
 export default function ConducaoProcessual() {
+ const [strategySection,setStrategySection]=useState('providencias');
   const [procs, setProcs] = useState<Proc[]>([]);
   const [filter, setFilter] = useState("");
   const [procId, setProcId] = useState(
@@ -842,9 +844,10 @@ export default function ConducaoProcessual() {
         </div>
       )}
 
+      {proc&&<InternalNavigation variant="underline" aria-label="Área do processo">{[['providencias','Fase e providências'],['estrategia','Estratégia e juízo'],['minutas','Minutas']].map(([key,label])=><button key={key} type="button" aria-current={strategySection===key?'page':undefined} onClick={()=>setStrategySection(key)}>{label}</button>)}</InternalNavigation>}
       {proc && busy !== "load" && (
         <>
-          <section className="doc-library-card">
+          {strategySection==='providencias' && <><section className="doc-library-card">
             <div className="doc-section-title">
               <span className="doc-section-icon">
                 <Compass size={20} />
@@ -907,9 +910,9 @@ export default function ConducaoProcessual() {
                 {ai.proximo_passo_provavel}
               </div>
             )}
-          </section>
+          </section></>}
 
-          <section className="doc-library-card">
+          {strategySection==='estrategia' && <><section className="doc-library-card">
             <div className="doc-section-title">
               <span className="doc-section-icon">
                 <Scale size={20} />
@@ -1153,9 +1156,9 @@ export default function ConducaoProcessual() {
                 resultado.
               </b>
             </p>
-          </section>
+          </section></>}
 
-          <section className="doc-library-card">
+          {strategySection==='providencias' && <><section className="doc-library-card">
             <div className="doc-section-title">
               <span className="doc-section-icon">
                 <CalendarClock size={20} />
@@ -1225,9 +1228,9 @@ export default function ConducaoProcessual() {
                 <Plus size={16} /> Adicionar prazo
               </button>
             </div>
-          </section>
+          </section></>}
 
-          <section className="doc-library-card">
+          {strategySection==='providencias' && <><section className="doc-library-card">
             <div className="doc-section-title">
               <span className="doc-section-icon">
                 <ListChecks size={20} />
@@ -1298,9 +1301,9 @@ export default function ConducaoProcessual() {
                 placeholder="Ex.: juiz costuma indeferir perícia; reforçar prova documental."
               />
             </label>
-          </section>
+          </section></>}
 
-          <section className="doc-library-card">
+          {strategySection==='minutas' && <><section className="doc-library-card">
             <div className="doc-section-title">
               <span className="doc-section-icon">
                 <FileSignature size={20} />
@@ -1444,7 +1447,7 @@ export default function ConducaoProcessual() {
                 </ul>
               </div>
             )}
-          </section>
+          </section></>}
         </>
       )}
 

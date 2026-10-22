@@ -1,3 +1,7 @@
+import InternalNavigation, {SectionWorkspace} from '../components/InternalNavigation';
+import {useConfirmNavigation} from '../lib/useConfirmNavigation';
+import {Link,useNavigate,useParams} from 'react-router-dom';
+import RelatedRecords from '../components/RelatedRecords';
 import { useEffect, useMemo, useState } from "react";
 import {
   Search,
@@ -118,6 +122,9 @@ function validCpf(value: any) {
   return d2 === Number(cpf[10]);
 }
 export default function Clients() {
+ const {clientId}=useParams<{clientId:string}>();const navigate=useNavigate();
+ const [clientSection,setClientSection]=useState('resumo');
+ useEffect(()=>{let alive=true;if(!clientId){setSelected(null);setEditing(false);return;}if(clientId==='novo'){create();return;}setSelected(null);setEditing(false);(async()=>{const {data,error}=await supabase.from('clients').select('*').eq('id',clientId).maybeSingle();if(!alive)return;if(data)open(data as Client);else setError(error?.message||'Cliente não encontrado.');})();return()=>{alive=false}},[clientId]);
   const [rows, setRows] = useState<Client[]>([]),
     [q, setQ] = useState(() => new URLSearchParams(window.location.search).get("buscar") || ""),
     [page, setPage] = useState(0),
@@ -223,6 +230,8 @@ export default function Clients() {
     setAppAccess(data || null);
   }
   function open(c: Client) {
+    if(clientId!==c.id){navigate(`/clientes/${c.id}`);return;}
+    setClientSection(new URLSearchParams(window.location.search).get('secao')==='acesso'?'acesso':'resumo');
     const v = { ...c, address: c.address || {} };
     setSelected(c);
     setForm(v);
@@ -239,6 +248,7 @@ export default function Clients() {
     void loadAppAccess(c.id);
   }
   function create() {
+    if(clientId!=="novo"){navigate("/clientes/novo");return;}
     const v = { ...empty, address: {} };
     setSelected(null);
     setForm(v);
@@ -255,11 +265,13 @@ export default function Clients() {
     setNotice("");
   }
   const dirty = editing && JSON.stringify(form) !== JSON.stringify(initialForm);
+  useConfirmNavigation(dirty);
   function closeModal(force = false) {
     if (!force && dirty && !confirmDiscard()) return;
     setSelected(null);
     setEditing(false);
     setNotice("");
+    if(clientId)navigate("/clientes");
   }
   function cancelEdit() {
     if (dirty && !confirmDiscard()) return;
@@ -552,6 +564,31 @@ export default function Clients() {
     await loadAppAccess(selected.id);
     setNotice("Acesso ao App revogado.");
   }
+function appInviteText(a: any = appAccess) {
+    if (!a) return "";
+    return `*Suzanne Figueiredo Advocacia e Soluções Jurídicas*\n\nSeu acesso ao aplicativo do escritório foi liberado.\n\n📲 *Aplicativo LexOffice*\nAcesse pelo link oficial do escritório:\nhttps://lexoffice.univittagroup.com.br/cliente\n\n*Login:* ${a.login_cpf}\n*Código de acesso:* ${a.access_code}\n\n📖 *Como instalar e acessar*\n1. Toque no link oficial acima.\n2. A Área do Cliente abrirá diretamente, sem acessar páginas técnicas do Expo.\n3. No campo de login, informe o CPF acima.\n4. No campo de código de acesso, informe o código acima exatamente como recebido.\n5. Toque em *Entrar*.\n6. Para deixar o LexOffice na tela do celular, use a opção *Adicionar à Tela de Início* do navegador.\n\nO mesmo link pode ser usado no Android e no iPhone.\n\nPor segurança, este código é individual e não deve ser compartilhado.`;
+  }
+async function copyAppInvite() {
+    if (!appAccess) return;
+    await navigator.clipboard.writeText(appInviteText());
+    setNotice("Convite completo copiado.");
+  }
+function sendAppInvite() {
+    if (!appAccess || !selected) return;
+    const phone = (selected.whatsapp || selected.phone || "").replace(
+      /\D/g,
+      "",
+    );
+    if (!phone)
+      return setNotice("Cadastre o WhatsApp do cliente antes de enviar.");
+    const number = phone.startsWith("55") ? phone : `55${phone}`;
+    window.open(
+      `https://wa.me/${number}?text=${encodeURIComponent(appInviteText())}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+    setNotice("Convite aberto no WhatsApp para envio.");
+  }
   async function copyAppAccess() {
     if (!appAccess) return;
     await navigator.clipboard.writeText(
@@ -623,6 +660,7 @@ export default function Clients() {
       if (r.error) throw r.error;
       await load(page, q);
       setSelected(r.data);
+      if(clientId==="novo")navigate(`/clientes/${r.data.id}`,{replace:true});
       const v = { ...r.data, address: r.data.address || {} };
       setForm(v);
       setInitialForm(structuredClone(v));
@@ -990,7 +1028,8 @@ export default function Clients() {
   const a = form.address || {};
   return (
     <div className="module">
-      <div className="page-head">
+      {clientId && <div className="workspace-record-back"><Link to="/clientes">← Voltar aos clientes</Link>{!selected&&!editing&&!error&&<p role="status">Carregando ficha…</p>}</div>}
+      {!clientId && <><div className="page-head">
         <div>
           <h1>Clientes</h1>
           <p>
@@ -1006,12 +1045,12 @@ export default function Clients() {
             <Plus size={15} /> Novo cliente
           </button>
         </div>
-      </div>
-      <MissingWhatsAppPanel
+      </div></>}
+      {!clientId && <><MissingWhatsAppPanel
         onSaved={() => {
           void load();
         }}
-      />
+      /></>}
       {error && (
         <div className="alert error" role="alert">
           {error}
@@ -1023,7 +1062,7 @@ export default function Clients() {
           {notice}
         </div>
       )}
-      <div className="table-panel">
+      {!clientId && <><div className="table-panel">
         <div className="table-tools ux-toolbar">
           <div className="input-search">
             <Search size={15} />
@@ -1184,24 +1223,23 @@ export default function Clients() {
             </table>
           </div>
         )}
-      </div>
+      </div></>}
       {(selected || editing) && (
         <div
-          className="modal-overlay"
+          className="workspace-record-page"
           onClick={(e) => {
-            if (e.target === e.currentTarget) closeModal();
+            /* Record details have their own URL; use the back action to leave. */
           }}
         >
           <div
-            className="modal-card"
-            style={{ maxWidth: 1100, maxHeight: "92vh", overflowY: "auto" }}
+            className="lx-panel workspace-panel workspace-record-detail"
           >
             <div className="modal-head">
               <div>
-                <h2>
+                <h1>
                   <UserRound size={20} />{" "}
                   {selected ? selected.name : "Novo cliente"}
-                </h2>
+                </h1>
                 <p>
                   {selected
                     ? "Ficha completa do cliente."
@@ -1219,37 +1257,13 @@ export default function Clients() {
               >
                 <X size={20} />
               </button>
-            </div>
-            {selected && !editing && (
-              <div
-                style={{
-                  display: "flex",
-                  gap: 10,
-                  padding: "0 0 18px",
-                  borderBottom: "1px solid rgba(128,128,128,.25)",
-                  marginBottom: 20,
-                  flexWrap: "wrap",
-                }}
-              >
-                <button
-                  className={tab === "dados" ? "primary" : "secondary"}
-                  onClick={() => setTab("dados")}
-                >
-                  <UserRound size={15} /> Dados do cliente
-                </button>
-                <button
-                  className={tab === "documentos" ? "primary" : "secondary"}
-                  onClick={() => setTab("documentos")}
-                >
-                  <FileText size={15} /> Documentos personalizados{" "}
-                  <span style={{ marginLeft: 5 }}>({clientDocs.length})</span>
-                </button>
-                <button
+            </div><SectionWorkspace navigation={selected && !editing ? <InternalNavigation variant="sections" aria-label="Seções do cliente">{[['resumo','Resumo'],['atendimento','Atendimento'],['processos','Processos'],['documentos','Documentos'],['financeiro','Financeiro'],['acesso','Acesso ao aplicativo']].map(([key,label])=><button key={key} type="button" aria-current={clientSection===key?'page':undefined} onClick={()=>{setClientSection(key);setTab(key==='documentos'?'documentos':'dados')}}>{label}</button>)}</InternalNavigation> : null}>
+            {selected && !editing && <><details className="workspace-secondary-actions"><summary>Mais ações do cliente</summary><div className="workspace-inline-actions">                <button
                   type="button"
                   className={selected.is_vip ? "primary" : "secondary"}
                   disabled={saving}
                   onClick={() => void toggleVip()}
-                  style={{ minHeight: 48, fontSize: 16 }}
+                  style={{ minHeight: 48, fontSize: "var(--lx-font-lg)" }}
                 >
                   {saving
                     ? "Salvando…"
@@ -1280,31 +1294,32 @@ export default function Clients() {
                 >
                   <Send size={15} /> Enviar ficha de cadastro
                 </button>
-              </div>
-            )}
-            {!editing && selected && tab === "dados" ? (
+</div></details></>}
+            {!editing && selected && clientSection==='processos' && <RelatedRecords clientId={selected.id} kind="processes"/>}
+            {!editing && selected && clientSection==='financeiro' && <RelatedRecords clientId={selected.id} kind="finance"/>}
+            {!editing && selected && tab === "dados" && !["processos","financeiro"].includes(clientSection) ? (
               <div className="client-detail">
-                {selected.is_vip && (
+                {clientSection === 'resumo' && <>{selected.is_vip && (
                   <div
                     role="status"
                     style={{
-                      border: "2px solid #c9a44c",
-                      background: "#201b10",
-                      color: "#fff",
-                      borderRadius: 12,
+                      border: "2px solid var(--lx-accent)",
+                      background: "var(--lx-canvas)",
+                      color: "var(--lx-text)",
+                      borderRadius: "var(--lx-radius-md)",
                       padding: 16,
                       marginBottom: 16,
-                      fontSize: 17,
+                      fontSize: "var(--lx-section-size)",
                       lineHeight: 1.5,
                     }}
                   >
-                    <strong style={{ color: "#e7c56a" }}>Cliente VIP</strong>
+                    <strong style={{ color: "var(--lx-accent)" }}>Cliente VIP</strong>
                     <br />A próxima mensagem vai para o topo da fila. Helena
                     envia uma saudação personalizada e passa o atendimento para
                     a Dra. Suzanne.
                   </div>
-                )}
-                <div className="cards">
+                )}</>}
+                {clientSection === 'resumo' && <><div className="cards">
                   <div className="card">
                     <span>Relacionamento</span>
                     <strong>
@@ -1339,8 +1354,8 @@ export default function Clients() {
                     </span>
                     <strong>{fmtDate(selected.birth_date)}</strong>
                   </div>
-                </div>
-                <div className="detail-grid">
+                </div></>}
+                {clientSection === 'resumo' && <><div className="detail-grid">
                   <p>
                     <b>E-mail:</b> {selected.email || "Não informado"}
                   </p>
@@ -1378,19 +1393,19 @@ export default function Clients() {
                   <p>
                     <b>Observações:</b> {selected.notes || "Nenhuma"}
                   </p>
-                </div>
-                <div className="integration-notice">
+                </div></>}
+                {clientSection === 'resumo' && <><div className="integration-notice">
                   <Cake size={15} /> Clientes com data de nascimento e
                   WhatsApp/telefone recebem felicitação automática no dia do
                   aniversário.
-                </div>
-                <div
+                </div></>}
+                {clientSection === 'acesso' && <><div
                   style={{
-                    border: "1px solid rgba(180,145,80,.45)",
-                    borderRadius: 12,
+                    border: "1px solid var(--lx-accent)",
+                    borderRadius: "var(--lx-radius-md)",
                     padding: 18,
                     margin: "16px 0",
-                    background: "rgba(180,145,80,.06)",
+                    background: "var(--lx-accent-soft)",
                   }}
                 >
                   <h3 style={{ marginTop: 0 }}>Acesso ao App do Cliente</h3>
@@ -1424,7 +1439,7 @@ export default function Clients() {
                           ? "Redefinir código"
                           : "Gerar código"}
                     </button>
-                    {appAccess && (
+                    {appAccess && <><button className="secondary" onClick={copyAppInvite}>Copiar convite completo</button><button className="secondary" onClick={sendAppInvite}>Enviar convite pelo WhatsApp</button></>}{appAccess && (
                       <button className="secondary" onClick={copyAppAccess}>
                         Copiar acesso
                       </button>
@@ -1461,9 +1476,9 @@ export default function Clients() {
                       reenviar somente a cartilha, sem gerar novo código.
                     </p>
                   )}
-                </div>
-                <ClientOnboardingPanel client={selected} />
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                </div></>}
+                {clientSection === 'atendimento' && <><ClientOnboardingPanel client={selected} /></>}
+                {clientSection === 'resumo' && <><div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <button className="primary" onClick={beginEdit}>
                     Editar / completar dados
                   </button>
@@ -1490,15 +1505,15 @@ export default function Clients() {
                       {tierBusy ? "Alterando..." : "Promover para Private"}
                     </button>
                   )}
-                </div>
+                </div></>}
               </div>
             ) : !editing && selected && tab === "documentos" ? (
               <div>
                 <div
                   style={{
                     padding: 18,
-                    border: "1px solid rgba(128,128,128,.28)",
-                    borderRadius: 12,
+                    border: "1px solid var(--lx-border)",
+                    borderRadius: "var(--lx-radius-md)",
                     marginBottom: 18,
                   }}
                 >
@@ -1578,12 +1593,12 @@ export default function Clients() {
                           alignItems: "flex-start",
                           padding: 14,
                           border: checked.includes(t.id)
-                            ? "2px solid #C99443"
-                            : "1px solid rgba(128,128,128,.3)",
-                          borderRadius: 10,
+                            ? "2px solid var(--lx-accent)"
+                            : "1px solid var(--lx-border)",
+                          borderRadius: "var(--lx-radius-md)",
                           cursor: "pointer",
                           background: checked.includes(t.id)
-                            ? "rgba(201,148,67,.08)"
+                            ? "var(--lx-accent-soft)"
                             : "transparent",
                         }}
                       >
@@ -1697,7 +1712,7 @@ export default function Clients() {
                   )}
                 </div>
               </div>
-            ) : (
+            ) : !editing && selected && ["processos","financeiro"].includes(clientSection) ? null : (
               <div className="form-grid">
                 <label>
                   Nome completo
@@ -1941,7 +1956,7 @@ export default function Clients() {
                 </div>
               </div>
             )}
-          </div>
+          </SectionWorkspace></div>
         </div>
       )}
       {bulkOpen && (
@@ -1978,8 +1993,8 @@ export default function Clients() {
               style={{
                 maxHeight: 300,
                 overflowY: "auto",
-                border: "1px solid rgba(128,128,128,.25)",
-                borderRadius: 10,
+                border: "1px solid var(--lx-border)",
+                borderRadius: "var(--lx-radius-md)",
                 padding: 8,
               }}
             >
@@ -2104,7 +2119,7 @@ export default function Clients() {
                   style={{
                     display: "block",
                     fontWeight: 700,
-                    fontSize: 12,
+                    fontSize: "var(--lx-font-xs)",
                     marginBottom: 7,
                   }}
                 >

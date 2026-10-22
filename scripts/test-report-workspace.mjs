@@ -1,0 +1,27 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import ts from 'typescript';
+const code=ts.transpileModule(fs.readFileSync('src/lib/reportWorkspace.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
+const {intervalo,reportDay,reportDateBounds,reportSources,buildReport}=await import('data:text/javascript;base64,'+Buffer.from(code).toString('base64'));
+const now=new Date('2026-10-21T12:30:00Z');
+assert.equal(intervalo('mes',now).de.toISOString(),'2026-10-01T03:00:00.000Z');
+assert.equal(intervalo('mes',now).ate.toISOString(),'2026-11-01T03:00:00.000Z');
+assert.equal(intervalo('mes_passado',new Date('2026-01-03T12:00:00Z')).de.toISOString(),'2025-12-01T03:00:00.000Z');
+assert.equal(intervalo('ano',now).ate.toISOString(),'2027-01-01T03:00:00.000Z');
+assert.equal(intervalo('90d',now).de.getTime(),now.getTime()-90*86400000);
+assert.equal(reportDay(new Date('2026-11-01T01:00:00Z')),'2026-10-31');
+assert.equal(intervalo('mes',new Date('2026-11-01T01:00:00Z')).de.toISOString(),'2026-10-01T03:00:00.000Z');
+assert.equal(reportDateBounds('90d',now).until,'2026-10-22');
+assert.equal(reportDateBounds('mes',now).until,'2026-11-01');
+function blank(){return Object.fromEntries(Object.keys(reportSources).map(key=>[key,{data:[],error:null,count:0}]));}
+const zero=buildReport(blank());assert.equal(zero.data.recebido,0);assert.equal(zero.data.andamentos,0);assert.deepEqual(zero.failed,[]);
+const raw=blank();
+raw.leads={data:[{stage_key:'contratado',origin:' Site '},{stage_key:'cliente',origin:'site'},{stage_key:'novo_lead',origin:''}],error:null,count:3};
+raw.pagamentos={data:[{amount:100.5},{amount:'99.5'}],error:null,count:2};
+raw.clientesProc={data:[{clients:{id:'a',phone:null,whatsapp:null}},{clients:[{id:'a',phone:'',whatsapp:''}]},{clients:{id:'b',phone:'123',whatsapp:null}}],error:null,count:3};
+const model=buildReport(raw);assert.equal(model.data.recebido,200);assert.equal(model.data.leadsContratados,2);assert.equal(model.data.semWhatsApp,1);assert.deepEqual(model.data.origens,[['site',2],['Não informada',1]]);
+raw.andamentos={data:null,error:{message:'forbidden'},count:0};raw.pagamentos={data:null,error:{message:'network'},count:0};raw.msgOut={data:null,error:null,count:null};
+const failed=buildReport(raw);assert.equal(failed.data.andamentos,null);assert.equal(failed.data.recebido,null);assert.equal(failed.data.msgEnviadas,null);assert.equal(failed.data.leadsNovos,3);assert(failed.failed.includes('andamentos'));
+raw.pagamentos={data:[{amount:'invalid'}],error:null,count:1};assert.equal(buildReport(raw).data.recebido,null);
+raw.leads.count=100;assert(buildReport(raw).limited.includes('leads e origens'));
+console.log('PASS reports: São Paulo periods/year rollover, rolling window, zero versus failure/missing counts, partial success, sums/invalid amounts, origin normalization, contact deduplication and truncated-query notice.');

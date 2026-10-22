@@ -55,7 +55,7 @@ export default function DashboardOverview() {
   const today = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
   const priorityRows = [
     ...critical.slice(0, 2).map((x) => ({ icon: Scale, title: x.title || "Prazo processual", meta: `Vence ${shortDate(x.due_at)}`, path: "/processos", tone: "danger" })),
-    ...(unread ? [{ icon: MessageCircle, title: `${unread} ${unread === 1 ? "mensagem aguarda" : "mensagens aguardam"} resposta`, meta: "Aplicativo do cliente", path: "/app-cliente", tone: "info" }] : []),
+    ...(unread ? [{ icon: MessageCircle, title: `${unread} ${unread === 1 ? "mensagem aguarda" : "mensagens aguardam"} resposta`, meta: "Aplicativo do cliente", path: "/atendimento/aplicativo", tone: "info" }] : []),
     ...(pending.length ? [{ icon: Wallet, title: `${pending.length} ${pending.length === 1 ? "recebimento pendente" : "recebimentos pendentes"}`, meta: brl(pendingAmount), path: "/financeiro", tone: "gold" }] : []),
   ].slice(0, 4);
 
@@ -68,7 +68,7 @@ export default function DashboardOverview() {
     <section className="hc-metrics" aria-label="Resumo do dia">
       <button onClick={() => document.getElementById("atencao-agora")?.scrollIntoView({ behavior: "smooth" })}><span className="danger"><AlertTriangle/></span><div><small>Atenção agora</small><b>{loaded ? attentionCount : "—"}</b><em>{attentionCount ? "itens prioritários" : "Tudo em ordem"}</em></div></button>
       <button onClick={() => go("/agenda")}><span className="purple"><CalendarDays/></span><div><small>Agenda de hoje</small><b>{loaded ? events.length : "—"}</b><em>{events.length === 1 ? "compromisso" : "compromissos"}</em></div></button>
-      <button onClick={() => go("/app-cliente")}><span className="blue"><MessageCircle/></span><div><small>Aguardando resposta</small><b>{loaded ? unread : "—"}</b><em>mensagens do app</em></div></button>
+      <button onClick={() => go("/atendimento/aplicativo")}><span className="blue"><MessageCircle/></span><div><small>Aguardando resposta</small><b>{loaded ? unread : "—"}</b><em>mensagens do app</em></div></button>
       <button onClick={() => go("/financeiro")}><span className="gold"><Wallet/></span><div><small>A receber</small><b className="money">{loaded ? brl(pendingAmount) : "—"}</b><em>{pending.length} pendentes</em></div></button>
     </section>
 

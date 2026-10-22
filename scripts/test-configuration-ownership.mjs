@@ -1,0 +1,9 @@
+import fs from 'node:fs';import assert from 'node:assert/strict';
+const read=f=>fs.readFileSync('src/'+f,'utf8');const settings=read('pages/Settings.tsx');assert(!settings.includes('["ai", "IA"'));assert(!settings.includes('section === "connections"'));assert(settings.includes("ai:'/agentes-ia'"));
+const integrations=read('pages/Integrations.tsx');assert(integrations.includes('<WhatsAppConnections/>'));assert(!integrations.includes('<WhatsAppAdminSettings'));assert(!integrations.includes('<PlatformProcessProviders'));
+const marketing=read('pages/Marketing.tsx');assert(!marketing.includes('configure_app'));assert(!marketing.includes('<EvolutionOfficeConnect'));assert(marketing.includes('/integracoes?secao=whatsapp'));
+const connection=read('pages/WhatsAppConnections.tsx');for(const feature of ['configure_app',"action:'start'",'<MetaPartnerConnect','<EvolutionOfficeConnect'])assert(connection.includes(feature));
+const client=read('pages/Clients.tsx'),app=read('pages/ClientArea.tsx');assert(client.includes('client_app_generate_access')&&client.includes('client_app_revoke_access')&&client.includes('copyAppInvite')&&client.includes('sendAppInvite'));assert(!app.includes('client_app_generate_access')&&!app.includes('client_app_revoke_access'));assert(app.includes('?secao=acesso'));
+const router=read('App.tsx');assert(router.includes('path="/atendimento/aplicativo" element={<ClientArea'));assert(router.includes('path="/app-cliente" element={<Navigate'));assert(read('main.tsx').includes('"/app-cliente"'));assert(!read('main.tsx').includes('"/atendimento/aplicativo"'));
+assert(read('navigation/areas.ts').includes("ownerOnly:true"));assert(read('pages/ProcessProviderSettings.tsx').includes("from('platform_admins')"));
+console.log('PASS canonical settings, single WhatsApp/access editors, preserved Meta/Evolution features, public/admin route separation and restricted permissions.');

@@ -1,20 +1,19 @@
-/* LexOffice semantic tokens: one theme contract for all authenticated modules.
-   Public routes are not restyled by this file. */
+/* LexOffice 2.0 — semantic theme contract for all application routes. */
 html[data-lex-theme="light"] {
   color-scheme: light;
-  --lx-canvas: #f1f5fa;
+  --lx-canvas: #eef3fa;
   --lx-surface: #ffffff;
-  --lx-surface-raised: #f7f9fd;
+  --lx-surface-raised: #f5f8fd;
   --lx-surface-hover: #edf3fb;
-  --lx-surface-selected: #e5eefc;
-  --lx-text: #182d47;
-  --lx-text-muted: #62758e;
+  --lx-surface-selected: #e7eeff;
+  --lx-text: #1c324e;
+  --lx-text-muted: #52647c;
   --lx-border: #dce5ef;
   --lx-border-strong: #b9cadc;
-  --lx-primary: #245bb6;
-  --lx-primary-hover: #19488f;
+  --lx-primary: #205bea;
+  --lx-primary-hover: #1748be;
   --lx-primary-contrast: #ffffff;
-  --lx-accent: #b48b4b;
+  --lx-accent: #89652d;
   --lx-accent-soft: #f5ecdd;
   --lx-focus: #2874d8;
   --lx-success: #217c60;
@@ -22,22 +21,23 @@ html[data-lex-theme="light"] {
   --lx-danger: #bf4260;
   --lx-shadow: 0 8px 28px rgba(23,43,68,.09);
   --lx-overlay: rgba(11,25,43,.55);
+  --lx-success-soft: #e7f5ef; --lx-danger-soft: #fcecf0; --lx-shadow-color: rgba(23,43,68,.12);
 }
 html[data-lex-theme="dark"], html:not([data-lex-theme]) {
   color-scheme: dark;
-  --lx-canvas: #081725;
-  --lx-surface: #102338;
-  --lx-surface-raised: #162d45;
-  --lx-surface-hover: #203b56;
-  --lx-surface-selected: #244568;
-  --lx-text: #edf4fd;
+  --lx-canvas: #0b1423;
+  --lx-surface: #162337;
+  --lx-surface-raised: #223752;
+  --lx-surface-hover: #293f5b;
+  --lx-surface-selected: #29456a;
+  --lx-text: #e7edf6;
   --lx-text-muted: #a5b8ce;
   --lx-border: #2a425a;
   --lx-border-strong: #46627e;
-  --lx-primary: #79b0ff;
+  --lx-primary: #8cbbff;
   --lx-primary-hover: #a4c9ff;
-  --lx-primary-contrast: #081725;
-  --lx-accent: #d5b36a;
+  --lx-primary-contrast: #0b1423;
+  --lx-accent: #d5b56b;
   --lx-accent-soft: #342e23;
   --lx-focus: #94c3ff;
   --lx-success: #75d7b3;
@@ -45,6 +45,7 @@ html[data-lex-theme="dark"], html:not([data-lex-theme]) {
   --lx-danger: #f28aa3;
   --lx-shadow: 0 8px 28px rgba(0,0,0,.18);
   --lx-overlay: rgba(0,0,0,.72);
+  --lx-success-soft: #173b35; --lx-danger-soft: #422638; --lx-shadow-color: rgba(0,0,0,.22);
 }
 :root {
   --lx-font: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -52,7 +53,8 @@ html[data-lex-theme="dark"], html:not([data-lex-theme]) {
   --lx-font-sm: .8125rem;
   --lx-font-md: .875rem;
   --lx-font-lg: 1rem;
-  --lx-font-xl: 1.375rem;
+  --lx-font-xl: 1.75rem;
+  --lx-page-size: 28px; --lx-section-size: 20px; --lx-control-height: 44px;
   --lx-radius-sm: 8px;
   --lx-radius-md: 12px;
   --lx-radius-lg: 16px;

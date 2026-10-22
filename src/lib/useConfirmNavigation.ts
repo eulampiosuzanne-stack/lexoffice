@@ -1,0 +1,4 @@
+import {useEffect} from 'react';
+import {confirmDiscard} from './ux';
+/** Keep unsaved entity edits protected when leaving the new dedicated pages. */
+export function useConfirmNavigation(dirty:boolean){useEffect(()=>{if(!dirty)return;const click=(event:MouseEvent)=>{const link=event.target instanceof Element?event.target.closest<HTMLAnchorElement>('a[href]'):null;if(!link)return;const target=new URL(link.href,window.location.href);if(target.pathname===window.location.pathname&&target.search===window.location.search)return;if(!confirmDiscard()){event.preventDefault();event.stopImmediatePropagation()}};const beforeUnload=(event:BeforeUnloadEvent)=>{event.preventDefault();event.returnValue=''};document.addEventListener('click',click,true);window.addEventListener('beforeunload',beforeUnload);return()=>{document.removeEventListener('click',click,true);window.removeEventListener('beforeunload',beforeUnload)}},[dirty])}

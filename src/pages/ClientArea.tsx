@@ -1,3 +1,5 @@
+import {Link} from 'react-router-dom';
+import InternalNavigation from '../components/InternalNavigation';
 import { useEffect, useMemo, useState } from "react";
 import {
   Bell,
@@ -14,7 +16,6 @@ import {
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import "./integrations.css";
-import "./subtabs.css";
 type Client = {
   id: string;
   name: string;
@@ -521,93 +522,11 @@ export default function ClientArea() {
       .maybeSingle()
       .then(({ data }) => setAccess(data || null));
   }, [clientId]);
-  async function generateAccess() {
-    if (!supabase || !clientId || !selected) return;
-    setAccessBusy(true);
-    setNotice("Gerando código e preparando o envio...");
-    const { data, error } = await supabase.rpc("client_app_generate_access", {
-      p_client_id: clientId,
-    });
-    if (error) {
-      setAccessBusy(false);
-      return setNotice("Não foi possível gerar o código: " + error.message);
-    }
-    const generated = Array.isArray(data) ? data[0] : data;
-    setAccess(generated);
-    const phone = (selected.whatsapp || selected.phone || "").replace(
-      /\\D/g,
-      "",
-    );
-    if (!phone) {
-      setAccessBusy(false);
-      return setNotice(
-        "Código gerado, envio pendente: cadastre o WhatsApp do cliente.",
-      );
-    }
-    const number = phone.startsWith("55") ? phone : `55${phone}`;
-    const message = inviteText(generated);
-    const { data: sent, error: sendError } = await supabase.functions.invoke(
-      "whatsapp-operator-send",
-      {
-        body: {
-          message,
-          targets: [{ phone: number, name: selected.name }],
-          agent_key: "client_schedule_relationship",
-          next_agent_key: "client_schedule_relationship",
-          keep_ai_active: true,
-          mirror_to_app: false,
-        },
-      },
-    );
-    setAccessBusy(false);
-    if (sendError || !sent?.ok || sent?.failed) {
-      const reason =
-        sendError?.message ||
-        sent?.results?.[0]?.error ||
-        sent?.error ||
-        "falha não identificada";
-      return setNotice("Código gerado, envio pendente: " + reason);
-    }
-    setNotice(
-      "Código gerado e acesso enviado automaticamente pelo Agente de Relacionamento.",
-    );
-  }
-  async function revokeAccess() {
-    if (!supabase || !clientId) return;
-    setAccessBusy(true);
-    const { error } = await supabase.rpc("client_app_revoke_access", {
-      p_client_id: clientId,
-    });
-    setAccessBusy(false);
-    if (error) return setNotice(error.message);
-    setAccess((v: any) => (v ? { ...v, status: "revoked" } : v));
-    setNotice("Acesso do cliente revogado.");
-  }
-  function inviteText(a: any = access) {
-    if (!a) return "";
-    return `*Suzanne Figueiredo Advocacia e Soluções Jurídicas*\n\nSeu acesso ao aplicativo do escritório foi liberado.\n\n📲 *Aplicativo LexOffice*\nAcesse pelo link oficial do escritório:\nhttps://lexoffice.univittagroup.com.br/cliente\n\n*Login:* ${a.login_cpf}\n*Código de acesso:* ${a.access_code}\n\n📖 *Como instalar e acessar*\n1. Toque no link oficial acima.\n2. A Área do Cliente abrirá diretamente, sem acessar páginas técnicas do Expo.\n3. No campo de login, informe o CPF acima.\n4. No campo de código de acesso, informe o código acima exatamente como recebido.\n5. Toque em *Entrar*.\n6. Para deixar o LexOffice na tela do celular, use a opção *Adicionar à Tela de Início* do navegador.\n\nO mesmo link pode ser usado no Android e no iPhone.\n\nPor segurança, este código é individual e não deve ser compartilhado.`;
-  }
-  async function copyAccess() {
-    if (!access) return;
-    await navigator.clipboard.writeText(inviteText());
-    setNotice("Convite completo copiado.");
-  }
-  function sendInvite() {
-    if (!access || !selected) return;
-    const phone = (selected.whatsapp || selected.phone || "").replace(
-      /\D/g,
-      "",
-    );
-    if (!phone)
-      return setNotice("Cadastre o WhatsApp do cliente antes de enviar.");
-    const number = phone.startsWith("55") ? phone : `55${phone}`;
-    window.open(
-      `https://wa.me/${number}?text=${encodeURIComponent(inviteText())}`,
-      "_blank",
-      "noopener,noreferrer",
-    );
-    setNotice("Convite aberto no WhatsApp para envio.");
-  }
+
+
+
+
+
   async function previewFromControl(item: any) {
     if (!supabase) return;
     const cl = item.client;
@@ -662,7 +581,7 @@ export default function ClientArea() {
       <div className="page-heading">
         <div>
           <span className="eyebrow">ÁREA DO CLIENTE</span>
-          <h1>Aplicativo Suzanne Figueiredo</h1>
+          <h1>Mensagens do aplicativo</h1>
           <p>Controle o que chega ao aplicativo dos seus clientes.</p>
         </div>
         <button className="btn-secondary" onClick={load}>
@@ -684,7 +603,7 @@ export default function ClientArea() {
       >
         <div>
           <strong>Reenvio de avisos</strong>
-          <p style={{ margin: "4px 0 0", fontSize: 13 }}>
+          <p style={{ margin: "4px 0 0", fontSize: "var(--lx-font-sm)" }}>
             {failedNotice
               ? `Aviso pendente para ${failedNotice.name}. O recado já está salvo no aplicativo.`
               : "Nenhum aviso por WhatsApp com falha neste navegador."}
@@ -705,11 +624,7 @@ export default function ClientArea() {
           {retryBusy ? " Reenviando..." : " Reenviar aviso"}
         </button>
       </div>
-      <div
-        className="lx-subtabs"
-        role="tablist"
-        aria-label="Seções da Área do Cliente"
-      >
+      <InternalNavigation variant="underline" aria-label="Seções da Área do Cliente">
         {(
           [
             ["acessos", "Acessos e controle"],
@@ -733,7 +648,7 @@ export default function ClientArea() {
               : ""}
           </button>
         ))}
-      </div>
+      </InternalNavigation>
       {sec === "acessos" && (
         <section className="panel" style={{ marginBottom: 20 }}>
           <h2>
@@ -828,7 +743,7 @@ export default function ClientArea() {
             position: "fixed",
             inset: 0,
             zIndex: 1000,
-            background: "rgba(0,0,0,.72)",
+            background: "var(--lx-canvas)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -1063,34 +978,7 @@ export default function ClientArea() {
                       ? "Revogado"
                       : "Não ativado"}
                 </p>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button
-                    className="btn-primary"
-                    disabled={accessBusy}
-                    onClick={generateAccess}
-                  >
-                    {access ? "Redefinir código" : "Gerar código"}
-                  </button>
-                  {access && (
-                    <button className="btn-primary" onClick={sendInvite}>
-                      Enviar acesso pelo WhatsApp
-                    </button>
-                  )}
-                  {access && (
-                    <button className="btn-secondary" onClick={copyAccess}>
-                      Copiar convite
-                    </button>
-                  )}
-                  {access && access.status !== "revoked" && (
-                    <button
-                      className="btn-secondary"
-                      disabled={accessBusy}
-                      onClick={revokeAccess}
-                    >
-                      Revogar acesso
-                    </button>
-                  )}
-                </div>
+                <p>O acesso é administrado na ficha do cliente. <Link className="btn-primary" to={`/clientes/${selected.id}?secao=acesso`}>Gerenciar acesso deste cliente →</Link></p>
               </div>
             )}
             <div className="integration-card">
@@ -1157,7 +1045,7 @@ export default function ClientArea() {
           </section>
         )}
         {sec === "recebidos" && (
-          <section className="panel">
+          <details className="workspace-secondary-actions" open={extra.some(x=>x.status!=='confirmed')}><summary>Solicitações de atendimento extraordinário ({extra.filter(x=>x.status!=='confirmed').length})</summary><section className="panel">
             <h2>
               <CalendarClock size={18} /> Solicitações extraordinárias
             </h2>
@@ -1189,7 +1077,7 @@ export default function ClientArea() {
                 )}
               </div>
             ))}
-          </section>
+          </section></details>
         )}
       </div>
       {sec === "documentos" && (
@@ -1236,11 +1124,11 @@ export default function ClientArea() {
                 minWidth: 0,
                 boxSizing: "border-box",
                 padding: "10px 12px",
-                border: "1px solid rgba(201,148,67,.45)",
-                borderRadius: 9,
-                background: "rgba(255,255,255,.05)",
+                border: "1px solid var(--lx-accent)",
+                borderRadius: "var(--lx-radius-md)",
+                background: "var(--lx-surface)",
                 color: "inherit",
-                fontSize: 14,
+                fontSize: "var(--lx-font-md)",
               }}
             />
           </label>
@@ -1265,7 +1153,7 @@ export default function ClientArea() {
                 height: 18,
                 minWidth: 18,
                 margin: 0,
-                accentColor: "#C99443",
+                accentColor: "var(--lx-accent)",
                 flex: "0 0 auto",
               }}
             />{" "}
@@ -1293,7 +1181,7 @@ export default function ClientArea() {
                   height: 18,
                   minWidth: 18,
                   margin: 0,
-                  accentColor: "#C99443",
+                  accentColor: "var(--lx-accent)",
                   flex: "0 0 auto",
                 }}
               />{" "}
@@ -1353,10 +1241,10 @@ export default function ClientArea() {
                 style={{
                   marginLeft: 8,
                   padding: "2px 8px",
-                  borderRadius: 12,
-                  background: "#C99443",
-                  color: "#fff",
-                  fontSize: 12,
+                  borderRadius: "var(--lx-radius-md)",
+                  background: "var(--lx-accent-soft)",
+                  color: "var(--lx-text)",
+                  fontSize: "var(--lx-font-xs)",
                 }}
               >
                 {inbox.filter((i) => !i.read_at).length} nova(s)

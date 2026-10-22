@@ -38,7 +38,7 @@
 .app .integration-action:not(:disabled):active,
 .app .primary:not(:disabled):active,
 .app .secondary:not(:disabled):active {
-  transform: translateY(1px) scale(.992)!important;
+  transform: translateY(1px) scale(.992);
 }
 
 .app button:focus-visible,
@@ -47,16 +47,16 @@
 .app input:focus-visible,
 .app select:focus-visible,
 .app textarea:focus-visible {
-  outline: 2px solid var(--lx-accent)!important;
-  outline-offset: 2px!important;
+  outline: 2px solid var(--lx-accent);
+  outline-offset: 2px;
 }
 
 .app button:disabled,
 .app .integration-action:disabled,
 .app .primary:disabled,
 .app .secondary:disabled {
-  cursor: not-allowed!important;
-  opacity: .48!important;
+  cursor: not-allowed;
+  opacity: .48;
 }
 
 .app .doc-template-card:hover,
@@ -66,15 +66,15 @@
 .app .agent-item:hover,
 .app .agent-item.selected,
 .app [role="button"][aria-pressed="true"] {
-  border-color: var(--lx-accent)!important;
-  background: var(--lx-surface)!important;
+  border-color: var(--lx-accent);
+  background: var(--lx-surface);
 }
 
 .app .doc-template-card.selected,
 .app .smart-card[aria-selected="true"],
 .app .agent-item.selected,
 .app [role="button"][aria-pressed="true"] {
-  box-shadow: inset 0 0 0 1px rgba(201,148,67,.32)!important;
+  box-shadow: var(--lx-shadow);
 }
 
 .app .doc-template-card.selected::after,
@@ -89,8 +89,8 @@
   place-items: center;
   border-radius: 50%;
   background: var(--lx-accent);
-  color: #fff;
-  font-size: 11px;
+  color: var(--lx-text);
+  font-size: var(--lx-font-xs);
   font-weight: 800;
   pointer-events: none;
 }
@@ -108,7 +108,7 @@
 
 .app tbody tr[data-clickable="true"]:hover,
 .app .signature-row[data-clickable="true"]:hover {
-  background: var(--lx-surface)!important;
+  background: var(--lx-surface);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -121,6 +121,6 @@
   .app .integration-action,
   .app .primary,
   .app .secondary {
-    transition: none!important;
+    transition: none;
   }
 }

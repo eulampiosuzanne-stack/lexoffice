@@ -1,3 +1,6 @@
+import WorkspaceSidebar from './components/WorkspaceSidebar';
+import InternalNavigation from './components/InternalNavigation';
+import { areas, areaOf, type NavItem } from './navigation/areas';
 import { lazy, Suspense, useEffect, useState } from "react";
 import {
   NavLink,
@@ -55,6 +58,9 @@ import VerificarPublico from "./pages/VerificarPublico";
 import GlobalSearch from "./components/GlobalSearch";
 import { applyLexTheme, readLexTheme, type LexTheme } from "./ThemeController";
 
+const ToolHub = lazy(() => import('./pages/ToolHub'));
+const ScheduledMessages = lazy(() => import('./pages/ScheduledMessages'));
+const WhatsAppFlow = lazy(() => import('./pages/WhatsAppFlow'));
 const Prospecting = lazy(() => import("./pages/Prospecting"));
 const Clients = lazy(() => import("./pages/Clients"));
 const Processes = lazy(() => import("./pages/Processes"));
@@ -82,6 +88,9 @@ const Dashboard = lazy(() => import("./pages/DashboardOverview"));
 const PartnerPanel = lazy(() => import("./pages/PartnerPanel"));
 const Audit = lazy(() => import("./pages/Audit"));
 const JornadaComercial = lazy(() => import("./pages/JornadaComercial"));
+const ConfigurationCenter = lazy(() => import("./pages/ConfigurationCenter"));
+const ServiceConfiguration = lazy(() => import("./pages/ServiceConfiguration"));
+const ProcessProviderSettings = lazy(() => import("./pages/ProcessProviderSettings"));
 const ClientArea = lazy(() => import("./pages/ClientArea"));
 const PerfilCliente = lazy(() => import("./pages/PerfilCliente"));
 const Marketing = lazy(() => import("./pages/Marketing"));
@@ -90,119 +99,6 @@ const Afazeres = lazy(() => import("./pages/Afazeres"));
 const Donna = lazy(() => import("./pages/Donna"));
 const Hearings = lazy(() => import("./pages/Hearings"));
 const PRODUCTION_URL = "https://lexoffice-ashy.vercel.app";
-type NavItem = {
-  label: string;
-  path: string;
-  icon: any;
-  adminOnly?: boolean;
-  superAdminOnly?: boolean;
-  ownerOnly?: boolean;
-};
-type Area = { label: string; description: string; icon: any; tabs: NavItem[] };
-/* Arquitetura por finalidade: menos categorias, sem remover nenhuma rota. */
-const areas: Area[] = [
-  {
-    label: "Visão geral",
-    description: "Painel e prioridades",
-    icon: LayoutDashboard,
-    tabs: [
-      { label: "Início", path: "/", icon: LayoutDashboard },
-      { label: "Donna · Briefing", path: "/donna", icon: Sparkles },
-      { label: "Painel da sócia", path: "/painel", icon: BarChart3 },
-    ],
-  },
-  {
-    label: "Relacionamento",
-    description: "Clientes e atendimento",
-    icon: MessageCircle,
-    tabs: [
-      { label: "Caixa de Entrada", path: "/whatsapp", icon: MessageCircle },
-      { label: "Clientes e Histórico", path: "/clientes", icon: Users },
-      { label: "Helena | Automação", path: "/agentes-ia", icon: Bot },
-      { label: "Programações", path: "/fluxo", icon: CalendarDays },
-      { label: "Campanhas e CRM", path: "/crm", icon: Megaphone },
-      { label: "Mensagens do app", path: "/app-cliente", icon: Smartphone },
-      { label: "Importações", path: "/importacoes", icon: FileUp },
-    ],
-  },
-  {
-    label: "Gestão jurídica",
-    description: "Processos, prazos e peças",
-    icon: Gavel,
-    tabs: [
-      { label: "Processos", path: "/processos", icon: Gavel },
-      { label: "Andamentos", path: "/andamentos", icon: Activity },
-      { label: "Tribunais", path: "/tribunais", icon: Landmark },
-      {
-        label: "Condução após ajuizar",
-        path: "/conducao-processual",
-        icon: Compass,
-      },
-      { label: "Agenda", path: "/agenda", icon: CalendarDays },
-      { label: "Audiências", path: "/audiencias", icon: Gavel },
-      { label: "Documentos", path: "/documentos", icon: FileText },
-      { label: "Assinaturas", path: "/assinaturas", icon: PenTool },
-    ],
-  },
-  {
-    label: "Comercial e financeiro",
-    description: "Contratação e receitas",
-    icon: CircleDollarSign,
-    tabs: [
-      { label: "Financeiro", path: "/financeiro", icon: CircleDollarSign },
-      { label: "Cobrança", path: "/cobranca", icon: BellRing },
-      { label: "Afazeres", path: "/afazeres", icon: Clock3 },
-      { label: "Etapas da contratação", path: "/jornada-comercial", icon: Target },
-      {
-        label: "Propostas comerciais",
-        path: "/perfil-cliente",
-        icon: ShieldCheck,
-      },
-      {
-        label: "Lex Prospect",
-        path: "/prospeccao",
-        icon: Target,
-        superAdminOnly: true,
-      },
-    ],
-  },
-  {
-    label: "Inteligência jurídica",
-    description: "Análise e estratégia",
-    icon: Sparkles,
-    tabs: [
-      { label: "Analisar caso", path: "/jurimetria", icon: Sparkles },
-      { label: "Revisar peça", path: "/revisao-peca", icon: FileCheck2 },
-      { label: "Calculadoras", path: "/calculadoras", icon: Calculator },
-      { label: "Planejamento", path: "/planejamento", icon: PiggyBank },
-      { label: "Sherlock", path: "/consultas", icon: Search },
-    ],
-  },
-  {
-    label: "Operação e administração",
-    description: "Equipe e integrações",
-    icon: Settings,
-    tabs: [
-      { label: "Escritório", path: "/configuracoes", icon: Settings },
-      { label: "Integrações", path: "/integracoes", icon: Plug },
-      {
-        label: "Campanhas e WhatsApp Meta",
-        path: "/marketing",
-        icon: MessageCircle,
-      },
-      { label: "Segurança", path: "/seguranca", icon: ShieldCheck },
-      {
-        label: "Auditoria",
-        path: "/auditoria",
-        icon: ShieldCheck,
-        ownerOnly: true,
-      },
-      { label: "Relatórios", path: "/relatorios", icon: BarChart3 },
-    ],
-  },
-];
-const areaOf = (path: string) =>
-  areas.find((a) => a.tabs.some((t) => t.path === path)) || areas[0];
 const dashboardStages = [
   ["novo_lead", "Novo lead"],
   ["contato_iniciado", "Contato iniciado"],
@@ -406,7 +302,7 @@ function LegacyDashboard() {
             <div
               className="dashboard-donut"
               style={{
-                background: `conic-gradient(#C99443 0 ${p1}%,#737984 ${p1}% ${p1 + p2}%,#2E2216 ${p1 + p2}% 100%)`,
+                background: `conic-gradient(var(--lx-accent-soft) 0 ${p1}%,var(--lx-surface-raised) ${p1}% ${p1 + p2}%,var(--lx-surface-raised) ${p1 + p2}% 100%)`,
               }}
             />
             <div className="dashboard-origin-legend">
@@ -671,23 +567,12 @@ function ProspectCenter() {
         }}
       >
         <div>
-          <h1 style={{ margin: 0, fontSize: 24 }}>Lex Prospect</h1>
+          <h1 style={{ margin: 0, fontSize: "var(--lx-page-size)" }}>Lex Prospect</h1>
           <p style={{ margin: "5px 0 0", opacity: 0.68 }}>
             Prospecção, campanhas, motores e integrações em um só lugar.
           </p>
         </div>
-        <div
-          role="tablist"
-          aria-label="Versão do Lex Prospect"
-          style={{
-            display: "flex",
-            gap: 6,
-            padding: 5,
-            borderRadius: 12,
-            background: "rgba(255,255,255,.055)",
-            border: "1px solid rgba(255,255,255,.09)",
-          }}
-        >
+        <InternalNavigation variant="segmented" aria-label="Versão do Lex Prospect">
           <button
             type="button"
             role="tab"
@@ -698,12 +583,12 @@ function ProspectCenter() {
               alignItems: "center",
               gap: 7,
               border: 0,
-              borderRadius: 9,
+              borderRadius: "var(--lx-radius-md)",
               padding: "9px 13px",
               cursor: "pointer",
               fontWeight: 700,
-              color: version === "current" ? "#fff" : "rgba(255,255,255,.65)",
-              background: version === "current" ? "#C99443" : "transparent",
+              color: version === "current" ? "var(--lx-text)" : "var(--lx-text)",
+              background: version === "current" ? "var(--lx-accent-soft)" : "transparent",
             }}
           >
             <Sparkles size={15} />
@@ -719,28 +604,28 @@ function ProspectCenter() {
               alignItems: "center",
               gap: 7,
               border: 0,
-              borderRadius: 9,
+              borderRadius: "var(--lx-radius-md)",
               padding: "9px 13px",
               cursor: "pointer",
               fontWeight: 700,
-              color: version === "classic" ? "#fff" : "rgba(255,255,255,.65)",
-              background: version === "classic" ? "#C99443" : "transparent",
+              color: version === "classic" ? "var(--lx-text)" : "var(--lx-text)",
+              background: version === "classic" ? "var(--lx-accent-soft)" : "transparent",
             }}
           >
             <Target size={15} />
             Clássica
           </button>
-        </div>
+        </InternalNavigation>
       </div>
       {version === "current" ? (
         <div
           style={{
             height: "calc(100vh - 190px)",
             minHeight: 720,
-            borderRadius: 18,
+            borderRadius: "var(--lx-radius-md)",
             overflow: "hidden",
-            border: "1px solid rgba(255,255,255,.1)",
-            background: "#080705",
+            border: "1px solid var(--lx-border)",
+            background: "var(--lx-canvas)",
           }}
         >
           <iframe
@@ -905,6 +790,11 @@ export default function App() {
     };
   }, [session]);
   const [lexTheme, setLexTheme] = useState<LexTheme>(readLexTheme);
+  useEffect(() => {
+    const syncTheme = (event: Event) => setLexTheme((event as CustomEvent<LexTheme>).detail);
+    window.addEventListener("lexoffice-theme-change", syncTheme);
+    return () => window.removeEventListener("lexoffice-theme-change", syncTheme);
+  }, []);
   if (window.location.pathname === "/cadastro") return <CadastroPublico />;
   if (window.location.pathname.startsWith("/assinar/"))
     return <AssinarPublico />;
@@ -940,7 +830,7 @@ export default function App() {
     (!i.adminOnly || canAccessAdminModules) &&
     (!i.superAdminOnly || isPlatformAdmin) &&
     (!i.ownerOnly || canAccessAudit) &&
-    !(financeBlocked && (i.path === "/financeiro" || i.path === "/cobranca"));
+    !(financeBlocked && (i.path.startsWith("/financeiro") || i.path.startsWith("/cobranca")));
   const changeTheme = () => { const next = lexTheme === "dark" ? "light" : "dark"; setLexTheme(next); applyLexTheme(next); };
   const area = areaOf(loc.pathname);
   const areaTabs = area.tabs.filter(canSee);
@@ -963,51 +853,8 @@ export default function App() {
           </div>
         </div>
         <nav>
-          <div className="nav-group nav-areas">
-            {areas.map((a) => {
-              const tabs = a.tabs.filter(canSee);
-              if (!tabs.length) return null;
-              const on = a.tabs.some((t) => t.path === loc.pathname);
-              return (
-                <NavLink
-                  key={a.label}
-                  to={tabs[0].path}
-                  end={tabs[0].path === "/"}
-                  className={on ? "active" : ""}
-                  onClick={() => setNavOpen(false)}
-                  title={a.label}
-                  aria-label={a.label}
-                >
-                  <a.icon size={18} />
-                  <span className="nav-area-copy">
-                    <b>{a.label}</b>
-                    <small>{a.description}</small>
-                  </span>
-                  {a.label === "Atendimento" && clientInboxUnread > 0 && (
-                    <span
-                      style={{
-                        marginLeft: "auto",
-                        minWidth: 20,
-                        height: 20,
-                        padding: "0 6px",
-                        borderRadius: 10,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 11,
-                        fontWeight: 800,
-                        background: "linear-gradient(135deg,#C99443,#D6AA55)",
-                        color: "#080705",
-                      }}
-                    >
-                      {clientInboxUnread > 99 ? "99+" : clientInboxUnread}
-                    </span>
-                  )}
-                </NavLink>
-              );
-            })}
-          </div>
-          <div className="lex2-favorites"><span>FAVORITOS</span><NavLink to="/whatsapp" onClick={() => setNavOpen(false)}><MessageCircle size={16}/> Caixa de Entrada</NavLink><NavLink to="/processos" onClick={() => setNavOpen(false)}><Gavel size={16}/> Processos</NavLink><NavLink to="/agenda" onClick={() => setNavOpen(false)}><CalendarDays size={16}/> Agenda</NavLink><NavLink to="/jornada-comercial" onClick={() => setNavOpen(false)}><Target size={16}/> Jornada comercial</NavLink></div>
+          <WorkspaceSidebar canSee={canSee} onNavigate={()=>setNavOpen(false)} unread={clientInboxUnread}/>
+          <details className="lex2-favorites"><summary>Atalhos rápidos</summary><span>FAVORITOS</span><NavLink to="/whatsapp" onClick={() => setNavOpen(false)}><MessageCircle size={16}/> Caixa de Entrada</NavLink><NavLink to="/processos" onClick={() => setNavOpen(false)}><Gavel size={16}/> Processos</NavLink><NavLink to="/agenda" onClick={() => setNavOpen(false)}><CalendarDays size={16}/> Agenda</NavLink><NavLink to="/jornada-comercial" onClick={() => setNavOpen(false)}><Target size={16}/> Jornada comercial</NavLink></details>
         </nav>
         <div className="profile">
           <div className="avatar">{initials}</div>
@@ -1025,7 +872,7 @@ export default function App() {
           </button>
         </div>
       </aside>
-      <main>
+      <main className={loc.pathname === "/donna" ? "donna-shell" : loc.pathname === "/painel" ? "management-shell" : loc.pathname === "/relatorios" ? "reports-shell" : undefined}>
         {vipAlert && (
           <aside
             role="alert"
@@ -1036,16 +883,16 @@ export default function App() {
               left: "50%",
               transform: "translateX(-50%)",
               width: "min(92vw,620px)",
-              background: "#241d10",
-              color: "#fff",
-              border: "3px solid #c9a44c",
-              borderRadius: 14,
+              background: "var(--lx-surface-raised)",
+              color: "var(--lx-text)",
+              border: "3px solid var(--lx-accent)",
+              borderRadius: "var(--lx-radius-md)",
               padding: 16,
-              boxShadow: "0 8px 30px #0009",
-              fontSize: 18,
+              boxShadow: "var(--lx-shadow)",
+              fontSize: "var(--lx-section-size)",
             }}
           >
-            <strong style={{ color: "#f0d17a" }}>
+            <strong style={{ color: "var(--lx-accent)" }}>
               Mensagem de cliente VIP
             </strong>
             <div style={{ margin: "8px 0 12px", lineHeight: 1.5 }}>
@@ -1055,10 +902,10 @@ export default function App() {
               <a
                 href="/whatsapp"
                 style={{
-                  background: "#c9a44c",
-                  color: "#111",
+                  background: "var(--lx-accent-soft)",
+                  color: "var(--lx-text)",
                   padding: "12px 16px",
-                  borderRadius: 10,
+                  borderRadius: "var(--lx-radius-md)",
                   fontWeight: 800,
                   textDecoration: "none",
                 }}
@@ -1087,18 +934,19 @@ export default function App() {
           </button>
           <div className="topbar-context" aria-label="Localização atual">
             <span>LEXOFFICE</span>
+            {["/donna", "/painel", "/relatorios"].includes(loc.pathname) && <span className="workspace-breadcrumb-area">{area.label}</span>}
             <ChevronRight size={13} aria-hidden="true" />
             <strong>{areaTabs.find((item) => item.path === loc.pathname)?.label || area.label}</strong>
           </div>
           <div className="tools">
             <button type="button" data-testid="lex-theme-toggle" className="lex-theme-toggle" onClick={changeTheme} aria-label={lexTheme === "dark" ? "Ativar tema claro" : "Ativar tema escuro"} title={lexTheme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}>{lexTheme === "dark" ? <Sun size={16}/> : <Moon size={16}/>}<span>{lexTheme === "dark" ? "Tema claro" : "Tema escuro"}</span></button>
-            <ClientRegistrationShortcut />
-            <NavLink className="integration-shortcut" to="/integracoes">
-              <Plug size={15} /> Integrações
+            {loc.pathname === "/clientes" && <ClientRegistrationShortcut />}
+            <NavLink className="integration-shortcut" to="/ferramentas">
+              <Sparkles size={15} /> Ferramentas
             </NavLink>
             <GlobalSearch />
             <NavLink
-              to="/app-cliente"
+              to="/atendimento/aplicativo"
               onClick={() => {
                 if (
                   "Notification" in window &&
@@ -1123,14 +971,14 @@ export default function App() {
                     minWidth: 17,
                     height: 17,
                     padding: "0 4px",
-                    borderRadius: 9,
+                    borderRadius: "var(--lx-radius-md)",
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: 10,
+                    fontSize: "var(--lx-font-xs)",
                     fontWeight: 800,
-                    background: "linear-gradient(135deg,#C99443,#D6AA55)",
-                    color: "#080705",
+                    background: "var(--lx-surface)",
+                    color: "var(--lx-text)",
                   }}
                 >
                   {clientInboxUnread > 99 ? "99+" : clientInboxUnread}
@@ -1140,25 +988,12 @@ export default function App() {
           </div>
         </header>
         <div className={`content ${loc.pathname === "/whatsapp" ? "inbox-content" : ""}`} id="conteudo-principal" tabIndex={-1}>
-          {loc.pathname !== "/" && loc.pathname !== "/whatsapp" && <div className="ux-context-bar" role="status">
+          {loc.pathname !== "/" && loc.pathname !== "/whatsapp" && loc.pathname !== "/donna" && loc.pathname !== "/painel" && loc.pathname !== "/relatorios" && <div className="ux-context-bar" role="status">
             <span>{area.label}</span>
             <b>{areaTabs.find((item) => item.path === loc.pathname)?.label || area.label}</b>
             <small>Escolha uma aba ou pressione Ctrl + K para buscar.</small>
           </div>}
-          {loc.pathname !== "/" && areaTabs.length > 1 && loc.pathname !== "/whatsapp" && (
-            <nav className="area-tabs" aria-label={`Abas de ${area.label}`}>
-              {areaTabs.map((t) => (
-                <NavLink
-                  key={t.path}
-                  to={t.path}
-                  end
-                  className={({ isActive }) => (isActive ? "active" : "")}
-                >
-                  {t.label}
-                </NavLink>
-              ))}
-            </nav>
-          )}
+
           <Suspense
             fallback={
               <div className="route-loading" role="status" aria-live="polite">
@@ -1176,17 +1011,21 @@ export default function App() {
             <Route path="/donna" element={<Donna />} />
             <Route path="/crm" element={<CRM />} />
             <Route path="/clientes" element={<Clients />} />
+<Route path="/clientes/:clientId" element={<Clients />} />
             <Route path="/perfil-cliente" element={<PerfilCliente />} />
             <Route path="/processos" element={<Processes />} />
+<Route path="/processos/:recordId" element={<Processes />} />
+<Route path="/configuracoes/automacoes-processuais" element={<Processes mode="automacoes" />} />
             <Route path="/dossie/:processId" element={<Dossier />} />
             <Route path="/andamentos" element={<ProcessMovements />} />
             <Route path="/tribunais" element={<Tribunals />} />
             <Route path="/agentes-ia" element={<Agents />} />
-            <Route path="/app-cliente" element={<ClientArea />} />
+            <Route path="/atendimento/aplicativo" element={<ClientArea />} />
+<Route path="/app-cliente" element={<Navigate to="/atendimento/aplicativo" replace />} />
             <Route path="/whatsapp" element={<WhatsApp />} />
             <Route
               path="/fluxo"
-              element={<Navigate to="/whatsapp" replace />}
+              element={<Navigate to="/atendimento/programacoes" replace />}
             />
             <Route
               path="/secretario-executivo"
@@ -1216,6 +1055,15 @@ export default function App() {
             />
             <Route path="/consultas" element={<Consultations />} />
             <Route path="/documentos" element={<Documents />} />
+<Route path="/documentos/gerar" element={<Documents mode="gerar" />} />
+<Route path="/documentos/adicionar" element={<Documents mode="adicionar" />} />
+<Route path="/ferramentas" element={<ToolHub />} />
+<Route path="/atendimento/programacoes" element={<ScheduledMessages />} />
+<Route path="/configuracoes/fluxo-atendimento" element={<WhatsAppFlow />} />
+<Route path="/financeiro/recebimentos" element={financeBlocked ? <Navigate to="/" replace /> : <Finance section="recebimentos" />} />
+<Route path="/financeiro/contratos" element={financeBlocked ? <Navigate to="/" replace /> : <Finance section="contratos" />} />
+<Route path="/financeiro/novo" element={financeBlocked ? <Navigate to="/" replace /> : <Finance section="novo" />} />
+<Route path="/cobranca/configuracoes" element={financeBlocked ? <Navigate to="/" replace /> : <Finance view="cobranca" section="configuracoes" />} />
             <Route path="/jornada-comercial" element={<JornadaComercial />} />
             <Route
               path="/honorarios-propostas"
@@ -1263,6 +1111,9 @@ export default function App() {
             />
             <Route path="/relatorios" element={<Reports />} />
             <Route path="/configuracoes" element={<OrgSettings />} />
+<Route path="/configuracoes/central" element={<ConfigurationCenter />} />
+<Route path="/configuracoes/atendimento" element={<ServiceConfiguration />} />
+<Route path="/configuracoes/provedores-processuais" element={<ProcessProviderSettings />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           </Suspense>

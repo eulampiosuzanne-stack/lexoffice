@@ -1,3 +1,4 @@
+import InternalNavigation from '../components/InternalNavigation';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Landmark, Receipt, Building2, Copy, RotateCcw, Calculator } from 'lucide-react';
 import { CALCS, calcular, type CalcKey } from '../lib/planejamento';
@@ -37,9 +38,9 @@ export default function Planejamento() {
 
   return <div className="plan-page">
     <div className="page-title"><h1>Planejamento</h1><p>Régua previdenciária e planejamento tributário e patrimonial com as regras de 2026. Resultados são estimativas de apoio e devem ser conferidos juridicamente.</p></div>
-    <div className="plan-tabs" role="tablist" aria-label="Tipo de planejamento">
+    <InternalNavigation variant="underline" aria-label="Tipo de planejamento">
       {KEYS.map((k) => { const I = ICONS[k]; return <button key={k} type="button" role="tab" aria-selected={k === tab} className={k === tab ? 'active' : ''} onClick={() => switchTab(k)}><I size={16} />{CALCS[k].aba}</button>; })}
-    </div>
+    </InternalNavigation>
     <div className="plan-grid">
       <section className="plan-panel">
         <form onSubmit={submit} noValidate>

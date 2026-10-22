@@ -49,20 +49,20 @@ export default function Signatures() {
         </div>
       </div>
       <section aria-label="Status dos provedores de assinatura" style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,260px),1fr))',gap:12,marginBottom:18}}>
-        <div style={{border:'2px solid #C99443',borderRadius:14,padding:16,background:'#100C08',color:'#F5F1E8'}}>
+        <div style={{border:"2px solid var(--lx-accent)",borderRadius:"var(--lx-radius-md)",padding:16,background:"var(--lx-canvas)",color:"var(--lx-text)"}}>
           <div style={{display:'flex',alignItems:'center',gap:10}}>
-            <ShieldCheck size={22} color="#F2C56D"/>
-            <div><strong style={{display:'block',fontSize:18}}>Assinatura LEX</strong><span style={{fontSize:16,color:'#D8D0C2'}}>Disponível no LEXOFFICE</span></div>
-            <CheckCircle2 size={20} color="#F2C56D" style={{marginLeft:'auto',flexShrink:0}}/>
+            <ShieldCheck size={22} color="var(--lx-accent)"/>
+            <div><strong style={{display:'block',fontSize:"var(--lx-section-size)"}}>Assinatura LEX</strong><span style={{fontSize:"var(--lx-font-lg)",color:"var(--lx-text)"}}>Disponível no LEXOFFICE</span></div>
+            <CheckCircle2 size={20} color="var(--lx-accent)" style={{marginLeft:'auto',flexShrink:0}}/>
           </div>
         </div>
-        <div role="status" aria-live="polite" style={{border:`2px solid ${documenso==='available'?'#C99443':'#7B4B3E'}`,borderRadius:14,padding:16,background:'#100C08',color:'#F5F1E8'}}>
+        <div role="status" aria-live="polite" style={{border:`2px solid ${documenso==='available'?"var(--lx-accent)":"var(--lx-accent)"}`,borderRadius:"var(--lx-radius-md)",padding:16,background:"var(--lx-canvas)",color:"var(--lx-text)"}}>
           <div style={{display:'flex',alignItems:'center',gap:10}}>
-            {documenso==='loading'?<RefreshCw size={22} color="#F2C56D"/>:documensoAvailable?<CheckCircle2 size={22} color="#F2C56D"/>:<AlertTriangle size={22} color="#E7B09A"/>}
-            <div><strong style={{display:'block',fontSize:18}}>Documenso</strong><span style={{fontSize:16,color:'#F1D6CB'}}>{labelStatus(documenso)}</span></div>
+            {documenso==='loading'?<RefreshCw size={22} color="var(--lx-accent)"/>:documensoAvailable?<CheckCircle2 size={22} color="var(--lx-accent)"/>:<AlertTriangle size={22} color="var(--lx-text)"/>}
+            <div><strong style={{display:'block',fontSize:"var(--lx-section-size)"}}>Documenso</strong><span style={{fontSize:"var(--lx-font-lg)",color:"var(--lx-text)"}}>{labelStatus(documenso)}</span></div>
             {documenso==='loading'&&<Clock3 size={20} style={{marginLeft:'auto',flexShrink:0}}/>}
           </div>
-          {documenso!=='available'&&documenso!=='loading'&&<small style={{display:'block',marginTop:10,fontSize:14,lineHeight:1.45,color:'#E7DFD0'}}>Este provedor não está disponível para uso agora.</small>}
+          {documenso!=='available'&&documenso!=='loading'&&<small style={{display:'block',marginTop:10,fontSize:"var(--lx-font-md)",lineHeight:1.45,color:"var(--lx-text)"}}>Este provedor não está disponível para uso agora.</small>}
         </div>
       </section>
       {documensoAvailable&&<div className="integration-notice" style={{marginBottom:14}}><CheckCircle2 size={17}/> Documenso está disponível. A assinatura biométrica LEX permanece ativa.</div>}

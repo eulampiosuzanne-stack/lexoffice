@@ -1,0 +1,4184 @@
+{
+  "note": "Static inventory of frontend references; does not establish conflicting backend behavior. Contextual operations may share a resource legitimately.",
+  "filesScanned": 62,
+  "resourceReferences": [
+    {
+      "file": "src/App.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/App.tsx",
+      "kind": "from",
+      "resource": "process_movements",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/App.tsx",
+      "kind": "from",
+      "resource": "leads",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/App.tsx",
+      "kind": "from",
+      "resource": "leads",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/App.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/App.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/App.tsx",
+      "kind": "from",
+      "resource": "whatsapp_settings",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/App.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/App.tsx",
+      "kind": "from",
+      "resource": "platform_admins",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/App.tsx",
+      "kind": "from",
+      "resource": "client_app_inbox",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/BulkClientMessageBridge.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/BulkClientMessageBridge.tsx",
+      "kind": "invoke",
+      "resource": "whatsapp-operator-send",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/CalculatorPdfAutofillBridge.tsx",
+      "kind": "invoke",
+      "resource": "calculator-pdf-autofill",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/ClientFormShareAction.tsx",
+      "kind": "rpc",
+      "resource": "client_intake_mark_sent",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/ClientFormShareAction.tsx",
+      "kind": "invoke",
+      "resource": "client-intake-link-create",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/ClientFormShareAction.tsx",
+      "kind": "invoke",
+      "resource": "client-intake-link-create",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/ClientFormShareAction.tsx",
+      "kind": "invoke",
+      "resource": "whatsapp-operator-send",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/ClientFormShareAction.tsx",
+      "kind": "invoke",
+      "resource": "whatsapp-operator-send",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/ClientMessageActionBridge.tsx",
+      "kind": "from",
+      "resource": "whatsapp_conversations",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/ClientMessageActionBridge.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/ClientMessageScheduler.tsx",
+      "kind": "from",
+      "resource": "ai_agents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/ClientMessageScheduler.tsx",
+      "kind": "from",
+      "resource": "whatsapp_contacts",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/ClientMessageScheduler.tsx",
+      "kind": "from",
+      "resource": "whatsapp_conversations",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/ClientMessageScheduler.tsx",
+      "kind": "from",
+      "resource": "whatsapp_settings",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/ClientMessageScheduler.tsx",
+      "kind": "invoke",
+      "resource": "whatsapp-operator-send",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/ClientMessageScheduler.tsx",
+      "kind": "invoke",
+      "resource": "whatsapp-operator-send",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/ClientMessageScheduler.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/ClientMessageScheduler.tsx",
+      "kind": "from",
+      "resource": "scheduled_client_messages",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/components/ClientOnboardingPanel.tsx",
+      "kind": "from",
+      "resource": "client_onboarding",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/ClientOnboardingPanel.tsx",
+      "kind": "rpc",
+      "resource": "current_org_id",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/ClientOnboardingPanel.tsx",
+      "kind": "from",
+      "resource": "client_onboarding",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/components/ClientOnboardingPanel.tsx",
+      "kind": "from",
+      "resource": "client_onboarding",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/components/ClientOnboardingPanel.tsx",
+      "kind": "invoke",
+      "resource": "whatsapp-operator-send",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/GlobalSearch.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/GlobalSearch.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/GlobalSearch.tsx",
+      "kind": "from",
+      "resource": "leads",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/LiberarVendasButton.tsx",
+      "kind": "invoke",
+      "resource": "whatsapp-release-agent",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/MissingWhatsAppPanel.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/MissingWhatsAppPanel.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/components/ProcessUpdateAutomationPanel.tsx",
+      "kind": "from",
+      "resource": "ai_agent_policies",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/ProcessUpdateAutomationPanel.tsx",
+      "kind": "from",
+      "resource": "whatsapp_conversations",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/ProcessUpdateAutomationPanel.tsx",
+      "kind": "from",
+      "resource": "ai_conversation_controls",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/ProcessUpdateAutomationPanel.tsx",
+      "kind": "from",
+      "resource": "process_movements",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/ProcessUpdateAutomationPanel.tsx",
+      "kind": "from",
+      "resource": "process_notification_settings",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/ProcessUpdateAutomationPanel.tsx",
+      "kind": "from",
+      "resource": "ai_agent_policies",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/components/ProcessUpdateAutomationPanel.tsx",
+      "kind": "from",
+      "resource": "process_notification_settings",
+      "operations": [
+        "upsert"
+      ]
+    },
+    {
+      "file": "src/components/ProcessUpdateAutomationPanel.tsx",
+      "kind": "from",
+      "resource": "ai_agent_policies",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/lib/cpfLookup.ts",
+      "kind": "invoke",
+      "resource": "client-cpf-lookup",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Afazeres.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Afazeres.tsx",
+      "kind": "from",
+      "resource": "office_tasks",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Afazeres.tsx",
+      "kind": "from",
+      "resource": "calendar_events",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Afazeres.tsx",
+      "kind": "from",
+      "resource": "office_tasks",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/Afazeres.tsx",
+      "kind": "from",
+      "resource": "office_tasks",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Afazeres.tsx",
+      "kind": "from",
+      "resource": "office_tasks",
+      "operations": [
+        "delete"
+      ]
+    },
+    {
+      "file": "src/pages/Agenda.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Agenda.tsx",
+      "kind": "from",
+      "resource": "calendar_events",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Agenda.tsx",
+      "kind": "from",
+      "resource": "integration_connections",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Agenda.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Agenda.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Agenda.tsx",
+      "kind": "invoke",
+      "resource": "google-calendar-oauth-start",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Agenda.tsx",
+      "kind": "invoke",
+      "resource": "google-calendar-sync",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Agenda.tsx",
+      "kind": "from",
+      "resource": "calendar_event_reminders",
+      "operations": [
+        "upsert"
+      ]
+    },
+    {
+      "file": "src/pages/Agenda.tsx",
+      "kind": "from",
+      "resource": "calendar_events",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Agenda.tsx",
+      "kind": "from",
+      "resource": "calendar_events",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/Agenda.tsx",
+      "kind": "from",
+      "resource": "calendar_events",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Agents.tsx",
+      "kind": "invoke",
+      "resource": "ai-provider-config",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Agents.tsx",
+      "kind": "invoke",
+      "resource": "ai-provider-gateway",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Agents.tsx",
+      "kind": "invoke",
+      "resource": "ai-provider-config",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Agents.tsx",
+      "kind": "from",
+      "resource": "ai_agents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Agents.tsx",
+      "kind": "from",
+      "resource": "ai_agent_policies",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Agents.tsx",
+      "kind": "from",
+      "resource": "ai_agents",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Agents.tsx",
+      "kind": "from",
+      "resource": "ai_agent_policies",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Agents.tsx",
+      "kind": "from",
+      "resource": "ai_agents",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Agents.tsx",
+      "kind": "from",
+      "resource": "ai_agent_policies",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Agents.tsx",
+      "kind": "from",
+      "resource": "ai_agents",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Agents.tsx",
+      "kind": "from",
+      "resource": "ai_agent_policies",
+      "operations": [
+        "upsert"
+      ]
+    },
+    {
+      "file": "src/pages/Audit.tsx",
+      "kind": "from",
+      "resource": "process_access_log",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Audit.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Audit.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/CRM.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/CRM.tsx",
+      "kind": "from",
+      "resource": "leads",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/CRM.tsx",
+      "kind": "from",
+      "resource": "leads",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/CRM.tsx",
+      "kind": "from",
+      "resource": "leads",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/CRM.tsx",
+      "kind": "from",
+      "resource": "leads",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/CRM.tsx",
+      "kind": "from",
+      "resource": "leads",
+      "operations": [
+        "delete"
+      ]
+    },
+    {
+      "file": "src/pages/Calculators.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Calculators.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Calculators.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Calculators.tsx",
+      "kind": "from",
+      "resource": "lexoffice-documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Calculators.tsx",
+      "kind": "from",
+      "resource": "lexoffice-documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Calculators.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Calculators.tsx",
+      "kind": "from",
+      "resource": "lexoffice-documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Calculators.tsx",
+      "kind": "invoke",
+      "resource": "legal-calculators",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Calculators.tsx",
+      "kind": "from",
+      "resource": "lexoffice-documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Calculators.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Calculators.tsx",
+      "kind": "from",
+      "resource": "organization_settings",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Calculators.tsx",
+      "kind": "from",
+      "resource": "lexoffice-documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Checkout.tsx",
+      "kind": "invoke",
+      "resource": "asaas-create-checkout",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "from",
+      "resource": "client_office_messages",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "from",
+      "resource": "client_app_inbox",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "from",
+      "resource": "client_extraordinary_requests",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "from",
+      "resource": "client_document_requests",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "from",
+      "resource": "client_app_access",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "from",
+      "resource": "client_process_timeline",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "from",
+      "resource": "client_app_inbox",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "from",
+      "resource": "client-documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "from",
+      "resource": "documents",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "from",
+      "resource": "client-documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "from",
+      "resource": "client_document_requests",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "invoke",
+      "resource": "whatsapp-operator-send",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "invoke",
+      "resource": "whatsapp-operator-send",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "from",
+      "resource": "client_office_messages",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "invoke",
+      "resource": "whatsapp-operator-send",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "invoke",
+      "resource": "ai-provider-gateway",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "rpc",
+      "resource": "staff_confirm_extraordinary_request",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "from",
+      "resource": "client_document_requests",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "from",
+      "resource": "client_office_messages",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "from",
+      "resource": "client_app_access",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "from",
+      "resource": "client_office_messages",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "from",
+      "resource": "client_documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "from",
+      "resource": "fee_contracts",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientArea.tsx",
+      "kind": "from",
+      "resource": "client_process_timeline",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientPortal.tsx",
+      "kind": "rpc",
+      "resource": "client_app_mark_installed",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientPortal.tsx",
+      "kind": "from",
+      "resource": "client_onboarding",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/ClientPortal.tsx",
+      "kind": "from",
+      "resource": "client_onboarding",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/ClientPortal.tsx",
+      "kind": "from",
+      "resource": "client_onboarding",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/ClientPortal.tsx",
+      "kind": "rpc",
+      "resource": "client_app_context",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientPortal.tsx",
+      "kind": "rpc",
+      "resource": "client_app_processes",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientPortal.tsx",
+      "kind": "from",
+      "resource": "client_office_messages",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientPortal.tsx",
+      "kind": "from",
+      "resource": "client_document_requests",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientPortal.tsx",
+      "kind": "from",
+      "resource": "client_case_steps",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientPortal.tsx",
+      "kind": "rpc",
+      "resource": "client_app_finance",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientPortal.tsx",
+      "kind": "rpc",
+      "resource": "client_app_movements",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientPortal.tsx",
+      "kind": "rpc",
+      "resource": "client_app_timeline",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientPortal.tsx",
+      "kind": "rpc",
+      "resource": "client_app_movements",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientPortal.tsx",
+      "kind": "rpc",
+      "resource": "client_app_timeline",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientPortal.tsx",
+      "kind": "rpc",
+      "resource": "client_app_decide_document_authorization",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientPortal.tsx",
+      "kind": "rpc",
+      "resource": "client_app_document_file",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientPortal.tsx",
+      "kind": "from",
+      "resource": "client-documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientPortal.tsx",
+      "kind": "rpc",
+      "resource": "client_app_service_context",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientPortal.tsx",
+      "kind": "rpc",
+      "resource": "client_app_request_extraordinary",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientPortal.tsx",
+      "kind": "rpc",
+      "resource": "client_app_send_deferred_message",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientPortal.tsx",
+      "kind": "from",
+      "resource": "client-documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientPortal.tsx",
+      "kind": "rpc",
+      "resource": "client_app_attach_extraordinary_receipt",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientPortal.tsx",
+      "kind": "invoke",
+      "resource": "lazy-probe-tmp",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ClientPortal.tsx",
+      "kind": "invoke",
+      "resource": "lazy-probe-tmp",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "from",
+      "resource": "document_templates",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "from",
+      "resource": "documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "from",
+      "resource": "client_app_access",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "rpc",
+      "resource": "find_client_by_cpf",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "rpc",
+      "resource": "client_app_generate_access",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "rpc",
+      "resource": "client_app_generate_access",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "invoke",
+      "resource": "whatsapp-operator-send",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "invoke",
+      "resource": "whatsapp-operator-send",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "invoke",
+      "resource": "whatsapp-operator-send",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "rpc",
+      "resource": "client_app_revoke_access",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "from",
+      "resource": "whatsapp_conversations",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "invoke",
+      "resource": "document-generate",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "from",
+      "resource": "lexoffice-documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "delete"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "invoke",
+      "resource": "whatsapp-operator-send",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "from",
+      "resource": "whatsapp_contacts",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "from",
+      "resource": "whatsapp_conversations",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Clients.tsx",
+      "kind": "invoke",
+      "resource": "whatsapp-operator-send",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ConducaoProcessual.tsx",
+      "kind": "rpc",
+      "resource": "current_org_id",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ConducaoProcessual.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ConducaoProcessual.tsx",
+      "kind": "from",
+      "resource": "process_movements",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ConducaoProcessual.tsx",
+      "kind": "from",
+      "resource": "process_deadlines",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ConducaoProcessual.tsx",
+      "kind": "from",
+      "resource": "process_hearings",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ConducaoProcessual.tsx",
+      "kind": "from",
+      "resource": "process_judge_analyses",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ConducaoProcessual.tsx",
+      "kind": "from",
+      "resource": "process_conduction",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ConducaoProcessual.tsx",
+      "kind": "from",
+      "resource": "process_conduction_drafts",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ConducaoProcessual.tsx",
+      "kind": "from",
+      "resource": "process_conduction",
+      "operations": [
+        "upsert"
+      ]
+    },
+    {
+      "file": "src/pages/ConducaoProcessual.tsx",
+      "kind": "invoke",
+      "resource": "judge-analysis",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ConducaoProcessual.tsx",
+      "kind": "invoke",
+      "resource": "ai-provider-gateway",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ConducaoProcessual.tsx",
+      "kind": "from",
+      "resource": "process_conduction_drafts",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/ConducaoProcessual.tsx",
+      "kind": "invoke",
+      "resource": "document-generate",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ConducaoProcessual.tsx",
+      "kind": "from",
+      "resource": "process_deadlines",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/ConducaoProcessual.tsx",
+      "kind": "from",
+      "resource": "process_deadlines",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/ConducaoProcessual.tsx",
+      "kind": "from",
+      "resource": "process_conduction_drafts",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/Consultas.tsx",
+      "kind": "invoke",
+      "resource": "investigation-search",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Consultas.tsx",
+      "kind": "invoke",
+      "resource": "investigation-search",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Consultations.tsx",
+      "kind": "invoke",
+      "resource": "investigation-search",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Consultations.tsx",
+      "kind": "invoke",
+      "resource": "investigation-search",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Consultations.tsx",
+      "kind": "invoke",
+      "resource": "investigation-search",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Consultations.tsx",
+      "kind": "invoke",
+      "resource": "investigation-search",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/DashboardOverview.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/DashboardOverview.tsx",
+      "kind": "from",
+      "resource": "financial_entries",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/DashboardOverview.tsx",
+      "kind": "from",
+      "resource": "calendar_events",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/DashboardOverview.tsx",
+      "kind": "from",
+      "resource": "office_tasks",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/DashboardOverview.tsx",
+      "kind": "from",
+      "resource": "process_deadlines",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/DashboardOverview.tsx",
+      "kind": "from",
+      "resource": "client_app_inbox",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Documents.tsx",
+      "kind": "from",
+      "resource": "document_templates",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Documents.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Documents.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Documents.tsx",
+      "kind": "from",
+      "resource": "documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Documents.tsx",
+      "kind": "from",
+      "resource": "generated_documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Documents.tsx",
+      "kind": "rpc",
+      "resource": "current_org_id",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Documents.tsx",
+      "kind": "from",
+      "resource": "lexoffice-documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Documents.tsx",
+      "kind": "from",
+      "resource": "documents",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/Documents.tsx",
+      "kind": "from",
+      "resource": "lexoffice-documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Documents.tsx",
+      "kind": "from",
+      "resource": "lexoffice-documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Documents.tsx",
+      "kind": "from",
+      "resource": "lexoffice-documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Documents.tsx",
+      "kind": "from",
+      "resource": "documents",
+      "operations": [
+        "delete"
+      ]
+    },
+    {
+      "file": "src/pages/Documents.tsx",
+      "kind": "from",
+      "resource": "generated_documents",
+      "operations": [
+        "delete"
+      ]
+    },
+    {
+      "file": "src/pages/Documents.tsx",
+      "kind": "invoke",
+      "resource": "document-generate",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Donna.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Donna.tsx",
+      "kind": "from",
+      "resource": "calendar_events",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Donna.tsx",
+      "kind": "from",
+      "resource": "process_hearings",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Donna.tsx",
+      "kind": "from",
+      "resource": "process_deadlines",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Donna.tsx",
+      "kind": "from",
+      "resource": "process_deadlines",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Donna.tsx",
+      "kind": "from",
+      "resource": "financial_entries",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Donna.tsx",
+      "kind": "from",
+      "resource": "process_movements",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Donna.tsx",
+      "kind": "from",
+      "resource": "client_app_inbox",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Donna.tsx",
+      "kind": "from",
+      "resource": "whatsapp_conversations",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Donna.tsx",
+      "kind": "from",
+      "resource": "office_tasks",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Donna.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Donna.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Donna.tsx",
+      "kind": "from",
+      "resource": "process_deadlines",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Donna.tsx",
+      "kind": "from",
+      "resource": "process_deadlines",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Donna.tsx",
+      "kind": "invoke",
+      "resource": "ai-provider-gateway",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Dossier.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Dossier.tsx",
+      "kind": "from",
+      "resource": "process_access_log",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/Dossier.tsx",
+      "kind": "from",
+      "resource": "process_movements",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Dossier.tsx",
+      "kind": "from",
+      "resource": "process_deadlines",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Dossier.tsx",
+      "kind": "from",
+      "resource": "process_hearings",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Dossier.tsx",
+      "kind": "from",
+      "resource": "process_judge_analyses",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Dossier.tsx",
+      "kind": "from",
+      "resource": "client_events",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Dossier.tsx",
+      "kind": "from",
+      "resource": "whatsapp_conversations",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Dossier.tsx",
+      "kind": "from",
+      "resource": "whatsapp_messages",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Dossier.tsx",
+      "kind": "invoke",
+      "resource": "ai-provider-gateway",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/EvolutionOfficeConnect.tsx",
+      "kind": "invoke",
+      "resource": "whatsapp-evolution-connect",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ExecutiveSecretary.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ExecutiveSecretary.tsx",
+      "kind": "from",
+      "resource": "executive_dispatch_runs",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ExecutiveSecretary.tsx",
+      "kind": "from",
+      "resource": "executive_action_queue",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ExecutiveSecretary.tsx",
+      "kind": "rpc",
+      "resource": "decide_executive_action",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "from",
+      "resource": "financial_entries",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "from",
+      "resource": "collection_settings",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "from",
+      "resource": "fee_contracts",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "from",
+      "resource": "collection_schedule",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "from",
+      "resource": "financial_entry_payments",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "from",
+      "resource": "client_service_restrictions",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "from",
+      "resource": "client_service_restrictions",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "from",
+      "resource": "client_service_restrictions",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "rpc",
+      "resource": "create_fee_contract_with_financial_entries_v2",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "from",
+      "resource": "fee_contracts",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "from",
+      "resource": "financial_entries",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "from",
+      "resource": "collection_settings",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "from",
+      "resource": "collection_settings",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "from",
+      "resource": "collection_schedule",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "from",
+      "resource": "financial_entry_payments",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "from",
+      "resource": "financial_entries",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "from",
+      "resource": "collection_schedule",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "from",
+      "resource": "collection_schedule",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "from",
+      "resource": "collection_schedule",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "from",
+      "resource": "collection_schedule",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "rpc",
+      "resource": "activate_success_fee_contract",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "from",
+      "resource": "collection_schedule",
+      "operations": [
+        "delete"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "from",
+      "resource": "collection_schedule",
+      "operations": [
+        "delete"
+      ]
+    },
+    {
+      "file": "src/pages/Finance.tsx",
+      "kind": "from",
+      "resource": "financial_entries",
+      "operations": [
+        "delete"
+      ]
+    },
+    {
+      "file": "src/pages/Hearings.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Hearings.tsx",
+      "kind": "from",
+      "resource": "process_hearings",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Hearings.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Hearings.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Hearings.tsx",
+      "kind": "from",
+      "resource": "process_movements",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Hearings.tsx",
+      "kind": "from",
+      "resource": "process_deadlines",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Hearings.tsx",
+      "kind": "from",
+      "resource": "process_judge_analyses",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Hearings.tsx",
+      "kind": "from",
+      "resource": "documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Hearings.tsx",
+      "kind": "invoke",
+      "resource": "ai-provider-gateway",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/HomeDeadlines.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/HomeDeadlines.tsx",
+      "kind": "from",
+      "resource": "process_deadlines",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/HomeDeadlines.tsx",
+      "kind": "from",
+      "resource": "process_deadlines",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Imports.tsx",
+      "kind": "from",
+      "resource": "import_jobs",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Imports.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Imports.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Imports.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Imports.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Imports.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Imports.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Imports.tsx",
+      "kind": "from",
+      "resource": "import_jobs",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/Imports.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Imports.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Imports.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/Imports.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Imports.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Imports.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/Imports.tsx",
+      "kind": "from",
+      "resource": "financial_entries",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/Imports.tsx",
+      "kind": "from",
+      "resource": "import_rows",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/Imports.tsx",
+      "kind": "from",
+      "resource": "import_jobs",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Integrations.tsx",
+      "kind": "from",
+      "resource": "integration_connections",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Integrations.tsx",
+      "kind": "from",
+      "resource": "platform_admins",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/JornadaComercial.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/JornadaComercial.tsx",
+      "kind": "from",
+      "resource": "commercial_proposals",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/JornadaComercial.tsx",
+      "kind": "from",
+      "resource": "commercial_proposal_followups",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/JornadaComercial.tsx",
+      "kind": "from",
+      "resource": "leads",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/JornadaComercial.tsx",
+      "kind": "from",
+      "resource": "whatsapp_settings",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/JornadaComercial.tsx",
+      "kind": "from",
+      "resource": "commercial_proposals",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/JornadaComercial.tsx",
+      "kind": "from",
+      "resource": "commercial_proposals",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/JornadaComercial.tsx",
+      "kind": "from",
+      "resource": "commercial_proposals",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/JornadaComercial.tsx",
+      "kind": "from",
+      "resource": "commercial_proposals",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/JornadaComercial.tsx",
+      "kind": "from",
+      "resource": "commercial_proposals",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/JornadaComercial.tsx",
+      "kind": "from",
+      "resource": "commercial_proposal_followups",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/JornadaComercial.tsx",
+      "kind": "from",
+      "resource": "whatsapp_settings",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/JornadaComercial.tsx",
+      "kind": "from",
+      "resource": "commercial_monthly_metrics",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/JornadaComercial.tsx",
+      "kind": "from",
+      "resource": "legal_fee_reference",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/JornadaComercial.tsx",
+      "kind": "from",
+      "resource": "legal_fee_reference",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/JornadaComercial.tsx",
+      "kind": "from",
+      "resource": "legal_fee_reference",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/JornadaComercial.tsx",
+      "kind": "from",
+      "resource": "extraordinary_service_fees",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/JornadaComercial.tsx",
+      "kind": "from",
+      "resource": "extraordinary_service_fees",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/LexSignPanel.tsx",
+      "kind": "from",
+      "resource": "lex_signature_requests",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/LexSignPanel.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/LexSignPanel.tsx",
+      "kind": "from",
+      "resource": "documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/LexSignPanel.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/LexSignPanel.tsx",
+      "kind": "invoke",
+      "resource": "whatsapp-operator-send",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/LexSignPanel.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/LexSignPanel.tsx",
+      "kind": "from",
+      "resource": "lexoffice-documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/LexSignPanel.tsx",
+      "kind": "from",
+      "resource": "documents",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/LexSignPanel.tsx",
+      "kind": "from",
+      "resource": "lexoffice-documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Marketing.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Marketing.tsx",
+      "kind": "from",
+      "resource": "marketing_campaigns",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Marketing.tsx",
+      "kind": "from",
+      "resource": "marketing_lists",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Marketing.tsx",
+      "kind": "from",
+      "resource": "marketing_templates",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Marketing.tsx",
+      "kind": "from",
+      "resource": "marketing_campaign_deliveries",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Marketing.tsx",
+      "kind": "from",
+      "resource": "marketing_campaigns",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/Marketing.tsx",
+      "kind": "invoke",
+      "resource": "marketing-campaign-run",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Marketing.tsx",
+      "kind": "from",
+      "resource": "marketing_lists",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/Marketing.tsx",
+      "kind": "from",
+      "resource": "marketing_contacts",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/Marketing.tsx",
+      "kind": "from",
+      "resource": "marketing_templates",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/Marketing.tsx",
+      "kind": "from",
+      "resource": "marketing_templates",
+      "operations": [
+        "delete"
+      ]
+    },
+    {
+      "file": "src/pages/MetaPartnerConnect.tsx",
+      "kind": "invoke",
+      "resource": "meta-whatsapp-oauth",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/MetaPartnerConnect.tsx",
+      "kind": "invoke",
+      "resource": "meta-whatsapp-oauth",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/MetaPartnerConnect.tsx",
+      "kind": "invoke",
+      "resource": "meta-whatsapp-oauth",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/MetaPartnerConnect.tsx",
+      "kind": "invoke",
+      "resource": "meta-whatsapp-oauth",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PartnerPanel.tsx",
+      "kind": "from",
+      "resource": "financial_entries",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PartnerPanel.tsx",
+      "kind": "from",
+      "resource": "leads",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PartnerPanel.tsx",
+      "kind": "from",
+      "resource": "fee_contracts",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PartnerPanel.tsx",
+      "kind": "from",
+      "resource": "process_last_activity",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PartnerPanel.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PartnerPanel.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PerfilCliente.tsx",
+      "kind": "rpc",
+      "resource": "current_org_id",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PerfilCliente.tsx",
+      "kind": "from",
+      "resource": "organization_settings",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PetitionAssistant.tsx",
+      "kind": "invoke",
+      "resource": "petition-assistant",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PetitionAssistant.tsx",
+      "kind": "invoke",
+      "resource": "document-generate",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PetitionAssistant.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PetitionAssistant.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PetitionAssistant.tsx",
+      "kind": "from",
+      "resource": "petition_assistant_runs",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PetitionAssistant.tsx",
+      "kind": "from",
+      "resource": "documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PetitionAssistant.tsx",
+      "kind": "from",
+      "resource": "client_document_requests",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PetitionAssistant.tsx",
+      "kind": "rpc",
+      "resource": "current_org_id",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PetitionAssistant.tsx",
+      "kind": "from",
+      "resource": "lexoffice-documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PetitionAssistant.tsx",
+      "kind": "from",
+      "resource": "documents",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/PetitionAssistant.tsx",
+      "kind": "from",
+      "resource": "lexoffice-documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PetitionAssistant.tsx",
+      "kind": "from",
+      "resource": "documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PetitionAssistant.tsx",
+      "kind": "rpc",
+      "resource": "current_org_id",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PetitionAssistant.tsx",
+      "kind": "from",
+      "resource": "lexoffice-documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PetitionAssistant.tsx",
+      "kind": "from",
+      "resource": "documents",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/PetitionAssistant.tsx",
+      "kind": "from",
+      "resource": "lexoffice-documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PetitionAssistant.tsx",
+      "kind": "invoke",
+      "resource": "whatsapp-operator-send",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PetitionAssistant.tsx",
+      "kind": "from",
+      "resource": "client_document_requests",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/PetitionAssistant.tsx",
+      "kind": "from",
+      "resource": "client_document_requests",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/PetitionAssistant.tsx",
+      "kind": "rpc",
+      "resource": "current_org_id",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PetitionAssistant.tsx",
+      "kind": "from",
+      "resource": "lexoffice-documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PetitionAssistant.tsx",
+      "kind": "from",
+      "resource": "documents",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/PetitionAssistant.tsx",
+      "kind": "from",
+      "resource": "lexoffice-documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PetitionAssistant.tsx",
+      "kind": "rpc",
+      "resource": "current_org_id",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PetitionAssistant.tsx",
+      "kind": "from",
+      "resource": "petition_assistant_runs",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/PetitionAssistant.tsx",
+      "kind": "from",
+      "resource": "petition_assistant_runs",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/PlatformAdmin.tsx",
+      "kind": "from",
+      "resource": "organizations",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PlatformAdmin.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PlatformAdmin.tsx",
+      "kind": "from",
+      "resource": "platform_plans",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PlatformAdmin.tsx",
+      "kind": "from",
+      "resource": "platform_subscriptions",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PlatformAdmin.tsx",
+      "kind": "from",
+      "resource": "audit_logs",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PlatformAdmin.tsx",
+      "kind": "invoke",
+      "resource": "create-organization",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PlatformAdmin.tsx",
+      "kind": "from",
+      "resource": "organizations",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/PlatformAdmin.tsx",
+      "kind": "invoke",
+      "resource": "create-organization",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PlatformAdmin.tsx",
+      "kind": "from",
+      "resource": "platform_plans",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/PlatformAdmin.tsx",
+      "kind": "from",
+      "resource": "platform_plans",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/PlatformAdminEntry.tsx",
+      "kind": "from",
+      "resource": "platform_admins",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PlatformProcessProviders.tsx",
+      "kind": "invoke",
+      "resource": "escavador-oab-discovery",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/PlatformProcessProviders.tsx",
+      "kind": "invoke",
+      "resource": "escavador-oab-discovery",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ProcessAutomation.tsx",
+      "kind": "from",
+      "resource": "process_movements",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ProcessAutomation.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ProcessAutomation.tsx",
+      "kind": "from",
+      "resource": "process_notification_settings",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ProcessAutomation.tsx",
+      "kind": "from",
+      "resource": "tribunal_connections",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ProcessAutomation.tsx",
+      "kind": "from",
+      "resource": "process_notification_settings",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/ProcessAutomation.tsx",
+      "kind": "from",
+      "resource": "process_notification_settings",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/ProcessMovements.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ProcessMovements.tsx",
+      "kind": "from",
+      "resource": "process_movements",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ProcessMovements.tsx",
+      "kind": "from",
+      "resource": "process_notification_queue",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ProcessMovements.tsx",
+      "kind": "invoke",
+      "resource": "djen-sync",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ProcessMovements.tsx",
+      "kind": "from",
+      "resource": "process_movements",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/ProcessMovements.tsx",
+      "kind": "from",
+      "resource": "process_notification_queue",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/ProcessMovements.tsx",
+      "kind": "from",
+      "resource": "process_movements",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/ProcessMovements.tsx",
+      "kind": "from",
+      "resource": "process_notification_queue",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/ProcessMovements.tsx",
+      "kind": "from",
+      "resource": "process_notification_queue",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/ProcessProviderSettings.tsx",
+      "kind": "from",
+      "resource": "platform_admins",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Processes.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Processes.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Processes.tsx",
+      "kind": "from",
+      "resource": "process_intelligent_rules",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Processes.tsx",
+      "kind": "from",
+      "resource": "ai_agents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Processes.tsx",
+      "kind": "from",
+      "resource": "integration_connections",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Processes.tsx",
+      "kind": "from",
+      "resource": "tribunal_connections",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Processes.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Processes.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Processes.tsx",
+      "kind": "from",
+      "resource": "process_intelligent_rules",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Processes.tsx",
+      "kind": "from",
+      "resource": "process_ai_summaries",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Processes.tsx",
+      "kind": "invoke",
+      "resource": "ai-provider-gateway",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Processes.tsx",
+      "kind": "from",
+      "resource": "process_ai_summaries",
+      "operations": [
+        "upsert"
+      ]
+    },
+    {
+      "file": "src/pages/Processes.tsx",
+      "kind": "from",
+      "resource": "process_access_log",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/Processes.tsx",
+      "kind": "from",
+      "resource": "process_judge_analyses",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Processes.tsx",
+      "kind": "from",
+      "resource": "process_movements",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Processes.tsx",
+      "kind": "from",
+      "resource": "process_deadlines",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Processes.tsx",
+      "kind": "from",
+      "resource": "process_hearings",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Processes.tsx",
+      "kind": "from",
+      "resource": "documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Processes.tsx",
+      "kind": "from",
+      "resource": "financial_entries",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Processes.tsx",
+      "kind": "invoke",
+      "resource": "ai-provider-gateway",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Processes.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Prospecting.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Prospecting.tsx",
+      "kind": "from",
+      "resource": "marketing_lists",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Prospecting.tsx",
+      "kind": "from",
+      "resource": "marketing_campaigns",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Prospecting.tsx",
+      "kind": "from",
+      "resource": "whatsapp_connections",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Prospecting.tsx",
+      "kind": "from",
+      "resource": "marketing_campaigns",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/Reports.tsx",
+      "kind": "from",
+      "resource": "leads",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Reports.tsx",
+      "kind": "from",
+      "resource": "financial_entry_payments",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Reports.tsx",
+      "kind": "from",
+      "resource": "financial_entries",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Reports.tsx",
+      "kind": "from",
+      "resource": "financial_entries",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Reports.tsx",
+      "kind": "from",
+      "resource": "process_movements",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Reports.tsx",
+      "kind": "from",
+      "resource": "process_hearings",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Reports.tsx",
+      "kind": "from",
+      "resource": "process_deadlines",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Reports.tsx",
+      "kind": "from",
+      "resource": "process_deadlines",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Reports.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Reports.tsx",
+      "kind": "from",
+      "resource": "whatsapp_messages",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Reports.tsx",
+      "kind": "from",
+      "resource": "whatsapp_messages",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Reports.tsx",
+      "kind": "from",
+      "resource": "ai_agent_alerts",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Reports.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/RevisaoPeca.tsx",
+      "kind": "rpc",
+      "resource": "current_org_id",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/RevisaoPeca.tsx",
+      "kind": "from",
+      "resource": "legal-review-files",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/RevisaoPeca.tsx",
+      "kind": "from",
+      "resource": "legal_document_reviews",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/ScheduledMessages.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/ScheduledMessages.tsx",
+      "kind": "from",
+      "resource": "scheduled_client_messages",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Security.tsx",
+      "kind": "from",
+      "resource": "audit_logs",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Service.tsx",
+      "kind": "from",
+      "resource": "whatsapp_conversations",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Service.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Service.tsx",
+      "kind": "from",
+      "resource": "whatsapp_messages",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Service.tsx",
+      "kind": "from",
+      "resource": "whatsapp_conversations",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Service.tsx",
+      "kind": "from",
+      "resource": "ai_conversation_controls",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Service.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Service.tsx",
+      "kind": "from",
+      "resource": "processes",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Service.tsx",
+      "kind": "from",
+      "resource": "documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Service.tsx",
+      "kind": "from",
+      "resource": "clients",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Service.tsx",
+      "kind": "from",
+      "resource": "whatsapp_conversations",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Service.tsx",
+      "kind": "from",
+      "resource": "whatsapp_conversations",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Service.tsx",
+      "kind": "invoke",
+      "resource": "ai-provider-gateway",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Service.tsx",
+      "kind": "invoke",
+      "resource": "whatsapp-operator-send",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Service.tsx",
+      "kind": "invoke",
+      "resource": "whatsapp-operator-send",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Settings.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Settings.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Settings.tsx",
+      "kind": "from",
+      "resource": "platform_admins",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Settings.tsx",
+      "kind": "from",
+      "resource": "organizations",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Settings.tsx",
+      "kind": "from",
+      "resource": "organization_settings",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Settings.tsx",
+      "kind": "from",
+      "resource": "lexoffice-documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Settings.tsx",
+      "kind": "from",
+      "resource": "lexoffice-documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Settings.tsx",
+      "kind": "from",
+      "resource": "lexoffice-documents",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Settings.tsx",
+      "kind": "from",
+      "resource": "organization_settings",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Settings.tsx",
+      "kind": "from",
+      "resource": "organization_settings",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/Settings.tsx",
+      "kind": "from",
+      "resource": "organization_settings",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Settings.tsx",
+      "kind": "invoke",
+      "resource": "create-user",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Settings.tsx",
+      "kind": "invoke",
+      "resource": "reset-user-password",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Signatures.tsx",
+      "kind": "from",
+      "resource": "integration_connections",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Tribunals.tsx",
+      "kind": "from",
+      "resource": "djen_monitors",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Tribunals.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/Tribunals.tsx",
+      "kind": "from",
+      "resource": "djen_monitors",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/Tribunals.tsx",
+      "kind": "from",
+      "resource": "djen_monitors",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/Tribunals.tsx",
+      "kind": "from",
+      "resource": "platform_feature_flags",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/WhatsAppAdminSettings.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/WhatsAppAdminSettings.tsx",
+      "kind": "from",
+      "resource": "whatsapp_settings",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/WhatsAppAdminSettings.tsx",
+      "kind": "from",
+      "resource": "integration_connections",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/WhatsAppAdminSettings.tsx",
+      "kind": "from",
+      "resource": "whatsapp_settings",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/WhatsAppAdminSettings.tsx",
+      "kind": "from",
+      "resource": "whatsapp_settings",
+      "operations": [
+        "insert"
+      ]
+    },
+    {
+      "file": "src/pages/WhatsAppAdminSettings.tsx",
+      "kind": "invoke",
+      "resource": "whatsapp-operator-send",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/WhatsAppConnections.tsx",
+      "kind": "from",
+      "resource": "whatsapp_connections",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/WhatsAppConnections.tsx",
+      "kind": "invoke",
+      "resource": "meta-whatsapp-oauth",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/WhatsAppConnections.tsx",
+      "kind": "invoke",
+      "resource": "meta-whatsapp-oauth",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/WhatsAppConnections.tsx",
+      "kind": "invoke",
+      "resource": "meta-whatsapp-oauth",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/WhatsAppFlow.tsx",
+      "kind": "from",
+      "resource": "profiles",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/WhatsAppFlow.tsx",
+      "kind": "from",
+      "resource": "whatsapp_conversations",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/WhatsAppFlow.tsx",
+      "kind": "from",
+      "resource": "ai_conversation_controls",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/WhatsAppFlow.tsx",
+      "kind": "from",
+      "resource": "ai_agent_policies",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/WhatsAppFlow.tsx",
+      "kind": "from",
+      "resource": "ai_agent_alerts",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/WhatsAppFlow.tsx",
+      "kind": "from",
+      "resource": "whatsapp_settings",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/WhatsAppFlow.tsx",
+      "kind": "from",
+      "resource": "whatsapp_conversations",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/WhatsAppFlow.tsx",
+      "kind": "from",
+      "resource": "ai_conversation_controls",
+      "operations": [
+        "read-or-call"
+      ]
+    },
+    {
+      "file": "src/pages/WhatsAppFlow.tsx",
+      "kind": "from",
+      "resource": "ai_conversation_controls",
+      "operations": [
+        "update"
+      ]
+    },
+    {
+      "file": "src/pages/WhatsAppFlow.tsx",
+      "kind": "from",
+      "resource": "ai_conversation_controls",
+      "operations": [
+        "insert"
+      ]
+    }
+  ],
+  "resourcesWithMultipleWriteSurfaces": [
+    {
+      "resource": "client_onboarding",
+      "files": [
+        "src/components/ClientOnboardingPanel.tsx",
+        "src/pages/ClientPortal.tsx"
+      ]
+    },
+    {
+      "resource": "clients",
+      "files": [
+        "src/components/MissingWhatsAppPanel.tsx",
+        "src/pages/Clients.tsx",
+        "src/pages/Imports.tsx"
+      ]
+    },
+    {
+      "resource": "process_notification_settings",
+      "files": [
+        "src/components/ProcessUpdateAutomationPanel.tsx",
+        "src/pages/ProcessAutomation.tsx"
+      ]
+    },
+    {
+      "resource": "ai_agent_policies",
+      "files": [
+        "src/components/ProcessUpdateAutomationPanel.tsx",
+        "src/pages/Agents.tsx"
+      ]
+    },
+    {
+      "resource": "documents",
+      "files": [
+        "src/pages/ClientArea.tsx",
+        "src/pages/Documents.tsx",
+        "src/pages/LexSignPanel.tsx",
+        "src/pages/PetitionAssistant.tsx"
+      ]
+    },
+    {
+      "resource": "client_document_requests",
+      "files": [
+        "src/pages/ClientArea.tsx",
+        "src/pages/PetitionAssistant.tsx"
+      ]
+    },
+    {
+      "resource": "whatsapp_conversations",
+      "files": [
+        "src/pages/Clients.tsx",
+        "src/pages/Service.tsx",
+        "src/pages/WhatsAppFlow.tsx"
+      ]
+    },
+    {
+      "resource": "process_deadlines",
+      "files": [
+        "src/pages/ConducaoProcessual.tsx",
+        "src/pages/Donna.tsx",
+        "src/pages/HomeDeadlines.tsx"
+      ]
+    },
+    {
+      "resource": "process_access_log",
+      "files": [
+        "src/pages/Dossier.tsx",
+        "src/pages/Processes.tsx"
+      ]
+    },
+    {
+      "resource": "financial_entries",
+      "files": [
+        "src/pages/Finance.tsx",
+        "src/pages/Imports.tsx"
+      ]
+    },
+    {
+      "resource": "processes",
+      "files": [
+        "src/pages/Imports.tsx",
+        "src/pages/Processes.tsx"
+      ]
+    },
+    {
+      "resource": "whatsapp_settings",
+      "files": [
+        "src/pages/JornadaComercial.tsx",
+        "src/pages/WhatsAppAdminSettings.tsx"
+      ]
+    },
+    {
+      "resource": "marketing_campaigns",
+      "files": [
+        "src/pages/Marketing.tsx",
+        "src/pages/Prospecting.tsx"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {createRequire} from 'node:module';
+import Module from 'node:module';
+import ts from 'typescript';
+import React from 'react';
+import {renderToStaticMarkup} from 'react-dom/server';
+const file=new URL('../src/components/InternalNavigation.tsx',import.meta.url);
+const compiled=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2022}}).outputText;
+const mod=new Module(file.pathname);mod.filename=file.pathname;mod.paths=Module._nodeModulePaths(new URL('../',import.meta.url).pathname);mod._compile(compiled,file.pathname);
+const {default:Navigation,SectionWorkspace}=mod.exports;
+const html=renderToStaticMarkup(React.createElement(Navigation,{label:'Seções',variant:'sections'},React.createElement('button',{'aria-selected':true,role:'tab',className:'active',style:{background:'red'}},'Resumo'),React.createElement('button',{disabled:true},'Documentos')));
+assert.match(html,/aria-pressed="true"/);assert.doesNotMatch(html,/role="tab"|background:red/);assert.match(html,/aria-label="Seções"/);assert.match(html,/<option value="0" selected="">Resumo/);assert.match(html,/<option value="1" disabled="">Documentos/);
+const links=renderToStaticMarkup(React.createElement(Navigation,{label:'Financeiro'},React.createElement('a',{href:'/financeiro',className:'active'},'Visão geral')));assert.match(links,/href="\/financeiro"/);assert.match(links,/aria-current="page"/);
+const layout=renderToStaticMarkup(React.createElement(SectionWorkspace,{navigation:React.createElement('span',null,'Menu')},'Conteúdo'));assert.match(layout,/lx-section-sidebar/);assert.match(layout,/lx-section-content/);
+console.log('PASS links, current selection, disabled sections, mobile selector, legacy style removal and record layout.');

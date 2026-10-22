@@ -4,67 +4,67 @@
 
 @media (max-width: 760px){
   html,body,#root{width:100%;max-width:100%;overflow-x:hidden}
-  body{padding:0!important}
+  body{padding:0}
 
-  .app{display:block!important;min-height:100dvh!important;width:100%!important}
-  .app>main{width:100%!important;min-width:0!important;margin:0!important;padding:0!important}
+  .app{display:block;min-height:100dvh;width:100%}
+  .app>main{width:100%;min-width:0;margin:0;padding:0}
 
   /* Sidebar vira gaveta e só aparece quando "Mais" é acionado. */
   .app>aside{
-    position:fixed!important;
-    z-index:1200!important;
-    inset:0 auto 0 0!important;
-    width:min(84vw,320px)!important;
-    max-width:320px!important;
-    height:100dvh!important;
-    transform:translateX(-104%)!important;
-    transition:transform .22s ease!important;
-    box-shadow:18px 0 48px rgba(0,0,0,.42)!important;
-    overflow-y:auto!important;
+    position:fixed;
+    z-index:1200;
+    inset:0 auto 0 0;
+    width:min(84vw,320px);
+    max-width:320px;
+    height:100dvh;
+    transform:translateX(-104%);
+    transition:transform .22s ease;
+    box-shadow:var(--lx-shadow);
+    overflow-y:auto;
   }
-  .app.nav-open>aside{transform:translateX(0)!important}
+  .app.nav-open>aside{transform:translateX(0)}
   .nav-overlay{
-    position:fixed!important;
-    z-index:1190!important;
-    inset:0!important;
-    background:rgba(8,7,5,.68)!important;
-    backdrop-filter:blur(2px)!important;
+    position:fixed;
+    z-index:1190;
+    inset:0;
+    background:var(--lx-canvas);
+    backdrop-filter:blur(2px);
   }
 
   /* Cabeçalho compacto para o celular. */
   .app main>header{
-    position:sticky!important;
-    z-index:500!important;
-    top:0!important;
-    height:58px!important;
-    min-height:58px!important;
-    padding:0 14px!important;
-    display:flex!important;
-    align-items:center!important;
-    justify-content:space-between!important;
-    background:rgba(16,12,8,.94)!important;
-    backdrop-filter:blur(14px)!important;
-    border-bottom:1px solid var(--lx-border)!important;
+    position:sticky;
+    z-index:500;
+    top:0;
+    height:58px;
+    min-height:58px;
+    padding:0 12px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:var(--lx-canvas);
+    backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--lx-border);
   }
-  .app main>header .crumb{font-size:13px!important;font-weight:800!important;letter-spacing:.04em!important}
-  .app main>header .tools{gap:8px!important}
+  .app main>header .crumb{font-size:var(--lx-font-sm);font-weight:800;letter-spacing:.04em}
+  .app main>header .tools{gap:8px}
   .app main>header .search,
   .app main>header .integration-shortcut,
   .app main>header .tools>button,
-  .app main>header .tools>svg:first-of-type{display:none!important}
-  .mobile-menu-btn{display:none!important}
+  .app main>header .tools>svg:first-of-type{display:none}
+  .mobile-menu-btn{display:none}
 
   /* Área de conteúdo com respiro para a barra inferior. */
   .app .content{
-    width:100%!important;
-    max-width:100%!important;
-    min-width:0!important;
-    box-sizing:border-box!important;
-    padding:16px 12px calc(92px + env(safe-area-inset-bottom))!important;
-    overflow-x:hidden!important;
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    box-sizing:border-box;
+    padding:16px 12px calc(92px + env(safe-area-inset-bottom));
+    overflow-x:hidden;
   }
-  .app .page-title,.app .page-head{margin-bottom:14px!important}
-  .app .page-title h1,.app .page-head h1{font-size:21px!important}
+  .app .page-title,.app .page-head{margin-bottom:12px}
+  .app .page-title h1,.app .page-head h1{font-size:var(--lx-page-size)}
 
   /* Cards e grades passam a ocupar uma coluna no telefone. */
   .app .dashboard-kpis,
@@ -80,81 +80,83 @@
   .app .document-auto-grid,
   .app .settings-grid,
   .app .connections-grid{
-    grid-template-columns:1fr!important;
+    grid-template-columns:1fr;
   }
-  .app .dashboard-kpis{gap:10px!important}
-  .app .dashboard-kpi{min-width:0!important}
+  .app .dashboard-kpis{gap:8px}
+  .app .dashboard-kpi{min-width:0}
 
   /* Tabelas continuam completas, com rolagem horizontal local. */
   .app .table-wrap,
   .app .table-panel,
   .app [class*="table-wrap"],
-  .app [class*="table-panel"]{max-width:100%!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch}
+  .app [class*="table-panel"]{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
   .app table{min-width:680px}
 
   /* Atendimento/WhatsApp: painel central primeiro, laterais em fluxo. */
-  .app .service-shell{grid-template-columns:1fr!important;min-width:0!important}
-  .app .service-sidebar,.app .service-main,.app .service-detail{min-width:0!important;max-width:100%!important}
-  .app .service-chat-head,.app .service-compose{position:relative!important}
+  .app .service-shell{grid-template-columns:1fr;min-width:0}
+  .app .service-sidebar,.app .service-main,.app .service-detail{min-width:0;max-width:100%}
+  .app .service-chat-head,.app .service-compose{position:relative}
 
   /* Barra principal do aplicativo. */
   .mobile-bottom-nav{
-    position:fixed!important;
-    z-index:1000!important;
-    left:8px!important;
-    right:8px!important;
-    bottom:max(8px,env(safe-area-inset-bottom))!important;
-    display:grid!important;
-    grid-template-columns:repeat(5,minmax(0,1fr))!important;
-    align-items:stretch!important;
-    height:66px!important;
-    padding:5px!important;
-    border:1px solid var(--lx-border-strong)!important;
-    border-radius:18px!important;
-    background:rgba(16,12,8,.96)!important;
-    backdrop-filter:blur(18px)!important;
-    box-shadow:0 12px 38px rgba(0,0,0,.42)!important;
+    position:fixed;
+    z-index:1000;
+    left:8px;
+    right:8px;
+    bottom:max(8px,env(safe-area-inset-bottom));
+    display:grid;
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    align-items:stretch;
+    height:66px;
+    padding:4px;
+    border:1px solid var(--lx-border-strong);
+    border-radius:var(--lx-radius-md);
+    background:var(--lx-canvas);
+    backdrop-filter:blur(18px);
+    box-shadow:var(--lx-shadow);
   }
   .mobile-bottom-nav a,.mobile-bottom-nav button{
-    min-width:0!important;
-    min-height:54px!important;
-    margin:0!important;
-    padding:5px 2px!important;
-    border:0!important;
-    border-radius:13px!important;
-    background:transparent!important;
-    color:var(--lx-muted)!important;
-    display:flex!important;
-    flex-direction:column!important;
-    align-items:center!important;
-    justify-content:center!important;
-    gap:4px!important;
-    text-decoration:none!important;
-    font-size:9.5px!important;
-    font-weight:700!important;
-    line-height:1!important;
-    white-space:nowrap!important;
+    min-width:0;
+    min-height:54px;
+    margin:0;
+    padding:4px 4px;
+    border:0;
+    border-radius:var(--lx-radius-md);
+    background:transparent;
+    color:var(--lx-text-muted);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:4px;
+    text-decoration:none;
+    font-size:9.5px;
+    font-weight:700;
+    line-height:1;
+    white-space:nowrap;
   }
-  .mobile-bottom-nav svg{width:20px!important;height:20px!important;flex:0 0 auto!important}
+  .mobile-bottom-nav svg{width:20px;height:20px;flex:0 0 auto}
   .mobile-bottom-nav a.active{
-    background:var(--lx-accent-soft)!important;
-    color:var(--lx-accent)!important;
+    background:var(--lx-accent-soft);
+    color:var(--lx-accent);
   }
   .mobile-bottom-nav button:active,.mobile-bottom-nav a:active{transform:scale(.96)}
 
   /* Formulários confortáveis para toque. */
-  .app input,.app select,.app textarea,.app button{font-size:16px!important}
-  .app input,.app select,.app textarea{min-height:44px!important}
+  .app input,.app select,.app textarea,.app button{font-size:var(--lx-font-md)}
+  .app input,.app select,.app textarea{min-height:44px}
 }
 
 @media (max-width: 380px){
-  .mobile-bottom-nav{left:5px!important;right:5px!important}
-  .mobile-bottom-nav a,.mobile-bottom-nav button{font-size:8.5px!important}
-  .mobile-bottom-nav svg{width:18px!important;height:18px!important}
-  .app .content{padding-left:9px!important;padding-right:9px!important}
+  .mobile-bottom-nav{left:5px;right:5px}
+  .mobile-bottom-nav a,.mobile-bottom-nav button{font-size:8.5px}
+  .mobile-bottom-nav svg{width:18px;height:18px}
+  .app .content{padding-left:8px;padding-right:8px}
 }
 
-@media(max-width:760px){.client-share-trigger{position:fixed!important;right:16px!important;bottom:86px!important;z-index:1200!important;display:flex!important;align-items:center!important;gap:7px!important;max-width:calc(100vw - 32px)!important;padding:12px 15px!important;border-radius:999px!important;background:#b89245!important;color:#111!important;border:1px solid rgba(255,255,255,.18)!important;font-weight:800!important;box-shadow:0 10px 28px rgba(0,0,0,.3)!important}.client-share-overlay{z-index:1400!important}.client-share-modal{width:calc(100vw - 24px)!important;max-width:520px!important;max-height:86vh!important;overflow:auto!important}.client-share-url{display:grid!important;grid-template-columns:1fr!important}.client-share-url input,.client-share-url button{width:100%!important;min-width:0!important}}
+@media(max-width:760px){.client-share-trigger{position:fixed;right:16px;bottom:86px;z-index:1200;display:flex;align-items:center;gap:8px;max-width:calc(100vw - 32px);padding:12px 16px;border-radius:999px;background:var(--lx-accent-soft);color:var(--lx-text);border:1px solid var(--lx-border);font-weight:800;box-shadow:var(--lx-shadow)}.client-share-overlay{z-index:1400}.client-share-modal{width:calc(100vw - 24px);max-width:520px;max-height:86vh;overflow:auto}.client-share-url{display:grid;grid-template-columns:1fr}.client-share-url input,.client-share-url button{width:100%;min-width:0}}
 
 /* 15/10/2026: janela Enviar/Programar mensagem sempre por cima da ficha do cliente */
-.modal-overlay[style*="z-index: 1800"]{z-index:2100!important}
+.modal-overlay[style*="z-index: 1800"]{z-index:2100}
+
+@media(max-width:760px){body:has(.app.nav-open){overflow:hidden}.nav-drawer-open{overflow:hidden}}
