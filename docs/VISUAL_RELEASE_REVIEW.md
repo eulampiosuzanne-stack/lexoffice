@@ -18,3 +18,9 @@ Executar `npm test`, `node scripts/check-react-hooks.mjs` e `npm run build` nest
 Os fluxos autenticados foram conferidos no ambiente isolado do Sites; login Google, gateways de IA, WhatsApp, pagamentos e demais integrações reais ainda precisam de validação apropriada antes da publicação. A compilação não substitui essa conferência.
 
 Esta branch não autoriza merge na `main`, migrações de banco ou publicação na Vercel. Essas ações dependem de aprovação expressa da titular.
+
+## Publicação aprovada em 22/10/2026
+
+O usuário autorizou a publicação em produção. Inclui os ajustes aprovados até a homologação `4b5febddba69290bdab54853a030bd7939fb31da`: Mensagens do aplicativo, Clientes e Importação, Processos, Andamentos, Monitoramento, Audiências, Tarefas e Agenda. Login Google e cliente Supabase reais preservados; recursos demonstrativos excluídos. Checklist de preparação de audiências permanece local ao navegador e isolado por organização/usuário/audiência.
+
+Campos e restrições de Audiências e Tarefas conferidos no catálogo do banco de produção; nenhuma migração de banco ou publicação de Edge Functions faz parte desta entrega. A função tribunal-connection-manager foi confirmada ACTIVE (versão 33) e registrada no manifesto de dependências remotas.

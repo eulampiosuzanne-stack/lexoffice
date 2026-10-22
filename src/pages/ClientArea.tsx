@@ -1,6 +1,10 @@
-import {Link} from 'react-router-dom';
+import {Link,useSearchParams} from 'react-router-dom';
+import ClientAppInbox from '../components/ClientAppInbox';
+import ClientAppDialog from '../components/ClientAppDialog';
+import {useConfirmNavigation} from '../lib/useConfirmNavigation';
+import './client-app-workspace.css';
 import InternalNavigation from '../components/InternalNavigation';
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell,
   CheckCircle2,
@@ -13,6 +17,10 @@ import {
   CalendarClock,
   ShieldCheck,
   Eye,
+  MoreHorizontal,
+  Plus,
+  AlertTriangle,
+  ArrowLeft,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import "./integrations.css";
@@ -31,16 +39,14 @@ export default function ClientArea() {
       message: string;
     } | null>(null),
     [retryBusy, setRetryBusy] = useState(false);
-  const [sec, setSec] = useState<
-    "acessos" | "recados" | "recebidos" | "documentos"
-  >(() => {
-    const t = new URLSearchParams(window.location.search).get("secao");
-    return (
-      ["acessos", "recados", "recebidos", "documentos"] as const
-    ).includes(t as any)
-      ? (t as any)
-      : "recebidos";
-  });
+  const [params,setParams]=useSearchParams();
+  const section=params.get('secao');
+  const sec=(['acessos','recados','recebidos','documentos'].includes(section||'')?section:'recebidos') as 'acessos'|'recados'|'recebidos'|'documentos';
+  const setSec=(value:string)=>setParams(previous=>{const next=new URLSearchParams(previous);next.set('secao',value);return next;});
+  const [composeOpen,setComposeOpen]=useState(false),[publishOpen,setPublishOpen]=useState(false),[extraOpen,setExtraOpen]=useState(false);
+  const [loadBusy,setLoadBusy]=useState(true),[loadError,setLoadError]=useState(''),[failedSections,setFailedSections]=useState<string[]>([]);
+  const [drafts,setDrafts]=useState<Record<string,string>>({});
+  const loadRequest=useRef(0);
   const [clients, setClients] = useState<Client[]>([]),
     [messages, setMessages] = useState<any[]>([]),
     [inbox, setInbox] = useState<any[]>([]),
@@ -85,19 +91,22 @@ export default function ClientArea() {
     } catch {}
   }, [orgId]);
   async function load() {
-    if (!supabase) return;
+    const run=++loadRequest.current;
+    setLoadBusy(true);setLoadError('');
+    try{
+    if (!supabase) throw new Error('Serviço de dados indisponível.');
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) throw new Error('Acesso não autenticado.');
     const { data: p } = await supabase
       .from("profiles")
       .select("org_id")
       .eq("id", user.id)
       .single();
-    if (!p?.org_id) return;
+    if (!p?.org_id) throw new Error('Escritório não identificado.');
     setOrgId(p.org_id);
-    const [{ data: c }, { data: m }, { data: i }, { data: x }, { data: d }] =
+    const [{ data: c,error:ce }, { data: m,error:me }, { data: i,error:ie }, { data: x,error:xe }, { data: d,error:de }] =
       await Promise.all([
         supabase
           .from("clients")
@@ -138,6 +147,8 @@ export default function ClientArea() {
           .order("created_at", { ascending: false })
           .limit(50),
       ]);
+    if(run!==loadRequest.current)return;
+    const failed=[ce&&'clients',me&&'messages',ie&&'inbox',xe&&'extra',de&&'documents'].filter(Boolean) as string[];
     setClients(c || []);
     setMessages(m || []);
     setInbox(i || []);
@@ -145,7 +156,7 @@ export default function ClientArea() {
     setDocReq(d || []);
     const ids = (c || []).map((v: any) => v.id);
     if (ids.length) {
-      const [{ data: aa }, { data: pp }, { data: tt }] = await Promise.all([
+      const [{ data: aa,error:ae }, { data: pp,error:pe }, { data: tt,error:te }] = await Promise.all([
         supabase
           .from("client_app_access")
           .select("client_id,status,updated_at,installed_at")
@@ -163,6 +174,8 @@ export default function ClientArea() {
           .in("client_id", ids)
           .order("updated_at", { ascending: false }),
       ]);
+      if(run!==loadRequest.current)return;
+      if(ae||pe||te)failed.push('access');
       setAppClients(
         (c || []).map((cl: any) => ({
           client: cl,
@@ -175,27 +188,29 @@ export default function ClientArea() {
         })),
       );
     } else setAppClients([]);
+    setFailedSections(failed);
+    const labels:Record<string,string>={clients:'clientes',messages:'recados enviados',inbox:'mensagens recebidas',extra:'pedidos extraordinários',documents:'documentos e autorizações',access:'controle do aplicativo'};
+    setLoadError(failed.length?'Não foi possível consultar: '+failed.map(key=>labels[key]).join(', ')+'. Tente atualizar.':'');
+    }catch(error){if(run===loadRequest.current){setFailedSections(['clients','messages','inbox','extra','documents','access']);setLoadError(error instanceof Error?error.message:'Não foi possível consultar o aplicativo.');}}
+    finally{if(run===loadRequest.current)setLoadBusy(false);}
   }
   useEffect(() => {
-    load();
+    void load();
+    return()=>{loadRequest.current++;};
   }, []);
-  async function openInboxMessage(item: any) {
-    if (!supabase) return;
-    setActiveInbox(item);
-    setReply("");
-    setNotice("");
-    if (!item.read_at) {
-      const { error } = await supabase
-        .from("client_app_inbox")
-        .update({ read_at: new Date().toISOString() })
-        .eq("id", item.id)
-        .eq("org_id", orgId);
-      if (!error)
-        setInbox((v) =>
-          v.map((x) =>
-            x.id === item.id ? { ...x, read_at: new Date().toISOString() } : x,
-          ),
-        );
+  const updateReply=(value:string)=>{setReply(value);if(activeInbox)setDrafts(previous=>({...previous,[activeInbox.id]:value}));};
+  useConfirmNavigation(!!title.trim()||!!body.trim()||!!docTitle.trim()||!!docFile||Object.values(drafts).some(value=>value.trim()));
+  async function openInboxMessage(item:any){
+    if(!supabase||busy||aiBusy)return;
+    setActiveInbox(item);setReply(drafts[item.id]||'');setNotice('');
+    if(!item.read_at){
+      try{
+        const readAt=new Date().toISOString();
+        const result=await supabase.from('client_app_inbox').update({read_at:readAt}).eq('id',item.id).eq('org_id',orgId).select('id');
+        if(result.error||!result.data?.length)throw new Error('Não foi possível registrar a leitura. Atualize para tentar novamente.');
+        setInbox(previous=>previous.map(row=>row.id===item.id?{...row,read_at:readAt}:row));
+        setActiveInbox((current:any)=>current?.id===item.id?{...current,read_at:readAt}:current);
+      }catch(error){setNotice(error instanceof Error?error.message:'Não foi possível registrar a leitura.');}
     }
   }
   async function publishDocument() {
@@ -296,6 +311,7 @@ export default function ClientArea() {
       } else
         aviso =
           " O documento foi publicado no App, mas o cliente não possui WhatsApp cadastrado.";
+      setPublishOpen(false);
       setDocTitle("");
       setDocFile(null);
       setDocAuth(false);
@@ -328,8 +344,8 @@ export default function ClientArea() {
           mirror_to_app: false,
         },
       },
-    );
-    if (error || !data || data?.failed || data?.ok === false) {
+    ).catch(error => ({ data: null, error }));
+    if (error || !data?.ok || Number(data?.failed || 0)>0) {
       setFailedNotice(payload);
       if (orgId)
         localStorage.setItem(
@@ -359,78 +375,35 @@ export default function ClientArea() {
       setRetryBusy(false);
     }
   }
-  async function sendReply() {
-    if (!supabase || !activeInbox || !reply.trim()) return;
-    setBusy(true);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    const { error } = await supabase
-      .from("client_office_messages")
-      .insert({
-        org_id: orgId,
-        client_id: activeInbox.client_id,
-        title: "Resposta do escritório",
-        body: reply.trim(),
-        category: "atendimento",
-        priority: "normal",
-        requires_ack: false,
-        sent_by: user?.id,
-        source_channel: "manual_app",
-        metadata: { reply_to: activeInbox.id, author: user?.id, manual: true },
-      });
-    setBusy(false);
-    if (error) return setNotice(error.message);
-    setReply("");
-    setNotice(
-      "Resposta publicada no aplicativo do cliente e aviso enviado no WhatsApp.",
-    );
-    /* 13/10/2026: a resposta também avisa o cliente pelo WhatsApp, como o recado */ const rc =
-      clients.find((x: any) => x.id === activeInbox.client_id);
-    const rphone = String(rc?.whatsapp || rc?.phone || "").replace(/\D/g, "");
-    if (rphone) {
-      const number = rphone.startsWith("55") ? rphone : "55" + rphone;
-      supabase.functions
-        .invoke("whatsapp-operator-send", {
-          body: {
-            message:
-              "Você recebeu uma resposta do escritório na Área do Cliente da Suzanne Figueiredo Advocacia. Acesse: https://lexoffice.univittagroup.com.br/cliente",
-            targets: [{ phone: number, name: rc?.name }],
-            agent_key: "client_schedule_relationship",
-            next_agent_key: "client_schedule_relationship",
-            keep_ai_active: true,
-            mirror_to_app: false,
-          },
-        })
-        .then(({ error }) => {
-          if (error) console.error("Aviso WhatsApp da resposta:", error);
-        });
-    }
-    load();
+  async function sendReply(){
+    if(!supabase||!activeInbox||!reply.trim()||busy||aiBusy)return;
+    const item=activeInbox,text=reply.trim();setBusy(true);setNotice('Publicando resposta no aplicativo…');
+    try{
+      const {data:{user},error:userError}=await supabase.auth.getUser();
+      if(userError||!user)throw new Error('Sessão inválida. Entre novamente.');
+      const result=await supabase.from('client_office_messages').insert({org_id:orgId,client_id:item.client_id,title:'Resposta do escritório',body:text,category:'atendimento',priority:'normal',requires_ack:false,sent_by:user.id,source_channel:'manual_app',metadata:{reply_to:item.id,author:user.id,manual:true}}).select('id').single();
+      if(result.error||!result.data?.id)throw new Error(result.error?.message||'A publicação não foi confirmada pelo aplicativo.');
+      setReply('');setDrafts(previous=>{const next={...previous};delete next[item.id];return next;});
+      setNotice('Resposta publicada no aplicativo.');
+      const client=clients.find(row=>row.id===item.client_id);
+      const phone=String(client?.whatsapp||client?.phone||'').replace(/\D/g,'');
+      if(phone){
+        const sent=await sendWhatsappNotice({phone:phone.startsWith('55')?phone:'55'+phone,name:client?.name||'Cliente',message:'Você recebeu uma resposta do escritório na Área do Cliente da Suzanne Figueiredo Advocacia. Acesse: https://lexoffice.univittagroup.com.br/cliente'});
+        if(sent)setNotice('Resposta publicada no aplicativo. Aviso por WhatsApp confirmado pelo serviço de envio.');
+      }else setNotice('Resposta publicada no aplicativo. Sem aviso por WhatsApp: cliente sem telefone cadastrado.');
+      await load();
+    }catch(error){setNotice(error instanceof Error?error.message:'Não foi possível publicar a resposta. Seu rascunho foi preservado.');}
+    finally{setBusy(false);}
   }
-  async function suggestReply() {
-    if (!activeInbox) return;
-    setAiBusy(true);
-    setNotice("");
-    const prompt =
-      "Redija somente uma sugestão curta, elegante e profissional de resposta para este cliente. Não invente fatos, prazos, decisões ou providências. Mensagem do cliente: " +
-      (activeInbox.body || activeInbox.subject || "");
-    const { data, error } = await supabase.functions.invoke(
-      "ai-provider-gateway",
-      {
-        body: {
-          org_id: orgId,
-          provider: "auto",
-          instructions:
-            "Você auxilia a Dra. Suzanne Figueiredo. Gere apenas uma sugestão revisável. Nunca envie automaticamente.",
-          input: prompt,
-        },
-      },
-    );
-    setAiBusy(false);
-    if (error || !data?.ok)
-      return setNotice("A IA não conseguiu gerar a sugestão agora.");
-    setReply(String(data.text || ""));
+  async function suggestReply(){
+    if(!supabase||!activeInbox||aiBusy||busy)return;
+    const id=activeInbox.id;setAiBusy(true);setNotice('');
+    try{
+      const result=await supabase.functions.invoke('ai-provider-gateway',{body:{org_id:orgId,provider:'auto',instructions:'Você auxilia a Dra. Suzanne Figueiredo. Gere apenas uma sugestão revisável. Nunca envie automaticamente.',input:'Redija somente uma sugestão curta, elegante e profissional de resposta para este cliente. Não invente fatos, prazos, decisões ou providências. Mensagem do cliente: '+(activeInbox.body||activeInbox.subject||'')}});
+      if(result.error||!result.data?.ok||!result.data?.text)throw new Error('A IA não conseguiu gerar a sugestão agora.');
+      const text=String(result.data.text);setDrafts(previous=>({...previous,[id]:text}));setReply(text);
+    }catch(error){setNotice(error instanceof Error?error.message:'Não foi possível gerar a sugestão.');}
+    finally{setAiBusy(false);}
   }
   async function confirmExtra(id: string) {
     if (!supabase) return;
@@ -576,80 +549,104 @@ export default function ClientArea() {
     });
     setPreviewBusy(false);
   }
-  return (
-    <div className="module-page client-area">
-      <div className="page-heading">
-        <div>
-          <span className="eyebrow">ÁREA DO CLIENTE</span>
-          <h1>Mensagens do aplicativo</h1>
-          <p>Controle o que chega ao aplicativo dos seus clientes.</p>
-        </div>
-        <button className="btn-secondary" onClick={load}>
-          <RefreshCw size={16} /> Atualizar
-        </button>
-      </div>
-      {notice && <div className="notice">{notice}</div>}
-      <div
-        className="panel"
-        style={{
-          display: "flex",
-          gap: 12,
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          marginBottom: 16,
-          padding: 14,
-        }}
-      >
-        <div>
-          <strong>Reenvio de avisos</strong>
-          <p style={{ margin: "4px 0 0", fontSize: "var(--lx-font-sm)" }}>
-            {failedNotice
-              ? `Aviso pendente para ${failedNotice.name}. O recado já está salvo no aplicativo.`
-              : "Nenhum aviso por WhatsApp com falha neste navegador."}
-          </p>
-        </div>
-        <button
-          type="button"
-          className="btn-secondary"
-          disabled={!failedNotice || retryBusy}
-          onClick={retryWhatsappNotice}
-          title={
-            failedNotice
-              ? "Reenviar somente o aviso, sem duplicar o recado"
-              : "Não há aviso pendente para reenviar"
-          }
-        >
-          <RefreshCw size={16} />
-          {retryBusy ? " Reenviando..." : " Reenviar aviso"}
-        </button>
-      </div>
-      <InternalNavigation variant="underline" aria-label="Seções da Área do Cliente">
-        {(
-          [
-            ["acessos", "Acessos e controle"],
-            ["recados", "Recados"],
-            ["recebidos", "Recebidos e pedidos"],
-            ["documentos", "Documentos e autorizações"],
-          ] as const
-        ).map(([k, l]) => (
-          <button
-            key={k}
-            type="button"
-            role="tab"
-            aria-selected={sec === k}
-            className={sec === k ? "active" : ""}
-            onClick={() => setSec(k)}
-          >
-            {l}
-            {k === "recebidos" &&
-            inbox.filter((x: any) => !x.read_at).length > 0
-              ? ` (${inbox.filter((x: any) => !x.read_at).length})`
-              : ""}
-          </button>
-        ))}
-      </InternalNavigation>
-      {sec === "acessos" && (
+  const unread=inbox.filter(item=>!item.read_at).length;
+  const authorizationCount=docReq.filter(item=>item.requires_authorization&&item.authorization_status==='pending').length;
+  const extraordinaryCount=extra.filter(item=>item.status!=='confirmed').length;
+  const counter=(section:string,value:number)=>loadBusy||failedSections.includes(section)?'—':String(value);
+  const selectedMessage=activeInbox?(inbox.find(item=>item.id===activeInbox.id)||activeInbox):null;
+  return <div className="client-app-workspace">
+    <header className="app-message-heading"><div><h1>Mensagens do aplicativo</h1><p>Receba, organize e responda aos clientes em um só lugar.</p></div><div className="app-message-actions"><button className="app-message-button" disabled={loadBusy||busy||aiBusy} onClick={()=>void load()}><RefreshCw size={16}/>{loadBusy?'Atualizando…':'Atualizar'}</button><button className="app-message-button app-message-primary" disabled={busy||aiBusy} onClick={()=>setComposeOpen(true)}><Plus size={17}/>Novo recado</button><details className="app-message-more"><summary className="app-message-icon-button" aria-label="Mais ações"><MoreHorizontal size={20}/></summary><div><button onClick={event=>{event.currentTarget.closest('details')?.removeAttribute('open');setPublishOpen(true);}} disabled={busy}>Enviar documento</button><button onClick={event=>{event.currentTarget.closest('details')?.removeAttribute('open');setExtraOpen(true);}} disabled={busy}>Pedidos extraordinários</button><button onClick={event=>{event.currentTarget.closest('details')?.removeAttribute('open');setSec('acessos');}} disabled={busy}>Controle do aplicativo</button></div></details></div></header>
+    <div className="app-message-counters"><button disabled={busy||aiBusy} onClick={()=>setSec('recebidos')}><Bell size={16}/>{counter('inbox',unread)} não lidas</button><button disabled={busy||aiBusy} onClick={()=>setSec('documentos')}><FileText size={16}/>{counter('documents',authorizationCount)} autorizações pendentes</button><button disabled={busy||aiBusy} onClick={()=>setExtraOpen(true)}><CalendarClock size={16}/>{counter('extra',extraordinaryCount)} pedidos extraordinários</button></div>
+    {loadError&&<div className="app-message-error" role="alert">{loadError}</div>}
+    {notice&&<div className="app-message-notice" role="status" aria-live="polite">{notice}</div>}
+    {failedNotice&&<div className="app-message-retry"><AlertTriangle size={18}/><p><strong>Um aviso por WhatsApp com falha.</strong> O conteúdo já está salvo no aplicativo. Pendente para {failedNotice.name} neste navegador.</p><button className="app-message-button" disabled={retryBusy||busy} onClick={()=>void retryWhatsappNotice()}><RefreshCw size={16}/>{retryBusy?'Reenviando…':'Reenviar aviso'}</button></div>}
+    <div className="app-message-navigation"><InternalNavigation label="Seções das mensagens do aplicativo">{([['recebidos','Recebidos'],['recados','Enviados'],['documentos','Documentos e autorizações']] as const).map(([key,label])=><button key={key} aria-pressed={sec===key} disabled={busy||aiBusy} onClick={()=>setSec(key)}>{label}</button>)}</InternalNavigation><button className="app-message-text-button" disabled={busy||aiBusy} onClick={()=>setSec('acessos')}>Controle do aplicativo ↗</button></div>
+    {sec==='recebidos'&&<ClientAppInbox items={inbox} selected={selectedMessage} reply={reply} busy={busy} aiBusy={aiBusy} loading={loadBusy} error={failedSections.includes('inbox')?loadError:''} onSelect={item=>void openInboxMessage(item)} onClose={()=>setActiveInbox(null)} onReply={updateReply} onSuggest={()=>void suggestReply()} onSend={()=>void sendReply()}/>}
+    {sec==='recados'&&<div className="app-message-secondary client-area">
+        <section className="panel" style={{ marginTop: 20 }}>
+          <h2>
+            <FileText size={18} /> Recados enviados
+          </h2>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Recado</th>
+                  <th>Categoria</th>
+                  <th>Enviado</th>
+                  <th>Origem</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {messages.map((m) => (
+                  <tr key={m.id}>
+                    <td>{m.clients?.name || clients.find(client=>client.id===m.client_id)?.name || "Cliente"}</td>
+                    <td>
+                      <b>{m.title}</b>
+                    </td>
+                    <td>{m.category}</td>
+                    <td>{m.sent_at ? new Date(m.sent_at).toLocaleString("pt-BR") : "Data não informada"}</td>
+                    <td>
+                      {m.source_channel === "whatsapp"
+                        ? "IA: WhatsApp + App"
+                        : "Manual: App"}
+                    </td>
+                    <td>
+                      {m.acknowledged_at ? (
+                        <>
+                          <CheckCircle2 size={14} /> Ciência confirmada
+                        </>
+                      ) : m.read_at ? (
+                        "Visualizado"
+                      ) : (
+                        "Enviado"
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>}
+    {sec==='documentos'&&<div className="app-message-secondary client-area"><div className="app-message-secondary-heading"><h2>Documentos do aplicativo</h2><button className="app-message-button app-message-primary" disabled={busy} onClick={()=>setPublishOpen(true)}><Plus size={16}/>Enviar documento</button></div>
+        <section className="panel" style={{ marginTop: 20 }}>
+          <h2>
+            <FileText size={18} /> Autorizações e documentos
+          </h2>
+          {docReq
+
+
+            .map((d) => (
+              <div className="integration-card" key={d.id}>
+                <b>
+                  {d.clients?.name || "Cliente"} · {d.title}
+                </b>
+                <p>
+                  Status:{" "}
+                  {!d.requires_authorization ? "Disponibilizado" : d.authorization_status === "authorized"
+                    ? "Autorizado"
+                    : d.authorization_status === "denied"
+                      ? "Não autorizado"
+                      : "Aguardando autorização"}
+                </p>
+                {d.authorization_status === "pending" && (
+                  <button
+                    className="btn-secondary"
+                    onClick={() => toggleReminder(d)}
+                  >
+                    {d.reminder_enabled
+                      ? "Desativar lembrete"
+                      : "Ativar lembrete"}
+                  </button>
+                )}
+              </div>
+            ))}
+        </section>
+      {!docReq.length&&!loadBusy&&<p>Nenhum documento retornado nesta consulta.</p>}</div>}
+    {sec==='acessos'&&<div className="app-message-secondary client-area"><button className="app-message-text-button" onClick={()=>setSec('recebidos')}><ArrowLeft size={16}/>Voltar às mensagens</button>
         <section className="panel" style={{ marginBottom: 20 }}>
           <h2>
             <Eye size={18} /> Clientes no Aplicativo
@@ -736,140 +733,74 @@ export default function ClientArea() {
             </table>
           </div>
         </section>
-      )}
-      {previewClient && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 1000,
-            background: "var(--lx-canvas)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 20,
-          }}
-          onClick={() => setPreviewClient(null)}
-        >
-          <div
-            className="panel"
-            style={{
-              width: "min(980px,96vw)",
-              maxHeight: "90vh",
-              overflow: "auto",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="integration-head">
-              <div>
-                <span className="integration-pill">
-                  <Eye size={14} /> ESPELHO DO APP
-                </span>
-                <h2>{previewClient.client.name}</h2>
-                <p>Conteúdo que a LexOffice alimentou para este cliente.</p>
-              </div>
-              <button
-                className="btn-secondary"
-                onClick={() => setPreviewClient(null)}
-              >
-                Fechar
-              </button>
-            </div>
-            {previewBusy ? (
-              <p>Carregando conteúdo...</p>
-            ) : (
-              <div className="settings-grid">
-                <section>
-                  <h3>Processos e linha do tempo</h3>
-                  {previewData.processes.map((p: any) => (
-                    <div className="integration-card" key={p.id}>
-                      <b>{p.cnj_number || p.subject || "Processo"}</b>
-                      {previewData.timeline
-                        .filter((t: any) => t.process_id === p.id)
-                        .map((t: any) => (
-                          <p key={t.id}>
-                            <strong>
-                              {t.status === "current"
-                                ? "● "
-                                : t.status === "completed"
-                                  ? "✓ "
-                                  : "○ "}
-                              {t.phase_label}
-                            </strong>
-                            {t.summary ? (
-                              <>
-                                <br />
-                                {t.summary}
-                              </>
-                            ) : null}
-                          </p>
-                        ))}
-                    </div>
-                  ))}
-                </section>
-                <section>
-                  <h3>Recados enviados</h3>
-                  {previewData.messages.length ? (
-                    previewData.messages.map((m: any) => (
-                      <div className="integration-card" key={m.id}>
-                        <b>{m.title}</b>
-                        <p>{m.body}</p>
-                        <small>
-                          {new Date(m.created_at).toLocaleString("pt-BR")}
-                        </small>
-                      </div>
-                    ))
-                  ) : (
-                    <p>Nenhum recado enviado.</p>
-                  )}
-                </section>
-                <section>
-                  <h3>Documentos disponibilizados</h3>
-                  {previewData.docs.length ? (
-                    previewData.docs.map((d: any) => (
-                      <div className="integration-card" key={d.id}>
-                        <b>{d.title}</b>
-                        <p>
-                          {d.requires_authorization
-                            ? "Autorização: " + d.authorization_status
-                            : "Disponibilizado para consulta"}
-                        </p>
-                      </div>
-                    ))
-                  ) : (
-                    <p>Nenhum documento disponibilizado.</p>
-                  )}
-                </section>
-                <section>
-                  <h3>Financeiro alimentado</h3>
-                  {previewData.finance.length ? (
-                    previewData.finance.map((f: any) => (
-                      <div className="integration-card" key={f.id}>
-                        <b>{f.title}</b>
-                        <p>
-                          {Number(f.total_amount || 0).toLocaleString("pt-BR", {
-                            style: "currency",
-                            currency: "BRL",
-                          })}{" "}
-                          • {f.status}
-                        </p>
-                      </div>
-                    ))
-                  ) : (
-                    <p>Nenhuma informação financeira alimentada.</p>
-                  )}
-                </section>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-      <div className="settings-grid">
-        {sec === "recados" && (
+      <label className="app-message-client-select">Selecionar cliente para controle<select value={clientId} onChange={event=>setClientId(event.target.value)}><option value="">Selecione um cliente</option>{clients.map(client=><option key={client.id} value={client.id}>{client.name}</option>)}</select></label>
           <section className="panel">
             <h2>
-              <MessageSquarePlus size={18} /> Novo recado
+              <Smartphone size={18} /> Controle do aplicativo
             </h2>
+            {!selected ? (
+              <div className="integration-card">
+                <b>Selecione um cliente</b>
+                <p>
+                  Escolha o cliente ao lado para preencher e controlar a área
+                  individual dele.
+                </p>
+              </div>
+            ) : (
+              <div className="integration-card">
+                <b>Acesso individual de {selected.name}</b>
+                <p>
+                  <strong>Login:</strong>{" "}
+                  {access?.login_cpf ||
+                    selected.cpf_cnpj ||
+                    "CPF não cadastrado"}
+                  <br />
+                  <strong>Código:</strong>{" "}
+                  {access?.access_code || "Ainda não gerado"}
+                  <br />
+                  <strong>Status:</strong>{" "}
+                  {access?.status === "active"
+                    ? "Ativo"
+                    : access?.status === "revoked"
+                      ? "Revogado"
+                      : "Não ativado"}
+                </p>
+                <p>O acesso é administrado na ficha do cliente. <Link className="btn-primary" to={`/clientes/${selected.id}?secao=acesso`}>Gerenciar acesso deste cliente →</Link></p>
+              </div>
+            )}
+            <div className="integration-card">
+              <b>Marca pública</b>
+              <p>Suzanne Figueiredo Advocacia e Soluções Jurídicas</p>
+            </div>
+            <div className="integration-card">
+              <b>Vínculo do cliente</b>
+              <p>
+                O aplicativo usa o cadastro da LexOffice. CPF/CNPJ e
+                telefone/WhatsApp são identificadores do cliente; o acesso
+                continua autenticado para impedir que outra pessoa veja o
+                processo.
+              </p>
+            </div>
+            <div className="integration-card">
+              <b>Envios proativos da IA</b>
+              <p>
+                Para clientes com o aplicativo ativado, os envios proativos dos
+                agentes também são espelhados automaticamente no App. O WhatsApp
+                continua sendo enviado normalmente.
+              </p>
+            </div>
+            <div className="integration-card">
+              <b>Restrição</b>
+              <p>
+                A restrição permanece manual na aba Financeiro e não é removida
+                automaticamente por pagamento.
+              </p>
+            </div>
+          </section>
+        </div>}
+    {composeOpen&&<ClientAppDialog title="Novo recado" onClose={()=>{if(!busy)setComposeOpen(false);}}><div className="app-message-secondary client-area">
+          <section className="panel">
+
             <label>
               Cliente
               <select
@@ -945,146 +876,10 @@ export default function ClientArea() {
               {busy ? " Publicando..." : " Publicar no App"}
             </button>
           </section>
-        )}
-        {sec === "acessos" && (
-          <section className="panel">
-            <h2>
-              <Smartphone size={18} /> Controle do aplicativo
-            </h2>
-            {!selected ? (
-              <div className="integration-card">
-                <b>Selecione um cliente</b>
-                <p>
-                  Escolha o cliente ao lado para preencher e controlar a área
-                  individual dele.
-                </p>
-              </div>
-            ) : (
-              <div className="integration-card">
-                <b>Acesso individual de {selected.name}</b>
-                <p>
-                  <strong>Login:</strong>{" "}
-                  {access?.login_cpf ||
-                    selected.cpf_cnpj ||
-                    "CPF não cadastrado"}
-                  <br />
-                  <strong>Código:</strong>{" "}
-                  {access?.access_code || "Ainda não gerado"}
-                  <br />
-                  <strong>Status:</strong>{" "}
-                  {access?.status === "active"
-                    ? "Ativo"
-                    : access?.status === "revoked"
-                      ? "Revogado"
-                      : "Não ativado"}
-                </p>
-                <p>O acesso é administrado na ficha do cliente. <Link className="btn-primary" to={`/clientes/${selected.id}?secao=acesso`}>Gerenciar acesso deste cliente →</Link></p>
-              </div>
-            )}
-            <div className="integration-card">
-              <b>Marca pública</b>
-              <p>Suzanne Figueiredo Advocacia e Soluções Jurídicas</p>
-            </div>
-            <div className="integration-card">
-              <b>Vínculo do cliente</b>
-              <p>
-                O aplicativo usa o cadastro da LexOffice. CPF/CNPJ e
-                telefone/WhatsApp são identificadores do cliente; o acesso
-                continua autenticado para impedir que outra pessoa veja o
-                processo.
-              </p>
-            </div>
-            <div className="integration-card">
-              <b>Envios proativos da IA</b>
-              <p>
-                Para clientes com o aplicativo ativado, os envios proativos dos
-                agentes também são espelhados automaticamente no App. O WhatsApp
-                continua sendo enviado normalmente.
-              </p>
-            </div>
-            <div className="integration-card">
-              <b>Restrição</b>
-              <p>
-                A restrição permanece manual na aba Financeiro e não é removida
-                automaticamente por pagamento.
-              </p>
-            </div>
-          </section>
-        )}
-      </div>
-      <div className="settings-grid" style={{ marginTop: 20 }}>
-        {sec === "recebidos" && (
-          <section className="panel">
-            <h2>
-              <FileText size={18} /> Central do cliente
-            </h2>
-            <div className="integration-card">
-              <b>Mensagens novas</b>
-              <p>{inbox.filter((i) => !i.read_at).length} aguardando leitura</p>
-            </div>
-            <div className="integration-card">
-              <b>Autorizações pendentes</b>
-              <p>
-                {
-                  docReq.filter(
-                    (d) =>
-                      d.requires_authorization &&
-                      d.authorization_status === "pending",
-                  ).length
-                }{" "}
-                documento(s)
-              </p>
-            </div>
-            <div className="integration-card">
-              <b>Atendimentos extraordinários</b>
-              <p>
-                {extra.filter((x) => x.status !== "confirmed").length}{" "}
-                solicitação(ões) pendentes
-              </p>
-            </div>
-          </section>
-        )}
-        {sec === "recebidos" && (
-          <details className="workspace-secondary-actions" open={extra.some(x=>x.status!=='confirmed')}><summary>Solicitações de atendimento extraordinário ({extra.filter(x=>x.status!=='confirmed').length})</summary><section className="panel">
-            <h2>
-              <CalendarClock size={18} /> Solicitações extraordinárias
-            </h2>
-            {extra.slice(0, 6).map((x) => (
-              <div className="integration-card" key={x.id}>
-                <b>
-                  {x.clients?.name || "Cliente"} ·{" "}
-                  {Number(x.fee).toLocaleString("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                  })}
-                </b>
-                <p>
-                  {x.fee_rule}
-                  <br />
-                  {x.status === "receipt_sent"
-                    ? "Comprovante recebido"
-                    : x.status === "confirmed"
-                      ? "Confirmado"
-                      : "Aguardando pagamento/aceite"}
-                </p>
-                {x.status !== "confirmed" && (
-                  <button
-                    className="btn-primary"
-                    onClick={() => confirmExtra(x.id)}
-                  >
-                    <ShieldCheck size={15} /> Confirmar atendimento
-                  </button>
-                )}
-              </div>
-            ))}
-          </section></details>
-        )}
-      </div>
-      {sec === "documentos" && (
+        <small>O recado será publicado no aplicativo. O aviso por WhatsApp terá confirmação separada.</small></div></ClientAppDialog>}
+    {publishOpen&&<ClientAppDialog title="Enviar documento ao cliente" onClose={()=>{if(!busy)setPublishOpen(false);}}><div className="app-message-secondary client-area">
         <section className="panel" style={{ marginTop: 20 }}>
-          <h2>
-            <FileText size={18} /> Enviar documento ao cliente
-          </h2>
+
           <div className="settings-grid">
             <label>
               Cliente
@@ -1196,217 +991,141 @@ export default function ClientArea() {
             <FileText size={16} /> Disponibilizar no App
           </button>
         </section>
-      )}
-      {sec === "documentos" && (
-        <section className="panel" style={{ marginTop: 20 }}>
-          <h2>
-            <FileText size={18} /> Autorizações e documentos
-          </h2>
-          {docReq
-            .filter((d) => d.requires_authorization)
-            .slice(0, 8)
-            .map((d) => (
-              <div className="integration-card" key={d.id}>
+      </div></ClientAppDialog>}
+    {extraOpen&&<ClientAppDialog title="Pedidos extraordinários" onClose={()=>setExtraOpen(false)}><div className="app-message-secondary client-area"><section className="panel">
+            <h2>
+              <CalendarClock size={18} /> Solicitações extraordinárias
+            </h2>
+            {extra.map((x) => (
+              <div className="integration-card" key={x.id}>
                 <b>
-                  {d.clients?.name || "Cliente"} · {d.title}
+                  {x.clients?.name || "Cliente"} ·{" "}
+                  {Number(x.fee).toLocaleString("pt-BR", {
+                    style: "currency",
+                    currency: "BRL",
+                  })}
                 </b>
                 <p>
-                  Status:{" "}
-                  {d.authorization_status === "authorized"
-                    ? "Autorizado"
-                    : d.authorization_status === "denied"
-                      ? "Não autorizado"
-                      : "Aguardando autorização"}
+                  {x.fee_rule}
+                  <br />
+                  {x.status === "receipt_sent"
+                    ? "Comprovante recebido"
+                    : x.status === "confirmed"
+                      ? "Confirmado"
+                      : "Aguardando pagamento/aceite"}
                 </p>
-                {d.authorization_status === "pending" && (
+                {x.status !== "confirmed" && (
                   <button
-                    className="btn-secondary"
-                    onClick={() => toggleReminder(d)}
+                    className="btn-primary"
+                    onClick={() => confirmExtra(x.id)}
                   >
-                    {d.reminder_enabled
-                      ? "Desativar lembrete"
-                      : "Ativar lembrete"}
+                    <ShieldCheck size={15} /> Confirmar atendimento
                   </button>
                 )}
               </div>
             ))}
-        </section>
-      )}
-      {sec === "recebidos" && (
-        <section className="panel" style={{ marginTop: 20 }}>
-          <h2>
-            <FileText size={18} /> Recebidos do cliente{" "}
-            {inbox.filter((i) => !i.read_at).length > 0 && (
-              <span
-                style={{
-                  marginLeft: 8,
-                  padding: "2px 8px",
-                  borderRadius: "var(--lx-radius-md)",
-                  background: "var(--lx-accent-soft)",
-                  color: "var(--lx-text)",
-                  fontSize: "var(--lx-font-xs)",
-                }}
-              >
-                {inbox.filter((i) => !i.read_at).length} nova(s)
-              </span>
-            )}
-          </h2>
-          <div className="lx-inbox-list">
-            {inbox.length === 0 ? (
-              <p className="lx-inbox-empty">
-                Nenhuma mensagem recebida até o momento.
-              </p>
-            ) : (
-              inbox.map((i) => (
-                <button
-                  type="button"
-                  className={
-                    "lx-inbox-item" + (!i.read_at ? " lx-inbox-unread" : "")
-                  }
-                  key={i.id}
-                  onClick={() => openInboxMessage(i)}
-                >
-                  <span className="lx-inbox-avatar">
-                    {(i.clients?.name || "C").trim().charAt(0).toUpperCase()}
-                  </span>
-                  <span className="lx-inbox-main">
-                    <span className="lx-inbox-head">
-                      <strong>{i.clients?.name || "Cliente"}</strong>
-                      {!i.read_at && (
-                        <span className="lx-inbox-badge">Novo</span>
-                      )}
-                    </span>
-                    <span className="lx-inbox-subject">
-                      {i.subject ||
-                        (i.kind === "payment_receipt"
-                          ? "Comprovante enviado"
-                          : i.kind === "document"
-                            ? "Documento enviado"
-                            : "Nova mensagem")}
-                    </span>
-                    <span className="lx-inbox-preview">
-                      {i.body || "Toque para visualizar e responder."}
-                    </span>
-                  </span>
-                  <span className="lx-inbox-meta">
-                    <span>
-                      {new Date(i.created_at).toLocaleDateString("pt-BR", {
-                        day: "2-digit",
-                        month: "short",
-                      })}
-                    </span>
-                    <span>
-                      {new Date(i.created_at).toLocaleTimeString("pt-BR", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                    <span className="lx-inbox-type">
-                      {i.kind === "payment_receipt"
-                        ? "Financeiro"
-                        : i.kind === "document"
-                          ? "Documento"
-                          : "Mensagem"}
-                    </span>
-                  </span>
-                </button>
-              ))
-            )}
-          </div>
-          {activeInbox && (
-            <div className="integration-card" style={{ marginTop: 16 }}>
-              <b>{activeInbox.clients?.name || "Cliente"}</b>
-              <p>{activeInbox.body || activeInbox.subject}</p>
-              <label>
-                Sua resposta
-                <textarea
-                  rows={5}
-                  value={reply}
-                  onChange={(e) => setReply(e.target.value)}
-                  placeholder="Escreva pessoalmente ou peça uma sugestão à IA."
-                />
-              </label>
-              <div
-                style={{
-                  display: "flex",
-                  gap: 8,
-                  flexWrap: "wrap",
-                  marginTop: 10,
-                }}
-              >
-                <button
-                  className="btn-primary"
-                  disabled={busy || !reply.trim()}
-                  onClick={sendReply}
-                >
-                  <Send size={15} /> Enviar minha resposta
-                </button>
-                <button
-                  className="btn-secondary"
-                  disabled={aiBusy}
-                  onClick={suggestReply}
-                >
-                  <Sparkles size={15} />
-                  {aiBusy ? " Gerando..." : " Sugerir resposta com IA"}
-                </button>
+          </section>{!extra.length&&<p>Nenhuma solicitação retornada.</p>}</div></ClientAppDialog>}
+    {previewClient&&<ClientAppDialog title="Conteúdo do aplicativo do cliente" onClose={()=>setPreviewClient(null)}><div className="app-message-secondary client-area"><div className="integration-head">
+              <div>
+                <span className="integration-pill">
+                  <Eye size={14} /> ESPELHO DO APP
+                </span>
+                <h2>{previewClient.client.name}</h2>
+                <p>Conteúdo que a LexOffice alimentou para este cliente.</p>
               </div>
-              <small>
-                A sugestão da IA nunca é enviada automaticamente. Você pode
-                editar antes de enviar.
-              </small>
+              <button
+                className="btn-secondary"
+                onClick={() => setPreviewClient(null)}
+              >
+                Fechar
+              </button>
             </div>
-          )}
-        </section>
-      )}
-      {sec === "recados" && (
-        <section className="panel" style={{ marginTop: 20 }}>
-          <h2>
-            <FileText size={18} /> Recados enviados
-          </h2>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Cliente</th>
-                  <th>Recado</th>
-                  <th>Categoria</th>
-                  <th>Enviado</th>
-                  <th>Origem</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {messages.map((m) => (
-                  <tr key={m.id}>
-                    <td>{m.clients?.name || "Cliente"}</td>
-                    <td>
-                      <b>{m.title}</b>
-                    </td>
-                    <td>{m.category}</td>
-                    <td>{new Date(m.sent_at).toLocaleString("pt-BR")}</td>
-                    <td>
-                      {m.source_channel === "whatsapp"
-                        ? "IA: WhatsApp + App"
-                        : "Manual: App"}
-                    </td>
-                    <td>
-                      {m.acknowledged_at ? (
-                        <>
-                          <CheckCircle2 size={14} /> Ciência confirmada
-                        </>
-                      ) : m.read_at ? (
-                        "Visualizado"
-                      ) : (
-                        "Enviado"
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
-    </div>
-  );
+            {previewBusy ? (
+              <p>Carregando conteúdo...</p>
+            ) : (
+              <div className="settings-grid">
+                <section>
+                  <h3>Processos e linha do tempo</h3>
+                  {previewData.processes.map((p: any) => (
+                    <div className="integration-card" key={p.id}>
+                      <b>{p.cnj_number || p.subject || "Processo"}</b>
+                      {previewData.timeline
+                        .filter((t: any) => t.process_id === p.id)
+                        .map((t: any) => (
+                          <p key={t.id}>
+                            <strong>
+                              {t.status === "current"
+                                ? "● "
+                                : t.status === "completed"
+                                  ? "✓ "
+                                  : "○ "}
+                              {t.phase_label}
+                            </strong>
+                            {t.summary ? (
+                              <>
+                                <br />
+                                {t.summary}
+                              </>
+                            ) : null}
+                          </p>
+                        ))}
+                    </div>
+                  ))}
+                </section>
+                <section>
+                  <h3>Recados enviados</h3>
+                  {previewData.messages.length ? (
+                    previewData.messages.map((m: any) => (
+                      <div className="integration-card" key={m.id}>
+                        <b>{m.title}</b>
+                        <p>{m.body}</p>
+                        <small>
+                          {new Date(m.created_at).toLocaleString("pt-BR")}
+                        </small>
+                      </div>
+                    ))
+                  ) : (
+                    <p>Nenhum recado enviado.</p>
+                  )}
+                </section>
+                <section>
+                  <h3>Documentos disponibilizados</h3>
+                  {previewData.docs.length ? (
+                    previewData.docs.map((d: any) => (
+                      <div className="integration-card" key={d.id}>
+                        <b>{d.title}</b>
+                        <p>
+                          {d.requires_authorization
+                            ? "Autorização: " + d.authorization_status
+                            : "Disponibilizado para consulta"}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <p>Nenhum documento disponibilizado.</p>
+                  )}
+                </section>
+                <section>
+                  <h3>Financeiro alimentado</h3>
+                  {previewData.finance.length ? (
+                    previewData.finance.map((f: any) => (
+                      <div className="integration-card" key={f.id}>
+                        <b>{f.title}</b>
+                        <p>
+                          {Number(f.total_amount || 0).toLocaleString("pt-BR", {
+                            style: "currency",
+                            currency: "BRL",
+                          })}{" "}
+                          • {f.status}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <p>Nenhuma informação financeira alimentada.</p>
+                  )}
+                </section>
+              </div>
+            )}
+</div></ClientAppDialog>}
+  </div>;
 }

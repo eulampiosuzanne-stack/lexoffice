@@ -1,82 +1,237 @@
-import { useEffect,useMemo,useState } from 'react';
-import { Activity,RefreshCw,Search,Gavel,Bot,Clock3,User,ShieldCheck,AlertTriangle,CheckCircle2,Eye,FileText,XCircle,Archive } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { RefreshCw, Search, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, CheckCircle2, ShieldCheck, FileText, AlertTriangle, Clock3 } from 'lucide-react';
+import InternalNavigation from '../components/InternalNavigation';
 import { supabase } from '../lib/supabase';
-
-const TZ='America/Sao_Paulo';
-const dt=(v:any)=>v?new Date(v).toLocaleString('pt-BR',{timeZone:TZ}):'—';
-const dateOnly=(v:any)=>v?new Date(v).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'}).replace('.','').toUpperCase():'—';
-const RECENT_HOURS=48;
-function classify(title=''){
- const t=title.toLowerCase();
- if(/pris[aã]o|liminar|tutela|senten[cç]a|extin[cç][aã]o|tr[aâ]nsito|penhora|bloqueio|leil[aã]o|audi[eê]ncia|per[ií]cia|prazo|medida protetiva/.test(t)) return {label:'IMPORTANTE',tone:'important'};
- if(/conclus|decis[aã]o|despacho|intima[cç][aã]o|cita[cç][aã]o|expedi[cç][aã]o/.test(t)) return {label:'ATENÇÃO',tone:'attention'};
- return {label:'ROTINA',tone:'routine'};
-}
-function delivery(m:any,q:any){
- // Nunca tratar autorização/processamento como entrega. O selo abaixo significa apenas
- // que o provedor aceitou o disparo; confirmação de recebimento exige status próprio.
- if(q?.read_at)return{kind:'sent',label:'✓ LIDO PELO CLIENTE',detail:`Leitura confirmada em ${dt(q.read_at)}`};
- if(q?.delivered_at||q?.status==='delivered')return{kind:'sent',label:'✓ ENTREGUE AO CLIENTE',detail:`Entrega confirmada em ${dt(q.delivered_at||q.sent_at)}`};
- if(q?.status==='sent')return{kind:'authorized',label:'↗ DISPARO CONFIRMADO · ENTREGA NÃO CONFIRMADA',detail:q?.sent_at?`Disparado em ${dt(q.sent_at)}`:'O provedor registrou o disparo, mas não confirmou a entrega.'};
- if(m.sent_to_client_at&&!q)return{kind:'authorized',label:'↗ REGISTRO DE ENVIO · ENTREGA NÃO CONFIRMADA',detail:`Registrado em ${dt(m.sent_to_client_at)}`};
- if(q?.status==='failed'||q?.status==='error')return{kind:'blocked',label:'✕ FALHA NO ENVIO',detail:q?.last_error||'O envio não foi confirmado.'};
- if(q?.status==='awaiting_review')return{kind:'review',label:'⚠ PRECISA DA SUA APROVAÇÃO',detail:'Nenhuma mensagem será enviada antes da sua decisão.'};
- if(q?.status==='pending'||q?.status==='processing'||m.approved_for_client===true)return{kind:'authorized',label:'✓ AUTORIZADO · AGUARDANDO ENVIO',detail:'A comunicação já está autorizada e seguirá a fila automática.'};
- if(q?.status==='cancelled'||m.approved_for_client===false)return{kind:'blocked',label:'✕ NÃO SERÁ ENVIADO',detail:q?.last_error||'Comunicação cancelada ou não autorizada.'};
- return{kind:'held',label:'○ SEM ENVIO AO CLIENTE',detail:'Movimentação registrada; não há comunicação liberada neste momento.'};
-}
-
-export default function ProcessMovements(){
- const [rows,setRows]=useState<any[]>([]),[queue,setQueue]=useState<any[]>([]),[q,setQ]=useState(''),[loading,setLoading]=useState(true),[updated,setUpdated]=useState<Date|null>(null),[acting,setActing]=useState<string|null>(null),[notice,setNotice]=useState(''),[scope,setScope]=useState<'recent'|'all'>('recent'),[batchSelected,setBatchSelected]=useState<string[]>([]),[batchBusy,setBatchBusy]=useState(false);
- async function load(){
-  if(!supabase){setNotice('Serviço indisponível. Verifique sua conexão e tente novamente.');setLoading(false);return}
-  setLoading(true);setNotice('');
-  try{
-   const {data:{user},error:authError}=await supabase.auth.getUser();
-   if(authError)throw authError;
-   let orgId:string|null=null;
-   if(user){const {data:p,error:profileError}=await supabase.from('profiles').select('org_id').eq('id',user.id).maybeSingle();if(profileError)throw profileError;orgId=p?.org_id||null}
-   if(!orgId){setNotice('Não foi possível identificar o escritório desta sessão.');setRows([]);setQueue([]);return}
-   const [m,n]=await Promise.all([
-    supabase.from('process_movements')
-     .select('id,org_id,process_id,movement_date,title,description,source,client_message,approved_for_client,sent_to_client_at,created_at,processes(cnj_number,internal_number,subject,status,clients(name))')
-     .eq('org_id',orgId).order('created_at',{ascending:false}).order('movement_date',{ascending:false}).limit(1000),
-    supabase.from('process_notification_queue')
-     .select('id,process_id,client_id,movement_id,notification_type,channel,scheduled_at,message_text,status,last_error,sent_at,delivered_at,read_at,external_message_id,send_to_client_app,clients(name),processes(cnj_number,internal_number,status)')
-     .eq('org_id',orgId).order('scheduled_at',{ascending:false}).limit(1000)
-   ]);
-   if(m.error)setNotice(`Erro ao carregar andamentos: ${m.error.message}`);else setRows(m.data||[]);
-   if(n.error)setNotice(v=>v?`${v} · Fila: ${n.error.message}`:`Erro ao carregar fila: ${n.error.message}`);else setQueue(n.data||[]);
-   setUpdated(new Date());
-  }catch(e:any){setNotice(`Não foi possível atualizar a lista: ${e?.message||'verifique a conexão e tente novamente.'}`)}
-  finally{setLoading(false)}
- }
- useEffect(()=>{void load();const focus=()=>void load();window.addEventListener('focus',focus);return()=>window.removeEventListener('focus',focus)},[]);
- const [syncing,setSyncing]=useState(false);
- async function refreshNow(){if(!supabase||syncing)return;setSyncing(true);setNotice('Buscando novas publicações no DJEN...');try{const r=await supabase.functions.invoke('djen-sync',{body:{}});await load();const d:any=r.data||{};if(r.error||d.ok===false)setNotice('Não foi possível consultar o DJEN agora. Confira a conexão e tente novamente.');else setNotice(d.failed?'O DJEN não respondeu agora. A captura automática tentará novamente.':`✓ Atualizado: ${d.new_movements||0} nova(s) movimentação(ões) capturada(s) agora.`)}catch{await load();setNotice('Não foi possível consultar o DJEN agora. Confira a conexão e tente novamente.')}finally{setSyncing(false)}}
- async function decide(item:any,approved:boolean){if(!supabase||acting||batchBusy)return;const ok=window.confirm(approved?'Autorizar esta comunicação para envio ao cliente?':'NÃO autorizar esta comunicação? Ela será cancelada e não será enviada ao cliente.');if(!ok)return;setActing(item.id);setNotice('');try{const {error:me}=await supabase.from('process_movements').update({approved_for_client:approved}).eq('id',item.movement_id);if(me)throw me;const patch=approved?{status:'pending',scheduled_at:new Date().toISOString(),last_error:null}:{status:'cancelled',last_error:'Não autorizado pela Dra. Suzanne'};const {error:qe}=await supabase.from('process_notification_queue').update(patch).eq('id',item.id);if(qe)throw qe;setNotice(approved?'✓ AUTORIZADO. O envio seguirá a fila automática.':'✕ NÃO AUTORIZADO. Esta comunicação foi cancelada.');setBatchSelected(v=>v.filter(id=>id!==item.id));await load()}catch(e:any){setNotice(`Erro: ${e?.message||'não foi possível concluir'}`)}finally{setActing(null)}}
- async function decideBatch(approved:boolean){if(!supabase||batchBusy||!batchSelected.length)return;const items=reviewQueue.filter(x=>batchSelected.includes(x.id));if(!items.length)return;const ok=window.confirm(approved?`Autorizar ${items.length} comunicação(ões) selecionada(s) para envio?`:`NÃO autorizar ${items.length} comunicação(ões)? Elas serão canceladas.`);if(!ok)return;setBatchBusy(true);setNotice('');try{const movementIds=items.map(x=>x.movement_id).filter(Boolean);const queueIds=items.map(x=>x.id);if(movementIds.length){const {error:me}=await supabase.from('process_movements').update({approved_for_client:approved}).in('id',movementIds);if(me)throw me}const patch=approved?{status:'pending',scheduled_at:new Date().toISOString(),last_error:null}:{status:'cancelled',last_error:'Não autorizado em lote pela Dra. Suzanne'};const {error:qe}=await supabase.from('process_notification_queue').update(patch).in('id',queueIds);if(qe)throw qe;setNotice(approved?`✓ ${items.length} comunicação(ões) autorizada(s) em lote.`:`✕ ${items.length} comunicação(ões) não autorizada(s).`);setBatchSelected([]);await load()}catch(e:any){setNotice(`Erro no lote: ${e?.message||'não foi possível concluir'}`)}finally{setBatchBusy(false)}}
- const cutoff=useMemo(()=>Date.now()-RECENT_HOURS*60*60*1000,[]);
- const scopedRows=useMemo(()=>rows.filter(x=>{
-  if(scope==='all')return true;
-  const movementTime=new Date(x.movement_date||0).getTime();
-  const capturedTime=new Date(x.created_at||0).getTime();
-  return x.processes?.status==='active'&&Number.isFinite(movementTime)&&Number.isFinite(capturedTime)&&movementTime>=cutoff&&capturedTime>=cutoff;
- }),[rows,scope,cutoff]);
- const visibleIds=useMemo(()=>new Set(scopedRows.map(x=>x.id)),[scopedRows]);
- const scopedQueue=useMemo(()=>queue.filter(x=>scope==='all'||visibleIds.has(x.movement_id)),[queue,scope,visibleIds]);
- const filtered=useMemo(()=>scopedRows.filter(x=>`${x.title||''} ${x.description||''} ${x.source||''} ${x.processes?.cnj_number||''} ${x.processes?.internal_number||''} ${x.processes?.clients?.name||''}`.toLowerCase().includes(q.toLowerCase())),[scopedRows,q]);
- const latestQueue=useMemo(()=>{const m=new Map<string,any>();for(const x of queue)if(x.movement_id&&!m.has(x.movement_id))m.set(x.movement_id,x);return m},[queue]);
- const reviewQueue=scopedQueue.filter(x=>x.status==='awaiting_review'),pendingQueue=scopedQueue.filter(x=>['pending','processing'].includes(x.status)),sentQueue=scopedQueue.filter(x=>['sent','delivered'].includes(x.status));
- const allReviewSelected=reviewQueue.length>0&&reviewQueue.every(x=>batchSelected.includes(x.id));
- async function toggleAppDelivery(id:string,value:boolean){if(!supabase)return;const{error}=await supabase.from('process_notification_queue').update({send_to_client_app:value}).eq('id',id);if(error)setNotice('Erro ao alterar envio para o App: '+error.message);else setQueue(v=>v.map(x=>x.id===id?{...x,send_to_client_app:value}:x))}
- function toggleBatch(id:string){setBatchSelected(v=>v.includes(id)?v.filter(x=>x!==id):[...v,id])}
- function toggleAllReview(){const ids=reviewQueue.map(x=>x.id);setBatchSelected(v=>allReviewSelected?v.filter(id=>!ids.includes(id)):Array.from(new Set([...v,...ids])))}
- return <div className="module movement-premium">
-  <div className="page-head movement-page-head"><div><span className="movement-kicker">SF · INTELIGÊNCIA PROCESSUAL</span><h1>Movimentações Processuais</h1><p>{scope==='recent'?`Exibindo somente andamentos realmente recentes das últimas ${RECENT_HOURS} horas, capturados recentemente e em processos ativos.`:'Exibindo todo o histórico processual armazenado.'}</p></div><div style={{display:'flex',gap:8,flexWrap:'wrap'}}><button className={scope==='recent'?'primary movement-refresh':'secondary movement-refresh'} onClick={()=>setScope('recent')}><Clock3 size={18}/> RECENTES</button><button className={scope==='all'?'primary movement-refresh':'secondary movement-refresh'} onClick={()=>setScope('all')}><Archive size={18}/> HISTÓRICO</button><button className="primary movement-refresh" onClick={refreshNow} disabled={syncing||loading}><RefreshCw size={20} className={syncing?'spin':''}/> {syncing?'BUSCANDO...':'ATUALIZAR PROCESSOS'}</button></div></div>
-  <div className="movement-monitor-bar"><span><Activity size={19}/> MOTOR DE MONITORAMENTO</span><span className="online">● ATIVO · {updated?`ÚLTIMA ATUALIZAÇÃO ${updated.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`:'CARREGANDO'}</span></div>
-  <div className="movement-summary-grid"><div className="movement-stat"><strong>{scopedRows.length}</strong><span>{scope==='recent'?'Andamentos realmente recentes':'Movimentações carregadas'}</span></div><div className="movement-stat movement-stat-review"><strong>{reviewQueue.length}</strong><span>PRECISAM DA SUA APROVAÇÃO</span></div><div className="movement-stat"><strong>{pendingQueue.length}</strong><span>Autorizadas / aguardando envio</span></div><div className="movement-stat"><strong>{sentQueue.length}</strong><span>DISPARADAS / ENTREGUES</span></div></div>
-  <section className="movement-review-panel"><div className="movement-section-title"><div><Eye size={24}/><div><h2>PRECISA DA SUA APROVAÇÃO</h2><p>{scope==='recent'?'Somente comunicações novas e realmente recentes de processos ativos aparecem aqui.':'Itens do histórico que ainda dependem de decisão.'}</p></div></div><span className="movement-safe-pill"><ShieldCheck size={17}/> ENVIO BLOQUEADO ATÉ SUA DECISÃO</span></div>{notice&&<div className="movement-decision-notice">{notice}</div>}{reviewQueue.length===0?<div className="empty">Nenhuma comunicação aguardando sua aprovação neste período.</div>:<><div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap',padding:'10px 0 14px'}}><label style={{display:'flex',alignItems:'center',gap:8,fontWeight:800,cursor:'pointer'}}><input type="checkbox" checked={allReviewSelected} onChange={toggleAllReview}/> Selecionar todas para decisão em lote</label><div style={{display:'flex',gap:8,flexWrap:'wrap'}}><button className="movement-decision approve" disabled={batchBusy||!batchSelected.length} onClick={()=>decideBatch(true)}><CheckCircle2 size={19}/><span><b>AUTORIZAR SELECIONADAS</b><small>{batchSelected.length} selecionada(s)</small></span></button><button className="movement-decision reject" disabled={batchBusy||!batchSelected.length} onClick={()=>decideBatch(false)}><XCircle size={19}/><span><b>NÃO AUTORIZAR</b><small>Decisão em lote</small></span></button></div></div><div className="movement-review-list">{reviewQueue.map(x=><article className="movement-review-item" key={x.id}><div style={{paddingTop:4}}><input type="checkbox" checked={batchSelected.includes(x.id)} onChange={()=>toggleBatch(x.id)} aria-label={`Selecionar ${x.clients?.name||'cliente'}`}/></div><div className="movement-review-main"><strong className="movement-client-title">{x.clients?.name||'Cliente'} · {x.processes?.cnj_number||x.processes?.internal_number||'Processo'}</strong>{x.message_text&&<div className="movement-message-preview"><b>MENSAGEM QUE SERÁ ENVIADA SE VOCÊ APROVAR:</b><p>{x.message_text}</p></div>}{x.last_error&&<div className="movement-note"><AlertTriangle size={17}/>{x.last_error}</div>}</div><div className="movement-review-actions"><span className="movement-status review">⚠ AGUARDANDO SUA APROVAÇÃO</span><label style={{display:'flex',alignItems:'center',gap:8,fontWeight:800,cursor:'pointer'}}><input type="checkbox" checked={!!x.send_to_client_app} onChange={e=>toggleAppDelivery(x.id,e.target.checked)}/> Enviar também ao App do Cliente</label><button className="movement-decision approve" disabled={acting===x.id||batchBusy} onClick={()=>decide(x,true)}><CheckCircle2 size={22}/><span><b>AUTORIZAR ENVIO</b><small>Liberar para o cliente</small></span></button><button className="movement-decision reject" disabled={acting===x.id||batchBusy} onClick={()=>decide(x,false)}><XCircle size={22}/><span><b>NÃO AUTORIZAR</b><small>Não enviar ao cliente</small></span></button></div></article>)}</div></>}</section>
-  <section className="movement-feed-panel"><div className="movement-feed-tools"><div><h2>{scope==='recent'?'Andamentos recentes':'Histórico monitorado'}</h2><p>{scope==='recent'?`Movimentos e capturas das últimas ${RECENT_HOURS} horas, somente de processos ativos.`:'Todo o acervo armazenado, inclusive processos encerrados.'}</p></div><div className="input-search movement-search"><Search size={19}/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Buscar cliente, processo ou movimentação"/></div></div>{updated&&<div className="movement-last-update"><CheckCircle2 size={16}/> Atualizado às {updated.toLocaleTimeString('pt-BR')}</div>}{loading&&rows.length===0?<div className="empty">Carregando...</div>:filtered.length===0?<div className="empty">Nenhum andamento realmente recente encontrado.</div>:<div className="movement-timeline">{filtered.map(x=>{const c=classify(x.title||''),n=latestQueue.get(x.id),d=delivery(x,n);return <article className="movement-card" key={x.id}><div className="movement-date-rail"><span>{dateOnly(x.movement_date)}</span><i/></div><div className="movement-card-body"><div className="movement-card-top"><div><small className="movement-source">{x.source||'FONTE PROCESSUAL'}</small><h3><Gavel size={22}/>{x.title||'Movimentação processual'}</h3></div><div className="movement-badges"><span className={c.tone}>{c.label}</span><span className={`movement-status ${d.kind}`}>{d.label}</span></div></div><div className="movement-case"><User size={18}/><strong>{x.processes?.clients?.name||'Cliente não identificado'}</strong><span>·</span><span>{x.processes?.cnj_number||x.processes?.internal_number||'Processo sem número'}</span></div>{x.description&&<div className="movement-block"><span><FileText size={17}/> O QUE A FONTE REGISTROU</span><p>{x.description}</p></div>}{(n?.message_text||x.client_message)&&<div className="movement-block ai"><span><Bot size={17}/> MENSAGEM AO CLIENTE</span><p>{n?.message_text||x.client_message}</p></div>}<div className="movement-card-footer"><strong className={`movement-status ${d.kind}`}>{d.label}</strong><span>{d.detail}</span><span><Clock3 size={15}/>Movimento: {dt(x.movement_date)}</span><span><Clock3 size={15}/>Capturado: {dt(x.created_at)}</span></div></div></article>})}</div>}</section>
- </div>
+import { captureBounds, movementDate, movementPriority, movementDelivery, decideProcessNotice, type ProcessRow } from '../lib/processWorkspace';
+import './process-workspace.css';
+import { appendJournal, consultationResult, journalKey } from '../lib/monitoringWorkspace';
+const PAGE_SIZE = 25;
+const movementColumns = 'id,org_id,process_id,movement_date,title,description,source,client_message,approved_for_client,sent_to_client_at,created_at,processes(cnj_number,internal_number,subject,status,clients(name))';
+const queueColumns = 'id,process_id,client_id,movement_id,notification_type,channel,scheduled_at,message_text,status,last_error,sent_at,delivered_at,read_at,external_message_id,send_to_client_app,clients(name),processes(cnj_number,internal_number,status,subject)';
+export default function ProcessMovements() {
+    const [params, setParams] = useSearchParams();
+    const contextProcess = params.get('processo');
+    const section = params.get('secao');
+    const view = section === 'aprovacoes' || section === 'envios' ? section : 'movimentacoes';
+    const [rows, setRows] = useState<ProcessRow[]>([]), [page, setPage] = useState(0), [total, setTotal] = useState(0), [query, setQuery] = useState(''), [period, setPeriod] = useState('48h'), [processStatus, setProcessStatus] = useState(''), [sendStatus, setSendStatus] = useState(''), [loading, setLoading] = useState(true), [loadError, setLoadError] = useState(''), [notice, setNotice] = useState(''), [updated, setUpdated] = useState<Date | null>(null), [orgId, setOrgId] = useState(''), [refresh, setRefresh] = useState(0);
+    const [counts, setCounts] = useState<{
+        review: number | null;
+        pending: number | null;
+        failed: number | null;
+    }>({ review: null, pending: null, failed: null });
+    const [selected, setSelected] = useState<ProcessRow | null>(null), [movement, setMovement] = useState<ProcessRow | null>(null), [related, setRelated] = useState<ProcessRow[]>([]), [detailLoading, setDetailLoading] = useState(false), [detailError, setDetailError] = useState(''), [selection, setSelection] = useState<string[]>([]), [busy, setBusy] = useState(false), [syncing, setSyncing] = useState(false);
+    const request = useRef(0), detailRequest = useRef(0), locked = useRef(false), mutation = useRef(false), identityRef = useRef('');
+    locked.current = busy || syncing;
+    async function identity() { const { data, error } = await supabase.auth.getUser(); if (error || !data.user)
+        throw new Error('Sessão inválida. Entre novamente.'); const profile = await supabase.from('profiles').select('org_id').eq('id', data.user.id).maybeSingle(); if (profile.error || !profile.data?.org_id)
+        throw new Error('Escritório não identificado.'); identityRef.current = profile.data.org_id; setOrgId(profile.data.org_id); return profile.data.org_id; }
+    async function searchProcesses(org: string, term: string) { const customer = await supabase.from('clients').select('id').eq('org_id', org).ilike('name', `%${term}%`).limit(501); if (customer.error)
+        throw customer.error; if (customer.data?.length === 501)
+        throw new Error('A busca corresponde a muitos clientes. Refine o nome ou informe o número do processo.'); const pieces = [`cnj_number.ilike.%${term}%`, `internal_number.ilike.%${term}%`, `subject.ilike.%${term}%`]; if (customer.data?.length)
+        pieces.push(`client_id.in.(${customer.data.map(row => row.id).join(',')})`); const result = await supabase.from('processes').select('id').eq('org_id', org).or(pieces.join(',')).limit(501); if (result.error)
+        throw result.error; if (result.data?.length === 501)
+        throw new Error('A busca corresponde a muitos processos. Refine os termos.'); return (result.data || []).map(row => row.id); }
+    async function load(run: number) {
+        setLoading(true);
+        setLoadError('');
+        try {
+            const org = await identity();
+            const term = query.replace(/[(),]/g, ' ').trim();
+            const ids = term ? await searchProcesses(org, term) : [];
+            if (run !== request.current)
+                return;
+            let dataQuery = view === 'movimentacoes' ? supabase.from('process_movements').select(processStatus ? movementColumns.replace('processes(', 'processes!inner(') : movementColumns, { count: 'exact' }).eq('org_id', org).order('created_at', { ascending: false }).order('id') : supabase.from('process_notification_queue').select(queueColumns, { count: 'exact' }).eq('org_id', org).order('scheduled_at', { ascending: false }).order('id');
+            if (contextProcess)
+                dataQuery = dataQuery.eq('process_id', contextProcess);
+            if (view === 'movimentacoes') {
+                const since = captureBounds(period);
+                if (since)
+                    dataQuery = dataQuery.gte('created_at', since);
+                if (processStatus)
+                    dataQuery = dataQuery.eq('processes.status', processStatus);
+                if (term)
+                    dataQuery = dataQuery.or([`title.ilike.%${term}%`, `description.ilike.%${term}%`, ...(ids.length ? [`process_id.in.(${ids.join(',')})`] : [])].join(','));
+            }
+            else {
+                if (view === 'aprovacoes')
+                    dataQuery = dataQuery.eq('status', 'awaiting_review');
+                else {
+                    dataQuery = dataQuery.neq('status', 'awaiting_review');
+                    if (sendStatus === 'read')
+                        dataQuery = dataQuery.not('read_at', 'is', null);
+                    else if (sendStatus === 'delivered')
+                        dataQuery = dataQuery.or('status.eq.delivered,delivered_at.not.is.null');
+                    else if (sendStatus === 'waiting')
+                        dataQuery = dataQuery.in('status', ['pending', 'processing']);
+                    else if (sendStatus === 'failed')
+                        dataQuery = dataQuery.in('status', ['failed', 'error']);
+                    else if (sendStatus)
+                        dataQuery = dataQuery.eq('status', sendStatus);
+                }
+                if (term)
+                    dataQuery = dataQuery.or([`message_text.ilike.%${term}%`, `notification_type.ilike.%${term}%`, ...(ids.length ? [`process_id.in.(${ids.join(',')})`] : [])].join(','));
+            }
+            const [result, review, pending, failed] = await Promise.all([dataQuery.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1), supabase.from('process_notification_queue').select('id', { count: 'exact', head: true }).eq('org_id', org).eq('status', 'awaiting_review'), supabase.from('process_notification_queue').select('id', { count: 'exact', head: true }).eq('org_id', org).in('status', ['pending', 'processing']), supabase.from('process_notification_queue').select('id', { count: 'exact', head: true }).eq('org_id', org).in('status', ['failed', 'error'])]);
+            if (run !== request.current)
+                return;
+            setCounts({ review: review.error ? null : review.count, pending: pending.error ? null : pending.count, failed: failed.error ? null : failed.count });
+            if (result.error)
+                throw new Error(result.error.message);
+            if (result.count === null)
+                throw new Error('A consulta não retornou a contagem. Atualize para verificar a lista.');
+            setRows(result.data || []);
+            setTotal(result.count);
+            if (page > 0 && page * PAGE_SIZE >= result.count) {
+                setPage(0);
+                return;
+            }
+            setUpdated(new Date());
+            if (review.error || pending.error || failed.error)
+                setLoadError('A lista foi consultada, mas parte dos indicadores está indisponível.');
+        }
+        catch (error) {
+            if (run === request.current) {
+                setRows([]);
+                setTotal(0);
+                setCounts({ review: null, pending: null, failed: null });
+                setLoadError(error instanceof Error ? error.message : 'Não foi possível consultar os registros.');
+            }
+        }
+        finally {
+            if (run === request.current)
+                setLoading(false);
+        }
+    }
+    useEffect(() => { const run = ++request.current; setLoading(true); setSelected(null); setMovement(null); setRelated([]); setSelection([]); detailRequest.current++; const timer = setTimeout(() => void load(run), 250); return () => { clearTimeout(timer); request.current++; }; }, [view, page, query, period, processStatus, sendStatus, refresh, contextProcess]);
+    useEffect(() => { const focus = () => { if (!locked.current)
+        setRefresh(value => value + 1); }; window.addEventListener('focus', focus); return () => { window.removeEventListener('focus', focus); detailRequest.current++; }; }, []);
+    function changeView(value: string) { if (locked.current)
+        return; setNotice(''); setLoading(true); setRows([]); setPage(0); setQuery(''); setSelected(null); if (value === view)
+        setRefresh(previous => previous + 1); setParams(previous => { const next = new URLSearchParams(previous); next.set('secao', value); return next; }); }
+    async function open(row: ProcessRow) {
+        if (locked.current)
+            return;
+        setNotice('');
+        const run = ++detailRequest.current;
+        setSelected(row);
+        setMovement(view === 'movimentacoes' ? row : null);
+        setRelated([]);
+        setDetailError('');
+        setDetailLoading(true);
+        try {
+            const org = identityRef.current || await identity();
+            if (view === 'movimentacoes') {
+                const result = await supabase.from('process_notification_queue').select(queueColumns).eq('org_id', org).eq('movement_id', row.id).order('scheduled_at', { ascending: false }).limit(20);
+                if (result.error)
+                    throw result.error;
+                if (run === detailRequest.current)
+                    setRelated(result.data || []);
+            }
+            else if (row.movement_id) {
+                const result = await supabase.from('process_movements').select('id,process_id,title,description,source,movement_date,created_at,client_message,approved_for_client,sent_to_client_at').eq('org_id', org).eq('id', row.movement_id).maybeSingle();
+                if (result.error)
+                    throw result.error;
+                if (!result.data)
+                    throw new Error('A movimentação vinculada não está disponível para consulta.');
+                if (run === detailRequest.current)
+                    setMovement(result.data);
+            }
+        }
+        catch (error) {
+            if (run === detailRequest.current)
+                setDetailError(error instanceof Error ? error.message : 'Não foi possível consultar o registro vinculado.');
+        }
+        finally {
+            if (run === detailRequest.current)
+                setDetailLoading(false);
+        }
+    }
+    async function decide(items: ProcessRow[], approved: boolean) { if (mutation.current || locked.current || !items.length || !orgId)
+        return; const visible = items.filter(item => rows.some(row => row.id === item.id) && item.status === 'awaiting_review'); if (!visible.length)
+        return; if (!window.confirm(`${approved ? 'Autorizar para envio' : 'Não autorizar e cancelar'} ${visible.length} comunicação(ões)? ${approved ? 'O envio seguirá a fila automática; a entrega terá confirmação separada.' : ''}`))
+        return; mutation.current = true; setBusy(true); setNotice(''); let ok = 0; const failures: string[] = []; try {
+        for (const item of visible) {
+            try {
+                await decideProcessNotice(supabase, item, approved, orgId);
+                ok++;
+            }
+            catch (error) {
+                failures.push(`${item.clients?.name || item.processes?.cnj_number || item.id}: ${error instanceof Error ? error.message : 'Não confirmado.'}`);
+            }
+        }
+        setNotice(`${ok} decisão(ões) confirmada(s).${failures.length ? ' ' + failures.length + ' falha(s): ' + failures.join(' | ') : approved ? ' As comunicações autorizadas aguardam envio; a entrega ainda não está confirmada.' : ' As comunicações foram canceladas.'}`);
+    }
+    finally {
+        mutation.current = false;
+        setBusy(false);
+        setRefresh(value => value + 1);
+    } }
+    async function toggleApp(item: ProcessRow, value: boolean) { if (mutation.current || locked.current || !orgId)
+        return; mutation.current = true; setBusy(true); try {
+        const result = await supabase.from('process_notification_queue').update({ send_to_client_app: value }).eq('org_id', orgId).eq('id', item.id).eq('status', 'awaiting_review').select('id');
+        if (result.error || !result.data?.length)
+            throw new Error(result.error?.message || 'A comunicação mudou. Atualize antes de alterar o destino.');
+        setSelected(previous => previous?.id === item.id ? { ...previous, send_to_client_app: value } : previous);
+        setRows(previous => previous.map(row => row.id === item.id ? { ...row, send_to_client_app: value } : row));
+        setNotice('Preferência de envio ao aplicativo salva. A mensagem ainda depende de aprovação.');
+    }
+    catch (error) {
+        setNotice(error instanceof Error ? error.message : 'Alteração não confirmada.');
+    }
+    finally {
+        mutation.current = false;
+        setBusy(false);
+    } }
+    async function sync() { if (locked.current)
+        return; ; setSyncing(true); setNotice('Consultando novas publicações no DJEN…'); try {
+        const auth = await supabase.auth.getUser();
+        if (!auth.data.user)
+            throw new Error('Sessão expirada.');
+        const org = identityRef.current || await identity();
+        const flags = await supabase.from('platform_feature_flags').select('status').eq('feature_key', 'tribunals_public_monitoring').maybeSingle();
+        if (flags.error || (flags.data && flags.data.status !== 'enabled'))
+            throw new Error('A consulta está indisponível para este usuário.');
+        const result = await supabase.functions.invoke('djen-sync', { body: {} });
+        let entry;
+        try {
+            if (result.error)
+                throw result.error;
+            entry = { ...consultationResult('DJEN', result.data), id: crypto.randomUUID(), at: new Date().toISOString() };
+        }
+        catch (error) {
+            entry = { source: 'DJEN' as const, id: crypto.randomUUID(), at: new Date().toISOString(), status: 'Falhou', checked: null, inserted: null, failed: null, message: error instanceof Error ? error.message : 'Consulta não confirmada.' };
+        }
+        setNotice(entry.status + ': ' + entry.message);
+        try {
+            appendJournal(journalKey(org, auth.data.user.id), entry);
+        }
+        catch {
+            setNotice(entry.message + ' Histórico local indisponível.');
+        }
+    }
+    catch (error) {
+        setNotice(error instanceof Error ? error.message : 'Não foi possível consultar o DJEN.');
+    }
+    finally {
+        setSyncing(false);
+        setRefresh(value => value + 1);
+    } }
+    const pages = Math.max(1, Math.ceil(total / PAGE_SIZE)), selectedRows = rows.filter(row => selection.includes(row.id)), allSelected = rows.length > 0 && rows.every(row => selection.includes(row.id));
+    const activeQueue = view === 'movimentacoes' ? (related[0] || null) : selected;
+    const delivery = movementDelivery(movement, activeQueue);
+    const record = selected?.processes;
+    const processId = selected?.process_id;
+    const client = selected?.clients?.name || record?.clients?.name || 'Cliente não identificado';
+    return <div className="process-workspace movement-workspace"><header className="process-page-heading"><div><h1>Andamentos</h1><p>Acompanhe movimentações, revise comunicações e confira os envios.</p></div><div className="process-heading-actions"><Link className="secondary" to="/tribunais">Monitoramento</Link><button className="secondary" disabled={loading || busy || syncing} onClick={() => setRefresh(value => value + 1)}><RefreshCw size={16}/>Atualizar lista</button><button className="primary" disabled={loading || busy || syncing} onClick={() => void sync()}><Search size={16}/>{syncing ? 'Consultando DJEN…' : 'Consultar DJEN'}</button></div></header>
+ <div className="movement-counts"><button disabled={busy || syncing} onClick={() => changeView('aprovacoes')}><span>{loading ? '—' : counts.review ?? '—'}</span>Aprovações pendentes</button><button disabled={busy || syncing} onClick={() => { setSendStatus('waiting'); changeView('envios'); }}><span>{loading ? '—' : counts.pending ?? '—'}</span>Aguardando / em processamento</button><button disabled={busy || syncing} onClick={() => { setSendStatus('failed'); changeView('envios'); }}><span>{loading ? '—' : counts.failed ?? '—'}</span>Falhas no envio</button><div><Clock3 size={15}/><span>{updated ? 'Última consulta da lista: ' + movementDate(updated) : 'Lista ainda não consultada.'}</span></div></div>
+ <InternalNavigation label="Visões de andamentos">{[['movimentacoes', 'Movimentações'], ['aprovacoes', 'Aprovações'], ['envios', 'Envios']].map(([value, label]) => <button key={value} aria-current={view === value ? 'page' : undefined} disabled={busy || syncing} onClick={() => changeView(value)}>{label}</button>)}</InternalNavigation>
+ {contextProcess && <p className='process-notice'>Exibindo registros do processo selecionado. <button className='process-text-button' onClick={() => { setPage(0); setParams(previous => { const next = new URLSearchParams(previous); next.delete('processo'); return next; }); }}>Ver todos os processos</button></p>}
+ {loadError && <p className="process-error" role="alert">{loadError}</p>}{notice && <p className="process-notice" role="status">{notice}</p>}
+ <div className="movement-workspace-tools"><label className="process-search"><Search size={17}/><input aria-label="Buscar nesta visão" value={query} disabled={busy || syncing} onChange={event => { setQuery(event.target.value); setPage(0); }} placeholder="Cliente, processo ou conteúdo"/></label>{view === 'movimentacoes' ? <><label>Período de captura<select aria-label="Período de captura" value={period} disabled={busy || syncing} onChange={event => { setPeriod(event.target.value); setPage(0); }}><option value="48h">Últimas 48 horas</option><option value="7d">Últimos 7 dias</option><option value="30d">Últimos 30 dias</option><option value="all">Todo o período</option></select></label><label>Processos<select aria-label="Situação dos processos" value={processStatus} disabled={busy || syncing} onChange={event => { setProcessStatus(event.target.value); setPage(0); }}><option value="">Todas as situações</option><option value="active">Ativos</option><option value="completed">Encerrados</option><option value="archived">Arquivados</option><option value="suspended">Suspensos</option></select></label></> : view === 'aprovacoes' ? <p><ShieldCheck size={16}/>Todas as idades: pendências antigas continuam nesta visão.</p> : <label>Situação do envio<select aria-label="Situação do envio" value={sendStatus} disabled={busy || syncing} onChange={event => { setSendStatus(event.target.value); setPage(0); }}><option value="">Todas as situações</option><option value="waiting">Aguardando / em processamento</option><option value="pending">Aguardando envio</option><option value="processing">Em processamento</option><option value="sent">Disparo registrado</option><option value="delivered">Entrega confirmada</option><option value="read">Leitura confirmada</option><option value="failed">Falhas</option><option value="cancelled">Cancelados</option></select></label>}</div>
+ {view === 'aprovacoes' && rows.length > 0 && <div className="movement-batch"><label><input type="checkbox" checked={allSelected} disabled={busy || syncing || loading} onChange={event => setSelection(event.target.checked ? rows.map(row => row.id) : [])}/>Selecionar esta página</label><span>{selectedRows.length} selecionada(s)</span><button className="secondary" disabled={!selectedRows.length || busy || syncing || loading} onClick={() => void decide(selectedRows, false)}>Não autorizar</button><button className="primary" disabled={!selectedRows.length || busy || syncing || loading} onClick={() => void decide(selectedRows, true)}>Autorizar selecionadas</button></div>}
+ <div className={`movement-two-pane ${selected ? 'movement-selected' : ''}`}><section className="movement-list" aria-label={view === 'aprovacoes' ? 'Comunicações para aprovação' : view === 'envios' ? 'Comunicações e envios' : 'Movimentações consultadas'}>{loading ? <p className="process-empty" role="status">Consultando registros…</p> : !rows.length ? <div className="process-empty"><FileText size={30}/><h2>{loadError ? 'Consulta indisponível' : 'Nenhum registro encontrado'}</h2><p>{view === 'aprovacoes' ? 'Nenhuma aprovação retornada nesta busca.' : 'Ajuste a busca ou os filtros para consultar outros registros.'}</p></div> : rows.map(row => { const customer = row.clients?.name || row.processes?.clients?.name || 'Cliente não identificado'; const number = row.processes?.cnj_number || row.processes?.internal_number || 'Processo sem número'; const state = movementDelivery(view === 'movimentacoes' ? row : null, view === 'movimentacoes' ? null : row); return <div key={row.id} className={`movement-list-row ${selected?.id === row.id ? 'is-selected' : ''}`}>{view === 'aprovacoes' && <input type="checkbox" aria-label={`Selecionar comunicação de ${customer}`} checked={selection.includes(row.id)} disabled={busy || syncing} onChange={event => setSelection(previous => event.target.checked ? [...previous, row.id] : previous.filter(id => id !== row.id))}/>}<button type="button" aria-pressed={selected?.id === row.id} disabled={busy || syncing} onClick={() => void open(row)}><span className="movement-list-top"><strong>{customer}</strong><small>{movementDate(view === 'movimentacoes' ? row.created_at : row.scheduled_at)}</small></span><span className="movement-list-title">{view === 'movimentacoes' ? row.title || 'Movimentação processual' : row.notification_type || 'Comunicação processual'}</span><span className="movement-list-number">{number}</span><span className="movement-list-preview">{view === 'movimentacoes' ? row.description || 'Sem descrição registrada' : row.message_text || 'Mensagem sem texto registrado'}</span>{view === 'movimentacoes' ? <span className="movement-state muted">{movementPriority(row.title)} · por termos do título</span> : <span className={`movement-state ${state.kind}`}>{state.label}</span>}</button></div>; })}</section>
+ <section className="movement-reader" aria-label="Detalhes do registro">{!selected ? <div className="process-empty"><FileText size={32}/><h2>Selecione um registro</h2><p>Leia a movimentação e confira as comunicações neste espaço.</p></div> : <><header className="movement-reader-header"><button className="process-text-button movement-reader-back" onClick={() => { detailRequest.current++; setSelected(null); }} disabled={busy || syncing}><ArrowLeft size={16}/>Voltar à lista</button><div><h2>{client}</h2><p>{record?.cnj_number || record?.internal_number || 'Processo sem número'}</p></div>{processId && <Link className="secondary" to={`/processos/${processId}?secao=movements`}>Abrir processo<ArrowRight size={15}/></Link>}</header><div className="movement-reader-content">{detailLoading ? <p role="status">Consultando detalhes…</p> : <>{detailError && <p className="process-error" role="alert">{detailError}</p>}<div className="movement-reader-meta"><span className={`movement-state ${delivery.kind}`}>{delivery.label}</span><p>{delivery.detail}</p></div>{movement ? <article className="movement-original"><h3>{movement.title || 'Movimentação processual'}</h3><p className="process-muted">{movement.source || 'Fonte não informada'} · Data da movimentação: {movementDate(movement.movement_date)}</p><small>Capturado em {movementDate(movement.created_at)}</small><h4>Registro original</h4><p className="movement-text">{movement.description || 'Nenhum texto adicional registrado pela fonte.'}</p></article> : !selected.movement_id ? <p className="process-muted">Comunicação sem movimentação vinculada.</p> : null}{view === 'movimentacoes' ? <div className="movement-communications"><h3>Comunicações desta movimentação</h3><small>Até 20 registros mais recentes. Consulte a visão Envios para pesquisar o histórico paginado.</small>{related.length ? related.map(item => { const state = movementDelivery(movement, item); return <article key={item.id}><span className={`movement-state ${state.kind}`}>{state.label}</span><p className="movement-text">{item.message_text || 'Mensagem sem texto registrado.'}</p><small>{item.channel || 'Canal não informado'} · {state.detail}</small>{item.status === 'awaiting_review' && <button className="secondary" onClick={() => { changeView('aprovacoes'); setQuery(record?.cnj_number || record?.internal_number || client); }}>Revisar na fila de aprovações</button>}</article>; }) : !detailError && <p className="process-muted">Nenhuma comunicação retornada para esta movimentação.</p>}</div> : <article className="movement-message"><h3>{view === 'aprovacoes' ? 'Mensagem para revisão' : 'Mensagem registrada'}</h3><p className="movement-text">{selected.message_text || 'Mensagem sem texto registrado.'}</p><small>Canal: {selected.channel || 'Não informado'} · Agendado: {movementDate(selected.scheduled_at)}</small>{selected.last_error && <p className="process-error">{selected.last_error}</p>}<p className="process-muted">{selected.send_to_client_app ? 'Solicitado envio também ao aplicativo. A confirmação deste canal deve ser conferida separadamente.' : 'Envio adicional ao aplicativo não solicitado.'}</p></article>}</>}</div>{view === 'aprovacoes' && <footer className="movement-decision-bar"><label><input type="checkbox" disabled={busy || syncing || detailLoading || Boolean(detailError)} checked={Boolean(selected.send_to_client_app)} onChange={event => void toggleApp(selected, event.target.checked)}/>Solicitar envio também ao aplicativo</label><p>Revise a mensagem e os destinos. Autorizar libera o processamento; não confirma entrega.</p><div><button className="secondary" disabled={busy || syncing || detailLoading || Boolean(detailError)} onClick={() => void decide([selected], false)}>Não autorizar</button><button className="primary" disabled={busy || syncing || detailLoading || Boolean(detailError) || !String(selected.message_text || '').trim()} onClick={() => void decide([selected], true)}><CheckCircle2 size={16}/>{busy ? 'Confirmando…' : 'Autorizar envio'}</button></div></footer>}</>}</section></div>
+ <footer className="process-pagination"><span>{loading ? 'Consultando…' : loadError && !rows.length ? 'Consulta não confirmada' : `${total ? `${page * PAGE_SIZE + 1}–${Math.min((page + 1) * PAGE_SIZE, total)}` : '0'} de ${total} registros nesta busca`}</span><div><button className="secondary" aria-label="Página anterior" disabled={page === 0 || loading || busy || syncing} onClick={() => setPage(value => value - 1)}><ChevronLeft size={16}/></button><span>Página {page + 1} de {pages}</span><button className="secondary" aria-label="Próxima página" disabled={page + 1 >= pages || loading || busy || syncing} onClick={() => setPage(value => value + 1)}><ChevronRight size={16}/></button></div></footer>
+ </div>;
 }
