@@ -1,4 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import InternalNavigation, {SectionWorkspace} from '../components/InternalNavigation';
+import {useConfirmNavigation} from '../lib/useConfirmNavigation';
+import {Link,useNavigate,useParams} from 'react-router-dom';
+import RelatedRecords from '../components/RelatedRecords';
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Search,
   Plus,
@@ -20,11 +24,16 @@ import {
   Send,
   Megaphone,
   Trash2,
+  MoreHorizontal,
+  FileUp,
+  SlidersHorizontal,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { lookupCpfProviders } from "../lib/cpfLookup";
 import { confirmDiscard } from "../lib/ux";
 import MissingWhatsAppPanel from "../components/MissingWhatsAppPanel";
+import './clients-workspace.css';
+import ClientActionMenu from '../components/ClientActionMenu';
 import ClientOnboardingPanel from "../components/ClientOnboardingPanel";
 type Client = {
   id: string;
@@ -118,6 +127,15 @@ function validCpf(value: any) {
   return d2 === Number(cpf[10]);
 }
 export default function Clients() {
+ const {clientId}=useParams<{clientId:string}>();const navigate=useNavigate();
+ const [clientSection,setClientSection]=useState('resumo');
+ const [statusFilter,setStatusFilter]=useState('');
+ const [tierFilter,setTierFilter]=useState('');
+ const [contactFilter,setContactFilter]=useState(false);
+ const [listSelection,setListSelection]=useState<string[]>([]);
+ const [generationOpen,setGenerationOpen]=useState(false);
+ const listRequest=useRef(0);
+ useEffect(()=>{let alive=true;if(!clientId){setSelected(null);setEditing(false);return;}if(clientId==='novo'){create();return;}setSelected(null);setEditing(false);(async()=>{const {data,error}=await supabase.from('clients').select('*').eq('id',clientId).maybeSingle();if(!alive)return;if(data)open(data as Client);else setError(error?.message||'Cliente não encontrado.');})();return()=>{alive=false}},[clientId]);
   const [rows, setRows] = useState<Client[]>([]),
     [q, setQ] = useState(() => new URLSearchParams(window.location.search).get("buscar") || ""),
     [page, setPage] = useState(0),
@@ -155,8 +173,10 @@ export default function Clients() {
     [bulkNotice, setBulkNotice] = useState("");
   async function load(targetPage = page, term = q) {
     if (!supabase) return;
+    const request=++listRequest.current;
     setLoading(true);
     setError("");
+    try {
     const from = targetPage * PAGE_SIZE;
     let query = supabase
       .from("clients")
@@ -164,21 +184,27 @@ export default function Clients() {
       .order("name")
       .range(from, from + PAGE_SIZE - 1);
     const s = safeSearch(term);
-    if (s)
-      query = query.or(
-        `name.ilike.%${s}%,cpf_cnpj.ilike.%${s}%,phone.ilike.%${s}%,whatsapp.ilike.%${s}%,email.ilike.%${s}%`,
-      );
+    if(statusFilter)query=query.eq('status',statusFilter);
+    if(tierFilter)query=query.eq('relationship_tier',tierFilter);
+    const search=s?`name.ilike.%${s}%,cpf_cnpj.ilike.%${s}%,phone.ilike.%${s}%,whatsapp.ilike.%${s}%,email.ilike.%${s}%`:'';
+    const missing='and(whatsapp.is.null,phone.is.null),and(whatsapp.is.null,phone.eq.),and(whatsapp.eq.,phone.is.null),and(whatsapp.eq.,phone.eq.)';
+    if(search&&contactFilter)query=query.or(`and(or(${search}),or(${missing}))`);
+    else if(search)query=query.or(search);
+    else if(contactFilter)query=query.or(missing);
     const { data, error, count } = await query;
+    if(request!==listRequest.current)return;
     if (error)
       setError(`Não foi possível carregar os clientes: ${error.message}`);
     setRows((data || []) as Client[]);
     setTotal(count || 0);
-    setLoading(false);
+    }catch(error){if(request===listRequest.current){setError(error instanceof Error?error.message:'Falha ao consultar clientes.');setRows([]);}}
+    finally{if(request===listRequest.current)setLoading(false);}
   }
   useEffect(() => {
+    if(clientId)return;
     const id = setTimeout(() => void load(page, q), 300);
-    return () => clearTimeout(id);
-  }, [page, q]);
+    return () => {clearTimeout(id);listRequest.current++;};
+  }, [page, q, statusFilter, tierFilter, contactFilter, clientId]);
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   async function loadClientDocuments(clientId: string) {
     if (!supabase) return;
@@ -223,6 +249,11 @@ export default function Clients() {
     setAppAccess(data || null);
   }
   function open(c: Client) {
+    if(clientId!==c.id){navigate(`/clientes/${c.id}`);return;}
+    const requestedSection=new URLSearchParams(window.location.search).get('secao');
+    const initialSection=requestedSection==='acesso'||requestedSection==='documentos'?requestedSection:'resumo';
+    setClientSection(initialSection);
+    setTab(initialSection==='documentos'?'documentos':'dados');
     const v = { ...c, address: c.address || {} };
     setSelected(c);
     setForm(v);
@@ -231,7 +262,7 @@ export default function Clients() {
     setError("");
     setNotice("");
     setCpfLookup({ loading: false, notice: "" });
-    setTab("dados");
+    setGenerationOpen(false);
     setChecked([]);
     setProcessId("");
     setDocSearch("");
@@ -239,6 +270,7 @@ export default function Clients() {
     void loadAppAccess(c.id);
   }
   function create() {
+    if(clientId!=="novo"){navigate("/clientes/novo");return;}
     const v = { ...empty, address: {} };
     setSelected(null);
     setForm(v);
@@ -255,11 +287,13 @@ export default function Clients() {
     setNotice("");
   }
   const dirty = editing && JSON.stringify(form) !== JSON.stringify(initialForm);
+  useConfirmNavigation(dirty);
   function closeModal(force = false) {
     if (!force && dirty && !confirmDiscard()) return;
     setSelected(null);
     setEditing(false);
     setNotice("");
+    if(clientId)navigate("/clientes");
   }
   function cancelEdit() {
     if (dirty && !confirmDiscard()) return;
@@ -552,6 +586,31 @@ export default function Clients() {
     await loadAppAccess(selected.id);
     setNotice("Acesso ao App revogado.");
   }
+function appInviteText(a: any = appAccess) {
+    if (!a) return "";
+    return `*Suzanne Figueiredo Advocacia e Soluções Jurídicas*\n\nSeu acesso ao aplicativo do escritório foi liberado.\n\n📲 *Aplicativo LexOffice*\nAcesse pelo link oficial do escritório:\nhttps://lexoffice.univittagroup.com.br/cliente\n\n*Login:* ${a.login_cpf}\n*Código de acesso:* ${a.access_code}\n\n📖 *Como instalar e acessar*\n1. Toque no link oficial acima.\n2. A Área do Cliente abrirá diretamente, sem acessar páginas técnicas do Expo.\n3. No campo de login, informe o CPF acima.\n4. No campo de código de acesso, informe o código acima exatamente como recebido.\n5. Toque em *Entrar*.\n6. Para deixar o LexOffice na tela do celular, use a opção *Adicionar à Tela de Início* do navegador.\n\nO mesmo link pode ser usado no Android e no iPhone.\n\nPor segurança, este código é individual e não deve ser compartilhado.`;
+  }
+async function copyAppInvite() {
+    if (!appAccess) return;
+    await navigator.clipboard.writeText(appInviteText());
+    setNotice("Convite completo copiado.");
+  }
+function sendAppInvite() {
+    if (!appAccess || !selected) return;
+    const phone = (selected.whatsapp || selected.phone || "").replace(
+      /\D/g,
+      "",
+    );
+    if (!phone)
+      return setNotice("Cadastre o WhatsApp do cliente antes de enviar.");
+    const number = phone.startsWith("55") ? phone : `55${phone}`;
+    window.open(
+      `https://wa.me/${number}?text=${encodeURIComponent(appInviteText())}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+    setNotice("Convite aberto no WhatsApp para envio.");
+  }
   async function copyAppAccess() {
     if (!appAccess) return;
     await navigator.clipboard.writeText(
@@ -623,6 +682,7 @@ export default function Clients() {
       if (r.error) throw r.error;
       await load(page, q);
       setSelected(r.data);
+      if(clientId==="novo")navigate(`/clientes/${r.data.id}`,{replace:true});
       const v = { ...r.data, address: r.data.address || {} };
       setForm(v);
       setInitialForm(structuredClone(v));
@@ -837,16 +897,13 @@ export default function Clients() {
     setMessageText("");
     setMessageNotice("");
   }
-  async function openBulkMessage() {
+  async function openBulkMessage(ids?:string[]) {
     if (!supabase) return;
     setBulkOpen(true);
     setBulkNotice("Carregando clientes ativos...");
-    const { data, error } = await supabase
-      .from("clients")
-      .select("*")
-      .eq("status", "active")
-      .order("name")
-      .limit(2000);
+    let request=supabase.from("clients").select("*").eq("status","active").order("name");
+    if(ids?.length)request=request.in("id",ids);else request=request.limit(2000);
+    const {data,error}=await request;
     if (error) {
       setBulkClients([]);
       return setBulkNotice(error.message);
@@ -855,10 +912,10 @@ export default function Clients() {
       (x) => digits(x.whatsapp || x.phone).length >= 10,
     );
     setBulkClients(eligible);
-    setBulkSelected([]);
+    setBulkSelected(ids?eligible.map(client=>client.id):[]);
     setBulkText("");
     setBulkNotice(
-      eligible.length + " cliente(s) ativo(s) com WhatsApp disponível(is).",
+      eligible.length + " cliente(s) ativo(s) com WhatsApp disponível(is)."+(ids&&eligible.length<ids.length?" Clientes inativos ou sem contato válido não foram incluídos.":""),
     );
   }
   function toggleBulk(id: string) {
@@ -989,29 +1046,19 @@ export default function Clients() {
   }, [templates, docSearch]);
   const a = form.address || {};
   return (
-    <div className="module">
-      <div className="page-head">
+    <div className="module clients-workspace">
+      {clientId && <div className="workspace-record-back"><Link to="/clientes">← Voltar aos clientes</Link>{!selected&&!editing&&!error&&<p role="status">Carregando ficha…</p>}</div>}
+      {!clientId && <><div className="page-head">
         <div>
           <h1>Clientes</h1>
-          <p>
-            Selecione qualquer cliente para abrir a ficha completa com os dados
-            importados.
-          </p>
+          <p>Organize sua carteira e acompanhe cada relacionamento.</p>
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button className="secondary" onClick={openBulkMessage}>
-            <Megaphone size={15} /> Envio em massa
-          </button>
-          <button className="primary" onClick={create}>
-            <Plus size={15} /> Novo cliente
-          </button>
+        <div className="clients-heading-actions">
+          <Link className="secondary" to="/importacoes"><FileUp size={16}/>Importar cadastros</Link>
+          <details className="clients-more"><summary aria-label="Mais ações da carteira"><MoreHorizontal size={20}/></summary><div><button onClick={()=>void openBulkMessage()}>Escolher destinatários para envio em massa</button></div></details>
+          <button className="primary" onClick={create}><Plus size={16}/>Novo cliente</button>
         </div>
-      </div>
-      <MissingWhatsAppPanel
-        onSaved={() => {
-          void load();
-        }}
-      />
+      </div></>}
       {error && (
         <div className="alert error" role="alert">
           {error}
@@ -1023,7 +1070,7 @@ export default function Clients() {
           {notice}
         </div>
       )}
-      <div className="table-panel">
+      {!clientId && <><div className="table-panel">
         <div className="table-tools ux-toolbar">
           <div className="input-search">
             <Search size={15} />
@@ -1037,31 +1084,10 @@ export default function Clients() {
               aria-label="Buscar clientes"
             />
           </div>
-          <span>{total} cliente(s)</span>
-          <div className="ux-actions">
-            <button
-              className="secondary ux-icon-button"
-              type="button"
-              aria-label="Página anterior"
-              disabled={page === 0 || loading}
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <span>
-              Página {page + 1} de {pageCount}
-            </span>
-            <button
-              className="secondary ux-icon-button"
-              type="button"
-              aria-label="Próxima página"
-              disabled={page + 1 >= pageCount || loading}
-              onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
+          <span className="clients-result-count" role="status">{loading?'Consultando…':error?'Consulta indisponível':`${total} cliente(s)`}</span>
         </div>
+        <div className="clients-filter-bar"><SlidersHorizontal size={16}/><label>Status<select aria-label="Filtrar por status" value={statusFilter} onChange={e=>{setStatusFilter(e.target.value);setPage(0)}}><option value="">Todos os status</option><option value="active">Ativos</option><option value="inactive">Inativos</option></select></label><label>Relacionamento<select aria-label="Filtrar por relacionamento" value={tierFilter} onChange={e=>{setTierFilter(e.target.value);setPage(0)}}><option value="">Todos os relacionamentos</option>{Object.entries({LEAD:'Lead',CLIENTE:'Cliente',CLIENTE_ATIVO:'Cliente ativo',CLIENTE_PRIVATE:'Cliente Private',ENCERRADO:'Encerrado'}).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label><button className={contactFilter?'primary':'secondary'} aria-pressed={contactFilter} onClick={()=>{setContactFilter(!contactFilter);setPage(0)}}>Sem telefone/WhatsApp</button>{(q||statusFilter||tierFilter||contactFilter)&&<button className="clients-text-action" onClick={()=>{setQ('');setStatusFilter('');setTierFilter('');setContactFilter(false);setPage(0)}}>Limpar filtros</button>}</div>
+        {listSelection.length>0&&<div className="clients-selection-bar" role="region" aria-label="Ações dos clientes selecionados"><strong>{listSelection.length} selecionado(s)</strong><button className="secondary" onClick={()=>void openBulkMessage(listSelection)}><Megaphone size={15}/>Preparar mensagem</button><button className="clients-text-action" onClick={()=>setListSelection([])}>Limpar seleção</button><small>Apenas clientes ativos com telefone válido serão incluídos.</small></div>}
         {loading ? (
           <div className="empty">Carregando clientes...</div>
         ) : rows.length === 0 ? (
@@ -1071,146 +1097,53 @@ export default function Clients() {
             <table>
               <thead>
                 <tr>
-                  <th>Ação</th>
-                  <th>Cliente</th>
-                  <th>CPF/CNPJ</th>
-                  <th>E-mail</th>
-                  <th>Telefone / WhatsApp</th>
-                  <th>Nascimento</th>
-                  <th>Status</th>
+                  <th><input type="checkbox" aria-label="Selecionar clientes desta página" checked={rows.length>0&&rows.every(client=>listSelection.includes(client.id))} onChange={e=>setListSelection(previous=>e.target.checked?[...new Set([...previous,...rows.map(client=>client.id)])]:previous.filter(id=>!rows.some(client=>client.id===id)))}/></th>
+                  <th>Cliente</th><th>Contato</th><th>Relacionamento</th><th>Status</th><th><span className="sr-only">Ações</span></th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((c) => (
-                  <tr
-                    key={c.id}
-                    tabIndex={0}
-                    role="button"
-                    aria-label={`Abrir ficha de ${c.name}`}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        open(c);
-                      }
-                    }}
-                    onClick={() => open(c)}
-                    className={`ux-clickable-row ${selected?.id === c.id ? "selected-row" : ""}`}
-                  >
-                    <td>
-                      <div
-                        className="row-actions"
-                        style={{ display: "flex", gap: 6, flexWrap: "wrap" }}
-                      >
-                        <button
-                          type="button"
-                          className={
-                            selected?.id === c.id ? "primary" : "secondary"
-                          }
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            open(c);
-                          }}
-                        >
-                          {selected?.id === c.id ? (
-                            <>
-                              <CheckCircle2 size={14} /> Selecionado
-                            </>
-                          ) : (
-                            <>Abrir</>
-                          )}
-                        </button>
-                        <button
-                          type="button"
-                          className="secondary"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            messageClient(c);
-                          }}
-                          title="Enviar mensagem pelo WhatsApp"
-                        >
-                          <MessageCircle size={14} /> Mensagem
-                        </button>
-                        <button
-                          type="button"
-                          className="secondary client-delete-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteClient(c);
-                          }}
-                          title="Excluir cliente"
-                          aria-label={`Excluir cliente ${c.name}`}
-                        >
-                          <Trash2 size={14} /> Excluir
-                        </button>
-                      </div>
-                    </td>
-                    <td>
-                      <b>{c.name}</b>
-                      <small>
-                        {[c.address?.city, c.address?.state]
-                          .filter(Boolean)
-                          .join(" / ") || "Abrir ficha"}
-                      </small>
-                      <small
-                        style={{
-                          display: "block",
-                          marginTop: 4,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {(
-                          {
-                            LEAD: "Lead",
-                            CLIENTE: "Cliente",
-                            CLIENTE_ATIVO: "Cliente ativo",
-                            CLIENTE_PRIVATE: "Cliente Private",
-                            ENCERRADO: "Encerrado",
-                          } as any
-                        )[c.relationship_tier] || "Cliente"}
-                      </small>
-                    </td>
-                    <td>{c.cpf_cnpj || "—"}</td>
-                    <td>{c.email || "—"}</td>
-                    <td>{c.whatsapp || c.phone || "—"}</td>
-                    <td>{fmtDate(c.birth_date)}</td>
-                    <td>
-                      <span className={`badge ${c.status}`}>
-                        {c.status === "active" ? "Ativo" : "Inativo"}
-                      </span>
-                    </td>
+                  <tr key={c.id} className={listSelection.includes(c.id)?'clients-selected-row':''}>
+                    <td><input type="checkbox" aria-label={`Selecionar ${c.name}`} checked={listSelection.includes(c.id)} onChange={e=>setListSelection(previous=>e.target.checked?[...previous,c.id]:previous.filter(id=>id!==c.id))}/></td>
+                    <td><Link className="clients-name" to={`/clientes/${c.id}`}><span className="clients-avatar" aria-hidden="true">{c.name.slice(0,1)}</span><span><strong>{c.name}{c.is_vip&&<em>VIP</em>}</strong><small>{c.cpf_cnpj||'CPF/CNPJ não informado'}</small></span></Link></td>
+                    <td><span className="clients-contact">{c.whatsapp||c.phone||'Sem telefone/WhatsApp'}</span><small>{c.email||'E-mail não informado'}</small></td>
+                    <td><span className={`clients-tier ${c.relationship_tier==='CLIENTE_PRIVATE'?'clients-private':''}`}>{({LEAD:'Lead',CLIENTE:'Cliente',CLIENTE_ATIVO:'Cliente ativo',CLIENTE_PRIVATE:'Cliente Private',ENCERRADO:'Encerrado'} as Record<string,string>)[c.relationship_tier]||'Cliente'}</span></td>
+                    <td><span className={`badge ${c.status}`}>{c.status==='active'?'Ativo':'Inativo'}</span></td>
+                    <td><div className="clients-row-actions"><button className="clients-icon-action" onClick={()=>messageClient(c)} aria-label={`Enviar mensagem para ${c.name}`} title="Enviar mensagem"><MessageCircle size={17}/></button><ClientActionMenu name={c.name} onOpen={()=>open(c)} onDelete={()=>deleteClient(c)}/></div></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-      </div>
+      <footer className="clients-pagination"><span>{total?`${page*PAGE_SIZE+1}–${Math.min((page+1)*PAGE_SIZE,total)} de ${total}`:'Nenhum registro'}</span><div><button className="secondary" aria-label="Página anterior" disabled={page===0||loading} onClick={()=>setPage(previous=>Math.max(0,previous-1))}><ChevronLeft size={16}/></button><span>Página {page+1} de {pageCount}</span><button className="secondary" aria-label="Próxima página" disabled={page+1>=pageCount||loading} onClick={()=>setPage(previous=>Math.min(pageCount-1,previous+1))}><ChevronRight size={16}/></button></div></footer>
+      </div><details className="clients-contact-maintenance"><summary>Completar contatos de clientes com processos</summary><MissingWhatsAppPanel onSaved={()=>void load()}/></details></>}
       {(selected || editing) && (
         <div
-          className="modal-overlay"
+          className="workspace-record-page"
           onClick={(e) => {
-            if (e.target === e.currentTarget) closeModal();
+            /* Record details have their own URL; use the back action to leave. */
           }}
         >
           <div
-            className="modal-card"
-            style={{ maxWidth: 1100, maxHeight: "92vh", overflowY: "auto" }}
+            className="lx-panel workspace-panel workspace-record-detail"
           >
             <div className="modal-head">
               <div>
-                <h2>
+                <h1>
                   <UserRound size={20} />{" "}
                   {selected ? selected.name : "Novo cliente"}
-                </h2>
+                </h1>
                 <p>
                   {selected
-                    ? "Ficha completa do cliente."
+                    ? `${selected.status==='active'?'Ativo':'Inativo'} · ${({LEAD:'Lead',CLIENTE:'Cliente',CLIENTE_ATIVO:'Cliente ativo',CLIENTE_PRIVATE:'Cliente Private',ENCERRADO:'Encerrado'} as Record<string,string>)[selected.relationship_tier]||'Cliente'}`
                     : "Cadastre os dados do cliente."}{" "}
                   {dirty && (
                     <span className="ux-unsaved">Alterações não salvas.</span>
                   )}
                 </p>
               </div>
+              {selected&&!editing&&<div className="clients-heading-actions"><button className="secondary" onClick={()=>messageClient(selected)}><MessageCircle size={16}/>Mensagem</button><button className="primary" onClick={beginEdit}>Editar cadastro</button></div>}
               <button
                 className="icon-btn ux-modal-close"
                 aria-label="Fechar ficha"
@@ -1219,37 +1152,13 @@ export default function Clients() {
               >
                 <X size={20} />
               </button>
-            </div>
-            {selected && !editing && (
-              <div
-                style={{
-                  display: "flex",
-                  gap: 10,
-                  padding: "0 0 18px",
-                  borderBottom: "1px solid rgba(128,128,128,.25)",
-                  marginBottom: 20,
-                  flexWrap: "wrap",
-                }}
-              >
-                <button
-                  className={tab === "dados" ? "primary" : "secondary"}
-                  onClick={() => setTab("dados")}
-                >
-                  <UserRound size={15} /> Dados do cliente
-                </button>
-                <button
-                  className={tab === "documentos" ? "primary" : "secondary"}
-                  onClick={() => setTab("documentos")}
-                >
-                  <FileText size={15} /> Documentos personalizados{" "}
-                  <span style={{ marginLeft: 5 }}>({clientDocs.length})</span>
-                </button>
-                <button
+            </div><SectionWorkspace navigation={selected && !editing ? <InternalNavigation variant="sections" aria-label="Seções do cliente">{[['resumo','Resumo'],['atendimento','Atendimento'],['processos','Processos'],['documentos','Documentos'],['financeiro','Financeiro'],['acesso','Acesso ao aplicativo']].map(([key,label])=><button key={key} type="button" aria-current={clientSection===key?'page':undefined} onClick={()=>{setClientSection(key);setTab(key==='documentos'?'documentos':'dados')}}>{label}</button>)}</InternalNavigation> : null}>
+            {selected && !editing && <><details className="workspace-secondary-actions"><summary>Mais ações do cliente</summary><div className="workspace-inline-actions">                <button
                   type="button"
                   className={selected.is_vip ? "primary" : "secondary"}
                   disabled={saving}
                   onClick={() => void toggleVip()}
-                  style={{ minHeight: 48, fontSize: 16 }}
+                  style={{ minHeight: 48, fontSize: "var(--lx-font-lg)" }}
                 >
                   {saving
                     ? "Salvando…"
@@ -1280,31 +1189,13 @@ export default function Clients() {
                 >
                   <Send size={15} /> Enviar ficha de cadastro
                 </button>
-              </div>
-            )}
-            {!editing && selected && tab === "dados" ? (
+</div></details></>}
+            {!editing && selected && clientSection==='processos' && <RelatedRecords clientId={selected.id} kind="processes"/>}
+            {!editing && selected && clientSection==='financeiro' && <RelatedRecords clientId={selected.id} kind="finance"/>}
+            {!editing && selected && tab === "dados" && !["processos","financeiro"].includes(clientSection) ? (
               <div className="client-detail">
-                {selected.is_vip && (
-                  <div
-                    role="status"
-                    style={{
-                      border: "2px solid #c9a44c",
-                      background: "#201b10",
-                      color: "#fff",
-                      borderRadius: 12,
-                      padding: 16,
-                      marginBottom: 16,
-                      fontSize: 17,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    <strong style={{ color: "#e7c56a" }}>Cliente VIP</strong>
-                    <br />A próxima mensagem vai para o topo da fila. Helena
-                    envia uma saudação personalizada e passa o atendimento para
-                    a Dra. Suzanne.
-                  </div>
-                )}
-                <div className="cards">
+                {clientSection==='resumo'&&selected.is_vip&&<p className="clients-vip-note"><strong>Cliente VIP</strong> · Atendimento priorizado com saudação personalizada.</p>}
+                {clientSection === 'resumo' && <><div className="cards">
                   <div className="card">
                     <span>Relacionamento</span>
                     <strong>
@@ -1324,10 +1215,6 @@ export default function Clients() {
                     <strong>{selected.cpf_cnpj || "Não informado"}</strong>
                   </div>
                   <div className="card">
-                    <span>RG</span>
-                    <strong>{selected.rg || "Não informado"}</strong>
-                  </div>
-                  <div className="card">
                     <span>WhatsApp</span>
                     <strong>
                       {selected.whatsapp || selected.phone || "Não informado"}
@@ -1335,12 +1222,12 @@ export default function Clients() {
                   </div>
                   <div className="card">
                     <span>
-                      <Cake size={14} /> Nascimento
+                      E-mail
                     </span>
-                    <strong>{fmtDate(selected.birth_date)}</strong>
+                    <strong>{selected.email||"Não informado"}</strong>
                   </div>
-                </div>
-                <div className="detail-grid">
+                </div></>}
+                {clientSection === 'resumo' && <><details className="clients-registration-details"><summary>Dados cadastrais completos</summary><div className="detail-grid"><p><b>Nascimento:</b> {fmtDate(selected.birth_date)}</p><p><b>RG:</b> {selected.rg||'Não informado'}</p>
                   <p>
                     <b>E-mail:</b> {selected.email || "Não informado"}
                   </p>
@@ -1378,19 +1265,19 @@ export default function Clients() {
                   <p>
                     <b>Observações:</b> {selected.notes || "Nenhuma"}
                   </p>
-                </div>
-                <div className="integration-notice">
+                </div></details></>}
+                {clientSection === 'resumo' && <><details className="clients-automation-note"><summary>Comunicações automáticas</summary><div className="integration-notice">
                   <Cake size={15} /> Clientes com data de nascimento e
                   WhatsApp/telefone recebem felicitação automática no dia do
                   aniversário.
-                </div>
-                <div
+                </div></details></>}
+                {clientSection === 'acesso' && <><div
                   style={{
-                    border: "1px solid rgba(180,145,80,.45)",
-                    borderRadius: 12,
+                    border: "1px solid var(--lx-accent)",
+                    borderRadius: "var(--lx-radius-md)",
                     padding: 18,
                     margin: "16px 0",
-                    background: "rgba(180,145,80,.06)",
+                    background: "var(--lx-accent-soft)",
                   }}
                 >
                   <h3 style={{ marginTop: 0 }}>Acesso ao App do Cliente</h3>
@@ -1424,7 +1311,7 @@ export default function Clients() {
                           ? "Redefinir código"
                           : "Gerar código"}
                     </button>
-                    {appAccess && (
+                    {appAccess && <><button className="secondary" onClick={copyAppInvite}>Copiar convite completo</button><button className="secondary" onClick={sendAppInvite}>Enviar convite pelo WhatsApp</button></>}{appAccess && (
                       <button className="secondary" onClick={copyAppAccess}>
                         Copiar acesso
                       </button>
@@ -1461,18 +1348,9 @@ export default function Clients() {
                       reenviar somente a cartilha, sem gerar novo código.
                     </p>
                   )}
-                </div>
-                <ClientOnboardingPanel client={selected} />
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <button className="primary" onClick={beginEdit}>
-                    Editar / completar dados
-                  </button>
-                  <button
-                    className="secondary"
-                    onClick={() => messageClient(selected)}
-                  >
-                    <MessageCircle size={15} /> Enviar mensagem
-                  </button>
+                </div></>}
+                {clientSection === 'atendimento' && <><ClientOnboardingPanel client={selected} /></>}
+                {clientSection === 'resumo' && <><div className="clients-relationship-actions">
                   {selected.relationship_tier === "CLIENTE_PRIVATE" ? (
                     <button
                       className="secondary"
@@ -1490,15 +1368,72 @@ export default function Clients() {
                       {tierBusy ? "Alterando..." : "Promover para Private"}
                     </button>
                   )}
-                </div>
+                </div></>}
               </div>
             ) : !editing && selected && tab === "documentos" ? (
               <div>
-                <div
+                <div>
+                  <div className="clients-documents-heading"><h3>Documentos deste cliente</h3><a className="primary" href="#client-document-generator" onClick={()=>setGenerationOpen(true)}><WandSparkles size={16}/>Gerar documento</a></div>
+                  <p>
+                    Também permanecem disponíveis na Biblioteca de Documentos do
+                    LEXOFFICE.
+                  </p>
+                  {clientDocs.length === 0 ? (
+                    <div className="empty">
+                      <FileText size={28} /> Nenhum documento vinculado a este
+                      cliente.
+                    </div>
+                  ) : (
+                    <div className="table-wrap">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Documento</th>
+                            <th>Categoria</th>
+                            <th>Data</th>
+                            <th>Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {clientDocs.map((d) => (
+                            <tr key={d.id}>
+                              <td>
+                                <b>{d.name}</b>
+                              </td>
+                              <td>{d.category || "Outros"}</td>
+                              <td>
+                                {new Date(d.created_at).toLocaleDateString(
+                                  "pt-BR",
+                                )}
+                              </td>
+                              <td>
+                                <div style={{ display: "flex", gap: 8 }}>
+                                  <button
+                                    className="secondary"
+                                    onClick={() => openDoc(d)}
+                                  >
+                                    <Eye size={15} /> Abrir
+                                  </button>
+                                  <button
+                                    className="secondary"
+                                    onClick={() => openDoc(d, true)}
+                                  >
+                                    <Download size={15} /> Baixar
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+                <details id="client-document-generator" className="clients-document-generator" open={generationOpen} onToggle={event=>setGenerationOpen(event.currentTarget.open)}><summary><WandSparkles size={17}/>Gerar documentos com modelos</summary>                <div
                   style={{
                     padding: 18,
-                    border: "1px solid rgba(128,128,128,.28)",
-                    borderRadius: 12,
+                    border: "1px solid var(--lx-border)",
+                    borderRadius: "var(--lx-radius-md)",
                     marginBottom: 18,
                   }}
                 >
@@ -1578,12 +1513,12 @@ export default function Clients() {
                           alignItems: "flex-start",
                           padding: 14,
                           border: checked.includes(t.id)
-                            ? "2px solid #C99443"
-                            : "1px solid rgba(128,128,128,.3)",
-                          borderRadius: 10,
+                            ? "2px solid var(--lx-accent)"
+                            : "1px solid var(--lx-border)",
+                          borderRadius: "var(--lx-radius-md)",
                           cursor: "pointer",
                           background: checked.includes(t.id)
-                            ? "rgba(201,148,67,.08)"
+                            ? "var(--lx-accent-soft)"
                             : "transparent",
                         }}
                       >
@@ -1639,66 +1574,10 @@ export default function Clients() {
                     {docNotice}
                   </div>
                 )}
-                <div>
-                  <h3>Documentos deste cliente</h3>
-                  <p>
-                    Também permanecem disponíveis na Biblioteca de Documentos do
-                    LEXOFFICE.
-                  </p>
-                  {clientDocs.length === 0 ? (
-                    <div className="empty">
-                      <FileText size={28} /> Nenhum documento vinculado a este
-                      cliente.
-                    </div>
-                  ) : (
-                    <div className="table-wrap">
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>Documento</th>
-                            <th>Categoria</th>
-                            <th>Data</th>
-                            <th>Ações</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {clientDocs.map((d) => (
-                            <tr key={d.id}>
-                              <td>
-                                <b>{d.name}</b>
-                              </td>
-                              <td>{d.category || "Outros"}</td>
-                              <td>
-                                {new Date(d.created_at).toLocaleDateString(
-                                  "pt-BR",
-                                )}
-                              </td>
-                              <td>
-                                <div style={{ display: "flex", gap: 8 }}>
-                                  <button
-                                    className="secondary"
-                                    onClick={() => openDoc(d)}
-                                  >
-                                    <Eye size={15} /> Abrir
-                                  </button>
-                                  <button
-                                    className="secondary"
-                                    onClick={() => openDoc(d, true)}
-                                  >
-                                    <Download size={15} /> Baixar
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
+</details>
               </div>
-            ) : (
-              <div className="form-grid">
+            ) : !editing && selected && ["processos","financeiro"].includes(clientSection) ? null : (
+              <div className="form-grid clients-edit-form"><fieldset className="clients-form-section"><legend>Identificação</legend><div className="clients-form-fields">
                 <label>
                   Nome completo
                   <input
@@ -1797,6 +1676,7 @@ export default function Clients() {
                     }
                   />
                 </label>
+                </div></fieldset><fieldset className="clients-form-section"><legend>Contato</legend><div className="clients-form-fields">
                 <label>
                   Telefone
                   <input
@@ -1825,6 +1705,7 @@ export default function Clients() {
                     }
                   />
                 </label>
+                </div></fieldset><fieldset className="clients-form-section"><legend>Endereço</legend><div className="clients-form-fields">
                 <label className="wide">
                   <MapPin size={14} /> Endereço
                   <input
@@ -1913,6 +1794,7 @@ export default function Clients() {
                     }
                   />
                 </label>
+                </div></fieldset><fieldset className="clients-form-section"><legend>Observações</legend><div className="clients-form-fields">
                 <label className="wide">
                   <FileText size={14} /> Observações
                   <textarea
@@ -1922,7 +1804,7 @@ export default function Clients() {
                     }
                   />
                 </label>
-                <div className="wide modal-actions">
+                </div></fieldset><div className="wide modal-actions">
                   <button
                     className="secondary"
                     disabled={saving}
@@ -1941,7 +1823,7 @@ export default function Clients() {
                 </div>
               </div>
             )}
-          </div>
+          </SectionWorkspace></div>
         </div>
       )}
       {bulkOpen && (
@@ -1978,8 +1860,8 @@ export default function Clients() {
               style={{
                 maxHeight: 300,
                 overflowY: "auto",
-                border: "1px solid rgba(128,128,128,.25)",
-                borderRadius: 10,
+                border: "1px solid var(--lx-border)",
+                borderRadius: "var(--lx-radius-md)",
                 padding: 8,
               }}
             >
@@ -2104,7 +1986,7 @@ export default function Clients() {
                   style={{
                     display: "block",
                     fontWeight: 700,
-                    fontSize: 12,
+                    fontSize: "var(--lx-font-xs)",
                     marginBottom: 7,
                   }}
                 >

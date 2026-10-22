@@ -58,14 +58,14 @@ export function LiberarVendasButton({ conversationId }: { conversationId: string
 
   return (
     <div className="sales-release-action">
-      <p style={{ fontSize: 16, lineHeight: 1.5, color: '#F5F1E8', margin: '0 0 10px' }}>
+      <p style={{ fontSize: "var(--lx-font-lg)", lineHeight: 1.5, color: "var(--lx-text)", margin: '0 0 10px' }}>
         Encaminha somente esta conversa ao Agente de Vendas. Não envia mensagem ao cliente nem fecha contrato.
       </p>
       <button
         className="secondary"
         onClick={handleClick}
         disabled={status === 'loading' || status === 'done'}
-        style={{ width: '100%', minHeight: 52, padding: '12px 14px', fontSize: 16, fontWeight: 800 }}
+        style={{ width: '100%', minHeight: 52, padding: '12px 14px', fontSize: "var(--lx-font-lg)", fontWeight: 800 }}
       >
         {status === 'loading' && 'Encaminhando...'}
         {status === 'done' && 'Encaminhado ao Agente de Vendas'}
@@ -75,7 +75,7 @@ export function LiberarVendasButton({ conversationId }: { conversationId: string
         <p
           role={status === 'error' ? 'alert' : 'status'}
           aria-live="polite"
-          style={{ fontSize: 15, lineHeight: 1.5, color: status === 'error' ? '#F0C66E' : '#BDB4A6', marginTop: 8 }}
+          style={{ fontSize: "var(--lx-font-lg)", lineHeight: 1.5, color: status === 'error' ? "var(--lx-accent)" : "var(--lx-text)", marginTop: 8 }}
         >
           {message}
         </p>

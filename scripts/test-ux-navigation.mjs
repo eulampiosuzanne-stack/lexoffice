@@ -2,6 +2,7 @@ import fs from "node:fs";
 
 const read = (file) => fs.readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
 const app = read("src/App.tsx");
+const navigation = read("src/navigation/areas.ts");
 const search = read("src/components/GlobalSearch.tsx");
 const clients = read("src/pages/Clients.tsx");
 const processes = read("src/pages/Processes.tsx");
@@ -9,7 +10,7 @@ const crm = read("src/pages/CRM.tsx");
 const portal = read("src/pages/ClientPortal.tsx");
 const css = read("src/design-system/components.css");
 const tokens = read("src/design-system/tokens.css");
-const shellCss = read("src/shell-layout-fix.css");
+const shellCss = read("src/design-system/shell.css");
 const main = read("src/main.tsx");
 
 const tests = [
@@ -21,18 +22,18 @@ const tests = [
   ["clientes recebem filtro da busca", clients.includes('get("buscar")')],
   ["processos recebem filtro da busca", processes.includes("get('buscar')") || processes.includes('get("buscar")')],
   ["CRM recebe filtro da busca", crm.includes("visibleLeads") && crm.includes("crm-search")],
-  ["menu agrupado por relacionamento", app.includes('label: "Relacionamento"')],
-  ["menu agrupado por gestão jurídica", app.includes('label: "Gestão jurídica"')],
+  ["menu de atendimento separado", navigation.includes("label:'Atendimento'")],
+  ["processos separados de agenda", navigation.includes("label:'Processos'") && navigation.includes("label:'Agenda e tarefas'")],
   ["agenda direta no celular", app.includes('to="/agenda"') && app.includes("Agenda")],
   ["contexto da tela exibido", app.includes("ux-context-bar")],
   ["início usa centro de comando", read("src/pages/DashboardOverview.tsx").includes("home-command")],
   ["início consulta dados reais", read("src/pages/DashboardOverview.tsx").includes("process_deadlines") && read("src/pages/DashboardOverview.tsx").includes("client_app_inbox")],
   ["início sem cabeçalho duplicado", app.includes("home-route") && !app.includes("ux-senior-modernization.css")],
-  ["abas do início não são renderizadas", app.includes('loc.pathname !== "/" && areaTabs.length > 1')],
+  ["destinos da área ficam somente no submenu lateral", app.includes("<WorkspaceSidebar") && !app.includes("areaTabs.length > 1")],
   ["dashboard isolado de estilos antigos", read("src/pages/dashboard-home.css").includes("Isolamento visual do centro de comando")],
   ["portal resume situação atual", portal.includes("cp-focus-grid")],
   ["onboarding atualiza após carregar", portal.includes("[onboarding]")],
-  ["busca responsiva estilizada", css.includes(".global-search") || read("src/styles.css").includes(".global-search")],
+  ["busca responsiva estilizada", read("src/components/GlobalSearch.css").includes(".global-search")],
   ["atalho de teclado da busca", search.includes('event.key.toLowerCase() === "k"')],
   ["atalho para conteúdo acessível", app.includes('className="skip-link"')],
   ["menu desktop legível sem hover", tokens.includes("--lx-surface") && shellCss.length > 0],

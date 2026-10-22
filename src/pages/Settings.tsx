@@ -1,3 +1,4 @@
+import InternalNavigation from '../components/InternalNavigation';
 import { useEffect, useState } from "react";
 import {
   Save,
@@ -21,8 +22,8 @@ import {
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { humanize, roleLabels } from "../lib/ux";
-import Integrations from "./Integrations";
-import PlatformProcessProviders from "./PlatformProcessProviders";
+import { Link,useNavigate,useSearchParams } from "react-router-dom";
+
 
 const DEFAULT_IDEAL_CLIENT_PROFILE = `Cliente com renda minimamente estável, entrada disponível e parcela mensal de até 15% da renda, preferencialmente com histórico positivo de pagamentos. A classificação é apenas uma referência interna e não garante o pagamento.`;
 const normalizeFinancialProfile = (value?: string | null) =>
@@ -48,11 +49,6 @@ const empty = {
 const baseSections = [
   ["office", "Escritório", Building2],
   ["team", "Equipe", Users],
-  ["service", "Atendimento", Headphones],
-  ["ai", "IA", Bot],
-  ["agenda", "Agenda", CalendarDays],
-  ["connections", "Conexões", Plug],
-  ["security", "Segurança", ShieldCheck],
 ] as const;
 const roles = [
   ["admin", "Administrador"],
@@ -66,6 +62,9 @@ const roles = [
   ["custom", "Personalizado"],
 ] as const;
 export default function Settings() {
+  const navigate=useNavigate();const [params,setParams]=useSearchParams();
+  const legacySection=params.get('secao')||params.get('section');
+  useEffect(()=>{const destinations:Record<string,string>={ai:'/agentes-ia',service:'/configuracoes/atendimento',agenda:'/agenda',connections:'/integracoes',security:'/seguranca'};if(legacySection&&destinations[legacySection])navigate(destinations[legacySection],{replace:true});else setSection(legacySection==='team'?'team':legacySection==='administration'?'administration':'office')},[legacySection,navigate]);
   const [form, setForm] = useState<any>(empty),
     [orgId, setOrgId] = useState(""),
     [id, setId] = useState(""),
@@ -283,9 +282,9 @@ export default function Settings() {
     <div className="module">
       <div className="page-head">
         <div>
-          <h1>Configurações</h1>
+          <h1>Escritório e equipe</h1>
           <p>
-            Empresa, equipe, atendimento, inteligência e conexões do escritório
+            Dados institucionais e usuários. As demais configurações possuem destinos próprios.
           </p>
         </div>
         {section === "office" && (
@@ -295,17 +294,17 @@ export default function Settings() {
           </button>
         )}
       </div>
-      <div className="settings-section-nav">
+      <InternalNavigation variant="underline" label="Seções de configurações">
         {sections.map(([k, l, I]) => (
           <button
             key={k}
             className={section === k ? "active" : ""}
-            onClick={() => setSection(k)}
+            onClick={() => {setSection(k);setParams({secao:k})}}
           >
             <I size={15} /> {l}
           </button>
         ))}
-      </div>
+      </InternalNavigation>
       {section === "office" && (
         <div className="module-box settings-panel">
           <h3>
@@ -341,7 +340,7 @@ export default function Settings() {
               <div
                 className="office-gold-swatch"
                 style={{
-                  background: `linear-gradient(135deg,#6E4914 0%,${form.primary_color || "#C9993F"} 35%,${form.secondary_color || "#D6AA55"} 55%,${form.primary_color || "#C9993F"} 75%,#6E4914 100%)`,
+                  background: `linear-gradient(135deg,var(--lx-accent-soft) 0%,${form.primary_color || "var(--lx-accent-soft)"} 35%,${form.secondary_color || "var(--lx-accent-soft)"} 55%,${form.primary_color || "var(--lx-accent-soft)"} 75%,var(--lx-accent-soft) 100%)`,
                 }}
                 aria-label="Prévia do ouro degradê do escritório"
               />
@@ -516,19 +515,14 @@ export default function Settings() {
           {adminNotice && <div className="login-notice">{adminNotice}</div>}
         </div>
       )}
-      {section === "connections" && (
-        <>
-          <Integrations embedded />
-          {isPlatformAdmin && <PlatformProcessProviders />}
-        </>
-      )}
+
       {section === "administration" && isPlatformAdmin && (
         <div className="settings-feature-grid">
           <div className="settings-feature-card wide">
             <h3>
               <Building size={17} /> Administração da plataforma
             </h3>
-            <p>Console global do LEXOFFICE.</p>
+            <p>Console global do LEXOFFICE.</p><p><Link to="/configuracoes/provedores-processuais">Provedores processuais da plataforma →</Link></p>
             <button className="integration-action" onClick={() => go("/admin")}>
               <ArrowUpRight size={15} />
               Abrir LEXOFFICE Admin
@@ -536,66 +530,10 @@ export default function Settings() {
           </div>
         </div>
       )}
-      {section === "service" && (
-        <div className="settings-feature-grid">
-          <div className="settings-feature-card">
-            <h3>
-              <Headphones size={17} /> Atendimento
-            </h3>
-            <button
-              className="integration-action"
-              onClick={() => go("/atendimento")}
-            >
-              Configurar atendimento
-            </button>
-          </div>
-        </div>
-      )}
-      {section === "ai" && (
-        <div className="settings-feature-grid">
-          <div className="settings-feature-card">
-            <h3>
-              <Bot size={17} /> Agentes e provedores de IA
-            </h3>
-            <button
-              className="integration-action"
-              onClick={() => go("/agentes-ia")}
-            >
-              Configurar IA
-            </button>
-          </div>
-        </div>
-      )}
-      {section === "agenda" && (
-        <div className="settings-feature-grid">
-          <div className="settings-feature-card">
-            <h3>
-              <CalendarDays size={17} /> Agenda
-            </h3>
-            <button
-              className="integration-action"
-              onClick={() => go("/agenda")}
-            >
-              Gerenciar horários
-            </button>
-          </div>
-        </div>
-      )}
-      {section === "security" && (
-        <div className="settings-feature-grid">
-          <div className="settings-feature-card">
-            <h3>
-              <ShieldCheck size={17} /> Segurança
-            </h3>
-            <button
-              className="integration-action"
-              onClick={() => go("/seguranca")}
-            >
-              Abrir Segurança
-            </button>
-          </div>
-        </div>
-      )}
+
+
+
+
     </div>
   );
 }

@@ -15,6 +15,7 @@ const normalizeFinancialProfile = (value?: string | null) =>
     ? DEFAULT_IDEAL_CLIENT_PROFILE
     : value;
 export default function PerfilCliente() {
+  const [proposalStep,setProposalStep]=useState(0);
   const [expectations, setExpectations] = useState(false),
     [documentsReady, setDocumentsReady] = useState(false),
     [history, setHistory] = useState("desconhecido"),
@@ -192,7 +193,7 @@ export default function PerfilCliente() {
     <div className="module-page">
       <div className="page-heading">
         <div>
-          <span className="eyebrow">FINANCEIRO · JORNADA COMERCIAL</span>
+          <span className="eyebrow">COMERCIAL · NOVA PROPOSTA</span>
           <h1>Propostas comerciais</h1>
           <p>
             Qualificação financeira, análise de comprometimento da renda e três
@@ -200,18 +201,18 @@ export default function PerfilCliente() {
           </p>
         </div>
       </div>
-      <div className="settings-grid">
-        <section className="panel">
-          <h2>Dados da negociação</h2>
-          <label>
+      <nav className="workspace-steps" aria-label="Etapas da proposta">{['Dados','Condições','Análise','Prévia e envio'].map((label,index)=><button type="button" key={label} aria-current={proposalStep===index?'step':undefined} onClick={()=>setProposalStep(index)}><span>{index+1}</span>{label}</button>)}</nav><p className="lx-muted">Etapa {proposalStep+1} de 4 · Volte às etapas anteriores para ajustar os dados.</p><div className="workspace-single-column">
+        <section className="panel" hidden={proposalStep>1}>
+          {proposalStep===0 && <><h2>Dados da negociação</h2></>}
+          {proposalStep===0 && <><label>
             Nome do cliente
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Nome completo"
             />
-          </label>
-          <label>
+          </label></>}
+          {proposalStep===0 && <><label>
             Renda mensal declarada (R$)
             <input
               type="number"
@@ -219,12 +220,12 @@ export default function PerfilCliente() {
               value={income}
               onChange={(e) => setIncome(+e.target.value)}
             />
-          </label>
-          <label>
+          </label></>}
+          {proposalStep===0 && <><label>
             Tipo de ação
             <input value={kind} onChange={(e) => setKind(e.target.value)} />
-          </label>
-          <label>
+          </label></>}
+          {proposalStep===0 && <><label>
             Valor da ação / valor da causa (R$)
             <input
               type="number"
@@ -232,8 +233,8 @@ export default function PerfilCliente() {
               value={claim}
               onChange={(e) => setClaim(+e.target.value)}
             />
-          </label>
-          <label>
+          </label></>}
+          {proposalStep===0 && <><label>
             Honorários-base propostos pelo escritório (R$)
             <input
               type="number"
@@ -241,9 +242,9 @@ export default function PerfilCliente() {
               value={fees}
               onChange={(e) => setFees(+e.target.value)}
             />
-          </label>
-          <h3>Parâmetros ajustáveis</h3>
-          <label>
+          </label></>}
+          {proposalStep===1 && <><h3>Parâmetros ajustáveis</h3></>}
+          {proposalStep===1 && <><label>
             Forma de definir a entrada
             <select
               value={entryMode}
@@ -254,8 +255,8 @@ export default function PerfilCliente() {
               <option value="percent">Percentual dos honorários-base</option>
               <option value="fixed">Valor fixo em dinheiro</option>
             </select>
-          </label>
-          {entryMode === "percent" ? (
+          </label></>}
+          {proposalStep===1 && <>{entryMode === "percent" ? (
             <label>
               Entrada sugerida (% dos honorários-base)
               <input
@@ -276,8 +277,8 @@ export default function PerfilCliente() {
                 onChange={(e) => setEntryAmount(+e.target.value)}
               />
             </label>
-          )}
-          <label>
+          )}</>}
+          {proposalStep===1 && <><label>
             Desconto opcional para pagamento à vista (%)
             <input
               type="number"
@@ -286,8 +287,8 @@ export default function PerfilCliente() {
               value={cashDiscount}
               onChange={(e) => setCashDiscount(+e.target.value)}
             />
-          </label>
-          <label>
+          </label></>}
+          {proposalStep===1 && <><label>
             Cobranças mensais no cartão recorrente
             <input
               type="number"
@@ -296,8 +297,8 @@ export default function PerfilCliente() {
               value={cardInstallments}
               onChange={(e) => setCardInstallments(+e.target.value)}
             />
-          </label>
-          <label>
+          </label></>}
+          {proposalStep===1 && <><label>
             Acréscimo da recorrência InfinitePay (%)
             <input
               type="number"
@@ -305,8 +306,8 @@ export default function PerfilCliente() {
               value={cardMarkup}
               onChange={(e) => setCardMarkup(+e.target.value)}
             />
-          </label>
-          <label>
+          </label></>}
+          {proposalStep===1 && <><label>
             Parcelas do boleto
             <input
               type="number"
@@ -315,8 +316,8 @@ export default function PerfilCliente() {
               value={installments}
               onChange={(e) => setInstallments(+e.target.value)}
             />
-          </label>
-          <label>
+          </label></>}
+          {proposalStep===1 && <><label>
             Acréscimo no boleto parcelado (%)
             <input
               type="number"
@@ -324,32 +325,32 @@ export default function PerfilCliente() {
               value={boletoMarkup}
               onChange={(e) => setBoletoMarkup(+e.target.value)}
             />
-          </label>
-          <label>
+          </label></>}
+          {proposalStep===1 && <><label>
             Link da cobrança recorrente InfinitePay
             <input
               value={recurringLink}
               onChange={(e) => setRecurringLink(e.target.value)}
               placeholder="Cole depois de criar a recorrência no app"
             />
-          </label>
-          <label className="check-row">
+          </label></>}
+          {proposalStep===1 && <><label className="check-row">
             <input
               type="checkbox"
               checked={boletoReleased}
               onChange={(e) => setBoletoReleased(e.target.checked)}
             />{" "}
             Liberar boleto excepcionalmente para este cliente
-          </label>
-          <label className="check-row">
+          </label></>}
+          {proposalStep===1 && <><label className="check-row">
             <input
               type="checkbox"
               checked={hasCounteroffer}
               onChange={(e) => setHasCounteroffer(e.target.checked)}
             />{" "}
             Cliente apresentou contraproposta
-          </label>
-          {hasCounteroffer && (
+          </label></>}
+          {proposalStep===1 && <>{hasCounteroffer && (
             <div className="integration-card wide">
               <h3>Contraproposta do cliente</h3>
               <label>
@@ -390,8 +391,8 @@ export default function PerfilCliente() {
                 análise; ela não será aceita automaticamente.
               </small>
             </div>
-          )}
-          <label>
+          )}</>}
+          {proposalStep===1 && <><label>
             Condições e observações
             <textarea
               rows={3}
@@ -399,21 +400,21 @@ export default function PerfilCliente() {
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Ex.: despesas não incluídas, validade da proposta, escopo dos serviços"
             />
-          </label>
+          </label></>}
         </section>
-        <section className="panel">
-          <h2>Simulação assistida</h2>
-          <p>
+        <section className="panel" hidden={proposalStep<2}>
+          {proposalStep===2 && <><h2>Simulação assistida</h2></>}
+          {proposalStep===2 && <><p>
             A renda é apenas referência de planejamento, não prova de capacidade
             de pagamento. A sugestão usa uma regra transparente, sem decisão
             automática de aceitação.
-          </p>
-          <div className="integration-card">
+          </p></>}
+          {proposalStep===2 && <><div className="integration-card">
             <b>Valor da causa informado</b>
             <h2>{money(claim)}</h2>
             <p>Honorários-base definidos pelo escritório: {money(fees)}</p>
-          </div>
-          <div className="integration-card">
+          </div></>}
+          {proposalStep===2 && <><div className="integration-card">
             <b>1. Pagamento à vista</b>
             <h2>{money(cash)}</h2>
             <p>
@@ -423,8 +424,8 @@ export default function PerfilCliente() {
               {cashIncomePct === null ? "—" : cashIncomePct.toFixed(1) + "%"} de
               uma renda mensal declarada.
             </p>
-          </div>
-          <div className="integration-card">
+          </div></>}
+          {proposalStep===2 && <><div className="integration-card">
             <b>
               2. Cartão recorrente InfinitePay — recomendado (+{cardMarkup}%)
             </b>
@@ -436,8 +437,8 @@ export default function PerfilCliente() {
               {cardIncomePct === null ? "—" : cardIncomePct.toFixed(1) + "%"} da
               renda mensal.
             </p>
-          </div>
-          {boletoReleased && (
+          </div></>}
+          {proposalStep===2 && <>{boletoReleased && (
             <div className="integration-card">
               <b>3. Boleto parcelado (+{boletoMarkup}%)</b>
               <h2>{money(boleto)}</h2>
@@ -451,8 +452,8 @@ export default function PerfilCliente() {
                 da renda mensal.
               </p>
             </div>
-          )}
-          {hasCounteroffer && (
+          )}</>}
+          {proposalStep===2 && <>{hasCounteroffer && (
             <div className="integration-card">
               <b>Contraproposta do cliente · pendente</b>
               <h2>{money(counterTotal)}</h2>
@@ -461,8 +462,8 @@ export default function PerfilCliente() {
                 {money(counterInstallmentAmount)}.
               </p>
             </div>
-          )}
-          <div className="integration-card">
+          )}</>}
+          {proposalStep===2 && <><div className="integration-card">
             <b>Sugestão de parcelamento</b>
             <p>
               Referência mensal: {money(recommendation.capacity)} ({monthlyCap}%
@@ -479,8 +480,8 @@ export default function PerfilCliente() {
                 referência. Revise as condições antes de oferecê-las.
               </p>
             )}
-          </div>
-          <div className="integration-card">
+          </div></>}
+          {proposalStep===2 && <><div className="integration-card">
             <h3>Análise de capacidade e risco de pagamento</h3>
             <p>
               <strong>Cartão recorrente:</strong> {paymentRisk(cardIncomePct)} ·
@@ -536,8 +537,8 @@ export default function PerfilCliente() {
               documentação e no histórico informado. A decisão final permanece
               com a advogada.
             </p>
-          </div>
-          <div className="integration-card">
+          </div></>}
+          {proposalStep===2 && <><div className="integration-card">
             <h3>Recomendação de viabilidade comercial</h3>
             <p>
               <strong>Melhor alternativa preliminar: {best}</strong>
@@ -552,21 +553,21 @@ export default function PerfilCliente() {
               Não verifica despesas, limite do cartão, disponibilidade de caixa
               ou crédito e não substitui avaliação individual da advogada.
             </p>
-          </div>
-          <h3>Prévia da proposta</h3>
-          <pre
+          </div></>}
+          {proposalStep===3 && <><h3>Prévia da proposta</h3></>}
+          {proposalStep===3 && <><pre
             style={{
               whiteSpace: "pre-wrap",
-              fontFamily: "inherit",
+              fontFamily: "var(--lx-font)",
               lineHeight: 1.6,
               padding: 16,
-              border: "1px solid #c8ad75",
-              borderRadius: 10,
+              border: "1px solid var(--lx-accent)",
+              borderRadius: "var(--lx-radius-md)",
             }}
           >
             {proposal}
-          </pre>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          </pre></>}
+          {proposalStep===3 && <><div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button className="btn-primary" type="button" onClick={copy}>
               Copiar para WhatsApp
             </button>
@@ -580,10 +581,10 @@ export default function PerfilCliente() {
             >
               Gerar cartilha de pagamento
             </button>
-          </div>
-          {notice && <p role="status">{notice}</p>}
+          </div></>}
+          {proposalStep===3 && <>{notice && <p role="status">{notice}</p>}</>}
         </section>
-      </div>
+      </div><div className="workspace-step-actions"><button type="button" className="lx-button" disabled={proposalStep===0} onClick={()=>setProposalStep(s=>Math.max(0,s-1))}>← Voltar</button>{proposalStep<3&&<button type="button" className="lx-button lx-button--primary" onClick={()=>setProposalStep(s=>Math.min(3,s+1))}>Continuar →</button>}</div>
     </div>
   );
 }

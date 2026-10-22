@@ -1,0 +1,13 @@
+import {useEffect,useState,useRef} from 'react';
+import {NavLink,Link,useLocation} from 'react-router-dom';
+import {ChevronRight} from 'lucide-react';
+import {areas,areaOf,type NavItem} from '../navigation/areas';
+import './workspace-sidebar.css';
+const STORAGE='lexoffice-expanded-area-v1';
+export default function WorkspaceSidebar({canSee,onNavigate,unread=0}:{canSee:(item:NavItem)=>boolean;onNavigate:()=>void;unread?:number}){
+ const {pathname}=useLocation();const current=areaOf(pathname);
+ const [expanded,setExpanded]=useState(()=>{try{const saved=JSON.parse(localStorage.getItem(STORAGE)||'null');return saved?.currentArea===current.label&&typeof saved.expanded==='string'?saved.expanded:current.label}catch{return current.label}});
+ const previousArea=useRef(current.label);useEffect(()=>{if(previousArea.current!==current.label){setExpanded(current.label);previousArea.current=current.label}},[current.label]);
+ useEffect(()=>{try{localStorage.setItem(STORAGE,JSON.stringify({currentArea:current.label,expanded}))}catch{}},[expanded,current.label]);
+ return <div className="workspace-sidebar"><span className="workspace-sidebar-label">ÁREAS DE TRABALHO</span>{areas.map((area,index)=>{const items=area.tabs.filter(canSee);if(!items.length)return null;const open=expanded===area.label;const active=current.label===area.label;return <div className={`workspace-nav-group ${area.footer?'workspace-nav-footer':''}`} key={area.label}>{items.length===1?<NavLink to={items[0].path} onClick={onNavigate} className={`workspace-area-toggle ${active?'is-current-area':''}`}><area.icon size={18}/><span>{area.label}</span></NavLink>:<><button className={`workspace-area-toggle ${active?'is-current-area':''}`} aria-expanded={open} aria-controls={`workspace-submenu-${index}`} onClick={()=>setExpanded(open?'':area.label)}><area.icon size={18}/><span>{area.label}</span>{area.label==='Atendimento'&&unread>0&&<small className="workspace-nav-count">{unread>99?'99+':unread}</small>}<ChevronRight size={14} className="workspace-area-chevron"/></button><div id={`workspace-submenu-${index}`} className="workspace-submenu" hidden={!open}>{items.map(item=>{const exact=pathname===item.path;const match=exact||(item.path!=='/'&&pathname.startsWith(item.path+'/')&&!items.some(other=>other.path!==item.path&&(pathname===other.path||pathname.startsWith(other.path+'/'))&&other.path.length>item.path.length));return <Link key={item.path} to={item.path} className={`workspace-submenu-link ${match?'is-current-page':''}`} aria-current={match?'page':undefined} onClick={onNavigate}>{item.label}</Link>})}</div></>}</div>})}</div>
+}

@@ -343,8 +343,8 @@ export default function WhatsAppFlow() {
     )
     .slice(0, 10);
   const tileStyle = {
-    border: "1px solid rgba(201,148,67,.3)",
-    borderRadius: 18,
+    border: "1px solid var(--lx-border)",
+    borderRadius: "var(--lx-radius-md)",
     padding: "22px 16px",
     minHeight: 150,
     display: "flex",
@@ -353,8 +353,7 @@ export default function WhatsAppFlow() {
     justifyContent: "center",
     textAlign: "center" as const,
     gap: 8,
-    background:
-      "linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.02))",
+    background: "linear-gradient(145deg,var(--lx-surface-raised),var(--lx-surface-raised))",
   };
   return (
     <>
@@ -395,9 +394,9 @@ export default function WhatsAppFlow() {
         >
           {menuCards.map((c) => (
             <div key={c.title} style={tileStyle}>
-              <div style={{ color: "#d4af37" }}>{c.icon}</div>
-              <strong style={{ fontSize: 19 }}>{c.title}</strong>
-              <span style={{ opacity: 0.72, fontSize: 14 }}>{c.desc}</span>
+              <div style={{ color: "var(--lx-accent)" }}>{c.icon}</div>
+              <strong style={{ fontSize: "var(--lx-section-size)" }}>{c.title}</strong>
+              <span style={{ opacity: 0.72, fontSize: "var(--lx-font-md)" }}>{c.desc}</span>
             </div>
           ))}
         </div>
@@ -444,7 +443,7 @@ export default function WhatsAppFlow() {
                 minHeight: 170,
               }}
             >
-              <span style={{ fontSize: 12, opacity: 0.6 }}>ETAPA {i + 2}</span>
+              <span style={{ fontSize: "var(--lx-font-xs)", opacity: 0.6 }}>ETAPA {i + 2}</span>
               <strong>{s[0]}</strong>
               {s.slice(1).map((x) => (
                 <span
@@ -453,7 +452,7 @@ export default function WhatsAppFlow() {
                     display: "flex",
                     gap: 6,
                     alignItems: "center",
-                    fontSize: 13,
+                    fontSize: "var(--lx-font-sm)",
                     opacity: 0.8,
                   }}
                 >

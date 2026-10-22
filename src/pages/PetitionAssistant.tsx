@@ -1330,7 +1330,7 @@ export default function PetitionAssistant() {
                           style={{
                             height: 8,
                             borderRadius: 6,
-                            background: "rgba(255,255,255,.08)",
+                            background: "var(--lx-surface)",
                             overflow: "hidden",
                             margin: "4px 0 8px",
                           }}
@@ -1340,7 +1340,7 @@ export default function PetitionAssistant() {
                               width: `${Math.max(0, Math.min(100, p))}%`,
                               height: "100%",
                               background:
-                                "linear-gradient(90deg,#8A5726,#C99443,#F2C56D)",
+                                "var(--lx-surface)",
                             }}
                           />
                         </div>

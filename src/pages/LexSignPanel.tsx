@@ -230,11 +230,11 @@ export default function LexSignPanel() {
             <option value="">{searchingClients ? 'Buscando cliente...' : 'Selecione o cliente'}</option>
             {filtered.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
-          {client && <small style={{ color: phone ? '#BDB4A6' : '#D6AA55' }}>{phone ? `WhatsApp: ${phone}` : 'Este cliente não tem WhatsApp cadastrado.'}</small>}
+          {client && <small style={{ color: phone ? "var(--lx-text)" : "var(--lx-accent)" }}>{phone ? `WhatsApp: ${phone}` : 'Este cliente não tem WhatsApp cadastrado.'}</small>}
         </label>
         <div style={S.label}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-            <span>Documentos para assinar {docIds.length > 0 && <b style={{ color: '#c9a55c' }}>• {docIds.length} selecionado{docIds.length > 1 ? 's' : ''}</b>}</span>
+            <span>Documentos para assinar {docIds.length > 0 && <b style={{ color: "var(--lx-accent)" }}>• {docIds.length} selecionado{docIds.length > 1 ? 's' : ''}</b>}</span>
             {docs.length > 1 && <button type="button" style={S.small} onClick={() => setDocIds(allSelected ? [] : docs.map((d) => d.id))}>{allSelected ? 'Desmarcar todos' : 'Selecionar todos'}</button>}
           </div>
           <div style={S.docList}>
@@ -244,25 +244,25 @@ export default function LexSignPanel() {
               const on = docIds.includes(d.id);
               return (
                 <label key={d.id} style={{ ...S.docItem, ...(on ? S.docOn : {}) }}>
-                  <input type="checkbox" checked={on} onChange={() => toggleDoc(d.id)} style={{ width: 18, height: 18, accentColor: '#C99443', flex: 'none' }} />
+                  <input type="checkbox" checked={on} onChange={() => toggleDoc(d.id)} style={{ width: 18, height: 18, accentColor: "var(--lx-accent)", flex: 'none' }} />
                   <span style={{ minWidth: 0, flex: 1 }}>
-                    <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#E7DFD0' }}>{d.name}</span>
-                    <small style={{ color: '#BDB4A6' }}>{dt(d.created_at)}</small>
+                    <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: "var(--lx-text)" }}>{d.name}</span>
+                    <small style={{ color: "var(--lx-text)" }}>{dt(d.created_at)}</small>
                   </span>
                 </label>
               );
             })}
           </div>
-          <small style={{ color: '#BDB4A6' }}>Marque um ou mais. Todos vão no mesmo link: o cliente valida a identidade uma vez só e assina todos juntos.</small>
+          <small style={{ color: "var(--lx-text)" }}>Marque um ou mais. Todos vão no mesmo link: o cliente valida a identidade uma vez só e assina todos juntos.</small>
         </div>
       </div>
       <div style={S.upload}>
-        <span style={{ fontSize: 13, color: '#E7DFD0' }}>Adicionar PDFs do computador à ficha do cliente:</span>
+        <span style={{ fontSize: "var(--lx-font-sm)", color: "var(--lx-text)" }}>Adicionar PDFs do computador à ficha do cliente:</span>
         <label style={{ ...S.small, opacity: !clientId || uploading ? 0.5 : 1, cursor: !clientId || uploading ? 'not-allowed' : 'pointer' }}>
           {uploading ? 'Enviando arquivos...' : 'Escolher PDFs'}
           <input type="file" accept="application/pdf,.pdf" multiple hidden disabled={!clientId || uploading} onChange={(e) => { addUploads(e.target.files); e.target.value = ''; }} />
         </label>
-        <small style={{ color: '#BDB4A6' }}>Pode escolher vários de uma vez; eles entram marcados na lista acima.</small>
+        <small style={{ color: "var(--lx-text)" }}>Pode escolher vários de uma vez; eles entram marcados na lista acima.</small>
       </div>
       <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
         <button style={{ ...S.btn, opacity: !docIds.length || !phone || busy || uploading ? 0.5 : 1 }} disabled={!docIds.length || !phone || !!busy || uploading} onClick={send}>
@@ -292,8 +292,8 @@ export default function LexSignPanel() {
             </label>
             <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
               <button style={S.btn} disabled={busy === 'review'} onClick={() => decide(true)}>{busy === 'review' ? 'Processando...' : 'É a mesma pessoa — aprovar'}</button>
-              <button style={{ ...S.small, padding: '12px 16px', fontSize: 14 }} disabled={busy === 'review'} onClick={() => decide(false)}>Recusar</button>
-              <button style={{ ...S.small, padding: '12px 16px', fontSize: 14, background: 'transparent' }} disabled={busy === 'review'} onClick={() => setReview(null)}>Fechar</button>
+              <button style={{ ...S.small, padding: '12px 16px', fontSize: "var(--lx-font-md)" }} disabled={busy === 'review'} onClick={() => decide(false)}>Recusar</button>
+              <button style={{ ...S.small, padding: '12px 16px', fontSize: "var(--lx-font-md)", background: 'transparent' }} disabled={busy === 'review'} onClick={() => setReview(null)}>Fechar</button>
             </div>
           </div>
         </div>
@@ -313,22 +313,22 @@ export default function LexSignPanel() {
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <b style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{many ? `${g.length} documentos • um único link` : r.title}</b>
-                  <small style={{ color: '#BDB4A6' }}>{r.signer_name} • enviado {dt(r.created_at)}{r.viewed_at ? ` • aberto ${dt(r.viewed_at)}` : ''}{!many && r.verification_code ? ` • código ${r.verification_code}` : ''}{r.signed_at && st === 'signed' ? ` • ASSINADO EM ${dt(r.signed_at)}` : ''}</small>
+                  <small style={{ color: "var(--lx-text)" }}>{r.signer_name} • enviado {dt(r.created_at)}{r.viewed_at ? ` • aberto ${dt(r.viewed_at)}` : ''}{!many && r.verification_code ? ` • código ${r.verification_code}` : ''}{r.signed_at && st === 'signed' ? ` • ASSINADO EM ${dt(r.signed_at)}` : ''}</small>
                 </div>
-                <span style={{ ...S.status, color: COLOR[st] || '#ccc', borderColor: COLOR[st] || '#555' }}>{STATUS[st] || st}</span>
-                {st === 'pending_review' && <button style={{ ...S.small, background: '#C99443', borderColor: '#C99443', color: '#fff' }} disabled={!!busy} onClick={() => openReview(r)}>{busy === r.id ? '...' : 'Conferir'}</button>}
+                <span style={{ ...S.status, color: COLOR[st] || "var(--lx-text)", borderColor: COLOR[st] || "var(--lx-border)" }}>{STATUS[st] || st}</span>
+                {st === 'pending_review' && <button style={{ ...S.small, background: "var(--lx-accent-soft)", borderColor: "var(--lx-accent)", color: "var(--lx-text)" }} disabled={!!busy} onClick={() => openReview(r)}>{busy === r.id ? '...' : 'Conferir'}</button>}
                 {!many && r.status === 'signed' && <button style={S.small} onClick={() => downloadSigned(r)}>Baixar assinado</button>}
                 {['sent', 'viewed', 'expired', 'rejected'].includes(st) && <button style={S.small} disabled={!!busy} onClick={() => resend(r)}>{busy === r.id ? '...' : 'Reenviar'}</button>}
                 {['sent', 'viewed', 'pending_review'].includes(st) && <button style={{ ...S.small, background: 'transparent' }} disabled={!!busy} onClick={() => cancel(r)}>Cancelar</button>}
-                {many && g.some((x) => x.status === 'signed' && x.signed_path) && <button type="button" style={{ ...S.small, background: '#C99443', borderColor: '#C99443', color: '#fff' }} onClick={() => downloadBatch(g)}>Baixar lote assinado ({g.filter((x) => x.status === 'signed' && x.signed_path).length})</button>}
+                {many && g.some((x) => x.status === 'signed' && x.signed_path) && <button type="button" style={{ ...S.small, background: "var(--lx-accent-soft)", borderColor: "var(--lx-accent)", color: "var(--lx-text)" }} onClick={() => downloadBatch(g)}>Baixar lote assinado ({g.filter((x) => x.status === 'signed' && x.signed_path).length})</button>}
                 {many && <button type="button" style={S.small} aria-expanded={isOpen} onClick={() => toggleGroup(gk)}>{isOpen ? 'Recolher ▲' : `Ver documentos (${g.length}) ▼`}</button>}
               </div>
               {many && isOpen && (
-                <div style={{ display: 'grid', gap: 4, marginTop: 8, paddingLeft: 10, borderLeft: '2px solid rgba(201,165,92,.35)' }}>
+                <div style={{ display: 'grid', gap: 4, marginTop: 8, paddingLeft: 10, borderLeft: "2px solid var(--lx-accent)" }}>
                   {g.map((m) => (
-                    <div key={m.id} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 13 }}>
-                      <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#E7DFD0' }}>{m.title}{m.verification_code && m.status === 'signed' ? <small style={{ color: '#BDB4A6' }}> • código {m.verification_code}</small> : null}</span>
-                      <small style={{ color: COLOR[m.status] || '#ccc' }}>{STATUS[m.status] || m.status}</small>
+                    <div key={m.id} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: "var(--lx-font-sm)" }}>
+                      <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: "var(--lx-text)" }}>{m.title}{m.verification_code && m.status === 'signed' ? <small style={{ color: "var(--lx-text)" }}> • código {m.verification_code}</small> : null}</span>
+                      <small style={{ color: COLOR[m.status] || "var(--lx-text)" }}>{STATUS[m.status] || m.status}</small>
                       {m.status === 'signed' && <button style={S.small} onClick={() => downloadSigned(m)}>Baixar assinado</button>}
                     </div>
                   ))}
@@ -343,29 +343,29 @@ export default function LexSignPanel() {
 }
 
 const S: Record<string, React.CSSProperties> = {
-  panel: { border: '1px solid rgba(201,165,92,.35)', borderRadius: 16, padding: 20, marginBottom: 18, background: 'linear-gradient(145deg,rgba(201,148,67,.14),rgba(255,255,255,.02))' },
+  panel: { border: "1px solid var(--lx-border)", borderRadius: "var(--lx-radius-md)", padding: 20, marginBottom: 18, background: "linear-gradient(145deg,var(--lx-surface-raised),var(--lx-surface-raised))" },
   head: { display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 12 },
-  pill: { fontSize: 11, letterSpacing: '.08em', color: '#c9a55c', fontWeight: 700 },
-  h2: { margin: '6px 0 6px', fontSize: 20 },
-  h3: { margin: '22px 0 10px', fontSize: 15, color: '#c9a55c', textTransform: 'uppercase', letterSpacing: '.06em' },
-  p: { margin: 0, color: '#BDB4A6', fontSize: 14, lineHeight: 1.5 },
+  pill: { fontSize: "var(--lx-font-xs)", letterSpacing: '.08em', color: "var(--lx-accent)", fontWeight: 700 },
+  h2: { margin: '6px 0 6px', fontSize: "var(--lx-section-size)" },
+  h3: { margin: '22px 0 10px', fontSize: "var(--lx-font-lg)", color: "var(--lx-accent)", textTransform: 'uppercase', letterSpacing: '.06em' },
+  p: { margin: 0, color: "var(--lx-text)", fontSize: "var(--lx-font-md)", lineHeight: 1.5 },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 14, margin: '10px 0 14px' },
-  label: { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, color: '#E7DFD0' },
-  input: { background: 'rgba(0,0,0,.25)', border: '1px solid rgba(255,255,255,.14)', borderRadius: 10, padding: '10px 12px', color: 'inherit', fontSize: 14 },
-  btn: { background: '#C99443', color: '#fff', border: 0, borderRadius: 10, padding: '12px 18px', fontWeight: 600, fontSize: 15, cursor: 'pointer' },
-  btnAlt: { background: 'transparent', color: '#F2C56D', border: '1px solid #C99443', borderRadius: 10, padding: '12px 18px', fontWeight: 600, fontSize: 15, cursor: 'pointer' },
-  small: { background: 'rgba(255,255,255,.06)', color: 'inherit', border: '1px solid rgba(255,255,255,.16)', borderRadius: 8, padding: '6px 10px', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' },
-  notice: { margin: '10px 0 0', color: '#d9c38f', fontSize: 14 },
-  linkBox: { display: 'flex', gap: 10, alignItems: 'center', marginTop: 10, padding: 10, borderRadius: 10, background: 'rgba(0,0,0,.25)', fontSize: 12 },
-  row: { display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', padding: '10px 12px', borderRadius: 10, background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)' },
-  upload: { display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 12, padding: 12, borderRadius: 10, border: '1px dashed rgba(255,255,255,.18)' },
-  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,.65)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 },
-  modal: { width: '100%', maxWidth: 640, maxHeight: '92vh', overflow: 'auto', background: '#17110C', border: '1px solid rgba(201,165,92,.35)', borderRadius: 16, padding: 20 },
-  img: { width: '100%', height: 240, objectFit: 'contain', background: 'rgba(0,0,0,.35)', borderRadius: 10, border: '1px solid rgba(255,255,255,.12)' },
-  cap: { fontSize: 12, color: '#BDB4A6', marginTop: 4, textAlign: 'center' },
-  docList: { display: 'grid', gap: 6, maxHeight: 260, overflowY: 'auto', padding: 6, borderRadius: 10, background: 'rgba(0,0,0,.2)', border: '1px solid rgba(255,255,255,.1)' },
-  docItem: { display: 'flex', gap: 10, alignItems: 'center', padding: '8px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,.08)', background: 'rgba(255,255,255,.02)', cursor: 'pointer' },
-  docOn: { borderColor: 'rgba(201,165,92,.6)', background: 'rgba(201,148,67,.22)' },
-  empty: { margin: 0, padding: 8, color: '#BDB4A6', fontSize: 13 },
-  status: { fontSize: 12, fontWeight: 600, border: '1px solid', borderRadius: 999, padding: '3px 10px', whiteSpace: 'nowrap' },
+  label: { display: 'flex', flexDirection: 'column', gap: 6, fontSize: "var(--lx-font-sm)", color: "var(--lx-text)" },
+  input: { background: "var(--lx-surface-raised)", border: "1px solid var(--lx-border)", borderRadius: "var(--lx-radius-md)", padding: '10px 12px', color: 'inherit', fontSize: "var(--lx-font-md)" },
+  btn: { background: "var(--lx-accent-soft)", color: "var(--lx-text)", border: 0, borderRadius: "var(--lx-radius-md)", padding: '12px 18px', fontWeight: 600, fontSize: "var(--lx-font-lg)", cursor: 'pointer' },
+  btnAlt: { background: 'transparent', color: "var(--lx-accent)", border: "1px solid var(--lx-accent)", borderRadius: "var(--lx-radius-md)", padding: '12px 18px', fontWeight: 600, fontSize: "var(--lx-font-lg)", cursor: 'pointer' },
+  small: { background: "var(--lx-surface-raised)", color: 'inherit', border: "1px solid var(--lx-border)", borderRadius: "var(--lx-radius-md)", padding: '6px 10px', fontSize: "var(--lx-font-xs)", cursor: 'pointer', whiteSpace: 'nowrap' },
+  notice: { margin: '10px 0 0', color: "var(--lx-text)", fontSize: "var(--lx-font-md)" },
+  linkBox: { display: 'flex', gap: 10, alignItems: 'center', marginTop: 10, padding: 10, borderRadius: "var(--lx-radius-md)", background: "var(--lx-surface-raised)", fontSize: "var(--lx-font-xs)" },
+  row: { display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', padding: '10px 12px', borderRadius: "var(--lx-radius-md)", background: "var(--lx-surface-raised)", border: "1px solid var(--lx-border)" },
+  upload: { display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 12, padding: 12, borderRadius: "var(--lx-radius-md)", border: "1px dashed var(--lx-border)" },
+  overlay: { position: 'fixed', inset: 0, background: "var(--lx-surface-raised)", zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 },
+  modal: { width: '100%', maxWidth: 640, maxHeight: '92vh', overflow: 'auto', background: "var(--lx-surface-raised)", border: "1px solid var(--lx-border)", borderRadius: "var(--lx-radius-md)", padding: 20 },
+  img: { width: '100%', height: 240, objectFit: 'contain', background: "var(--lx-surface-raised)", borderRadius: "var(--lx-radius-md)", border: "1px solid var(--lx-border)" },
+  cap: { fontSize: "var(--lx-font-xs)", color: "var(--lx-text)", marginTop: 4, textAlign: 'center' },
+  docList: { display: 'grid', gap: 6, maxHeight: 260, overflowY: 'auto', padding: 6, borderRadius: "var(--lx-radius-md)", background: "var(--lx-surface-raised)", border: "1px solid var(--lx-border)" },
+  docItem: { display: 'flex', gap: 10, alignItems: 'center', padding: '8px 10px', borderRadius: "var(--lx-radius-md)", border: "1px solid var(--lx-border)", background: "var(--lx-surface-raised)", cursor: 'pointer' },
+  docOn: { borderColor: "var(--lx-border)", background: "var(--lx-surface-raised)" },
+  empty: { margin: 0, padding: 8, color: "var(--lx-text)", fontSize: "var(--lx-font-sm)" },
+  status: { fontSize: "var(--lx-font-xs)", fontWeight: 600, border: '1px solid', borderRadius: 999, padding: '3px 10px', whiteSpace: 'nowrap' },
 };

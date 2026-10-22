@@ -1,3 +1,4 @@
+import InternalNavigation from '../components/InternalNavigation';
 import { useState } from "react";
 import {
   FileCheck2,
@@ -7,7 +8,6 @@ import {
   SearchCheck,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
-import "./subtabs.css";
 
 const max = 20 * 1024 * 1024;
 const tabs = [
@@ -103,7 +103,7 @@ export default function RevisaoPeca() {
           </p>
         </div>
       </div>
-      <nav className="campaign-tabs" aria-label="Módulos de revisão">
+      <InternalNavigation variant="underline" aria-label="Módulos de revisão">
         {tabs.map((x) => (
           <button
             key={x}
@@ -113,7 +113,7 @@ export default function RevisaoPeca() {
             {x}
           </button>
         ))}
-      </nav>
+      </InternalNavigation>
       <section className="integration-panel">
         <div className="integration-head">
           <div>

@@ -1,3 +1,4 @@
+import "./GlobalSearch.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, X, Loader2, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -12,6 +13,7 @@ type SearchItem = {
 };
 
 const moduleRows = [
+  ["service-settings", "Atendimento automático", "IA geral, retorno humano e acompanhamento", "/configuracoes/atendimento"],
   ["inicio", "Início e prioridades", "Resumo diário do escritório", "/"],
   ["donna", "Donna · Briefing", "Resumo executivo e organização do dia", "/donna"],
   ["atendimento", "Conversas e atendimento", "WhatsApp e mensagens recebidas", "/whatsapp"],
@@ -26,7 +28,7 @@ const moduleRows = [
   ["jurimetria", "Analisar caso antes de ajuizar", "Jurimetria e estratégia inicial", "/jurimetria"],
   ["revisao", "Revisar peça antes do protocolo", "Tipografia, prova e conferência final", "/revisao-peca"],
   ["sherlock", "Sherlock", "Consultas e investigação autorizada", "/consultas"],
-  ["config", "Configurações", "Escritório, equipe e integrações", "/configuracoes"],
+  ["config", "Central de configurações", "Onde ajustar cada funcionalidade", "/configuracoes/central"],
 ] as const;
 
 const modules: SearchItem[] = moduleRows.map(([id, title, detail, path]) => ({
@@ -84,8 +86,8 @@ export default function GlobalSearch() {
       ]);
       if (!active) return;
       const next: SearchItem[] = [
-        ...(clients.data || []).map((x: any) => ({ id: x.id, kind: "Cliente" as const, title: x.name, detail: x.cpf_cnpj || x.phone || "Cadastro de cliente", path: `/clientes?buscar=${encodeURIComponent(x.name)}` })),
-        ...(processes.data || []).map((x: any) => ({ id: x.id, kind: "Processo" as const, title: x.cnj_number || x.internal_number || x.subject || "Processo", detail: x.subject || "Acompanhamento processual", path: `/processos?buscar=${encodeURIComponent(x.cnj_number || x.internal_number || x.subject || "")}` })),
+        ...(clients.data || []).map((x: any) => ({ id: x.id, kind: "Cliente" as const, title: x.name, detail: x.cpf_cnpj || x.phone || "Cadastro de cliente", path: `/clientes/${encodeURIComponent(x.id)}` })),
+        ...(processes.data || []).map((x: any) => ({ id: x.id, kind: "Processo" as const, title: x.cnj_number || x.internal_number || x.subject || "Processo", detail: x.subject || "Acompanhamento processual", path: `/processos/${encodeURIComponent(x.id)}` })),
         ...(leads.data || []).map((x: any) => ({ id: x.id, kind: "Lead" as const, title: x.name, detail: x.phone || x.stage_key || "Oportunidade", path: `/crm?buscar=${encodeURIComponent(x.name)}` })),
       ];
       setRecords(next);

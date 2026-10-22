@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
+import { BrowserRouter, useLocation } from "react-router-dom";
 import App from "./App";
 import PlatformAdminEntry from "./pages/PlatformAdminEntry";
 import PublicClientForm from "./pages/PublicClientForm";
@@ -15,10 +15,11 @@ import BulkClientMessageBridge from "./components/BulkClientMessageBridge";
 import OfficeBrandBridge from "./OfficeBrandBridge";
 import ThemeController from "./ThemeController";
 import "./pwa-install";
+import "./design-system/tokens.css";
+import "./design-system/foundations.css";
+import "./design-system/auth.css";
 import "./styles.css";
-import "./legacy-auth.css";
 import "./interaction-feedback.css";
-import "./office-brand.css";
 import "./pages/whatsapp-conversations.css";
 import "./pages/agent-advanced.css";
 import "./pages/investigation.css";
@@ -28,29 +29,23 @@ import "./pages/calculator-cards.css";
 import "./pages/settings-enhanced.css";
 import "./pages/dashboard-premium.css";
 import "./pages/signatures.css";
-import "./pages/process-movements-premium.css";
 import "./client-intake.css";
-/* Single design-system authority: tokens, typography and color for every module. */
-/* Mobile-only shell. All rules are scoped to small screens, preserving desktop. */
-import "./mobile-shell.css";
-/* Final shell geometry override: must be loaded last to beat legacy width rules. */
-import "./shell-layout-fix.css";
-/* Atendimento desktop: block horizontal scrollLeft drift while preserving mobile behavior. */
-/* Camada visual preto e dourado luxo (identidade SF). Deve ser a última. */
-/* Uniformização final: uma fonte só (a do menu), campos 3D com contorno ouro. Carregar por último. */
-/* Polimento de leitura e espaçamento + véu sobre o fundo (08/10/2026). Carregar por último. */
-/* Tema global compartilhado, carregado por último em todas as telas internas. */
-/* Camada final de UX: navegação, hierarquia, acessibilidade e responsividade. */
-/* Alternancia claro/escuro, depois de todas as camadas legadas. */
-/* Design system loaded after legacy CSS while modules migrate. */
-import "./design-system/tokens.css";
 import "./design-system/components.css";
 import "./pages/service-workspace.css";
 import "./pages/service-bulk.css";
-
+import "./design-system/shell.css";
+import "./mobile-shell.css";
+import "./design-system/workspaces.css";
+import "./design-system/navigation.css";
 // Apply saved preference before React renders to prevent dark-theme flash.
-try { const theme = localStorage.getItem("lexoffice-theme") === "light" ? "light" : "dark"; document.documentElement.dataset.lexTheme = theme; document.documentElement.style.colorScheme = theme; } catch { document.documentElement.dataset.lexTheme = "dark"; }
-
+try {
+    const theme = localStorage.getItem("lexoffice-theme") === "light" ? "light" : "dark";
+    document.documentElement.dataset.lexTheme = theme;
+    document.documentElement.style.colorScheme = theme;
+}
+catch {
+    document.documentElement.dataset.lexTheme = "dark";
+}
 const intakePrefix = "/formulario-cliente/";
 const path = window.location.pathname.replace(/\/$/, "") || "/";
 const isPublicIntake = window.location.pathname.startsWith(intakePrefix);
@@ -59,96 +54,81 @@ const isOfficeLanding = ["/escritorio", "/suzanne-figueiredo"].includes(path);
 const isPublicPlans = ["/planos", "/precos", "/pricing"].includes(path);
 const isPublicCheckout = path === "/checkout";
 const isClientPortal = [
-  "/cliente",
-  "/app-cliente",
-  "/area-do-cliente",
+    "/cliente",
+    "/app-cliente",
+    "/area-do-cliente",
 ].includes(path);
 const intakeToken = isPublicIntake
-  ? decodeURIComponent(
-      window.location.pathname.slice(intakePrefix.length).split("/")[0] || "",
-    )
-  : "";
+    ? decodeURIComponent(window.location.pathname.slice(intakePrefix.length).split("/")[0] || "")
+    : "";
 const RootApp = window.location.pathname.startsWith("/admin")
-  ? PlatformAdminEntry
-  : App;
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
+    ? PlatformAdminEntry
+    : App;
+function ClientToolsGate() { const { pathname } = useLocation(); return pathname.startsWith("/clientes") ? <ClientFormShareAction /> : null; }
+ReactDOM.createRoot(document.getElementById("root")!).render(<React.StrictMode>
+    <OfficeBrandBridge>
+    {false}
     <BrowserRouter>
-      {isPublicIntake ? (
-        <PublicClientForm token={intakeToken} />
-      ) : isOfficeLanding ? (
-        <OfficeLanding />
-      ) : isPublicLanding ? (
-        <Landing />
-      ) : isPublicPlans ? (
-        <Planos />
-      ) : isPublicCheckout ? (
-        <Checkout />
-      ) : isClientPortal ? (
-        <ClientPortal />
-      ) : (
-        <OfficeBrandBridge>
+      <ThemeController />
+      {isPublicIntake ? (<PublicClientForm token={intakeToken}/>) : isOfficeLanding ? (<OfficeLanding />) : isPublicLanding ? (<Landing />) : isPublicPlans ? (<Planos />) : isPublicCheckout ? (<Checkout />) : isClientPortal ? (<ClientPortal />) : (<>
           <>
             <RootApp />
-            <ClientFormShareAction />
+            <ClientToolsGate />
             <ClientMessageActionBridge />
             <BulkClientMessageBridge />
-            <ThemeController />
+
           </>
-        </OfficeBrandBridge>
-      )}
+        </>)}
     </BrowserRouter>
-  </React.StrictMode>,
-);
+    </OfficeBrandBridge>
+  </React.StrictMode>);
 const dashboardTargets = [
-  "/processos",
-  "/crm",
-  "/clientes",
-  "/agenda",
-  "/agenda",
-  "/andamentos",
-  "/assinaturas",
-  "/agentes-ia",
+    "/processos",
+    "/crm",
+    "/clientes",
+    "/agenda",
+    "/agenda",
+    "/andamentos",
+    "/assinaturas",
+    "/agentes-ia",
 ];
 document.addEventListener("click", (event) => {
-  const el = (event.target as HTMLElement | null)?.closest?.(
-    ".dashboard-kpi",
-  ) as HTMLElement | null;
-  if (!el) return;
-  const cards = Array.from(document.querySelectorAll(".dashboard-kpi"));
-  const target = dashboardTargets[cards.indexOf(el)];
-  if (target) window.location.assign(target);
+    const el = (event.target as HTMLElement | null)?.closest?.(".dashboard-kpi") as HTMLElement | null;
+    if (!el)
+        return;
+    const cards = Array.from(document.querySelectorAll(".dashboard-kpi"));
+    const target = dashboardTargets[cards.indexOf(el)];
+    if (target)
+        window.location.assign(target);
 });
 document.addEventListener("keydown", (event) => {
-  if (event.key !== "Enter" && event.key !== " ") return;
-  const el = (event.target as HTMLElement | null)?.closest?.(
-    ".dashboard-kpi",
-  ) as HTMLElement | null;
-  if (!el) return;
-  event.preventDefault();
-  el.click();
+    if (event.key !== "Enter" && event.key !== " ")
+        return;
+    const el = (event.target as HTMLElement | null)?.closest?.(".dashboard-kpi") as HTMLElement | null;
+    if (!el)
+        return;
+    event.preventDefault();
+    el.click();
 });
 const decorateDashboardCards = () => {
-  document
-    .querySelectorAll<HTMLElement>(".dashboard-kpi")
-    .forEach((el, index) => {
-      if (!dashboardTargets[index]) return;
-      el.tabIndex = 0;
-      el.setAttribute("role", "link");
-      el.setAttribute(
-        "aria-label",
-        `Abrir ${el.innerText.replace(/\s+/g, " ").trim()}`,
-      );
-      el.style.cursor = "pointer";
+    document
+        .querySelectorAll<HTMLElement>(".dashboard-kpi")
+        .forEach((el, index) => {
+        if (!dashboardTargets[index])
+            return;
+        el.tabIndex = 0;
+        el.setAttribute("role", "link");
+        el.setAttribute("aria-label", `Abrir ${el.innerText.replace(/\s+/g, " ").trim()}`);
+        el.style.cursor = "pointer";
     });
 };
 new MutationObserver(decorateDashboardCards).observe(document.documentElement, {
-  childList: true,
-  subtree: true,
+    childList: true,
+    subtree: true,
 });
 decorateDashboardCards();
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => undefined);
-  });
+    window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+    });
 }

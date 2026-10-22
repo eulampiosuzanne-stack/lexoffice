@@ -34,7 +34,7 @@ export default function HomeDeadlines(){
   {error&&<p role="alert" className="de-empty">{error}</p>}
   {visible.length?<ul className="de-events">{visible.map(d=><li key={d.id} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 4px'}}>
    <span style={{flex:1,minWidth:0}}><b style={{display:'block'}}>{d.title}</b><small>{new Date(d.due_at).toLocaleDateString('pt-BR')} · {completed(d.status)?'Cumprido':new Date(d.due_at)<new Date()?'Vencido':'Pendente'}</small></span>
-   <button type="button" disabled={busy===d.id} aria-label={completed(d.status)?'Desmarcar prazo cumprido':'Marcar prazo cumprido'} onClick={()=>toggle(d)} style={{border:'1px solid currentColor',borderRadius:8,padding:'7px 10px',whiteSpace:'nowrap'}}>{busy===d.id?'Salvando...':completed(d.status)?'Desmarcar':'✓ Cumprido'}</button>
+   <button type="button" disabled={busy===d.id} aria-label={completed(d.status)?'Desmarcar prazo cumprido':'Marcar prazo cumprido'} onClick={()=>toggle(d)} style={{border:'1px solid currentColor',borderRadius:"var(--lx-radius-md)",padding:'7px 10px',whiteSpace:'nowrap'}}>{busy===d.id?'Salvando...':completed(d.status)?'Desmarcar':'✓ Cumprido'}</button>
   </li>)}</ul>:<p className="de-empty">Nenhum prazo pendente encontrado.</p>}
  </section>
 }

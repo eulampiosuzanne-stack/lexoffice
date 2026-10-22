@@ -1,51 +1,9 @@
+import WorkspaceSidebar from './components/WorkspaceSidebar';
+import InternalNavigation from './components/InternalNavigation';
+import { areas, areaOf, type NavItem } from './navigation/areas';
 import { lazy, Suspense, useEffect, useState } from "react";
-import {
-  NavLink,
-  Navigate,
-  Route,
-  Routes,
-  useLocation,
-} from "react-router-dom";
-import {
-  LayoutDashboard,
-  Filter,
-  Users,
-  Gavel,
-  FileUp,
-  Bot,
-  Calculator,
-  MessageCircle,
-  Megaphone,
-  CalendarDays,
-  FileText,
-  PenTool,
-  CircleDollarSign,
-  ShieldCheck,
-  BarChart3,
-  Settings,
-  Search,
-  Bell,
-  Moon,
-  Sun,
-  LogOut,
-  LockKeyhole,
-  Workflow,
-  Sparkles,
-  Shield,
-  Clock3,
-  Activity,
-  Landmark,
-  MoreHorizontal,
-  Plug,
-  Target,
-  Smartphone,
-  Compass,
-  PiggyBank,
-  BellRing,
-  FileCheck2,
-  Menu,
-  ChevronRight,
-} from "lucide-react";
+import { NavLink, Navigate, Route, Routes, useLocation, } from "react-router-dom";
+import { LayoutDashboard, Filter, Users, Gavel, FileUp, Bot, Calculator, MessageCircle, Megaphone, CalendarDays, FileText, PenTool, CircleDollarSign, ShieldCheck, BarChart3, Settings, Search, Bell, Moon, Sun, LogOut, LockKeyhole, Workflow, Sparkles, Shield, Clock3, Activity, Landmark, MoreHorizontal, Plug, Target, Smartphone, Compass, PiggyBank, BellRing, FileCheck2, Menu, ChevronRight, } from "lucide-react";
 import { supabase, supabaseConfigured } from "./lib/supabase";
 import { humanize, roleLabels } from "./lib/ux";
 import CadastroPublico from "./pages/CadastroPublico";
@@ -54,12 +12,15 @@ import AssinarPublico from "./pages/AssinarPublico";
 import VerificarPublico from "./pages/VerificarPublico";
 import GlobalSearch from "./components/GlobalSearch";
 import { applyLexTheme, readLexTheme, type LexTheme } from "./ThemeController";
-
+const ToolHub = lazy(() => import('./pages/ToolHub'));
+const ScheduledMessages = lazy(() => import('./pages/ScheduledMessages'));
+const WhatsAppFlow = lazy(() => import('./pages/WhatsAppFlow'));
 const Prospecting = lazy(() => import("./pages/Prospecting"));
 const Clients = lazy(() => import("./pages/Clients"));
 const Processes = lazy(() => import("./pages/Processes"));
 const Dossier = lazy(() => import("./pages/Dossier"));
 const ProcessMovements = lazy(() => import("./pages/ProcessMovements"));
+const ProcessIntake = lazy(() => import("./pages/ProcessIntake"));
 const Tribunals = lazy(() => import("./pages/Tribunals"));
 const CRM = lazy(() => import("./pages/CRM"));
 const Agents = lazy(() => import("./pages/Agents"));
@@ -82,6 +43,9 @@ const Dashboard = lazy(() => import("./pages/DashboardOverview"));
 const PartnerPanel = lazy(() => import("./pages/PartnerPanel"));
 const Audit = lazy(() => import("./pages/Audit"));
 const JornadaComercial = lazy(() => import("./pages/JornadaComercial"));
+const ConfigurationCenter = lazy(() => import("./pages/ConfigurationCenter"));
+const ServiceConfiguration = lazy(() => import("./pages/ServiceConfiguration"));
+const ProcessProviderSettings = lazy(() => import("./pages/ProcessProviderSettings"));
 const ClientArea = lazy(() => import("./pages/ClientArea"));
 const PerfilCliente = lazy(() => import("./pages/PerfilCliente"));
 const Marketing = lazy(() => import("./pages/Marketing"));
@@ -90,274 +54,147 @@ const Afazeres = lazy(() => import("./pages/Afazeres"));
 const Donna = lazy(() => import("./pages/Donna"));
 const Hearings = lazy(() => import("./pages/Hearings"));
 const PRODUCTION_URL = "https://lexoffice-ashy.vercel.app";
-type NavItem = {
-  label: string;
-  path: string;
-  icon: any;
-  adminOnly?: boolean;
-  superAdminOnly?: boolean;
-  ownerOnly?: boolean;
-};
-type Area = { label: string; description: string; icon: any; tabs: NavItem[] };
-/* Arquitetura por finalidade: menos categorias, sem remover nenhuma rota. */
-const areas: Area[] = [
-  {
-    label: "Visão geral",
-    description: "Painel e prioridades",
-    icon: LayoutDashboard,
-    tabs: [
-      { label: "Início", path: "/", icon: LayoutDashboard },
-      { label: "Donna · Briefing", path: "/donna", icon: Sparkles },
-      { label: "Painel da sócia", path: "/painel", icon: BarChart3 },
-    ],
-  },
-  {
-    label: "Relacionamento",
-    description: "Clientes e atendimento",
-    icon: MessageCircle,
-    tabs: [
-      { label: "Caixa de Entrada", path: "/whatsapp", icon: MessageCircle },
-      { label: "Clientes e Histórico", path: "/clientes", icon: Users },
-      { label: "Helena | Automação", path: "/agentes-ia", icon: Bot },
-      { label: "Programações", path: "/fluxo", icon: CalendarDays },
-      { label: "Campanhas e CRM", path: "/crm", icon: Megaphone },
-      { label: "Mensagens do app", path: "/app-cliente", icon: Smartphone },
-      { label: "Importações", path: "/importacoes", icon: FileUp },
-    ],
-  },
-  {
-    label: "Gestão jurídica",
-    description: "Processos, prazos e peças",
-    icon: Gavel,
-    tabs: [
-      { label: "Processos", path: "/processos", icon: Gavel },
-      { label: "Andamentos", path: "/andamentos", icon: Activity },
-      { label: "Tribunais", path: "/tribunais", icon: Landmark },
-      {
-        label: "Condução após ajuizar",
-        path: "/conducao-processual",
-        icon: Compass,
-      },
-      { label: "Agenda", path: "/agenda", icon: CalendarDays },
-      { label: "Audiências", path: "/audiencias", icon: Gavel },
-      { label: "Documentos", path: "/documentos", icon: FileText },
-      { label: "Assinaturas", path: "/assinaturas", icon: PenTool },
-    ],
-  },
-  {
-    label: "Comercial e financeiro",
-    description: "Contratação e receitas",
-    icon: CircleDollarSign,
-    tabs: [
-      { label: "Financeiro", path: "/financeiro", icon: CircleDollarSign },
-      { label: "Cobrança", path: "/cobranca", icon: BellRing },
-      { label: "Afazeres", path: "/afazeres", icon: Clock3 },
-      { label: "Etapas da contratação", path: "/jornada-comercial", icon: Target },
-      {
-        label: "Propostas comerciais",
-        path: "/perfil-cliente",
-        icon: ShieldCheck,
-      },
-      {
-        label: "Lex Prospect",
-        path: "/prospeccao",
-        icon: Target,
-        superAdminOnly: true,
-      },
-    ],
-  },
-  {
-    label: "Inteligência jurídica",
-    description: "Análise e estratégia",
-    icon: Sparkles,
-    tabs: [
-      { label: "Analisar caso", path: "/jurimetria", icon: Sparkles },
-      { label: "Revisar peça", path: "/revisao-peca", icon: FileCheck2 },
-      { label: "Calculadoras", path: "/calculadoras", icon: Calculator },
-      { label: "Planejamento", path: "/planejamento", icon: PiggyBank },
-      { label: "Sherlock", path: "/consultas", icon: Search },
-    ],
-  },
-  {
-    label: "Operação e administração",
-    description: "Equipe e integrações",
-    icon: Settings,
-    tabs: [
-      { label: "Escritório", path: "/configuracoes", icon: Settings },
-      { label: "Integrações", path: "/integracoes", icon: Plug },
-      {
-        label: "Campanhas e WhatsApp Meta",
-        path: "/marketing",
-        icon: MessageCircle,
-      },
-      { label: "Segurança", path: "/seguranca", icon: ShieldCheck },
-      {
-        label: "Auditoria",
-        path: "/auditoria",
-        icon: ShieldCheck,
-        ownerOnly: true,
-      },
-      { label: "Relatórios", path: "/relatorios", icon: BarChart3 },
-    ],
-  },
-];
-const areaOf = (path: string) =>
-  areas.find((a) => a.tabs.some((t) => t.path === path)) || areas[0];
 const dashboardStages = [
-  ["novo_lead", "Novo lead"],
-  ["contato_iniciado", "Contato iniciado"],
-  ["qualificacao", "Qualificação"],
-  ["consultoria", "Consultoria"],
-  ["proposta", "Proposta"],
-  ["negociacao", "Negociação"],
-  ["contratado", "Contratado"],
-  ["cliente", "Cliente"],
-  ["perdido", "Perdido"],
+    ["novo_lead", "Novo lead"],
+    ["contato_iniciado", "Contato iniciado"],
+    ["qualificacao", "Qualificação"],
+    ["consultoria", "Consultoria"],
+    ["proposta", "Proposta"],
+    ["negociacao", "Negociação"],
+    ["contratado", "Contratado"],
+    ["cliente", "Cliente"],
+    ["perdido", "Perdido"],
 ] as const;
 function LegacyDashboard() {
-  const [s, setS] = useState({
-      processes: "—",
-      leads: "—",
-      clients: "—",
-      deadlines: "—",
-      hearings: "—",
-      signatures: "—",
-      movements: "—",
-    }),
-    [movements, setMovements] = useState<any[]>([]),
-    [leadRows, setLeadRows] = useState<any[]>([]),
-    [clientRows, setClientRows] = useState<any[]>([]),
-    [waAi, setWaAi] = useState<boolean | null>(null);
-  async function loadDashboard() {
-    const client = supabase;
-    if (!client) return;
-    const {
-      data: { user },
-    } = await client.auth.getUser();
-    let orgId: string | null = null;
-    if (user) {
-      const { data: p } = await client
-        .from("profiles")
-        .select("org_id")
-        .eq("id", user.id)
-        .maybeSingle();
-      orgId = p?.org_id || null;
+    const [s, setS] = useState({
+        processes: "—",
+        leads: "—",
+        clients: "—",
+        deadlines: "—",
+        hearings: "—",
+        signatures: "—",
+        movements: "—",
+    }), [movements, setMovements] = useState<any[]>([]), [leadRows, setLeadRows] = useState<any[]>([]), [clientRows, setClientRows] = useState<any[]>([]), [waAi, setWaAi] = useState<boolean | null>(null);
+    async function loadDashboard() {
+        const client = supabase;
+        if (!client)
+            return;
+        const { data: { user }, } = await client.auth.getUser();
+        let orgId: string | null = null;
+        if (user) {
+            const { data: p } = await client
+                .from("profiles")
+                .select("org_id")
+                .eq("id", user.id)
+                .maybeSingle();
+            orgId = p?.org_id || null;
+        }
+        const countTables = [
+            "processes",
+            "leads",
+            "clients",
+            "process_deadlines",
+            "process_hearings",
+            "signature_requests",
+            "process_movements",
+        ];
+        const counts = await Promise.all(countTables.map((t) => client.from(t).select("*", { count: "exact", head: true })));
+        const [m, l, c, wa] = await Promise.all([
+            client
+                .from("process_movements")
+                .select("id,process_id,movement_date,title,description,source,processes(cnj_number,internal_number,clients(name))")
+                .order("movement_date", { ascending: false })
+                .limit(8),
+            orgId
+                ? client
+                    .from("leads")
+                    .select("stage_key,origin,updated_at")
+                    .eq("org_id", orgId)
+                : client.from("leads").select("stage_key,origin,updated_at").limit(0),
+            orgId
+                ? client
+                    .from("clients")
+                    .select("created_at")
+                    .eq("org_id", orgId)
+                    .order("created_at", { ascending: true })
+                : client.from("clients").select("created_at").limit(0),
+            orgId
+                ? client
+                    .from("whatsapp_settings")
+                    .select("ai_enabled")
+                    .eq("org_id", orgId)
+                    .maybeSingle()
+                : (Promise.resolve({ data: null }) as any),
+        ]);
+        setS({
+            processes: String(counts[0].count ?? "—"),
+            leads: String(counts[1].count ?? "—"),
+            clients: String(counts[2].count ?? "—"),
+            deadlines: String(counts[3].count ?? "—"),
+            hearings: String(counts[4].count ?? "—"),
+            signatures: String(counts[5].count ?? "—"),
+            movements: String(counts[6].count ?? "—"),
+        });
+        setMovements(m.data || []);
+        setLeadRows(l.data || []);
+        setClientRows(c.data || []);
+        if (wa.data)
+            setWaAi(wa.data.ai_enabled !== false);
     }
-    const countTables = [
-      "processes",
-      "leads",
-      "clients",
-      "process_deadlines",
-      "process_hearings",
-      "signature_requests",
-      "process_movements",
-    ];
-    const counts = await Promise.all(
-      countTables.map((t) =>
-        client.from(t).select("*", { count: "exact", head: true }),
-      ),
-    );
-    const [m, l, c, wa] = await Promise.all([
-      client
-        .from("process_movements")
-        .select(
-          "id,process_id,movement_date,title,description,source,processes(cnj_number,internal_number,clients(name))",
-        )
-        .order("movement_date", { ascending: false })
-        .limit(8),
-      orgId
-        ? client
-            .from("leads")
-            .select("stage_key,origin,updated_at")
-            .eq("org_id", orgId)
-        : client.from("leads").select("stage_key,origin,updated_at").limit(0),
-      orgId
-        ? client
-            .from("clients")
-            .select("created_at")
-            .eq("org_id", orgId)
-            .order("created_at", { ascending: true })
-        : client.from("clients").select("created_at").limit(0),
-      orgId
-        ? client
-            .from("whatsapp_settings")
-            .select("ai_enabled")
-            .eq("org_id", orgId)
-            .maybeSingle()
-        : (Promise.resolve({ data: null }) as any),
-    ]);
-    setS({
-      processes: String(counts[0].count ?? "—"),
-      leads: String(counts[1].count ?? "—"),
-      clients: String(counts[2].count ?? "—"),
-      deadlines: String(counts[3].count ?? "—"),
-      hearings: String(counts[4].count ?? "—"),
-      signatures: String(counts[5].count ?? "—"),
-      movements: String(counts[6].count ?? "—"),
+    useEffect(() => {
+        loadDashboard();
+    }, []);
+    const dt = (v: any) => (v ? new Date(v).toLocaleString("pt-BR") : "—");
+    const proc = (x: any) => x?.processes?.cnj_number || x?.processes?.internal_number || "Processo";
+    const cli = (x: any) => x?.processes?.clients?.name || "Cliente não identificado";
+    const stageCounts = dashboardStages.map(([key, label]) => ({
+        key,
+        label,
+        count: leadRows.filter((x) => x.stage_key === key).length,
+    }));
+    const stageMax = Math.max(1, ...stageCounts.map((x) => x.count));
+    const origins = leadRows.reduce((a: any, x: any) => {
+        const k = (x.origin || "outro").toLowerCase();
+        a[k] = (a[k] || 0) + 1;
+        return a;
+    }, {});
+    const originEntries = Object.entries(origins)
+        .sort((a: any, b: any) => b[1] - a[1])
+        .slice(0, 3) as [
+        string,
+        number
+    ][];
+    const originTotal = Math.max(1, leadRows.length);
+    const p1 = ((originEntries[0]?.[1] || 0) / originTotal) * 100, p2 = ((originEntries[1]?.[1] || 0) / originTotal) * 100;
+    const months = Array.from({ length: 5 }, (_, i) => {
+        const d = new Date();
+        d.setMonth(d.getMonth() - (4 - i));
+        return {
+            y: d.getFullYear(),
+            m: d.getMonth(),
+            label: d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""),
+        };
     });
-    setMovements(m.data || []);
-    setLeadRows(l.data || []);
-    setClientRows(c.data || []);
-    if (wa.data) setWaAi(wa.data.ai_enabled !== false);
-  }
-  useEffect(() => {
-    loadDashboard();
-  }, []);
-  const dt = (v: any) => (v ? new Date(v).toLocaleString("pt-BR") : "—");
-  const proc = (x: any) =>
-    x?.processes?.cnj_number || x?.processes?.internal_number || "Processo";
-  const cli = (x: any) =>
-    x?.processes?.clients?.name || "Cliente não identificado";
-  const stageCounts = dashboardStages.map(([key, label]) => ({
-    key,
-    label,
-    count: leadRows.filter((x) => x.stage_key === key).length,
-  }));
-  const stageMax = Math.max(1, ...stageCounts.map((x) => x.count));
-  const origins = leadRows.reduce((a: any, x: any) => {
-    const k = (x.origin || "outro").toLowerCase();
-    a[k] = (a[k] || 0) + 1;
-    return a;
-  }, {});
-  const originEntries = Object.entries(origins)
-    .sort((a: any, b: any) => b[1] - a[1])
-    .slice(0, 3) as [string, number][];
-  const originTotal = Math.max(1, leadRows.length);
-  const p1 = ((originEntries[0]?.[1] || 0) / originTotal) * 100,
-    p2 = ((originEntries[1]?.[1] || 0) / originTotal) * 100;
-  const months = Array.from({ length: 5 }, (_, i) => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - (4 - i));
-    return {
-      y: d.getFullYear(),
-      m: d.getMonth(),
-      label: d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""),
-    };
-  });
-  const monthCounts = months.map(
-    (x) =>
-      clientRows.filter((r: any) => {
+    const monthCounts = months.map((x) => clientRows.filter((r: any) => {
         const d = new Date(r.created_at);
         return d.getFullYear() === x.y && d.getMonth() === x.m;
-      }).length,
-  );
-  const monthMax = Math.max(1, ...monthCounts);
-  const kpis = [
-    { value: s.processes, label: "Processos ativos", icon: Gavel },
-    { value: s.leads, label: "Novos leads", icon: Users },
-    { value: s.clients, label: "Clientes", icon: Users },
-    { value: s.deadlines, label: "Prazos próximos", icon: Clock3 },
-    { value: s.hearings, label: "Audiências", icon: CalendarDays },
-    { value: s.movements, label: "Movimentações", icon: Activity },
-    { value: s.signatures, label: "Assinaturas pendentes", icon: PenTool },
-    {
-      value: waAi === null ? "—" : waAi ? "ATIVA" : "PAUSADA",
-      label: "Inteligência artificial",
-      icon: Bot,
-    },
-  ];
-  return (
-    <div className="dashboard-exec">
+    }).length);
+    const monthMax = Math.max(1, ...monthCounts);
+    const kpis = [
+        { value: s.processes, label: "Processos ativos", icon: Gavel },
+        { value: s.leads, label: "Novos leads", icon: Users },
+        { value: s.clients, label: "Clientes", icon: Users },
+        { value: s.deadlines, label: "Prazos próximos", icon: Clock3 },
+        { value: s.hearings, label: "Audiências", icon: CalendarDays },
+        { value: s.movements, label: "Movimentações", icon: Activity },
+        { value: s.signatures, label: "Assinaturas pendentes", icon: PenTool },
+        {
+            value: waAi === null ? "—" : waAi ? "ATIVA" : "PAUSADA",
+            label: "Inteligência artificial",
+            icon: Bot,
+        },
+    ];
+    return (<div className="dashboard-exec">
       <div className="page-title">
         <h1>Dashboard</h1>
         <p>Visão geral do escritório em tempo real</p>
@@ -367,61 +204,45 @@ function LegacyDashboard() {
         <span className="online">● ONLINE</span>
       </div>
       <div className="dashboard-kpis">
-        {kpis.map((k, i) => (
-          <div className="dashboard-kpi" key={k.label}>
+        {kpis.map((k, i) => (<div className="dashboard-kpi" key={k.label}>
             <div className="dashboard-kpi-head">
               <div className="dashboard-kpi-icon">
-                <k.icon size={17} />
+                <k.icon size={17}/>
               </div>
               {i === 3 && <span className="dashboard-kpi-badge">PRAZO</span>}
             </div>
             <strong>{k.value}</strong>
             <span>{k.label}</span>
-          </div>
-        ))}
+          </div>))}
       </div>
       <div className="dashboard-grid-main">
         <section className="dashboard-panel">
           <h3>Funil de leads</h3>
           <div className="dashboard-funnel">
-            {stageCounts.map((x) => (
-              <div className="dashboard-funnel-row" key={x.key}>
+            {stageCounts.map((x) => (<div className="dashboard-funnel-row" key={x.key}>
                 <label>{x.label}</label>
                 <div className="dashboard-funnel-track">
-                  <div
-                    className="dashboard-funnel-fill"
-                    style={{
-                      width: `${Math.max(2, (x.count / stageMax) * 100)}%`,
-                    }}
-                  />
+                  <div className="dashboard-funnel-fill" style={{
+                width: `${Math.max(2, (x.count / stageMax) * 100)}%`,
+            }}/>
                 </div>
                 <b>{x.count}</b>
-              </div>
-            ))}
+              </div>))}
           </div>
         </section>
         <section className="dashboard-panel">
           <h3>Leads por origem</h3>
           <div className="dashboard-origin">
-            <div
-              className="dashboard-donut"
-              style={{
-                background: `conic-gradient(#C99443 0 ${p1}%,#737984 ${p1}% ${p1 + p2}%,#2E2216 ${p1 + p2}% 100%)`,
-              }}
-            />
+            <div className="dashboard-donut" style={{
+            background: `conic-gradient(var(--lx-accent-soft) 0 ${p1}%,var(--lx-surface-raised) ${p1}% ${p1 + p2}%,var(--lx-surface-raised) ${p1 + p2}% 100%)`,
+        }}/>
             <div className="dashboard-origin-legend">
-              {originEntries.length ? (
-                originEntries.map(([name, count], i) => (
-                  <span key={name}>
+              {originEntries.length ? (originEntries.map(([name, count], i) => (<span key={name}>
                     <span>
-                      <i style={{ opacity: 1 - i * 0.25 }} /> {name}
+                      <i style={{ opacity: 1 - i * 0.25 }}/> {name}
                     </span>
                     <b>{count}</b>
-                  </span>
-                ))
-              ) : (
-                <span>Nenhum lead com origem registrada</span>
-              )}
+                  </span>))) : (<span>Nenhum lead com origem registrada</span>)}
             </div>
           </div>
         </section>
@@ -430,126 +251,102 @@ function LegacyDashboard() {
         <section className="dashboard-panel">
           <h3>Clientes ao longo do tempo</h3>
           <div className="dashboard-trend">
-            {monthCounts.map((v, i) => (
-              <div
-                key={i}
-                className="dashboard-trend-bar"
-                title={`${months[i].label}: ${v}`}
-                style={{ height: `${Math.max(3, (v / monthMax) * 100)}%` }}
-              />
-            ))}
+            {monthCounts.map((v, i) => (<div key={i} className="dashboard-trend-bar" title={`${months[i].label}: ${v}`} style={{ height: `${Math.max(3, (v / monthMax) * 100)}%` }}/>))}
           </div>
           <div className="dashboard-trend-labels">
-            {months.map((x) => (
-              <span key={`${x.y}-${x.m}`}>{x.label}</span>
-            ))}
+            {months.map((x) => (<span key={`${x.y}-${x.m}`}>{x.label}</span>))}
           </div>
         </section>
         <section className="dashboard-panel">
           <h3>Atividades recentes</h3>
-          {movements.length === 0 ? (
-            <div className="dashboard-empty">
+          {movements.length === 0 ? (<div className="dashboard-empty">
               <div>
-                <Activity size={28} />
+                <Activity size={28}/>
                 <b>Sem dados ainda</b>
                 <p>Quando houver movimentações, elas aparecerão aqui.</p>
               </div>
-            </div>
-          ) : (
-            <div className="dashboard-activity">
-              {movements.map((x) => (
-                <a href={`/processos?processo=${x.process_id}`} key={x.id}>
+            </div>) : (<div className="dashboard-activity">
+              {movements.map((x) => (<a href={`/processos?processo=${x.process_id}`} key={x.id}>
                   <strong>{x.title || "Movimentação processual"}</strong>
                   <small>
                     {proc(x)} • {cli(x)} • {dt(x.movement_date)}
                   </small>
-                </a>
-              ))}
-            </div>
-          )}
+                </a>))}
+            </div>)}
         </section>
       </div>
       <div className="dashboard-welcome">
         Bem-vinda ao <b>LEXOFFICE</b> — dados do escritório atualizados em tempo
         real.
       </div>
-    </div>
-  );
+    </div>);
 }
 function Login() {
-  const [email, setEmail] = useState(""),
-    [password, setPassword] = useState(""),
-    [loading, setLoading] = useState(false),
-    [error, setError] = useState(""),
-    [notice, setNotice] = useState(""),
-    [creating, setCreating] = useState(false);
-  const redirect =
-    window.location.hostname === "localhost" && !import.meta.env.DEV
-      ? PRODUCTION_URL
-      : window.location.origin;
-  async function submit(e: any) {
-    e.preventDefault();
-    if (!supabase) return;
-    setLoading(true);
-    setError("");
-    setNotice("");
-    const { error } = creating
-      ? await supabase.auth.signUp({
-          email,
-          password,
-          options: { emailRedirectTo: redirect },
-        })
-      : await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) {
-      setError(
-        creating
-          ? "Não foi possível criar a conta: " + error.message
-          : "E-mail ou senha inválidos.",
-      );
-      return;
+    const [email, setEmail] = useState(""), [password, setPassword] = useState(""), [loading, setLoading] = useState(false), [error, setError] = useState(""), [notice, setNotice] = useState(""), [creating, setCreating] = useState(false);
+    const redirect = window.location.hostname === "localhost" && !import.meta.env.DEV
+        ? PRODUCTION_URL
+        : window.location.origin;
+    async function submit(e: any) {
+        e.preventDefault();
+        if (!supabase)
+            return;
+        setLoading(true);
+        setError("");
+        setNotice("");
+        const { error } = creating
+            ? await supabase.auth.signUp({
+                email,
+                password,
+                options: { emailRedirectTo: redirect },
+            })
+            : await supabase.auth.signInWithPassword({ email, password });
+        setLoading(false);
+        if (error) {
+            setError(creating
+                ? "Não foi possível criar a conta: " + error.message
+                : "E-mail ou senha inválidos.");
+            return;
+        }
+        if (creating)
+            setNotice("Conta criada. Confira seu e-mail para confirmar o acesso, se solicitado.");
     }
-    if (creating)
-      setNotice(
-        "Conta criada. Confira seu e-mail para confirmar o acesso, se solicitado.",
-      );
-  }
-  async function forgot() {
-    if (!supabase) return;
-    if (!email) {
-      setError("Digite seu e-mail para recuperar a senha.");
-      return;
+    async function forgot() {
+        if (!supabase)
+            return;
+        if (!email) {
+            setError("Digite seu e-mail para recuperar a senha.");
+            return;
+        }
+        setError("");
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: redirect,
+        });
+        if (error)
+            setError("Não foi possível enviar a recuperação de senha.");
+        else
+            setNotice("Enviamos um link de recuperação para seu e-mail.");
     }
-    setError("");
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: redirect,
-    });
-    if (error) setError("Não foi possível enviar a recuperação de senha.");
-    else setNotice("Enviamos um link de recuperação para seu e-mail.");
-  }
-  async function google() {
-    if (!supabase) return;
-    setLoading(true);
-    setError("");
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: redirect },
-    });
-    if (error) {
-      setLoading(false);
-      setError(
-        "Não foi possível iniciar o acesso com Google: " + error.message,
-      );
+    async function google() {
+        if (!supabase)
+            return;
+        setLoading(true);
+        setError("");
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: "google",
+            options: { redirectTo: redirect },
+        });
+        if (error) {
+            setLoading(false);
+            setError("Não foi possível iniciar o acesso com Google: " + error.message);
+        }
     }
-  }
-  return (
-    <div className="legacy-auth">
+    return (<div className="legacy-auth">
       <button className="legacy-lang" type="button">
         Português⌄
       </button>
       <section className="legacy-left">
         <div className="lx-luxe-brand">
-          <img src="/brand/sf-monogram.png" alt="Monograma SF" />
+          <img src="/brand/sf-monogram.png" alt="Monograma SF"/>
           <strong>SUZANNE FIGUEIREDO</strong>
           <small>ADVOCACIA E SOLUÇÕES JURÍDICAS</small>
           <div className="lx-luxe-rule">✦</div>
@@ -570,19 +367,19 @@ function Login() {
           <div className="legacy-benefits">
             <div>
               <i>
-                <Workflow size={17} />
+                <Workflow size={17}/>
               </i>
               <span>CRM jurídico, processos e prazos</span>
             </div>
             <div>
               <i>
-                <Sparkles size={17} />
+                <Sparkles size={17}/>
               </i>
               <span>Agentes de IA, automações e Juridiq</span>
             </div>
             <div>
               <i>
-                <Shield size={17} />
+                <Shield size={17}/>
               </i>
               <span>Multi-tenant, RBAC, RLS e auditoria</span>
             </div>
@@ -592,370 +389,280 @@ function Login() {
       <section className="legacy-right">
         <form className="legacy-card" onSubmit={submit}>
           <div className="legacy-card-logo">
-            <img src="/brand/sf-monogram.png" alt="SF" />
+            <img src="/brand/sf-monogram.png" alt="SF"/>
           </div>
           <h2>{creating ? "Criar conta" : "Acessar o escritório"}</h2>
           <p>Plataforma Jurídica Inteligente</p>
           <label>
             E-mail
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="voce@escritorio.com"
-              autoComplete="username"
-              required
-            />
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@escritorio.com" autoComplete="username" required/>
           </label>
           <label>
             Senha
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              autoComplete={creating ? "new-password" : "current-password"}
-              minLength={6}
-              required
-            />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" autoComplete={creating ? "new-password" : "current-password"} minLength={6} required/>
           </label>
-          {!creating && (
-            <button className="legacy-forgot" type="button" onClick={forgot}>
+          {!creating && (<button className="legacy-forgot" type="button" onClick={forgot}>
               Esqueci minha senha
-            </button>
-          )}
+            </button>)}
           {error && <div className="login-error">{error}</div>}
           {notice && <div className="login-notice">{notice}</div>}
           <button className="legacy-enter" disabled={loading}>
-            <LockKeyhole size={16} />
+            <LockKeyhole size={16}/>
             {loading ? "Aguarde..." : creating ? "Criar conta" : "Entrar"}
           </button>
-          <button
-            className="legacy-google"
-            type="button"
-            onClick={google}
-            disabled={loading}
-          >
+          <button className="legacy-google" type="button" onClick={google} disabled={loading}>
             <span className="google-g">G</span>Continuar com Google
           </button>
           <div className="legacy-create">
             {creating ? "Já tem uma conta? " : "Ainda não tem conta? "}
-            <button
-              type="button"
-              onClick={() => {
-                setCreating(!creating);
-                setError("");
-                setNotice("");
-              }}
-            >
+            <button type="button" onClick={() => {
+            setCreating(!creating);
+            setError("");
+            setNotice("");
+        }}>
               {creating ? "Entrar" : "Criar conta"}
             </button>
           </div>
         </form>
       </section>
-    </div>
-  );
+    </div>);
 }
 function ProspectCenter() {
-  const [version, setVersion] = useState<"current" | "classic">("current");
-  return (
-    <div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 16,
-          marginBottom: 14,
-          flexWrap: "wrap",
-        }}
-      >
+    const [version, setVersion] = useState<"current" | "classic">("current");
+    return (<div>
+      <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 16,
+            marginBottom: 14,
+            flexWrap: "wrap",
+        }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 24 }}>Lex Prospect</h1>
+          <h1 style={{ margin: 0, fontSize: "var(--lx-page-size)" }}>Lex Prospect</h1>
           <p style={{ margin: "5px 0 0", opacity: 0.68 }}>
             Prospecção, campanhas, motores e integrações em um só lugar.
           </p>
         </div>
-        <div
-          role="tablist"
-          aria-label="Versão do Lex Prospect"
-          style={{
+        <InternalNavigation variant="segmented" aria-label="Versão do Lex Prospect">
+          <button type="button" role="tab" aria-selected={version === "current"} onClick={() => setVersion("current")} style={{
             display: "flex",
-            gap: 6,
-            padding: 5,
-            borderRadius: 12,
-            background: "rgba(255,255,255,.055)",
-            border: "1px solid rgba(255,255,255,.09)",
-          }}
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={version === "current"}
-            onClick={() => setVersion("current")}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 7,
-              border: 0,
-              borderRadius: 9,
-              padding: "9px 13px",
-              cursor: "pointer",
-              fontWeight: 700,
-              color: version === "current" ? "#fff" : "rgba(255,255,255,.65)",
-              background: version === "current" ? "#C99443" : "transparent",
-            }}
-          >
-            <Sparkles size={15} />
+            alignItems: "center",
+            gap: 7,
+            border: 0,
+            borderRadius: "var(--lx-radius-md)",
+            padding: "9px 13px",
+            cursor: "pointer",
+            fontWeight: 700,
+            color: version === "current" ? "var(--lx-text)" : "var(--lx-text)",
+            background: version === "current" ? "var(--lx-accent-soft)" : "transparent",
+        }}>
+            <Sparkles size={15}/>
             Atual
           </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={version === "classic"}
-            onClick={() => setVersion("classic")}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 7,
-              border: 0,
-              borderRadius: 9,
-              padding: "9px 13px",
-              cursor: "pointer",
-              fontWeight: 700,
-              color: version === "classic" ? "#fff" : "rgba(255,255,255,.65)",
-              background: version === "classic" ? "#C99443" : "transparent",
-            }}
-          >
-            <Target size={15} />
+          <button type="button" role="tab" aria-selected={version === "classic"} onClick={() => setVersion("classic")} style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 7,
+            border: 0,
+            borderRadius: "var(--lx-radius-md)",
+            padding: "9px 13px",
+            cursor: "pointer",
+            fontWeight: 700,
+            color: version === "classic" ? "var(--lx-text)" : "var(--lx-text)",
+            background: version === "classic" ? "var(--lx-accent-soft)" : "transparent",
+        }}>
+            <Target size={15}/>
             Clássica
           </button>
-        </div>
+        </InternalNavigation>
       </div>
-      {version === "current" ? (
-        <div
-          style={{
-            height: "calc(100vh - 190px)",
-            minHeight: 720,
-            borderRadius: 18,
-            overflow: "hidden",
-            border: "1px solid rgba(255,255,255,.1)",
-            background: "#080705",
-          }}
-        >
-          <iframe
-            src="https://lex-prospect.vercel.app/"
-            title="Lex Prospect Atual"
-            style={{
-              width: "100%",
-              height: "100%",
-              border: 0,
-              display: "block",
-            }}
-            allow="clipboard-read; clipboard-write"
-          />
-        </div>
-      ) : (
-        <Prospecting />
-      )}
-    </div>
-  );
+      {version === "current" ? (<div style={{
+                height: "calc(100vh - 190px)",
+                minHeight: 720,
+                borderRadius: "var(--lx-radius-md)",
+                overflow: "hidden",
+                border: "1px solid var(--lx-border)",
+                background: "var(--lx-canvas)",
+            }}>
+          <iframe src={"https://lex-prospect.vercel.app/"} title="Lex Prospect Atual" style={{
+                width: "100%",
+                height: "100%",
+                border: 0,
+                display: "block",
+            }} allow="clipboard-read; clipboard-write"/>
+        </div>) : (<Prospecting />)}
+    </div>);
 }
 export default function App() {
-  const [ready, setReady] = useState(false),
-    [session, setSession] = useState<any>(null),
-    [profile, setProfile] = useState<any>(null),
-    [isPlatformAdmin, setIsPlatformAdmin] = useState(false),
-    [adminAccessReady, setAdminAccessReady] = useState(false),
-    [navOpen, setNavOpen] = useState(false),
-    [clientInboxUnread, setClientInboxUnread] = useState(0),
-    [vipAlert, setVipAlert] = useState<any>(null),
-    loc = useLocation();
-  useEffect(() => {
-    setNavOpen(false);
-    if (!ready) {
-      document.title = "LEXOFFICE";
-      return;
+    const [ready, setReady] = useState(false), [session, setSession] = useState<any>(null), [profile, setProfile] = useState<any>(null), [isPlatformAdmin, setIsPlatformAdmin] = useState(false), [adminAccessReady, setAdminAccessReady] = useState(false), [navOpen, setNavOpen] = useState(false), [clientInboxUnread, setClientInboxUnread] = useState(0), [vipAlert, setVipAlert] = useState<any>(null), loc = useLocation();
+    useEffect(() => {
+        setNavOpen(false);
+        if (!ready) {
+            document.title = "LEXOFFICE";
+            return;
+        }
+        if (!session) {
+            document.title = "Acessar | LEXOFFICE";
+            return;
+        }
+        const currentArea = areaOf(loc.pathname);
+        const currentPage = currentArea.tabs.find((item) => item.path === loc.pathname)?.label;
+        document.title = `${currentPage || currentArea.label} | LEXOFFICE`;
+        window.scrollTo({ top: 0, behavior: "auto" });
+    }, [loc.pathname, ready, session]);
+    useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape")
+                setNavOpen(false);
+        };
+        document.addEventListener("keydown", onKeyDown);
+        document.body.classList.toggle("nav-drawer-open", navOpen);
+        return () => {
+            document.removeEventListener("keydown", onKeyDown);
+            document.body.classList.remove("nav-drawer-open");
+        };
+    }, [navOpen]);
+    useEffect(() => {
+        if (!supabase) {
+            setReady(true);
+            return;
+        }
+        supabase.auth.getSession().then(({ data }) => {
+            setSession(data.session);
+            setReady(true);
+        });
+        const { data: { subscription }, } = supabase.auth.onAuthStateChange((_event, s) => {
+            setSession(s);
+            setProfile(null);
+            setIsPlatformAdmin(false);
+            setAdminAccessReady(false);
+        });
+        return () => subscription.unsubscribe();
+    }, []);
+    useEffect(() => {
+        if (!supabase || !session?.user?.id)
+            return;
+        Promise.all([
+            supabase
+                .from("profiles")
+                .select("name,email,role_key,title")
+                .eq("id", session.user.id)
+                .maybeSingle(),
+            supabase
+                .from("platform_admins")
+                .select("user_id")
+                .eq("user_id", session.user.id)
+                .eq("status", "active")
+                .maybeSingle(),
+        ]).then(([profileResult, adminResult]) => {
+            setProfile(profileResult.data);
+            setIsPlatformAdmin(Boolean(adminResult.data));
+            setAdminAccessReady(true);
+        });
+    }, [session]);
+    useEffect(() => {
+        if (!supabase || !session?.user?.id)
+            return;
+        let alive = true;
+        async function refreshClientInbox() {
+            const { count } = await supabase
+                .from("client_app_inbox")
+                .select("id", { count: "exact", head: true })
+                .is("read_at", null);
+            if (alive)
+                setClientInboxUnread(count || 0);
+        }
+        refreshClientInbox();
+        const timer = window.setInterval(refreshClientInbox, 30000);
+        const channel = supabase
+            .channel("lexoffice-client-inbox-alerts")
+            .on("postgres_changes", { event: "INSERT", schema: "public", table: "client_app_inbox" }, (payload: any) => {
+            refreshClientInbox();
+            if (document.visibilityState === "hidden" &&
+                "Notification" in window &&
+                Notification.permission === "granted") {
+                const kind = payload.new?.kind;
+                new Notification(kind === "document"
+                    ? "Novo documento no aplicativo"
+                    : kind === "payment_receipt"
+                        ? "Novo comprovante no aplicativo"
+                        : "Nova mensagem no aplicativo", {
+                    body: "Abra a LexOffice para conferir o recebimento.",
+                    tag: "lexoffice-client-inbox",
+                });
+            }
+        })
+            .on("postgres_changes", { event: "UPDATE", schema: "public", table: "client_app_inbox" }, () => refreshClientInbox())
+            .subscribe();
+        const vipChannel = supabase
+            .channel("lexoffice-vip-message-alerts")
+            .on("postgres_changes", {
+            event: "INSERT",
+            schema: "public",
+            table: "notifications",
+            filter: "user_id=eq." + session.user.id,
+        }, (payload: any) => {
+            if (payload.new?.title === "Mensagem de cliente VIP")
+                setVipAlert(payload.new);
+        })
+            .subscribe();
+        return () => {
+            alive = false;
+            window.clearInterval(timer);
+            supabase.removeChannel(channel);
+            supabase.removeChannel(vipChannel);
+        };
+    }, [session]);
+    const [lexTheme, setLexTheme] = useState<LexTheme>(readLexTheme);
+    useEffect(() => {
+        const syncTheme = (event: Event) => setLexTheme((event as CustomEvent<LexTheme>).detail);
+        window.addEventListener("lexoffice-theme-change", syncTheme);
+        return () => window.removeEventListener("lexoffice-theme-change", syncTheme);
+    }, []);
+    if (window.location.pathname === "/cadastro")
+        return <CadastroPublico />;
+    if (window.location.pathname.startsWith("/assinar/"))
+        return <AssinarPublico />;
+    if (window.location.pathname.startsWith("/verificar"))
+        return <VerificarPublico />;
+    if (!ready)
+        return <div className="auth-loading">LEXOFFICE</div>;
+    if (!session)
+        return <Login />;
+    async function logout() {
+        await supabase?.auth.signOut();
     }
-    if (!session) {
-      document.title = "Acessar | LEXOFFICE";
-      return;
-    }
-    const currentArea = areaOf(loc.pathname);
-    const currentPage = currentArea.tabs.find((item) => item.path === loc.pathname)?.label;
-    document.title = `${currentPage || currentArea.label} | LEXOFFICE`;
-    window.scrollTo({ top: 0, behavior: "auto" });
-  }, [loc.pathname, ready, session]);
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setNavOpen(false);
-    };
-    document.addEventListener("keydown", onKeyDown);
-    document.body.classList.toggle("nav-drawer-open", navOpen);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      document.body.classList.remove("nav-drawer-open");
-    };
-  }, [navOpen]);
-  useEffect(() => {
-    if (!supabase) {
-      setReady(true);
-      return;
-    }
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setReady(true);
-    });
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-      setProfile(null);
-      setIsPlatformAdmin(false);
-      setAdminAccessReady(false);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
-  useEffect(() => {
-    if (!supabase || !session?.user?.id) return;
-    Promise.all([
-      supabase
-        .from("profiles")
-        .select("name,email,role_key,title")
-        .eq("id", session.user.id)
-        .maybeSingle(),
-      supabase
-        .from("platform_admins")
-        .select("user_id")
-        .eq("user_id", session.user.id)
-        .eq("status", "active")
-        .maybeSingle(),
-    ]).then(([profileResult, adminResult]) => {
-      setProfile(profileResult.data);
-      setIsPlatformAdmin(Boolean(adminResult.data));
-      setAdminAccessReady(true);
-    });
-  }, [session]);
-  useEffect(() => {
-    if (!supabase || !session?.user?.id) return;
-    let alive = true;
-    async function refreshClientInbox() {
-      const { count } = await supabase
-        .from("client_app_inbox")
-        .select("id", { count: "exact", head: true })
-        .is("read_at", null);
-      if (alive) setClientInboxUnread(count || 0);
-    }
-    refreshClientInbox();
-    const timer = window.setInterval(refreshClientInbox, 30000);
-    const channel = supabase
-      .channel("lexoffice-client-inbox-alerts")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "client_app_inbox" },
-        (payload: any) => {
-          refreshClientInbox();
-          if (
-            document.visibilityState === "hidden" &&
-            "Notification" in window &&
-            Notification.permission === "granted"
-          ) {
-            const kind = payload.new?.kind;
-            new Notification(
-              kind === "document"
-                ? "Novo documento no aplicativo"
-                : kind === "payment_receipt"
-                  ? "Novo comprovante no aplicativo"
-                  : "Nova mensagem no aplicativo",
-              {
-                body: "Abra a LexOffice para conferir o recebimento.",
-                tag: "lexoffice-client-inbox",
-              },
-            );
-          }
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "client_app_inbox" },
-        () => refreshClientInbox(),
-      )
-      .subscribe();
-    const vipChannel = supabase
-      .channel("lexoffice-vip-message-alerts")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "notifications",
-          filter: "user_id=eq." + session.user.id,
-        },
-        (payload: any) => {
-          if (payload.new?.title === "Mensagem de cliente VIP")
-            setVipAlert(payload.new);
-        },
-      )
-      .subscribe();
-    return () => {
-      alive = false;
-      window.clearInterval(timer);
-      supabase.removeChannel(channel);
-      supabase.removeChannel(vipChannel);
-    };
-  }, [session]);
-  const [lexTheme, setLexTheme] = useState<LexTheme>(readLexTheme);
-  if (window.location.pathname === "/cadastro") return <CadastroPublico />;
-  if (window.location.pathname.startsWith("/assinar/"))
-    return <AssinarPublico />;
-  if (window.location.pathname.startsWith("/verificar"))
-    return <VerificarPublico />;
-  if (!ready) return <div className="auth-loading">LEXOFFICE</div>;
-  if (!session) return <Login />;
-  async function logout() {
-    await supabase?.auth.signOut();
-  }
-  const initials = (profile?.name || session.user.email || "LX")
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((x: string) => x[0])
-    .join("")
-    .toUpperCase();
-  const roleLabel =
-    profile?.title ||
-    humanize(
-      profile?.role_key || "",
-      "role_key" in roleLabels ? roleLabels : roleLabels,
-    ) ||
-    "Usuário";
-  const canAccessAdminModules =
-    profile?.role_key === "admin" || isPlatformAdmin;
-  const canAccessAudit =
-    profile?.role_key === "owner" &&
-    String(profile?.email || "").toLowerCase() === "eulampiosuzanne@gmail.com";
-  const financeBlocked =
-    String(profile?.email || session.user.email || "").toLowerCase() ===
-    "glauciaadv15@gmail.com";
-  const canSee = (i: NavItem) =>
-    (!i.adminOnly || canAccessAdminModules) &&
-    (!i.superAdminOnly || isPlatformAdmin) &&
-    (!i.ownerOnly || canAccessAudit) &&
-    !(financeBlocked && (i.path === "/financeiro" || i.path === "/cobranca"));
-  const changeTheme = () => { const next = lexTheme === "dark" ? "light" : "dark"; setLexTheme(next); applyLexTheme(next); };
-  const area = areaOf(loc.pathname);
-  const areaTabs = area.tabs.filter(canSee);
-  return (
-    <div className={`app ${navOpen ? "nav-open" : ""} ${loc.pathname === "/" ? "home-route" : ""} ${loc.pathname === "/whatsapp" ? "inbox-route" : ""}`}>
+    const initials = (profile?.name || session.user.email || "LX")
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((x: string) => x[0])
+        .join("")
+        .toUpperCase();
+    const roleLabel = profile?.title ||
+        humanize(profile?.role_key || "", "role_key" in roleLabels ? roleLabels : roleLabels) ||
+        "Usuário";
+    const canAccessAdminModules = profile?.role_key === "admin" || isPlatformAdmin;
+    const canAccessAudit = profile?.role_key === "owner" &&
+        (String(profile?.email || "").toLowerCase() === "eulampiosuzanne@gmail.com");
+    const financeBlocked = String(profile?.email || session.user.email || "").toLowerCase() ===
+        "glauciaadv15@gmail.com";
+    const canSee = (i: NavItem) => (!i.adminOnly || canAccessAdminModules) &&
+        (!i.superAdminOnly || isPlatformAdmin) &&
+        (!i.ownerOnly || canAccessAudit) &&
+        !(financeBlocked && (i.path.startsWith("/financeiro") || i.path.startsWith("/cobranca")));
+    const changeTheme = () => { const next = lexTheme === "dark" ? "light" : "dark"; setLexTheme(next); applyLexTheme(next); };
+    const area = areaOf(loc.pathname);
+    const areaTabs = area.tabs.filter(canSee);
+    return (<div className={`app ${navOpen ? "nav-open" : ""} ${loc.pathname === "/" ? "home-route" : ""} ${loc.pathname === "/whatsapp" ? "inbox-route" : ""}`}>
       <a className="skip-link" href="#conteudo-principal">
         Ir para o conteúdo principal
       </a>
-      {navOpen && (
-        <div className="nav-overlay" onClick={() => setNavOpen(false)} />
-      )}
+      {navOpen && (<div className="nav-overlay" onClick={() => setNavOpen(false)}/>)}
       <aside>
         <div className="brand">
           <div className="logo">
-            <img src="/brand/sf-monogram.png" alt="SF" />
+            <img src="/brand/sf-monogram.png" alt="SF"/>
           </div>
           <div>
             <b>Suzanne Figueiredo</b>
@@ -963,51 +670,8 @@ export default function App() {
           </div>
         </div>
         <nav>
-          <div className="nav-group nav-areas">
-            {areas.map((a) => {
-              const tabs = a.tabs.filter(canSee);
-              if (!tabs.length) return null;
-              const on = a.tabs.some((t) => t.path === loc.pathname);
-              return (
-                <NavLink
-                  key={a.label}
-                  to={tabs[0].path}
-                  end={tabs[0].path === "/"}
-                  className={on ? "active" : ""}
-                  onClick={() => setNavOpen(false)}
-                  title={a.label}
-                  aria-label={a.label}
-                >
-                  <a.icon size={18} />
-                  <span className="nav-area-copy">
-                    <b>{a.label}</b>
-                    <small>{a.description}</small>
-                  </span>
-                  {a.label === "Atendimento" && clientInboxUnread > 0 && (
-                    <span
-                      style={{
-                        marginLeft: "auto",
-                        minWidth: 20,
-                        height: 20,
-                        padding: "0 6px",
-                        borderRadius: 10,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 11,
-                        fontWeight: 800,
-                        background: "linear-gradient(135deg,#C99443,#D6AA55)",
-                        color: "#080705",
-                      }}
-                    >
-                      {clientInboxUnread > 99 ? "99+" : clientInboxUnread}
-                    </span>
-                  )}
-                </NavLink>
-              );
-            })}
-          </div>
-          <div className="lex2-favorites"><span>FAVORITOS</span><NavLink to="/whatsapp" onClick={() => setNavOpen(false)}><MessageCircle size={16}/> Caixa de Entrada</NavLink><NavLink to="/processos" onClick={() => setNavOpen(false)}><Gavel size={16}/> Processos</NavLink><NavLink to="/agenda" onClick={() => setNavOpen(false)}><CalendarDays size={16}/> Agenda</NavLink><NavLink to="/jornada-comercial" onClick={() => setNavOpen(false)}><Target size={16}/> Jornada comercial</NavLink></div>
+          <WorkspaceSidebar canSee={canSee} onNavigate={() => setNavOpen(false)} unread={clientInboxUnread}/>
+          <details className="lex2-favorites"><summary>Atalhos rápidos</summary><span>FAVORITOS</span><NavLink to="/whatsapp" onClick={() => setNavOpen(false)}><MessageCircle size={16}/> Caixa de Entrada</NavLink><NavLink to="/processos" onClick={() => setNavOpen(false)}><Gavel size={16}/> Processos</NavLink><NavLink to="/agenda" onClick={() => setNavOpen(false)}><CalendarDays size={16}/> Agenda</NavLink><NavLink to="/jornada-comercial" onClick={() => setNavOpen(false)}><Target size={16}/> Jornada comercial</NavLink></details>
         </nav>
         <div className="profile">
           <div className="avatar">{initials}</div>
@@ -1015,304 +679,201 @@ export default function App() {
             <b>{profile?.name || session.user.email}</b>
             <small>{roleLabel}</small>
           </div>
-          <button
-            className="logout"
-            onClick={logout}
-            title="Sair"
-            aria-label="Sair"
-          >
-            <LogOut size={15} />
+          <button className="logout" onClick={logout} title="Sair" aria-label="Sair">
+            <LogOut size={15}/>
           </button>
         </div>
       </aside>
-      <main>
-        {vipAlert && (
-          <aside
-            role="alert"
-            style={{
-              position: "fixed",
-              zIndex: 10000,
-              top: 12,
-              left: "50%",
-              transform: "translateX(-50%)",
-              width: "min(92vw,620px)",
-              background: "#241d10",
-              color: "#fff",
-              border: "3px solid #c9a44c",
-              borderRadius: 14,
-              padding: 16,
-              boxShadow: "0 8px 30px #0009",
-              fontSize: 18,
-            }}
-          >
-            <strong style={{ color: "#f0d17a" }}>
+      <main className={loc.pathname === "/donna" ? "donna-shell" : loc.pathname === "/painel" ? "management-shell" : loc.pathname === "/relatorios" ? "reports-shell" : loc.pathname === "/atendimento/aplicativo" ? "client-app-shell" : (loc.pathname.startsWith("/clientes") || ["/importacoes", "/processos/importar", "/financeiro/importar"].includes(loc.pathname)) ? "clients-shell" : (loc.pathname === "/processos" || loc.pathname.startsWith("/processos/") || loc.pathname === "/andamentos" || loc.pathname === "/tribunais" || ["/audiencias", "/afazeres", "/agenda"].includes(loc.pathname)) ? "processes-shell" : undefined}>
+        {vipAlert && (<aside role="alert" style={{
+                position: "fixed",
+                zIndex: 10000,
+                top: 12,
+                left: "50%",
+                transform: "translateX(-50%)",
+                width: "min(92vw,620px)",
+                background: "var(--lx-surface-raised)",
+                color: "var(--lx-text)",
+                border: "3px solid var(--lx-accent)",
+                borderRadius: "var(--lx-radius-md)",
+                padding: 16,
+                boxShadow: "var(--lx-shadow)",
+                fontSize: "var(--lx-section-size)",
+            }}>
+            <strong style={{ color: "var(--lx-accent)" }}>
               Mensagem de cliente VIP
             </strong>
             <div style={{ margin: "8px 0 12px", lineHeight: 1.5 }}>
               {vipAlert.body || "Uma conversa VIP precisa da sua atenção."}
             </div>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <a
-                href="/whatsapp"
-                style={{
-                  background: "#c9a44c",
-                  color: "#111",
-                  padding: "12px 16px",
-                  borderRadius: 10,
-                  fontWeight: 800,
-                  textDecoration: "none",
-                }}
-              >
+              <a href="/whatsapp" style={{
+                background: "var(--lx-accent-soft)",
+                color: "var(--lx-text)",
+                padding: "12px 16px",
+                borderRadius: "var(--lx-radius-md)",
+                fontWeight: 800,
+                textDecoration: "none",
+            }}>
                 Abrir atendimento
               </a>
-              <button
-                type="button"
-                className="secondary"
-                style={{ minHeight: 48 }}
-                onClick={() => setVipAlert(null)}
-              >
+              <button type="button" className="secondary" style={{ minHeight: 48 }} onClick={() => setVipAlert(null)}>
                 Fechar aviso
               </button>
             </div>
-          </aside>
-        )}
+          </aside>)}
         <header className="lex2-topbar">
-          <button
-            className="mobile-menu-btn"
-            type="button"
-            onClick={() => setNavOpen(!navOpen)}
-            aria-label="Abrir menu completo"
-          >
-            <Menu size={21} />
+          <button className="mobile-menu-btn" type="button" onClick={() => setNavOpen(!navOpen)} aria-label="Abrir menu completo">
+            <Menu size={21}/>
           </button>
           <div className="topbar-context" aria-label="Localização atual">
             <span>LEXOFFICE</span>
-            <ChevronRight size={13} aria-hidden="true" />
+            {["/donna", "/painel", "/relatorios", "/atendimento/aplicativo"].includes(loc.pathname) && <span className="workspace-breadcrumb-area">{area.label}</span>}
+            <ChevronRight size={13} aria-hidden="true"/>
             <strong>{areaTabs.find((item) => item.path === loc.pathname)?.label || area.label}</strong>
           </div>
           <div className="tools">
             <button type="button" data-testid="lex-theme-toggle" className="lex-theme-toggle" onClick={changeTheme} aria-label={lexTheme === "dark" ? "Ativar tema claro" : "Ativar tema escuro"} title={lexTheme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}>{lexTheme === "dark" ? <Sun size={16}/> : <Moon size={16}/>}<span>{lexTheme === "dark" ? "Tema claro" : "Tema escuro"}</span></button>
-            <ClientRegistrationShortcut />
-            <NavLink className="integration-shortcut" to="/integracoes">
-              <Plug size={15} /> Integrações
+            {loc.pathname === "/clientes" && <ClientRegistrationShortcut />}
+            <NavLink className="integration-shortcut" to="/ferramentas">
+              <Sparkles size={15}/> Ferramentas
             </NavLink>
             <GlobalSearch />
-            <NavLink
-              to="/app-cliente"
-              onClick={() => {
-                if (
-                  "Notification" in window &&
-                  Notification.permission === "default"
-                )
-                  void Notification.requestPermission();
-              }}
-              title={
-                clientInboxUnread
-                  ? `${clientInboxUnread} mensagem(ns) nova(s) do App do Cliente`
-                  : "Nenhuma mensagem nova do App do Cliente"
-              }
-              style={{ position: "relative", display: "inline-flex" }}
-            >
-              <Bell size={17} />
-              {clientInboxUnread > 0 && (
-                <span
-                  style={{
-                    position: "absolute",
-                    right: -9,
-                    top: -9,
-                    minWidth: 17,
-                    height: 17,
-                    padding: "0 4px",
-                    borderRadius: 9,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 10,
-                    fontWeight: 800,
-                    background: "linear-gradient(135deg,#C99443,#D6AA55)",
-                    color: "#080705",
-                  }}
-                >
+            <NavLink to="/atendimento/aplicativo" onClick={() => {
+            if ("Notification" in window &&
+                Notification.permission === "default")
+                void Notification.requestPermission();
+        }} title={clientInboxUnread
+            ? `${clientInboxUnread} mensagem(ns) nova(s) do App do Cliente`
+            : "Nenhuma mensagem nova do App do Cliente"} style={{ position: "relative", display: "inline-flex" }}>
+              <Bell size={17}/>
+              {clientInboxUnread > 0 && (<span style={{
+                position: "absolute",
+                right: -9,
+                top: -9,
+                minWidth: 17,
+                height: 17,
+                padding: "0 4px",
+                borderRadius: "var(--lx-radius-md)",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "var(--lx-font-xs)",
+                fontWeight: 800,
+                background: "var(--lx-surface)",
+                color: "var(--lx-text)",
+            }}>
                   {clientInboxUnread > 99 ? "99+" : clientInboxUnread}
-                </span>
-              )}
+                </span>)}
             </NavLink>
           </div>
         </header>
         <div className={`content ${loc.pathname === "/whatsapp" ? "inbox-content" : ""}`} id="conteudo-principal" tabIndex={-1}>
-          {loc.pathname !== "/" && loc.pathname !== "/whatsapp" && <div className="ux-context-bar" role="status">
+          {loc.pathname !== "/" && loc.pathname !== "/whatsapp" && loc.pathname !== "/donna" && loc.pathname !== "/painel" && loc.pathname !== "/relatorios" && loc.pathname !== "/atendimento/aplicativo" && !loc.pathname.startsWith("/clientes") && !["/importacoes", "/processos/importar", "/financeiro/importar"].includes(loc.pathname) && !loc.pathname.startsWith("/processos") && loc.pathname !== "/andamentos" && loc.pathname !== "/tribunais" && !["/audiencias", "/afazeres", "/agenda"].includes(loc.pathname) && <div className="ux-context-bar" role="status">
             <span>{area.label}</span>
             <b>{areaTabs.find((item) => item.path === loc.pathname)?.label || area.label}</b>
             <small>Escolha uma aba ou pressione Ctrl + K para buscar.</small>
           </div>}
-          {loc.pathname !== "/" && areaTabs.length > 1 && loc.pathname !== "/whatsapp" && (
-            <nav className="area-tabs" aria-label={`Abas de ${area.label}`}>
-              {areaTabs.map((t) => (
-                <NavLink
-                  key={t.path}
-                  to={t.path}
-                  end
-                  className={({ isActive }) => (isActive ? "active" : "")}
-                >
-                  {t.label}
-                </NavLink>
-              ))}
-            </nav>
-          )}
-          <Suspense
-            fallback={
-              <div className="route-loading" role="status" aria-live="polite">
-                <span className="route-loading-mark" aria-hidden="true" />
+
+          <Suspense fallback={<div className="route-loading" role="status" aria-live="polite">
+                <span className="route-loading-mark" aria-hidden="true"/>
                 <div>
                   <strong>Preparando esta área</strong>
                   <small>Carregando somente o necessário…</small>
                 </div>
-              </div>
-            }
-          >
+              </div>}>
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/painel" element={<PartnerPanel />} />
-            <Route path="/donna" element={<Donna />} />
-            <Route path="/crm" element={<CRM />} />
-            <Route path="/clientes" element={<Clients />} />
-            <Route path="/perfil-cliente" element={<PerfilCliente />} />
-            <Route path="/processos" element={<Processes />} />
-            <Route path="/dossie/:processId" element={<Dossier />} />
-            <Route path="/andamentos" element={<ProcessMovements />} />
-            <Route path="/tribunais" element={<Tribunals />} />
-            <Route path="/agentes-ia" element={<Agents />} />
-            <Route path="/app-cliente" element={<ClientArea />} />
-            <Route path="/whatsapp" element={<WhatsApp />} />
-            <Route
-              path="/fluxo"
-              element={<Navigate to="/whatsapp" replace />}
-            />
-            <Route
-              path="/secretario-executivo"
-              element={<Navigate to="/" replace />}
-            />
-            <Route path="/integracoes" element={<Integrations />} />
-            <Route path="/assinaturas" element={<Signatures />} />
-            <Route path="/agenda" element={<Agenda />} />
-            <Route path="/audiencias" element={<Hearings />} />
-            <Route path="/importacoes" element={<Imports />} />
-            <Route path="/calculadoras" element={<Calculators />} />
-            <Route path="/planejamento" element={<Planejamento />} />
-            <Route path="/afazeres" element={<Afazeres />} />
-            <Route path="/jurimetria" element={<PetitionAssistant />} />
-            <Route path="/revisao-peca" element={<RevisaoPeca />} />
-            <Route
-              path="/estrategia-processual"
-              element={<Navigate to="/jurimetria" replace />}
-            />
-            <Route
-              path="/conducao-processual"
-              element={<ConducaoProcessual />}
-            />
-            <Route
-              path="/peticao-ia"
-              element={<Navigate to="/jurimetria" replace />}
-            />
-            <Route path="/consultas" element={<Consultations />} />
-            <Route path="/documentos" element={<Documents />} />
-            <Route path="/jornada-comercial" element={<JornadaComercial />} />
-            <Route
-              path="/honorarios-propostas"
-              element={<Navigate to="/jornada-comercial" replace />}
-            />
-            <Route
-              path="/financeiro"
-              element={
-                financeBlocked ? <Navigate to="/" replace /> : <Finance />
-              }
-            />
-            <Route
-              path="/cobranca"
-              element={
-                financeBlocked ? (
-                  <Navigate to="/" replace />
-                ) : (
-                  <Finance view="cobranca" />
-                )
-              }
-            />
-            <Route
-              path="/prospeccao"
-              element={
-                isPlatformAdmin ? (
-                  <ProspectCenter />
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              }
-            />
-            <Route
-              path="/prospeccao-atual"
-              element={<Navigate to="/prospeccao" replace />}
-            />
-            <Route path="/marketing" element={<Marketing />} />
-            <Route
-              path="/atendimento"
-              element={<Navigate to="/whatsapp" replace />}
-            />
-            <Route path="/seguranca" element={<Security />} />
-            <Route
-              path="/auditoria"
-              element={canAccessAudit ? <Audit /> : <Navigate to="/" replace />}
-            />
-            <Route path="/relatorios" element={<Reports />} />
-            <Route path="/configuracoes" element={<OrgSettings />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="/" element={<Dashboard />}/>
+            <Route path="/painel" element={<PartnerPanel />}/>
+            <Route path="/donna" element={<Donna />}/>
+            <Route path="/crm" element={<CRM />}/>
+            <Route path="/clientes" element={<Clients />}/>
+    <Route path="/clientes/:clientId" element={<Clients />}/>
+            <Route path="/perfil-cliente" element={<PerfilCliente />}/>
+            <Route path="/processos" element={<Processes />}/>
+    <Route path="/processos/:recordId" element={<Processes />}/>
+    <Route path="/configuracoes/automacoes-processuais" element={<Processes mode="automacoes"/>}/>
+            <Route path="/dossie/:processId" element={<Dossier />}/>
+            <Route path="/andamentos" element={<ProcessMovements />}/>
+            <Route path="/processos/adicionar" element={<ProcessIntake />}/>
+            <Route path="/tribunais" element={<Tribunals />}/>
+            <Route path="/agentes-ia" element={<Agents />}/>
+            <Route path="/atendimento/aplicativo" element={<ClientArea />}/>
+    <Route path="/app-cliente" element={<Navigate to="/atendimento/aplicativo" replace/>}/>
+            <Route path="/whatsapp" element={<WhatsApp />}/>
+            <Route path="/fluxo" element={<Navigate to="/atendimento/programacoes" replace/>}/>
+            <Route path="/secretario-executivo" element={<Navigate to="/" replace/>}/>
+            <Route path="/integracoes" element={<Integrations />}/>
+            <Route path="/assinaturas" element={<Signatures />}/>
+            <Route path="/agenda" element={<Agenda />}/>
+            <Route path="/audiencias" element={<Hearings />}/>
+            <Route path="/importacoes" element={<Imports key="clients-import" allowFinancial={!financeBlocked}/>}/>
+    <Route path="/processos/importar" element={<Imports key="processes-import" allowFinancial={!financeBlocked}/>}/>
+    <Route path="/financeiro/importar" element={financeBlocked ? <Navigate to="/" replace/> : <Imports key="financial-import"/>}/>
+            <Route path="/calculadoras" element={<Calculators />}/>
+            <Route path="/planejamento" element={<Planejamento />}/>
+            <Route path="/afazeres" element={<Afazeres />}/>
+            <Route path="/jurimetria" element={<PetitionAssistant />}/>
+            <Route path="/revisao-peca" element={<RevisaoPeca />}/>
+            <Route path="/estrategia-processual" element={<Navigate to="/jurimetria" replace/>}/>
+            <Route path="/conducao-processual" element={<ConducaoProcessual />}/>
+            <Route path="/peticao-ia" element={<Navigate to="/jurimetria" replace/>}/>
+            <Route path="/consultas" element={<Consultations />}/>
+            <Route path="/documentos" element={<Documents />}/>
+    <Route path="/documentos/gerar" element={<Documents mode="gerar"/>}/>
+    <Route path="/documentos/adicionar" element={<Documents mode="adicionar"/>}/>
+    <Route path="/ferramentas" element={<ToolHub />}/>
+    <Route path="/atendimento/programacoes" element={<ScheduledMessages />}/>
+    <Route path="/configuracoes/fluxo-atendimento" element={<WhatsAppFlow />}/>
+    <Route path="/financeiro/recebimentos" element={financeBlocked ? <Navigate to="/" replace/> : <Finance section="recebimentos"/>}/>
+    <Route path="/financeiro/contratos" element={financeBlocked ? <Navigate to="/" replace/> : <Finance section="contratos"/>}/>
+    <Route path="/financeiro/novo" element={financeBlocked ? <Navigate to="/" replace/> : <Finance section="novo"/>}/>
+    <Route path="/cobranca/configuracoes" element={financeBlocked ? <Navigate to="/" replace/> : <Finance view="cobranca" section="configuracoes"/>}/>
+            <Route path="/jornada-comercial" element={<JornadaComercial />}/>
+            <Route path="/honorarios-propostas" element={<Navigate to="/jornada-comercial" replace/>}/>
+            <Route path="/financeiro" element={financeBlocked ? <Navigate to="/" replace/> : <Finance />}/>
+            <Route path="/cobranca" element={financeBlocked ? (<Navigate to="/" replace/>) : (<Finance view="cobranca"/>)}/>
+            <Route path="/prospeccao" element={isPlatformAdmin ? (<ProspectCenter />) : (<Navigate to="/" replace/>)}/>
+            <Route path="/prospeccao-atual" element={<Navigate to="/prospeccao" replace/>}/>
+            <Route path="/marketing" element={<Marketing />}/>
+            <Route path="/atendimento" element={<Navigate to="/whatsapp" replace/>}/>
+            <Route path="/seguranca" element={<Security />}/>
+            <Route path="/auditoria" element={canAccessAudit ? <Audit /> : <Navigate to="/" replace/>}/>
+            <Route path="/relatorios" element={<Reports />}/>
+            <Route path="/configuracoes" element={<OrgSettings />}/>
+    <Route path="/configuracoes/central" element={<ConfigurationCenter />}/>
+    <Route path="/configuracoes/atendimento" element={<ServiceConfiguration />}/>
+    <Route path="/configuracoes/provedores-processuais" element={<ProcessProviderSettings />}/>
+            <Route path="*" element={<Navigate to="/" replace/>}/>
           </Routes>
           </Suspense>
-          {!supabaseConfigured && (
-            <div className="config-warning">
+          {!supabaseConfigured && (<div className="config-warning">
               Configure as variáveis públicas do Supabase no ambiente de
               publicação.
-            </div>
-          )}
+            </div>)}
         </div>
       </main>
       <nav className="mobile-bottom-nav" aria-label="Navegação rápida">
-        <NavLink
-          to="/"
-          end
-          className={({ isActive }) => (isActive ? "active" : "")}
-        >
+        <NavLink to="/" end className={({ isActive }) => (isActive ? "active" : "")}>
           <LayoutDashboard />
           Início
         </NavLink>
-        <NavLink
-          to="/clientes"
-          className={({ isActive }) => (isActive ? "active" : "")}
-        >
+        <NavLink to="/clientes" className={({ isActive }) => (isActive ? "active" : "")}>
           <Users />
           Clientes
         </NavLink>
-        <NavLink
-          to="/whatsapp"
-          className={({ isActive }) => (isActive ? "active" : "")}
-        >
+        <NavLink to="/whatsapp" className={({ isActive }) => (isActive ? "active" : "")}>
           <MessageCircle />
           WhatsApp
         </NavLink>
-        <NavLink
-          to="/agenda"
-          className={({ isActive }) => (isActive ? "active" : "")}
-        >
+        <NavLink to="/agenda" className={({ isActive }) => (isActive ? "active" : "")}>
           <CalendarDays />
           Agenda
         </NavLink>
-        <button
-          type="button"
-          onClick={() => setNavOpen(true)}
-          aria-label="Abrir todos os módulos"
-        >
+        <button type="button" onClick={() => setNavOpen(true)} aria-label="Abrir todos os módulos">
           <MoreHorizontal />
           Todos
         </button>
       </nav>
-    </div>
-  );
+    </div>);
 }
