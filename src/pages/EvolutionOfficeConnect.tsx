@@ -11,6 +11,7 @@ export default function EvolutionOfficeConnect(){
  const [code,setCode]=useState('');
  const [created,setCreated]=useState(false);
  const [qr,setQr]=useState('');
+ const [instanceName,setInstanceName]=useState('');
  useEffect(()=>{void request('status');const timer=setInterval(()=>{void request('status',true)},10000);return ()=>clearInterval(timer)},[]);
  async function request(action:'status'|'create'|'pair'|'qr',silent=false){
   if(!supabase)return;
@@ -41,7 +42,7 @@ export default function EvolutionOfficeConnect(){
     return;
    }
    if(action==='create'){setCreated(true);setMessage('Instância criada no servidor. Agora solicite o código de pareamento.')}
-   if(action==='status'){setState(data.state||'Sem conexão');if(data.instance_status&&data.instance_status!=='not_provisioned')setCreated(true);if(data.state==='open'){setQr('');setCode('');setMessage('WhatsApp conectado à Evolution. Os envios pelo LexOffice ainda precisam de teste.')}else if(!silent)setMessage('Estado consultado no servidor.')}
+   if(action==='status'){setState(data.state||'Sem conexão');setInstanceName(data.instance_name||'');if(data.instance_status&&data.instance_status!=='not_provisioned')setCreated(true);if(data.state==='open'){setQr('');setCode('');setMessage('WhatsApp conectado à Evolution. Os envios pelo LexOffice ainda precisam de teste.')}else if(!silent)setMessage('Estado consultado no servidor.')}
    if(action==='pair'){setCode(String(data.pairing_code||''));setMessage('Código gerado. Digite-o no WhatsApp Business antes de expirar.')}
    if(action==='qr'){setQr(String(data.qr_code||''));setMessage('QR Code gerado. Escaneie no WhatsApp Business antes de expirar.')}
   }catch(e:any){setMessage('Não foi possível executar a operação: '+String(e?.message||'falha de conexão'))}
@@ -49,7 +50,7 @@ export default function EvolutionOfficeConnect(){
  }
  return <div className="meta-partner-box">
   <div className="meta-config-title"><PlugZap size={17}/><b>Evolution API | WhatsApp do escritório</b></div>
-  <p>Instância exclusiva: <strong>suzanne-lexoffice</strong>. Número: <strong>+55 31 99298-4141</strong>. A instância Gláucia não será alterada.</p>
+  <p>Instância do escritório: <strong>{instanceName||'carregando...'}</strong>. Número: <strong>+55 31 99298-4141</strong>. A instância Gláucia não será alterada.</p>
   {state&&<p role="status">Estado da Evolution: <strong>{state==='open'?'Conectado':state}</strong></p>}
   <div className="integration-form">
    <button type="button" className="secondary" disabled={busy} onClick={()=>request('status')}><RefreshCw size={15}/>Consultar conexão</button>

@@ -2,6 +2,9 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "jsr:@supabase/supabase-js@2";
 const h={"Content-Type":"application/json","Cache-Control":"no-store","Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization,x-client-info,apikey,content-type","Access-Control-Allow-Methods":"POST,OPTIONS"};
 const J=(x:unknown,s=200)=>new Response(JSON.stringify(x),{status:s,headers:h});
+const DEFAULT_INSTANCE="suzanne-lexoffice";
+async function runtimeSecret(db:any,key:string){const {data}=await db.from("system_runtime_secrets").select("secret").eq("key",key).maybeSingle();return String(data?.secret||"").trim()}
+async function configuredInstance(db:any){return (await runtimeSecret(db,"evolution_instance_name"))||DEFAULT_INSTANCE}
 Deno.serve(async req=>{
  if(req.method==="OPTIONS")return new Response("ok",{headers:h});
  if(req.method!=="POST")return J({error:"method_not_allowed"},405);
@@ -12,8 +15,9 @@ Deno.serve(async req=>{
  let diff=0;if(token.length===expected.length)for(let i=0;i<token.length;i++)diff|=token.charCodeAt(i)^expected.charCodeAt(i);
  if(!expected||token.length!==expected.length||diff!==0)return J({error:"webhook_forbidden"},403);
  const event=await req.json().catch(()=>null);if(!event)return J({error:"invalid_json"},400);
+ const expectedInstance=await configuredInstance(db);
  const inst=String(event.instance||event.instanceName||event.data?.instance||"");
- if(inst!=="suzanne-lexoffice")return J({ok:true,ignored:"other_instance"});
+ if(inst!==expectedInstance)return J({ok:true,ignored:"other_instance"});
  const kind=String(event.event||"").replace(/_/g,".").toLowerCase();
  if(kind==="connection.update")return J({ok:true,event:kind});
  if(kind!=="messages.upsert")return J({ok:true,ignored:"event"});
@@ -57,7 +61,8 @@ Deno.serve(async req=>{
  const db=createClient(u,s,{auth:{persistSession:false}});
  const {data:p}=await db.from("profiles").select("org_id,role_key,status").eq("id",user.id).maybeSingle();
  if(!p?.org_id||p.status==="inactive"||!["owner","admin","super_admin","master"].includes(String(p.role_key||"").toLowerCase()))return J({error:"administrator_required"},403);
- const {data:instance}=await db.from("whatsapp_evolution_instances").select("id,instance_name,status").eq("org_id",p.org_id).eq("instance_name","suzanne-lexoffice").maybeSingle();
+ const instanceName=await configuredInstance(db);
+ const {data:instance}=await db.from("whatsapp_evolution_instances").select("id,instance_name,status").eq("org_id",p.org_id).eq("instance_name",instanceName).maybeSingle();
  if(!instance)return J({error:"office_instance_missing"},404);
  const body=await req.json().catch(()=>({}));
  const action=String(body.action||"status");
@@ -83,7 +88,7 @@ Deno.serve(async req=>{
    }
    instanceStatus=newStatus;
  }
- return J({ok:r.ok,http_status:r.status,state:state||null,instance_status:instanceStatus,connected:state==="open"});
+ return J({ok:r.ok,http_status:r.status,state:state||null,instance_status:instanceStatus,instance_name:instance.instance_name,connected:state==="open"});
 }
  if(action==="create"){
  if(instance.status!=="not_provisioned")return J({error:"instance_already_registered",status:instance.status},409);
