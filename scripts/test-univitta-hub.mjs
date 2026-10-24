@@ -22,11 +22,22 @@ globalThis.fetch=originalFetch;
 console.log('PASS Hub: Ed25519 interoperable signatures and tamper rejection, strict paths/QR types, authorization failure and environment isolation.');
 const helperCode=ts.transpileModule(fs.readFileSync(new URL('../supabase/functions/whatsapp-evolution-connect/univitta-hub.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText.replace("'./hub-client.ts'",JSON.stringify('data:text/javascript;base64,'+Buffer.from(compiled).toString('base64')));
 const {handleUnivittaHub}=await import('data:text/javascript;base64,'+Buffer.from(helperCode).toString('base64'));
-const db=record=>({from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:record?{secret:JSON.stringify(record)}:null,error:null})})})})});
-assert.equal((await handleUnivittaHub(db(null),'office','hub_status')).status,503);
-assert.equal((await handleUnivittaHub(db({...identity,org_id:'other'}),'office','hub_status')).status,403);
-let calls=0;globalThis.fetch=async()=>{calls++;return calls===1?new Response(JSON.stringify({access_token:'test',environment:'sandbox'})):new Response(JSON.stringify({data:{connection_id:'svc_other',status:'connected'},environment:'sandbox'}))};
-const configured={...identity,org_id:'office',connection_id:'svc_abc'};assert.equal((await handleUnivittaHub(db(configured),'office','hub_status')).status,502);
-calls=0;globalThis.fetch=async()=>{calls++;return calls===1?new Response(JSON.stringify({access_token:'test',environment:'sandbox'})):new Response(JSON.stringify({data:{connection_id:'svc_abc',status:'awaiting_qr',qr:'data:image/png;base64,AAAA'},environment:'sandbox'}))};
-const state=await (await handleUnivittaHub(db(configured),'office','hub_status')).json();assert.equal(state.delivery_enabled,false);assert.equal(state.status,'awaiting_qr');assert(!('access_token' in state));globalThis.fetch=originalFetch;
-console.log('PASS handler: missing identity, organization isolation, connection mismatch rejection, QR state without tokens or automatic provider activation.');
+const saved=new Map();
+const db=record=>({from:table=>table==='system_runtime_secrets'?{select:()=>({eq:()=>({maybeSingle:async()=>({data:record?{secret:JSON.stringify(record)}:null,error:null})})})}:{
+ select:()=>({eq:(_field,org)=>({eq:()=>({order:()=>({limit:()=>({maybeSingle:async()=>({data:saved.get(org)||null,error:null})})})})})}),
+ insert:async row=>{saved.set(row.org_id,{id:row.org_id,external_instance_id:row.external_instance_id,status:row.status});return {error:null}},
+ update:()=>({eq:()=>({eq:async()=>({error:null})})})
+}});
+assert.equal((await handleUnivittaHub(db(null),'office','hub_create')).status,503);
+let calls=[];
+globalThis.fetch=async(url,opts)=>{calls.push({url:String(url),body:opts?.body});return calls.length%2===1?new Response(JSON.stringify({access_token:'test',environment:'sandbox'})):new Response(JSON.stringify({data:{connection_id:'svc_'+(calls.length===2?'a':'b'),status:'pending'},environment:'sandbox'}))};
+const configured={...identity}; 
+const first=await (await handleUnivittaHub(db(configured),'office_a','hub_create')).json();
+const second=await (await handleUnivittaHub(db(configured),'office_b','hub_create')).json();
+assert.equal(first.connection_id,'svc_a');assert.equal(second.connection_id,'svc_b');
+assert(calls[1].url.endsWith('/api/public/v1/services/evolution/connections'));
+assert.equal(JSON.parse(calls[1].body).owner_ref,'lexoffice:office_a');
+assert.equal(JSON.parse(calls[3].body).owner_ref,'lexoffice:office_b');
+assert.equal((await handleUnivittaHub(db(configured),'office_a','hub_create')).status,409);
+globalThis.fetch=originalFetch;
+console.log('PASS handler: one application identity creates separate tenant connections without per-client approvals.');
