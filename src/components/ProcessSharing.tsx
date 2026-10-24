@@ -26,7 +26,7 @@ export default function ProcessSharing({ processId, orgId, ownerId }: { processI
    if (!uid) return;
    const { data: actor } = await supabase.from('profiles').select('role_key,org_id').eq('id',uid).maybeSingle();
    if (!live || !actor || actor.org_id !== orgId) return;
-   const canManage = ['owner', 'admin'].includes(actor.role_key);
+   const canManage = ['owner', 'admin'].includes(actor.role_key) || (uid === ownerId && ['lawyer', 'responsible_lawyer'].includes(actor.role_key));
    setAuthorized(canManage);
    if (!canManage) return;
    const [members] = await Promise.all([
