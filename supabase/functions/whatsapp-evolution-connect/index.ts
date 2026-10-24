@@ -65,9 +65,45 @@ Deno.serve(async req=>{
  const {data:instance}=await db.from("whatsapp_evolution_instances").select("id,instance_name,status").eq("org_id",p.org_id).eq("instance_name",instanceName).maybeSingle();
  if(!instance)return J({error:"office_instance_missing"},404);
  const body=await req.json().catch(()=>({}));
- const action=String(body.action||"status");
- const {data:secrets}=await db.from("system_runtime_secrets").select("key,secret").in("key",["evolution_api_url","evolution_api_key"]);
- const cfg=Object.fromEntries((secrets||[]).map((x:any)=>[x.key,x.secret]));
+ const aliases:Record<string,string>={check:"status",verify:"status",check_connection:"status",create_connection:"create",qrcode:"qr",generate_qr:"qr",generate_pairing_code:"pair",pairing_code:"pair",reconnect:"status",reconnect_webhook:"status",enable_webhook:"status"};
+ const requestedAction=String(body.action||"status").toLowerCase();
+ const action=aliases[requestedAction]||requestedAction;
+ const {data:secrets}=await db.from("system_runtime_secrets").select("key,secret").in("key",["whatsapp_provider","uazapi_base_url","uazapi_instance_token","uazapi_instance_name","evolution_api_url","evolution_api_key"]);
+ const cfg=Object.fromEntries((secrets||[]).map((x:any)=>[x.key,String(x.secret||"").trim()]));
+ if(String(cfg.whatsapp_provider||"").toLowerCase()==="uazapi"){
+   const uazaBase=String(cfg.uazapi_base_url||"").replace(/\/+$/g,"");
+   const uazaToken=String(cfg.uazapi_instance_token||"");
+   if(!/^https:\/\//i.test(uazaBase)||!uazaToken)return J({error:"uazapi_server_configuration_invalid"},503);
+   const uaza=async(path:string,method="GET",payload?:unknown)=>{
+     const res=await fetch(uazaBase+path,{method,headers:{token:uazaToken,"Content-Type":"application/json"},body:payload===undefined?undefined:JSON.stringify(payload),signal:AbortSignal.timeout(12000)});
+     const data=await res.json().catch(()=>({}));
+     return {ok:res.ok,status:res.status,data};
+   };
+   try{
+     if(action==="status"||action==="create"){
+       const r=await uaza("/instance/status");
+       const connected=Boolean(r.data?.status?.connected||r.data?.status?.loggedIn||r.data?.instance?.connected);
+       const resetting=Boolean(r.data?.status?.resetting);
+       const newStatus=connected?"connected":resetting?"connecting":"disconnected";
+       if(r.ok)await db.from("whatsapp_evolution_instances").update({status:newStatus,is_active:connected,settings:{provider:"uazapi",instance_name:String(cfg.uazapi_instance_name||"lexoffice-suzanne")},updated_at:new Date().toISOString()}).eq("id",instance.id);
+       return J({ok:r.ok,http_status:r.status,state:newStatus,instance_status:newStatus,instance_name:String(cfg.uazapi_instance_name||instance.instance_name),connected});
+     }
+     if(action==="pair"||action==="qr"){
+       const number=String(body.number||"").replace(/\D/g,"");
+       if(action==="pair"&&number!=="5531992984141")return J({error:"phone_not_authorized"},400);
+       const r=await uaza("/instance/connect","POST",action==="pair"?{phone:number}:{});
+       const source=r.data?.data||r.data?.instance||r.data||{};
+       const pairingCode=source.pairingCode||source.pairing_code||source.paircode||source.code;
+       const qrCode=source.qrcode||source.qr_code||source.qrCode||source.base64;
+       if(!r.ok)return J({ok:false,error:action==="pair"?"pairing_code_unavailable":"qr_code_unavailable",http_status:r.status},502);
+       if(action==="pair"&&!pairingCode)return J({ok:false,error:"pairing_code_unavailable",http_status:r.status},502);
+       if(action==="qr"&&!qrCode)return J({ok:false,error:"qr_code_unavailable",http_status:r.status},502);
+       await db.from("whatsapp_evolution_instances").update({status:"qr_pending",is_active:false,updated_at:new Date().toISOString()}).eq("id",instance.id);
+       return J(action==="pair"?{ok:true,pairing_code:String(pairingCode),instance_name:String(cfg.uazapi_instance_name||instance.instance_name)}:{ok:true,qr_code:String(qrCode),instance_name:String(cfg.uazapi_instance_name||instance.instance_name)});
+     }
+     return J({error:"invalid_action"},400);
+   }catch{return J({error:"uazapi_request_failed"},502)}
+ }
  const base=String(cfg.evolution_api_url||"").replace(/\/+$/,"");
  if(!/^https:\/\//i.test(base)||!cfg.evolution_api_key)return J({error:"evolution_server_configuration_invalid"},503);
  const api=async(path:string,method="GET",payload?:unknown)=>{
@@ -106,6 +142,14 @@ Deno.serve(async req=>{
  if(!r.ok||!pairingCode)return J({ok:false,error:"pairing_code_unavailable",http_status:r.status},502);
  await db.from("whatsapp_evolution_instances").update({status:"qr_pending",updated_at:new Date().toISOString()}).eq("id",instance.id);
  return J({ok:true,pairing_code:pairingCode,instance_name:instance.instance_name});
+ }
+ if(action==="qr"){
+ const r=await api("/instance/connect/"+encodeURIComponent(instance.instance_name));
+ const source=r.data?.data||r.data?.instance||r.data||{};
+ const qrCode=source.qrcode||source.qr_code||source.qrCode||source.base64;
+ if(!r.ok||!qrCode)return J({ok:false,error:"qr_code_unavailable",http_status:r.status},502);
+ await db.from("whatsapp_evolution_instances").update({status:"qr_pending",is_active:false,updated_at:new Date().toISOString()}).eq("id",instance.id);
+ return J({ok:true,qr_code:String(qrCode),instance_name:instance.instance_name});
  }
  return J({error:"invalid_action"},400);
  }catch{return J({error:"evolution_request_failed"},502)}
