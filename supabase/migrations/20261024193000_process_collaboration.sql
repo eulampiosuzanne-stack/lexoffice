@@ -14,8 +14,7 @@ alter table public.process_collaborators enable row level security;
 revoke all on public.process_collaborators from anon, authenticated;
 grant select on public.process_collaborators to authenticated;
 create policy process_collaborators_read on public.process_collaborators for select to authenticated
- using (org_id=public.current_org_id() and (user_id=auth.uid() or granted_by=auth.uid() or exists
- (select 1 from public.processes p where p.id=process_id and p.org_id=org_id and p.owner_user_id=auth.uid())));
+ using (org_id=public.current_org_id() and (user_id=auth.uid() or granted_by=auth.uid()));
 create or replace function public.manage_process_collaborator(p_process uuid,p_user uuid,p_permission text)
 returns void language plpgsql security definer set search_path=public,pg_temp as $$
 declare v_process public.processes%rowtype; v_actor public.profiles%rowtype; v_target public.profiles%rowtype;
