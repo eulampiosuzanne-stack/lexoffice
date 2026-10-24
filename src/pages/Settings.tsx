@@ -235,13 +235,16 @@ export default function Settings() {
     if (!supabase || !orgId) return;
     setCreatingUser(true);
     const { data, error } = await supabase.functions.invoke("create-user", {
-      body: { ...userForm, org_id: orgId },
+      body: { ...userForm },
     });
-    setAdminNotice(
-      error || data?.error
-        ? "Não foi possível criar o usuário: " + (data?.error || error?.message)
-        : "Usuário criado com sucesso.",
-    );
+    let failure = data?.error || error?.message;
+    if (error && "context" in error && error.context instanceof Response) {
+      try {
+        const details = await error.context.clone().json();
+        failure = details?.error || failure;
+      } catch { /* Preserve the original network error. */ }
+    }
+    setAdminNotice(failure ? "Não foi possível criar o usuário: " + failure : "Usuário criado com sucesso.");
     if (!error && !data?.error) {
       setUserForm({
         name: "",
