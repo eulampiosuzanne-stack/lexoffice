@@ -12,6 +12,15 @@ export default function EvolutionOfficeConnect(){
  const [created,setCreated]=useState(false);
  const [qr,setQr]=useState('');
  const [instanceName,setInstanceName]=useState('');
+ async function copyPairingCode(){
+  if(!code)return;
+  try{
+   await navigator.clipboard.writeText(code);
+   setMessage('Código copiado. Agora cole ou digite no WhatsApp Business antes de expirar.');
+  }catch{
+   setMessage('Não foi possível copiar automaticamente. Toque e segure o código para copiá-lo.');
+  }
+ }
  useEffect(()=>{void request('status');const timer=setInterval(()=>{void request('status',true)},10000);return ()=>clearInterval(timer)},[]);
  async function request(action:'status'|'create'|'pair'|'qr',silent=false){
   if(!supabase)return;
@@ -59,7 +68,12 @@ export default function EvolutionOfficeConnect(){
    <button type="button" className="integration-action" disabled={busy||!created} onClick={()=>request('qr')}>3. Gerar QR Code</button>
   </div>
   {qr&&<div className="integration-notice"><strong>QR Code da Evolution</strong><p>Escaneie pelo WhatsApp Business em Aparelhos conectados.</p><img src={qr} alt="QR Code da Evolution" style={{width:260,height:260,maxWidth:'100%'}} /></div>}
-  {code&&<div className="integration-notice"><strong>Código de pareamento: {code}</strong><p>No WhatsApp Business do número informado, abra Aparelhos conectados, Conectar aparelho e Conectar com número de telefone. Não envie o código a terceiros.</p></div>}
+  {code&&<div className="integration-notice" aria-live="polite">
+   <strong>Código de pareamento</strong>
+   <p style={{fontSize:'1.5rem',fontWeight:800,letterSpacing:'.16em',userSelect:'all'}}>{code}</p>
+   <button type="button" className="integration-action" onClick={copyPairingCode}>Copiar código</button>
+   <p>No WhatsApp Business do número informado, abra Aparelhos conectados, Conectar aparelho e Conectar com número de telefone. Não envie o código a terceiros.</p>
+  </div>}
   {message&&<div className="integration-notice" role="status">{message}</div>}
   <small>Conexão não ativa automaticamente o envio de mensagens do LexOffice. A integração será testada antes da migração.</small>
  </div>;
