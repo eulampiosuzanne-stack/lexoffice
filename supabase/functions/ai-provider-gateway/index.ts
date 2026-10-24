@@ -80,14 +80,23 @@ Deno.serve(async req=>{
   // Require a valid Supabase user token before any policy or secret lookup.
   const token=(req.headers.get('Authorization')||'').replace(/^Bearer\\s+/i,'').trim();
   if(!token)return json({error:'authentication_required'},401);
-  const authClient=admin();
-  const {data:identity,error:identityError}=await authClient.auth.getUser(token);
-  if(identityError||!identity.user)return json({error:'invalid_session'},401);
-  const {data:profile,error:profileError}=await authClient.from('profiles').select('org_id').eq('id',identity.user.id).maybeSingle();
-  if(profileError||!profile?.org_id)return json({error:'organization_not_found'},403);
   const body=await req.json().catch(()=>({}));
-  if(body.org_id&&String(body.org_id)!==String(profile.org_id))return json({error:'organization_forbidden'},403);
-  const orgId=String(profile.org_id);
+  const serviceToken=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
+  let orgId='';
+  if(serviceToken&&token===serviceToken){
+    // Existing internal workers authenticate with the service-role token.
+    // Do not resolve an arbitrary organization for user-originated calls.
+    orgId=String(body.org_id||'').trim();
+    if(!orgId)return json({error:'organization_required'},400);
+  }else{
+    const authClient=admin();
+    const {data:identity,error:identityError}=await authClient.auth.getUser(token);
+    if(identityError||!identity.user)return json({error:'invalid_session'},401);
+    const {data:profile,error:profileError}=await authClient.from('profiles').select('org_id').eq('id',identity.user.id).maybeSingle();
+    if(profileError||!profile?.org_id)return json({error:'organization_not_found'},403);
+    if(body.org_id&&String(body.org_id)!==String(profile.org_id))return json({error:'organization_forbidden'},403);
+    orgId=String(profile.org_id);
+  }
   const agentKey=String(body.agent_key||'').trim();
   const policyRow=await loadAgentPolicy(orgId,agentKey);
   if(policyRow&&policyRow.active===false)return json({ok:false,error:'agent_inactive'},403);
