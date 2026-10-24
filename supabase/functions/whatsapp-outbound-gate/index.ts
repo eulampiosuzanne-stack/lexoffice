@@ -47,7 +47,7 @@ async function runtimeSecret(a: any, key: string) {
 async function evolutionSend(a:any,orgId:string,phone:string,message:string,delaySeconds=0,typing=false,image:string|null=null,caption:string|null=null,document:string|null=null,fileName:string|null=null){
  const base=(await runtimeSecret(a,"evolution_api_url")).replace(/\/+$/,"");
  const key=await runtimeSecret(a,"evolution_api_key");
- const instance="suzanne-lexoffice",p=digits(phone);
+ const instance=(await runtimeSecret(a,"evolution_instance_name"))||"suzanne-lexoffice",p=digits(phone);
  if(orgId!=="b3dd3ed0-2a05-4087-8220-307a44352cec")throw new Error("Provedor Evolution não autorizado nesta organização");
  if(!/^https:\/\//.test(base)||!key||!p)throw new Error("Evolution não configurada ou número inválido");
  const {data:instanceRow,error:instanceError}=await a.from("whatsapp_evolution_instances").select("status,is_active").eq("org_id",orgId).eq("instance_name",instance).maybeSingle();
