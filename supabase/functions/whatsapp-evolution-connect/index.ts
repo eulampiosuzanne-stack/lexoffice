@@ -1,3 +1,4 @@
+import {handleUnivittaHub} from './univitta-hub.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "jsr:@supabase/supabase-js@2";
 const h={"Content-Type":"application/json","Cache-Control":"no-store","Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization,x-client-info,apikey,content-type","Access-Control-Allow-Methods":"POST,OPTIONS"};
@@ -61,6 +62,8 @@ Deno.serve(async req=>{
  const db=createClient(u,s,{auth:{persistSession:false}});
  const {data:p}=await db.from("profiles").select("org_id,role_key,status").eq("id",user.id).maybeSingle();
  if(!p?.org_id||p.status==="inactive"||!["owner","admin","super_admin","master"].includes(String(p.role_key||"").toLowerCase()))return J({error:"administrator_required"},403);
+ const hubBody=await req.clone().json().catch(()=>({}));
+ if(hubBody.action==='hub_status'||hubBody.action==='hub_connect')return handleUnivittaHub(db,p.org_id,hubBody.action);
  const instanceName=await configuredInstance(db);
  const {data:instance}=await db.from("whatsapp_evolution_instances").select("id,instance_name,status").eq("org_id",p.org_id).eq("instance_name",instanceName).maybeSingle();
  if(!instance)return J({error:"office_instance_missing"},404);
