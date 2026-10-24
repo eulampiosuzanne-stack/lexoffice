@@ -77,8 +77,17 @@ Deno.serve(async req=>{
   if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
   if(req.method!=='POST')return json({error:'method_not_allowed'},405);
 
+  // Require a valid Supabase user token before any policy or secret lookup.
+  const token=(req.headers.get('Authorization')||'').replace(/^Bearer\\s+/i,'').trim();
+  if(!token)return json({error:'authentication_required'},401);
+  const authClient=admin();
+  const {data:identity,error:identityError}=await authClient.auth.getUser(token);
+  if(identityError||!identity.user)return json({error:'invalid_session'},401);
+  const {data:profile,error:profileError}=await authClient.from('profiles').select('org_id').eq('id',identity.user.id).maybeSingle();
+  if(profileError||!profile?.org_id)return json({error:'organization_not_found'},403);
   const body=await req.json().catch(()=>({}));
-  const orgId=await resolveOrg(String(body.org_id||'').trim());
+  if(body.org_id&&String(body.org_id)!==String(profile.org_id))return json({error:'organization_forbidden'},403);
+  const orgId=String(profile.org_id);
   const agentKey=String(body.agent_key||'').trim();
   const policyRow=await loadAgentPolicy(orgId,agentKey);
   if(policyRow&&policyRow.active===false)return json({ok:false,error:'agent_inactive'},403);
@@ -107,14 +116,16 @@ Deno.serve(async req=>{
   const input=String(body.input||'');
   if(!input.trim())return json({error:'input_required'},400);
 
+  const freeOnly=body.free_only!==false;
   const valid=['groq','gemini','openrouter','ollama','openai'];
   let order:string[]=[];
-  if(provider==='auto')order=['groq','gemini','openrouter','ollama','openai'];
+  if(provider==='auto')order=freeOnly?['openrouter','groq','gemini','ollama']:['groq','gemini','openrouter','ollama','openai'];
   else if(valid.includes(provider)){
     order=[provider];
     if(fallbackEnabled&&fallbackProvider&&valid.includes(fallbackProvider)&&fallbackProvider!==provider)order.push(fallbackProvider);
   }else return json({ok:false,error:'invalid_provider_policy',provider},400);
 
+  if(freeOnly){order=order.filter(x=>x!=='openai');if(provider==='openrouter'&&model&&!model.endsWith(':free')&&model!=='openrouter/free')return json({ok:false,error:'paid_model_blocked'},400);}
   const errors:any[]=[];
   for(const selected of order){
     let r:any;
