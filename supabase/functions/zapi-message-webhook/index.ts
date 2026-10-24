@@ -1,5 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "jsr:@supabase/supabase-js@2.57.4";
+// v65 (15/10/2026) — sem citar aviso, a ordem vale para o último aviso DE CLIENTE (avisos do sistema são ignorados).
+// v64 (15/10/2026) — horários vêm da agenda real (função lexoffice_next_free_slots): o mais próximo e o último livre do dia.
+// v63 (15/10/2026) — "agendar" sem horário: oferece direto ao cliente os horários livres do próximo dia útil (não pergunta à Dra.).
+// v62 (15/10/2026) — ORDENS DA DRA. PELO WHATSAPP: ela responde em cima de qualquer aviso e o agente executa (ver ADMIN COMMAND BRIDGE v62).
 // v44 (05/10/2026) — roteamento reavaliado a cada mensagem: a conversa não fica mais "grudada" no último agente.
 //        Sem assunto claro e sem conversa nas últimas 3h → volta para a triagem. Lead que pede consulta/agenda/PIX
 //        → financeiro (cobra a consulta) enquanto não houver pagamento registrado; com pagamento → agenda.
@@ -198,7 +202,10 @@ async function bot(a:any,p:string,ch0:string,t:string,inboundId:string,preClaime
   const {count:activeAgents}=await a.from('ai_agent_policies').select('agent_key',{count:'exact',head:true}).eq('org_id',x.v.org_id).eq('active',true);
   const allow=(await S(a,'ai_test_allowlist')).split(/[,;\s]+/).map(D).filter(Boolean);const testMode=allow.includes(D(p));
   if(!activeAgents&&!testMode)return false;
-  const {data:fc}=await a.from('whatsapp_chatbot_flow_config').select('enabled').eq('org_id',x.v.org_id).maybeSingle();if(fc?.enabled===false&&!testMode)return false;
+  const {data:fc}=await a.from('whatsapp_chatbot_flow_config').select('enabled').eq('org_id',x.v.org_id).maybeSingle();
+  // v61 (13/10/2026): menu desligado = Helena conversa livre e atende sozinha (triagem + vendas); responde a todos quando a chave geral da IA está ligada.
+  const freeMode=fc?.enabled===false;
+  if(freeMode&&!testMode){const {data:wsAi}=await a.from('whatsapp_settings').select('ai_enabled').eq('org_id',x.v.org_id).maybeSingle();if(wsAi?.ai_enabled!==true)return false}
   const {data:ctl}=await a.from('ai_conversation_controls').select('ai_enabled,human_takeover,resume_at').eq('org_id',x.v.org_id).eq('contact_key',D(p)).maybeSingle();
   if(ctl?.human_takeover===true||ctl?.ai_enabled===false){
     if(!ctl?.resume_at||Date.now()<new Date(ctl.resume_at).getTime())return false;
@@ -227,6 +234,7 @@ async function bot(a:any,p:string,ch0:string,t:string,inboundId:string,preClaime
       if(accessReply)return true; // o fluxo de acesso já respondeu depois desta mensagem
     }
   }
+  if(x.v.org_id===DEFAULT_ORG&&!restriction&&(t||ch0)){await runAgent(x.v.org_id,x.v.id,p,'client_service_triage',t||ch0,testMode);return true;}
   const {data:st}=await a.from('whatsapp_chatbot_flow_state').select('current_node,path').eq('conversation_id',x.v.id).maybeSingle();
   const node=String(st?.current_node||'start'),path=Array.isArray(st?.path)?st.path:[],svc=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const call=async(q:any)=>{const r=await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/whatsapp-chatbot-flow`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${svc}`},body:JSON.stringify(q)}),d=await r.json().catch(()=>({}));if(!r.ok||d?.ok===false)throw new Error(d?.error||`chatbot ${r.status}`);return d};
@@ -248,7 +256,7 @@ async function bot(a:any,p:string,ch0:string,t:string,inboundId:string,preClaime
   // Menus de identificacao prevalecem sobre a interpretacao livre da IA.
   // O primeiro contato recebe SEMPRE o menu para identificar cliente, lead ou advogado.
   const menuNodes=['start','new','new_areas','client_menu','lawyer_menu','urgent'];
-  if(menuNodes.includes(node)){
+  if(!freeMode&&menuNodes.includes(node)){
     const choiceText=String(ch0||t||'').trim();
     const d=choiceText?await call({org_id:x.v.org_id,conversation_id:x.v.id,phone:p,node,choice:ch0,text:t,path}):{matched:false};
     if(d?.blocked)return true;
@@ -273,15 +281,25 @@ async function bot(a:any,p:string,ch0:string,t:string,inboundId:string,preClaime
   }
   if(t){
     // v44: a cada mensagem o assunto é reavaliado (antes, a conversa ficava presa no último agente).
-    const key=await pickAgent(a,x,t);
+    const key=freeMode?'client_service_triage':await pickAgent(a,x,t);
     if(key!==x.v.owner_agent_key)await a.from('whatsapp_conversations').update({owner_agent_key:key,owner_changed_at:new Date().toISOString()}).eq('id',x.v.id);
     await runAgent(x.v.org_id,x.v.id,p,key,t,testMode);if(node!=='agent_conversation')await saveState('agent_conversation',path);return true
   }
   return false;
 }
 
-// ===================== ADMIN COMMAND BRIDGE v45 =====================
-function samePhone(a:any,b:any){const x=D(a),y=D(b);return !!x&&!!y&&x===y}
+// ===================== ADMIN COMMAND BRIDGE v62 (15/10/2026) =====================
+// Pedido da Dra. Suzanne: em todo aviso que a LEX manda para ela, ela responde ("Responder" em cima do aviso = a caixa)
+// e o agente executa EXATAMENTE a ordem. Correções em relação à v45:
+//  • o aviso já enviado ficava com status "sent" e a ordem dela era ignorada (só procurava "pending");
+//  • texto livre só era aceito depois de escolher 5 — agora qualquer texto é ordem;
+//  • número dela com ou sem o 9º dígito;
+//  • quando ela responde citando um aviso, a ordem vale para o cliente DAQUELE aviso (não o último);
+//  • a ordem é interpretada (enviar mensagem, agendar, não responder, parar cobrança) e o texto ao cliente leva
+//    só o que ela mandou — se a IA mudar números/datas ou acrescentar fatos, sai o texto dela quase literal;
+//  • ela sempre recebe a confirmação do que foi feito, com o texto exato enviado.
+function phoneCoreBR(v:any){let d=D(v);if(d.startsWith('55')&&d.length>=12)d=d.slice(2);if(d.length===11&&d[2]==='9')d=d.slice(0,2)+d.slice(3);return d}
+function samePhone(a:any,b:any){const x=phoneCoreBR(a),y=phoneCoreBR(b);return !!x&&!!y&&x===y}
 async function isAdminSender(a:any,p:string){const {data:rows}=await a.from('whatsapp_settings').select('alert_phone').not('alert_phone','is',null);return (rows||[]).some((x:any)=>samePhone(x.alert_phone,p))}
 function parseAdminSchedule(s:string){
  const raw=String(s||'').toLowerCase(),tm=raw.match(/(?:às|as|a)\s*(\d{1,2})(?:[:h](\d{2}))?\b/)||raw.match(/\b(\d{1,2})h(?:(\d{2}))?\b/);if(!tm)return null;
@@ -296,59 +314,122 @@ async function operatorSend(a:any,orgId:string,phone:string,message:string){
  const svc=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,r=await fetch(Deno.env.get('SUPABASE_URL')!+'/functions/v1/whatsapp-operator-send',{method:'POST',headers:{Authorization:'Bearer '+svc,apikey:svc,'Content-Type':'application/json'},body:JSON.stringify({org_id:orgId,message,keep_ai_active:true,targets:[{phone:D(phone),name:'Helena'}]})});
  const d=await r.json().catch(()=>null);return{ok:r.ok&&Number(d?.sent||0)>0,data:d}
 }
-async function handleAdminCommand(a:any,p:string,message:string,inboundId:string){
+const firstNameBR=(n:any)=>{const w=String(n||'').replace(/\(.*?\)/g,' ').trim().split(/\s+/).find((x:string)=>x&&!/^(da|de|do|das|dos|e)$/i.test(x))||'';return w?w.charAt(0).toUpperCase()+w.slice(1).toLowerCase():''};
+const normTxt=(s:any)=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+// números/datas/horas/valores da ordem precisam estar no texto final
+function factsKept(order:string,out:string){const nums=(order.match(/\d+(?:[.,:\/h]\d+)*/g)||[]).map(x=>x.replace(/\D/g,''));const o=out.replace(/\D/g,' ');return nums.every(n=>!n||o.includes(n)||out.replace(/\D/g,'').includes(n))}
+function literalFromOrder(cmd:string){let m=cmd.trim();const q=m.match(/["“”']([^"“”']{3,})["“”']/);if(q)return q[1].trim();
+ const ask=/^(por favor[,]?\s*)?(pergunte|pergunta)\b/i.test(m);
+ m=m.replace(/^(por favor[,]?\s*)?(diga|avise|informe|responda|fale|mande|envie|escreva|pe[cç]a|explique|comunique|lembre|pergunte|pergunta|confirme|cobre|oriente|passe)\s+(?:a\s+ela|a\s+ele|para\s+(?:ela|ele|a cliente|o cliente)|(?:a|à|ao)\s+cliente|pra\s+(?:ela|ele))?\s*(?:que\s+)?/i,'').trim();
+ m=m.replace(/\b(ela|ele)\b/gi,'você').replace(/\b(dela|dele)\b/gi,'sua');
+ if(ask&&m)return 'A Dra. Suzanne pediu para perguntar '+m.replace(/[.?!]*$/,'')+'?';
+ return m?m.charAt(0).toUpperCase()+m.slice(1):cmd.trim()}
+async function aiInterpret(a:any,orgId:string,cmd:string,clientName:string,alertText:string){
+ const svc=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+ const instructions='Você é o assistente interno do escritório da Dra. Suzanne Figueiredo. Ela respondeu a um aviso com uma ORDEM. Classifique a ordem e devolva SOMENTE um JSON válido, sem texto fora dele, no formato {"acao":"...","mensagem_cliente":"...","pergunta":""}. Ações possíveis: "enviar_mensagem" (ela quer que algo seja dito/perguntado/pedido ao cliente), "agendar" (marcar consulta/atendimento/reunião), "nao_responder" (não fazer nada / ignorar / deixa), "parar_cobranca" (não cobrar mais / suspender cobrança deste cliente), "duvida" (a ordem não dá para entender). Em "enviar_mensagem", escreva em mensagem_cliente a mensagem que o cliente vai receber: comece com "Olá, '+(firstNameBR(clientName)||'tudo bem')+'." e depois transmita EXATAMENTE o conteúdo da ordem, em nome do escritório (pode dizer "a Dra. Suzanne pediu para avisar que..."), em português claro e educado, frases curtas, sem emoji. NÃO acrescente fatos, prazos, valores, datas, promessas ou orientações que não estejam na ordem. Mantenha todos os números, datas, horários e valores exatamente como ela escreveu. Se ela escreveu o texto entre aspas, use o texto entre aspas sem mudar nada. Em "duvida", escreva em pergunta o que falta saber.';
+ const r=await fetch(Deno.env.get('SUPABASE_URL')!+'/functions/v1/ai-provider-gateway',{method:'POST',headers:{Authorization:'Bearer '+svc,apikey:svc,'Content-Type':'application/json'},body:JSON.stringify({org_id:orgId,provider:'auto',purpose:'admin_command',agent_key:'helena_chatbot',instructions,input:'Cliente do aviso: '+(clientName||'não identificado')+'\nAviso recebido pela Dra.: '+String(alertText||'').slice(0,700)+'\n\nORDEM DA DRA.: '+cmd})});
+ const d=await r.json().catch(()=>null);if(!r.ok||!d?.ok)return null;
+ const raw=String(d.text||'').replace(/^```(?:json)?|```$/g,'').trim();const j=raw.slice(raw.indexOf('{'),raw.lastIndexOf('}')+1);
+ try{const o=JSON.parse(j);return{acao:String(o.acao||''),mensagem:String(o.mensagem_cliente||'').trim(),pergunta:String(o.pergunta||'').trim()}}catch{return null}
+}
+// Descobre a qual aviso a ordem se refere.
+async function resolveAlert(a:any,orgId:string,adminPhone:string,quotedId:string,quotedText:string){
+ const since3=new Date(Date.now()-3*86400000).toISOString(),since1=new Date(Date.now()-86400000).toISOString();
+ const {data:rows}=await a.from('ai_agent_alerts').select('id,agent_key,client_id,process_id,contact_phone,alert_phone,reason,context,status,created_at').eq('org_id',orgId).gt('created_at',since3).order('created_at',{ascending:false}).limit(200);
+ const mine=(rows||[]).filter((x:any)=>samePhone(x.alert_phone,adminPhone)&&!String(x.reason||'').startsWith('ADMIN_COMMAND_')&&!String(x.reason||'').startsWith('CLIENT_SCHEDULE_'));
+ let body=String(quotedText||'');
+ if(quotedId){const {data:m}=await a.from('admin_alert_messages').select('alert_id,body').eq('external_message_id',quotedId).maybeSingle();if(m?.alert_id){const hit=mine.find((x:any)=>x.id===m.alert_id)||(await a.from('ai_agent_alerts').select('id,agent_key,client_id,process_id,contact_phone,alert_phone,reason,context,status,created_at').eq('id',m.alert_id).maybeSingle()).data;if(hit)return{alert:hit,how:'quoted'}}if(m?.body&&!body)body=String(m.body)}
+ if(body){
+  const ref=body.match(/Ref\.?\s*:?\s*([0-9A-F]{8})/i);if(ref){const hit=(rows||[]).find((x:any)=>String(x.id).toUpperCase().startsWith(ref[1].toUpperCase()));if(hit)return{alert:hit,how:'quoted'}}
+  const nb=normTxt(body);const ids=[...new Set(mine.map((x:any)=>x.client_id).filter(Boolean))];
+  const names=new Map<string,string>();if(ids.length){const {data:cs}=await a.from('clients').select('id,name').in('id',ids);for(const c of cs||[])names.set(c.id,String(c.name||''))}
+  const hit=mine.find((x:any)=>{const n=normTxt(names.get(x.client_id)||'');return n.length>4&&nb.includes(n)})||mine.find((x:any)=>{const c=normTxt(String(x.context||'').replace(/^resumo:\s*/i,'')).slice(0,60);return c.length>20&&nb.includes(c.slice(0,40))});
+  if(hit)return{alert:hit,how:'quoted'};
+  return{alert:null,how:'quoted_unmatched'};
+ }
+ const last=mine.find((x:any)=>x.created_at>since1&&x.status!=='handled'&&x.status!=='cancelled'&&(x.client_id||x.contact_phone)); // v65: avisos do sistema (sem cliente) não contam
+ return{alert:last||null,how:'latest'};
+}
+async function handleAdminCommand(a:any,p:string,message:string,inboundId:string,quotedId='',quotedText=''){
  const command=String(message||'').trim();
  if(!command)return false;
  const {data:settings}=await a.from('whatsapp_settings').select('org_id,alert_phone,alerts_enabled').not('alert_phone','is',null).limit(50),ws=(settings||[]).find((x:any)=>samePhone(x.alert_phone,p));if(!ws?.org_id)return false;
- const orgId=String(ws.org_id),adminPhone=D(p),since=new Date(Date.now()-86400000).toISOString();
+ const orgId=String(ws.org_id),adminPhone=D(ws.alert_phone)||D(p),since=new Date(Date.now()-86400000).toISOString();
  if(inboundId){const {data:seen}=await a.from('audit_logs').select('id').eq('org_id',orgId).eq('action','helena_admin_command').eq('metadata->>external_message_id',inboundId).limit(1).maybeSingle();if(seen?.id)return true}
- const {data:rows}=await a.from('ai_agent_alerts').select('id,client_id,contact_phone,alert_phone,reason,context,status,created_at').eq('org_id',orgId).gt('created_at',since).order('created_at',{ascending:false}).limit(40);
- const pending=(rows||[]).find((x:any)=>samePhone(x.alert_phone,adminPhone)&&String(x.reason||'').startsWith('ADMIN_COMMAND_PENDING_SCHEDULE')&&x.status==='pending');
- // Mensagens livres no canal administrativo so sao executadas apos pedir instrucao personalizada ou agendamento.
- const customPending=(rows||[]).find((x:any)=>samePhone(x.alert_phone,adminPhone)&&x.status==='pending'&&String(x.reason||'')==='ADMIN_COMMAND_CUSTOM_INSTRUCTION');
- const source=pending||customPending||(rows||[]).find((x:any)=>samePhone(x.alert_phone,adminPhone)&&x.status==='pending'&&!String(x.reason||'').startsWith('ADMIN_COMMAND_'));
- if(!/^[1-5]$/.test(command)&&!pending&&!customPending)return true;
- // Numero reservado a alertas internos: sem alerta pendente, nao entra no atendimento de clientes.
- if(!source?.contact_phone&&!customPending?.contact_phone)return true;
- const targetPhone=D(source.contact_phone),x=await context(a,targetPhone,'',false);let clientId=String(source.client_id||x?.v?.client_id||x?.c?.client_id||'')||null,clientName='';
- if(clientId){const {data:cl}=await a.from('clients').select('name').eq('org_id',orgId).eq('id',clientId).maybeSingle();clientName=String(cl?.name||'')}if(!clientName)clientName=String(x?.c?.name||'cliente');
- const cmd=String(message).trim();
- // Ações do painel administrativo: 1-5 são comandos internos, nunca texto para o cliente.
- const menuChoice=/^[1-5]$/.test(cmd)?cmd:'';
- if(menuChoice==='4'){await a.from('ai_agent_alerts').update({status:'handled',updated_at:new Date().toISOString()}).eq('id',source.id);await operatorSend(a,orgId,adminPhone,'Certo. Nenhuma mensagem será enviada a '+(clientName||'essa cliente')+'.');return true}
- if(menuChoice==='2'){const msg='A Dra. Suzanne recebeu sua solicitação e retornará assim que a agenda permitir. Se houver alguma informação nova importante, pode nos escrever por aqui.';const sent=await operatorSend(a,orgId,targetPhone,msg);if(sent.ok)await a.from('ai_agent_alerts').update({status:'handled',updated_at:new Date().toISOString()}).eq('id',source.id);await operatorSend(a,orgId,adminPhone,sent.ok?'Cliente avisada de que a Dra. Suzanne retornará.':'Não consegui avisar a cliente.');return true}
- if(menuChoice==='3'){const msg='Para que eu encaminhe sua dúvida corretamente à Dra. Suzanne, poderia me explicar um pouco melhor o que aconteceu ou qual informação você precisa?';const sent=await operatorSend(a,orgId,targetPhone,msg);if(sent.ok)await a.from('ai_agent_alerts').update({status:'handled',updated_at:new Date().toISOString()}).eq('id',source.id);await operatorSend(a,orgId,adminPhone,sent.ok?'Pedi à cliente as informações necessárias.':'Não consegui pedir as informações à cliente.');return true}
- if(menuChoice==='5'){await a.from('ai_agent_alerts').insert({org_id:orgId,agent_key:'helena_chatbot',client_id:clientId,contact_phone:targetPhone,alert_phone:adminPhone,reason:'ADMIN_COMMAND_CUSTOM_INSTRUCTION',context:('Aguardando orientação personalizada para '+clientName).slice(0,1500),status:'pending'});await operatorSend(a,orgId,adminPhone,'Escreva a orientação que deseja que eu execute com '+(clientName||'a cliente')+'. Vou tratá-la como comando interno, não como texto para copiar e enviar.');return true}
- if(menuChoice==='1'){
-   const svc=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-   const tomorrow=new Date(Date.now()+86400000),day=tomorrow.toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
-   const rr=await fetch(Deno.env.get('SUPABASE_URL')!+'/functions/v1/ai-agent-calendar',{method:'POST',headers:{Authorization:'Bearer '+svc,apikey:svc,'Content-Type':'application/json'},body:JSON.stringify({org_id:orgId,agent_key:'client_schedule_relationship',action:'availability',date:day,client_id:clientId,client_name:clientName})}),rd=await rr.json().catch(()=>null);
-   const slots=(rd?.slots||rd?.available_slots||rd?.data?.slots||[]).slice(0,5);
-   if(!rr.ok||!rd?.ok||!slots.length){await operatorSend(a,orgId,adminPhone,'Não consegui obter horários livres reais da agenda para oferecer a '+(clientName||'essa cliente')+'. Nenhuma mensagem de horário foi enviada.');return true}
-   const fmt=(s:any)=>{const v=String(s?.slot_start||s?.start||s);try{return new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'}).format(new Date(v))}catch{return v}};
-   const opts=slots.map(fmt).filter(Boolean),msg='A Dra. Suzanne pode atendê-la amanhã. Tenho estes horários disponíveis: '+opts.join(', ')+'. Qual deles fica melhor para você?';
+ const audit=async(alertId:any,targetPhone:string,clientId:any,result:string,extra:any={})=>{await a.from('audit_logs').insert({org_id:orgId,action:'helena_admin_command',entity:'whatsapp',entity_id:alertId||null,metadata:{external_message_id:inboundId||null,admin_phone:adminPhone,target_phone:targetPhone||null,client_id:clientId||null,command:command.slice(0,1000),quoted:!!(quotedId||quotedText),result,...extra,at:new Date().toISOString()}})};
+ // conversas em andamento (pediu dia/horário do agendamento)
+ const {data:openRows}=await a.from('ai_agent_alerts').select('id,client_id,contact_phone,alert_phone,reason,context,status,created_at').eq('org_id',orgId).gt('created_at',since).in('reason',['ADMIN_COMMAND_PENDING_SCHEDULE','ADMIN_COMMAND_CUSTOM_INSTRUCTION']).eq('status','pending').order('created_at',{ascending:false}).limit(5);
+ const pendingFlow=(quotedId||quotedText)?null:(openRows||[]).find((x:any)=>samePhone(x.alert_phone,adminPhone));
+ let alert:any=null,how='flow';
+ if(pendingFlow)alert=pendingFlow;else{const r=await resolveAlert(a,orgId,adminPhone,quotedId,quotedText);alert=r.alert;how=r.how}
+ if(!alert){await audit(null,'',null,'no_alert',{how});await operatorSend(a,orgId,adminPhone,how==='quoted_unmatched'?'Não consegui identificar a qual aviso essa ordem se refere. Nada foi feito.\n\nToque e segure o aviso do cliente, escolha Responder e escreva a ordem de novo.':'Não encontrei aviso em aberto nas últimas 24 horas para executar essa ordem. Nada foi feito.\n\nPara dar uma ordem, toque e segure o aviso do cliente, escolha Responder e escreva o que devo fazer.');return true}
+ let clientId=alert.client_id?String(alert.client_id):null,clientName='',targetPhone=D(alert.contact_phone);
+ if(clientId){const {data:cl}=await a.from('clients').select('name,whatsapp,phone').eq('id',clientId).maybeSingle();clientName=String(cl?.name||'');if(!targetPhone)targetPhone=D(cl?.whatsapp||cl?.phone)}
+ if(targetPhone&&(!clientId||!clientName)){const x=await context(a,targetPhone,'',false);if(!clientId)clientId=String(x?.v?.client_id||x?.c?.client_id||'')||null;if(!clientName)clientName=String(x?.c?.name||'')}
+ const who=clientName||'o cliente';
+ if(!targetPhone){await audit(alert.id,'',clientId,'alert_without_client');await operatorSend(a,orgId,adminPhone,'Esse aviso não tem cliente ligado a ele ('+String(alert.reason||'aviso do sistema').slice(0,120)+'), então não há para quem enviar. Nada foi feito.');return true}
+ const markHandled=async()=>{await a.from('ai_agent_alerts').update({status:'handled',updated_at:new Date().toISOString()}).eq('id',alert.id)};
+ const cmd=command;
+ // menu numérico dos avisos da Helena (1 a 5)
+ const menu=/^[1-5]$/.test(cmd)&&String(alert.reason||'')!=='ADMIN_COMMAND_PENDING_SCHEDULE'?cmd:'';
+ if(menu==='4'){await markHandled();await audit(alert.id,targetPhone,clientId,'menu_4');await operatorSend(a,orgId,adminPhone,'Certo. Nenhuma mensagem será enviada a '+who+'.');return true}
+ if(menu==='2'||menu==='3'){const msg=menu==='2'?'A Dra. Suzanne recebeu sua solicitação e retornará assim que a agenda permitir. Se houver alguma informação nova importante, pode nos escrever por aqui.':'Para que eu encaminhe sua dúvida corretamente à Dra. Suzanne, poderia me explicar um pouco melhor o que aconteceu ou qual informação você precisa?';const sent=await operatorSend(a,orgId,targetPhone,msg);if(sent.ok)await markHandled();await audit(alert.id,targetPhone,clientId,sent.ok?'menu_'+menu:'menu_'+menu+'_failed');await operatorSend(a,orgId,adminPhone,sent.ok?'Feito. Enviei para '+who+':\n\n“'+msg+'”':'Não consegui enviar a mensagem para '+who+'.');return true}
+ if(menu==='5'){await a.from('ai_agent_alerts').insert({org_id:orgId,agent_key:'helena_chatbot',client_id:clientId,contact_phone:targetPhone,alert_phone:adminPhone,reason:'ADMIN_COMMAND_CUSTOM_INSTRUCTION',context:('Aguardando orientação para '+who).slice(0,1500),status:'pending'});await audit(alert.id,targetPhone,clientId,'menu_5');await operatorSend(a,orgId,adminPhone,'Escreva o que devo fazer com '+who+'.');return true}
+ // v63: oferece ao cliente os horários livres do próximo dia útil (sem sábado/domingo) — usado no menu 1 e quando ela manda "agendar" sem dizer o horário
+ const offerSlots=async(origin:any)=>{
+   // v64: horários reais da agenda (lexoffice_next_free_slots: seg-sex, faixa da agenda, sem conflito). Oferece o mais próximo e o último livre do mesmo dia.
+   const {data:fs,error:fe}=await a.rpc('lexoffice_next_free_slots',{p_org:orgId,p_limit:12});
+   const list=(fs||[]).map((x:any)=>new Date(x.slot_start));if(fe||!list.length)return false;
+   const dKey=(d:Date)=>d.toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
+   const first=list[0],sameDay=list.filter((d:Date)=>dKey(d)===dKey(first)),last=sameDay[sameDay.length-1];
+   const pick=last&&last.getTime()!==first.getTime()?[first,last]:[first];
+   const hm=(d:Date)=>new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'}).format(d);
+   const today=dKey(new Date()),tomorrow=dKey(new Date(Date.now()+86400000));
+   const dayBr=dKey(first)===today?'hoje':dKey(first)===tomorrow?'amanhã':new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',weekday:'long',day:'2-digit',month:'2-digit'}).format(first);
+   const opts=pick.map(hm),fn=firstNameBR(clientName),msg='Olá'+(fn?', '+fn:'')+'. A Dra. Suzanne pode atender você '+dayBr+' às '+opts.join(' ou às ')+'. Qual horário fica melhor?';
    const sent=await operatorSend(a,orgId,targetPhone,msg);
-   if(sent.ok){await a.from('ai_agent_alerts').insert({org_id:orgId,agent_key:'client_schedule_relationship',client_id:clientId,contact_phone:targetPhone,alert_phone:adminPhone,reason:'CLIENT_SCHEDULE_OPTIONS_SENT',context:JSON.stringify({date:day,slots,options:opts}).slice(0,1500),status:'pending'});await a.from('ai_agent_alerts').update({status:'handled',updated_at:new Date().toISOString()}).eq('id',source.id)}
-   await operatorSend(a,orgId,adminPhone,sent.ok?'Consultei a agenda e ofereci a '+(clientName||'cliente')+' os horários livres de amanhã: '+opts.join(', ')+'.':'Não consegui enviar os horários à cliente.');return true
- }
- await a.from('audit_logs').insert({org_id:orgId,action:'helena_admin_command',entity:'whatsapp',entity_id:source.id,metadata:{external_message_id:inboundId||null,admin_phone:adminPhone,target_phone:targetPhone,client_id:clientId,command:cmd.slice(0,1000),at:new Date().toISOString()}});
- if(/^(n[aã]o responda|n[aã]o envie|deixa|deixe|ignora|ignore)\b/i.test(cmd)){if(pending?.id)await a.from('ai_agent_alerts').update({status:'cancelled',updated_at:new Date().toISOString()}).eq('id',pending.id);await operatorSend(a,orgId,adminPhone,'Certo. Não enviarei mensagem ao cliente deste alerta.');return true}
- const custom=(rows||[]).find((x:any)=>samePhone(x.alert_phone,adminPhone)&&String(x.reason||'')==='ADMIN_COMMAND_CUSTOM_INSTRUCTION'&&x.status==='pending');
- if(custom){const svc=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;const rr=await fetch(Deno.env.get('SUPABASE_URL')!+'/functions/v1/ai-provider-gateway',{method:'POST',headers:{Authorization:'Bearer '+svc,apikey:svc,'Content-Type':'application/json'},body:JSON.stringify({org_id:orgId,provider:'auto',instructions:'Você transforma uma orientação interna da Dra. Suzanne em uma mensagem elegante ao cliente. Nunca repita comandos internos como consulte minha agenda, fale com ela, ofereça horários ou você precisa ir. Gere somente a mensagem que o cliente deve receber, sem inventar fatos, horários ou providências.',input:cmd})}),rd=await rr.json().catch(()=>null);const msg=String(rd?.text||'').trim();if(!rr.ok||!rd?.ok||!msg){await operatorSend(a,orgId,adminPhone,'Não consegui transformar sua orientação com segurança. Nada foi enviado à cliente.');return true}const sent=await operatorSend(a,orgId,targetPhone,msg);if(sent.ok)await a.from('ai_agent_alerts').update({status:'handled',updated_at:new Date().toISOString()}).eq('id',custom.id);await operatorSend(a,orgId,adminPhone,sent.ok?'Orientação executada com '+(clientName||'a cliente')+'.':'Não consegui executar a orientação.');return true}
- const wantsSchedule=/\b(agend|marc|consulta|atendimento|reuni[aã]o)\w*/i.test(cmd)||!!pending;
- if(wantsSchedule){
+   if(sent.ok){await a.from('ai_agent_alerts').insert({org_id:orgId,agent_key:'client_schedule_relationship',client_id:clientId,contact_phone:targetPhone,alert_phone:adminPhone,reason:'CLIENT_SCHEDULE_OPTIONS_SENT',context:JSON.stringify({slots:pick.map((d:Date)=>d.toISOString()),options:opts,day:dayBr}).slice(0,1500),status:'pending'});await a.from('ai_agent_alerts').update({status:'handled',updated_at:new Date().toISOString()}).eq('id',origin.id);if(origin.id!==alert.id)await markHandled()}
+   await audit(origin.id,targetPhone,clientId,sent.ok?'slots_offered':'slots_failed',{options:opts,day:dayBr});
+   await operatorSend(a,orgId,adminPhone,sent.ok?'Feito. Ofereci a '+who+': '+dayBr+' às '+opts.join(' ou às ')+'.':'Não consegui enviar os horários a '+who+'.');return true
+ };
+ if(menu==='1'){if(await offerSlots(alert))return true;await audit(alert.id,targetPhone,clientId,'menu_1_no_slots');await operatorSend(a,orgId,adminPhone,'Não há horário livre na agenda nos próximos dias para '+who+'. Responda com o dia e a hora. Ex.: “agendar 20/10 às 14h”.');return true}
+ // agendamento em andamento: ela está informando o dia/horário
+ const doSchedule=async(origin:any)=>{
   const when=parseAdminSchedule(cmd);
-  if(!when){if(!pending)await a.from('ai_agent_alerts').insert({org_id:orgId,agent_key:'helena_chatbot',client_id:clientId,contact_phone:targetPhone,alert_phone:adminPhone,reason:'ADMIN_COMMAND_PENDING_SCHEDULE',context:('Agendamento solicitado para '+clientName+'. Comando: '+cmd).slice(0,1500),status:'pending'});await operatorSend(a,orgId,adminPhone,'Certo. Para agendar '+(clientName||'essa cliente')+', me diga o dia e o horário. Ex.: “amanhã às 15h” ou “08/10 às 14h30”.');return true}
+  if(!when&&await offerSlots(origin))return true;
+  if(!when){if(String(origin.reason||'')!=='ADMIN_COMMAND_PENDING_SCHEDULE')await a.from('ai_agent_alerts').insert({org_id:orgId,agent_key:'helena_chatbot',client_id:clientId,contact_phone:targetPhone,alert_phone:adminPhone,reason:'ADMIN_COMMAND_PENDING_SCHEDULE',context:('Agendamento solicitado para '+who+'. Ordem: '+cmd).slice(0,1500),status:'pending'});await audit(origin.id,targetPhone,clientId,'schedule_needs_time');await operatorSend(a,orgId,adminPhone,'Certo. Para agendar '+who+', me diga o dia e o horário. Ex.: “amanhã às 15h” ou “20/10 às 14h30”.');return true}
   const svc=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,rr=await fetch(Deno.env.get('SUPABASE_URL')!+'/functions/v1/ai-agent-calendar',{method:'POST',headers:{Authorization:'Bearer '+svc,apikey:svc,'Content-Type':'application/json'},body:JSON.stringify({org_id:orgId,agent_key:'client_schedule_relationship',action:'create',client_id:clientId,client_name:clientName,title:'Atendimento online — '+(clientName||'Cliente'),starts_at:when.starts_at,ends_at:when.ends_at,meeting_mode:'online'})}),rd=await rr.json().catch(()=>null);
-  if(!rr.ok||!rd?.ok){await operatorSend(a,orgId,adminPhone,'Não consegui confirmar o agendamento de '+(clientName||'essa cliente')+': '+String(rd?.error||'horário indisponível').slice(0,220)+'.');return true}
-  if(pending?.id)await a.from('ai_agent_alerts').update({status:'handled',updated_at:new Date().toISOString()}).eq('id',pending.id);
+  if(!rr.ok||!rd?.ok){await audit(origin.id,targetPhone,clientId,'schedule_failed');await operatorSend(a,orgId,adminPhone,'Não consegui agendar '+who+': '+String(rd?.error||'horário indisponível').slice(0,220)+'. Nada foi enviado ao cliente.');return true}
+  await a.from('ai_agent_alerts').update({status:'handled',updated_at:new Date().toISOString()}).eq('id',origin.id);if(origin.id!==alert.id)await markHandled();
   const whenBr=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',dateStyle:'short',timeStyle:'short'}).format(new Date(rd.event.starts_at)),clientMsg='Seu atendimento com a Dra. Suzanne foi agendado para '+whenBr+'. Será realizado online.'+(rd.meeting_url?'\n\nLink de acesso: '+rd.meeting_url:'');
-  await operatorSend(a,orgId,targetPhone,clientMsg);await operatorSend(a,orgId,adminPhone,'Agendado. '+(clientName||'Cliente')+': '+whenBr+'. A confirmação também foi enviada ao cliente.');return true
+  const s=await operatorSend(a,orgId,targetPhone,clientMsg);await audit(origin.id,targetPhone,clientId,'scheduled');await operatorSend(a,orgId,adminPhone,'Agendado: '+who+', '+whenBr+'.'+(s.ok?' A confirmação foi enviada ao cliente.':' Mas não consegui enviar a confirmação ao cliente.'));return true
+ };
+ if(String(alert.reason||'')==='ADMIN_COMMAND_PENDING_SCHEDULE')return await doSchedule(alert);
+ if(/^(n[aã]o responda|n[aã]o envie|n[aã]o fa[cç]a nada|deixa|deixe|ignora|ignore|esquece)\b/i.test(cmd)){await markHandled();await audit(alert.id,targetPhone,clientId,'no_reply');await operatorSend(a,orgId,adminPhone,'Certo. Nada será enviado a '+who+'.');return true}
+ const alertText=String(alert.context||alert.reason||'');
+ const ai=await aiInterpret(a,orgId,cmd,clientName,alertText);
+ const acao=ai?.acao||'enviar_mensagem';
+ if(acao==='nao_responder'){await markHandled();await audit(alert.id,targetPhone,clientId,'no_reply');await operatorSend(a,orgId,adminPhone,'Certo. Nada será enviado a '+who+'.');return true}
+ if(acao==='duvida'){await audit(alert.id,targetPhone,clientId,'unclear');await operatorSend(a,orgId,adminPhone,'Não entendi a ordem para '+who+', então nada foi feito.'+(ai?.pergunta?'\n\n'+ai.pergunta:'')+'\n\nResponda de novo em cima do aviso.');return true}
+ if(acao==='agendar')return await doSchedule(alert);
+ if(acao==='parar_cobranca'){
+  if(!clientId){await audit(alert.id,targetPhone,null,'stop_billing_no_client');await operatorSend(a,orgId,adminPhone,'Não achei o cadastro de '+who+' para parar a cobrança. Nada foi feito.');return true}
+  const now=new Date().toISOString();
+  const r1=await a.from('collection_schedule').update({status:'cancelled',error_message:'Cobrança suspensa por ordem da Dra. Suzanne pelo WhatsApp',updated_at:now}).eq('client_id',clientId).in('status',['pending','pending_approval','ready','awaiting_approval','queued','failed']).select('id');
+  const r2=await a.from('fee_installments').update({collection_paused:true,updated_at:now}).eq('client_id',clientId).in('status',['pending','overdue','partial']).select('id');
+  await markHandled();await audit(alert.id,targetPhone,clientId,'stop_billing',{cancelled:r1.data?.length||0,paused:r2.data?.length||0});
+  await operatorSend(a,orgId,adminPhone,'Feito. Cobrança de '+who+' suspensa: '+(r1.data?.length||0)+' envio(s) cancelado(s) e '+(r2.data?.length||0)+' parcela(s) pausada(s). Nada foi enviado ao cliente.');return true
  }
- let clientMsg=cmd.replace(/^(diga|avise|informe|responda|fale|mande|envie|pe[cç]a)\s+(?:para\s+(?:ela|ele|a cliente|o cliente)\s+)?(?:que\s+)?/i,'').trim();if(!clientMsg)clientMsg=cmd;clientMsg=clientMsg.charAt(0).toUpperCase()+clientMsg.slice(1);
- const sent=await operatorSend(a,orgId,targetPhone,clientMsg);if(!sent.ok){await operatorSend(a,orgId,adminPhone,'Não consegui enviar a orientação ao cliente. O comando foi registrado para conferência.');return true}
- await operatorSend(a,orgId,adminPhone,'Enviado para '+(clientName||'o cliente')+': “'+clientMsg.slice(0,280)+'”');return true
+ // enviar mensagem ao cliente
+ let clientMsg=ai?.mensagem||'';const literal=literalFromOrder(cmd);
+ if(/["“”']([^"“”']{3,})["“”']/.test(cmd))clientMsg=literal;
+ if(!clientMsg||!factsKept(cmd,clientMsg)||clientMsg.length>1500)clientMsg=literal;
+ const sent=await operatorSend(a,orgId,targetPhone,clientMsg);
+ if(!sent.ok){await audit(alert.id,targetPhone,clientId,'send_failed');await operatorSend(a,orgId,adminPhone,'Não consegui enviar a mensagem para '+who+'. Nada saiu. Confira se o WhatsApp está conectado.');return true}
+ await markHandled();await audit(alert.id,targetPhone,clientId,'sent',{client_message:clientMsg.slice(0,1500)});
+ await operatorSend(a,orgId,adminPhone,'Feito. Enviei para '+who+':\n\n“'+clientMsg.slice(0,900)+'”');return true
 }
+// ===================================================================
 // ===================================================================
 
 Deno.serve(async req=>{if(req.method!=='POST')return J({ok:false},405);try{const a=A(),client=await S(a,'zapi_client_token'),got=new URL(req.url).searchParams.get('key')||'';const evolutionBridge=req.headers.get('authorization')==='Bearer '+Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')&&req.headers.get('x-evolution-bridge')==='suzanne-lexoffice';if(!evolutionBridge&&(!client||got!==await H(client)))return J({ok:false},401);const b=await req.json().catch(()=>null);if(!b)return J({ok:true,ignored:'empty'});const activeProvider=(await S(a,'whatsapp_active_provider')).toLowerCase();if((evolutionBridge&&activeProvider!=='evolution')||(!evolutionBridge&&activeProvider!=='zapi'))return J({ok:true,ignored:'provider_disabled'});const type=String(b.type||b.event||'').toLowerCase();if(type.includes('disconnect'))return J({ok:true,event:'disconnected'});if(type.includes('connect'))return J({ok:true,event:'connected'});if(type.includes('status')){const externalId=String(b.messageId||b.zaapId||b.id||b.message?.id||b.ids?.[0]?.id||'').trim(),rawStatus=String(b.status||b.messageStatus||b.message?.status||type).toLowerCase(),now=new Date().toISOString(),isRead=/read|played|lido/.test(rawStatus),isDelivered=isRead||/delivered|received|entregue/.test(rawStatus);if(externalId&&(isDelivered||isRead)){const {data:q}=await a.from('process_notification_queue').select('id,org_id,owner_user_id,process_id,delivered_at,read_at').eq('external_message_id',externalId).limit(1).maybeSingle();const patch:any={};if(isDelivered)patch.delivered_at=now;if(isRead)patch.read_at=now;if(Object.keys(patch).length){await a.from('process_notification_queue').update(patch).eq('external_message_id',externalId);await a.from('whatsapp_messages').update({...patch,status:isRead?'read':'delivered'}).eq('external_message_id',externalId)}if(q?.owner_user_id&&isDelivered&&!q.delivered_at){const when=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',dateStyle:'short',timeStyle:'short'}).format(new Date());await a.from('notifications').insert({org_id:q.org_id,user_id:q.owner_user_id,type:'process',title:'Andamento entregue ao cliente',body:`O cliente recebeu o andamento em ${when}.`,link:q.process_id?`/processos?processo=${q.process_id}`:'/andamentos',read:false})}}return J({ok:true,event:'status',external_message_id:externalId||null,status:rawStatus,tracked:!!externalId&&(isDelivered||isRead)})}const p=D(b.phone||b.sender?.phone||b.from||b.chatId||b.participantPhone||b.senderPhone),t=text(b),ch=choice(b),m=media(b);
@@ -364,27 +445,27 @@ if(!fromMe&&inboundId){
   const {data:seen}=await a.from('whatsapp_messages').select('id').eq('external_message_id',inboundId).limit(1).maybeSingle();
   if(seen?.id)return J({ok:true,ignored:'duplicate_or_own_message',external_message_id:inboundId});
 }
-if(!fromMe&&!m&&(t||ch)){try{if(await handleAdminCommand(a,p,t||ch,inboundId))return J({ok:true,event:'admin_command'})}catch(e){console.error('admin command',e)}}
+if(!fromMe&&!m&&(t||ch)){try{if(await handleAdminCommand(a,p,t||ch,inboundId,String(b.quotedId||b.referenceMessageId||''),String(b.quotedText||'')))return J({ok:true,event:'admin_command'})}catch(e){console.error('admin command',e)}}
 // Um numero administrativo nao pode virar lead, cliente ou disparar o menu do publico.
 if(!fromMe&&await isAdminSender(a,p))return J({ok:true,ignored:'admin_channel_reserved'});
 // "QUERO MEU ACESSO" e resposta com CPF: tratado antes de qualquer outra regra.
 if(!fromMe&&!m&&(t||ch)){try{if(await accessFlow(a,p,t,ch,inboundId,senderName))return J({ok:true,event:'client_app_access'})}catch(e){console.error('accessFlow',e)}}
 // Áudio, imagem e PDF: lê o conteúdo (OpenAI) e segue o atendimento com esse conteúdo.
-if(!fromMe&&m&&(m.type==='audio'||m.type==='image'||m.type==='document')){
+if(!fromMe&&m&&(m.type==='audio'||m.type==='image'||m.type==='document'||m.type==='video')){
   const x=await context(a,p,senderName,true);
   if(!x){if(m.type==='audio')return J({ok:true,ignored:'audio_without_context'})}
   else{
     if(!(await claimInbound(a,x,inboundId,t||`[${m.type}]`,'',m.type)))return J({ok:true,ignored:'duplicate_media'});
     const svc=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;let extracted='',read=false;
     try{const r=await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/whatsapp-media-analyzer`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${svc}`},body:JSON.stringify({org_id:x.v.org_id,url:m.url,type:m.type,mime:m.mimeType,filename:m.fileName})});const d=await r.json().catch(()=>null);read=!!d?.ok;extracted=String(d?.text||'').trim();if(!read)console.warn('media-analyzer',d?.error)}catch(e){console.error('media-analyzer',e)}
-    const label=m.type==='audio'?'🎤 Áudio transcrito':m.type==='image'?'🖼️ Imagem recebida':'📄 Documento recebido';
+    const label=m.type==='audio'?'🎤 Áudio transcrito':m.type==='image'?'🖼️ Imagem recebida':m.type==='video'?'🎬 Vídeo recebido':'📄 Documento recebido';
     const stored=read?`${label}: ${extracted}`:`${label} (não foi possível ler automaticamente)`;
     const body=((t?t+'\n\n':'')+stored).slice(0,4000);
     if(inboundId)await a.from('whatsapp_messages').update({body,media_mime_type:m.mimeType||null,media_file_name:m.fileName||null}).eq('org_id',x.v.org_id).eq('external_message_id',inboundId);
-    if(m.type!=='audio'){try{const {data:owners}=await a.from('profiles').select('id').eq('org_id',x.v.org_id).limit(10);if(owners?.length)await a.from('notifications').insert(owners.map((u:any)=>({org_id:x.v.org_id,user_id:u.id,type:'document',title:m.type==='image'?'Cliente enviou uma imagem':'Cliente enviou um documento',body:stored.slice(0,600),link:'/atendimento',read:false})))}catch{}}
+    if(m.type!=='audio'){try{const {data:owners}=await a.from('profiles').select('id').eq('org_id',x.v.org_id).limit(10);if(owners?.length)await a.from('notifications').insert(owners.map((u:any)=>({org_id:x.v.org_id,user_id:u.id,type:'document',title:m.type==='image'?'Cliente enviou uma imagem':m.type==='video'?'Cliente enviou um vídeo':'Cliente enviou um documento',body:stored.slice(0,600),link:'/atendimento',read:false})))}catch{}}
     if(m.type==='audio'&&!read){await gateSend(x.v.org_id,x.v.id,p,'Não consegui ouvir seu áudio agora. Pode me escrever a mensagem, por gentileza?',`audio_fail:${inboundId}`);return J({ok:true,event:'audio_unreadable'})}
     if(m.type==='audio'&&read&&isAccessRequest(extracted)){try{if(await accessFlow(a,p,extracted,'','',senderName))return J({ok:true,event:'client_app_access_audio'})}catch(e){console.error('accessFlow audio',e)}}
-    const agentText=m.type==='audio'?extracted:`[O cliente enviou ${m.type==='image'?'uma imagem':'um documento'}${t?` com a legenda: "${t}"`:''}. Conteúdo lido automaticamente: ${read?extracted:'não foi possível ler'}. Confirme o recebimento de forma breve e acolhedora. Se for comprovante de pagamento, agradeça e diga que a Dra. Suzanne vai conferir e dar baixa. Não repita dados pessoais do documento na resposta e não faça perguntas desnecessárias.]`;
+    const agentText=m.type==='audio'?extracted:`[O cliente enviou ${m.type==='image'?'uma imagem':m.type==='video'?'um vídeo':'um documento'}${t?` com a legenda: "${t}"`:''}. Conteúdo lido automaticamente: ${read?extracted:'não foi possível ler'}. Confirme o recebimento de forma breve e acolhedora. Se for comprovante de pagamento, agradeça e diga que a Dra. Suzanne vai conferir e dar baixa. Não repita dados pessoais do documento na resposta e não faça perguntas desnecessárias.]`;
     const handled=await bot(a,p,'',agentText,inboundId,true,senderName);
     return J({ok:true,event:'media',kind:m.type,read,handled});
   }
@@ -395,7 +476,7 @@ if(fromMe){
     const now=new Date().toISOString();
     await a.from('whatsapp_conversations').update({bot_ativo:false,conversation_owner:'HUMAN',last_human_outbound_at:now,human_takeover_at:now,human_takeover_reason:'manual_whatsapp_cellphone',owner_agent_key:null}).eq('id',x.v.id);
     const {data:settings}=await a.from('whatsapp_settings').select('human_takeover_auto_resume_minutes').eq('org_id',x.v.org_id).maybeSingle();
-    const resumeMinutes=Math.max(1,Number(settings?.human_takeover_auto_resume_minutes||20));
+    const resumeMinutes=x.v.org_id===DEFAULT_ORG?20:Math.max(1,Number(settings?.human_takeover_auto_resume_minutes||20));
     const resumeAt=new Date(Date.now()+resumeMinutes*60000).toISOString();
     const controlPatch={ai_enabled:false,human_takeover:true,human_takeover_at:now,last_human_message_at:now,resume_after_minutes:resumeMinutes,resume_at:resumeAt,updated_at:now};
     const {data:existing}=await a.from('ai_conversation_controls').select('id').eq('org_id',x.v.org_id).eq('contact_key',p).limit(1).maybeSingle();
