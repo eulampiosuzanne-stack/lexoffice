@@ -125,7 +125,7 @@ Deno.serve(async req=>{
   const input=String(body.input||'');
   if(!input.trim())return json({error:'input_required'},400);
 
-  const freeOnly=body.free_only!==false;
+  const freeOnly=body.free_only===true;
   const valid=['groq','gemini','openrouter','ollama','openai'];
   let order:string[]=[];
   if(provider==='auto')order=freeOnly?['openrouter','groq','gemini','ollama']:['groq','gemini','openrouter','ollama','openai'];
