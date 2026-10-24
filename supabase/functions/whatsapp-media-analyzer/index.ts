@@ -34,9 +34,24 @@ Deno.serve(async req=>{try{
  const gkey=(await vault(org,'gemini_api'))||(Deno.env.get('GEMINI_API_KEY')||'').trim();
  const okey=(await vault(org,'openai_api'))||(Deno.env.get('OPENAI_API_KEY')||'').trim();
  if(!gkey&&!okey)return J({ok:false,error:"ai_key_missing"},503);
- const fr=await fetch(url);if(!fr.ok)return J({ok:false,error:"media_download_"+fr.status},400);
+ // Never let a WhatsApp media URL reach private networks or follow redirects to them.
+ let media:URL;
+ try{media=new URL(url)}catch{return J({ok:false,error:"invalid_media_url"},400)}
+ const host=media.hostname.toLowerCase().replace(/\\.$/,"");
+ const forbidden=/^(localhost|.*\\.localhost|.*\\.local|.*\\.internal|metadata\\.google\\.internal)$/i.test(host)
+  || /^(127\\.|10\\.|0\\.|169\\.254\\.|192\\.168\\.|172\\.(1[6-9]|2[0-9]|3[01])\\.|100\\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\\.)/.test(host)
+  || host==="::1" || host.startsWith("[") || /^\\d+$/.test(host);
+ if(media.protocol!=="https:"||media.username||media.password||forbidden)return J({ok:false,error:"media_url_not_allowed"},400);
+ const fr=await fetch(media.toString(),{redirect:"error",signal:AbortSignal.timeout(20000)});if(!fr.ok)return J({ok:false,error:"media_download_"+fr.status},400);
+ const maxBytes=18*1024*1024;
+ const declaredSize=Number(fr.headers.get("content-length")||0);
+ if(declaredSize>maxBytes)return J({ok:false,error:"media_too_large"},413);
  let mime=(fr.headers.get("content-type")||String(x.mime||"")||"application/octet-stream").split(";")[0].trim();
- const buf=await fr.arrayBuffer();if(buf.byteLength>18*1024*1024)return J({ok:false,error:"media_too_large"},413);
+ const reader=fr.body?.getReader();if(!reader)return J({ok:false,error:"empty_media"},400);
+ const chunks:Uint8Array[]=[];let total=0;
+ try{while(true){const {done,value}=await reader.read();if(done)break;total+=value.byteLength;if(total>maxBytes){await reader.cancel();return J({ok:false,error:"media_too_large"},413)}chunks.push(value)}}finally{reader.releaseLock()}
+ const bytes=new Uint8Array(total);let pos=0;for(const chunk of chunks){bytes.set(chunk,pos);pos+=chunk.byteLength}
+ const buf=bytes.buffer;
  const isAudio=type==="audio";
  const isPdf=!isAudio&&type==="document"&&(mime==="application/pdf"||/\.pdf$/i.test(String(x.filename||"")));
  const isImage=!isAudio&&(type==="image"||mime.startsWith("image/"));
