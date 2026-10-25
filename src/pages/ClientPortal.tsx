@@ -31,6 +31,64 @@ type Tab =
   | "onboarding"
   | "urgent";
 
+function ProcessUpdateReport({ message, processes, clientName }: { message: any; processes: any[]; clientName?: string }) {
+  const process = processes.find((item: any) => item.id === message?.metadata?.process_id) || {};
+  const lines = String(message?.body || "").split("\n").map((line) => line.trim()).filter(Boolean);
+  const events = lines.filter((line) => line.startsWith("•")).map((line) => line.replace(/^•\s*/, "")).slice(0, 5);
+  const reportDate = date(message?.sent_at);
+  const nextDate = new Date(message?.metadata?.next_update_at || message?.sent_at || Date.now());
+  if (!message?.metadata?.next_update_at) nextDate.setDate(nextDate.getDate() + 7);
+  const processNumber = process.cnj_number || process.internal_number || "Acompanhamento interno";
+  const actionType = process.subject || process.class_name || process.area || "Acompanhamento processual";
+  const practical = events[0] || "O processo continua em acompanhamento pelo escritório.";
+  return (
+    <article className="cp-process-report">
+      <div className="cp-report-hero">
+        <div className="cp-report-mark" aria-hidden="true">SF</div>
+        <div><small>RELATÓRIO DE ANDAMENTO</small><h3>Atualização do seu processo</h3><p>Informação clara, segura e sem juridiquês.</p></div>
+      </div>
+      <dl className="cp-report-identification">
+        <div><dt>Cliente</dt><dd>{clientName || "Cliente"}</dd></div>
+        <div><dt>Processo</dt><dd>{processNumber}</dd></div>
+        <div><dt>Tipo de ação</dt><dd>{actionType}</dd></div>
+        <div><dt>Data do relatório</dt><dd>{reportDate}</dd></div>
+      </dl>
+      <section className="cp-report-section cp-report-summary">
+        <span className="cp-report-icon" aria-hidden="true">◈</span>
+        <div><small>01 · SITUAÇÃO ATUAL</small><h4>Seu processo está sendo acompanhado</h4><p>O escritório identificou uma nova movimentação, já realizou a análise inicial e está cuidando das providências necessárias.</p></div>
+      </section>
+      <section className="cp-report-section">
+        <span className="cp-report-icon" aria-hidden="true">✓</span>
+        <div><small>02 · ETAPAS REALIZADAS</small><h4>O que aconteceu</h4>
+          <ol className="cp-report-timeline">
+            {(events.length ? events : ["Movimentação recebida e conferida pelo escritório."]).map((event, index) => <li key={index}><i aria-hidden="true"/><span>{event}</span></li>)}
+          </ol>
+        </div>
+      </section>
+      <section className="cp-report-section cp-report-meaning">
+        <span className="cp-report-icon" aria-hidden="true">→</span>
+        <div><small>03 · O QUE ISSO SIGNIFICA</small><h4>Tradução prática</h4><p>{practical}</p></div>
+      </section>
+      <section className="cp-report-section">
+        <span className="cp-report-icon" aria-hidden="true">◆</span>
+        <div><small>04 · PRÓXIMOS PASSOS</small><h4>O que vem agora</h4>
+          <div className="cp-report-next">
+            <p><b>Ação do escritório</b><span>Acompanhar a conclusão desta etapa e adotar a providência adequada.</span></p>
+            <p><b>Ação do cliente</b><span>Você não precisa fazer nada por enquanto.</span></p>
+            <p><b>Próxima atualização</b><span>Nova conferência prevista até {nextDate.toLocaleDateString("pt-BR")}.</span></p>
+          </div>
+        </div>
+      </section>
+      <footer className="cp-report-footer">
+        <div className="cp-report-line" aria-hidden="true"/>
+        <p>Se precisarmos de alguma informação ou documento, entraremos em contato pelos canais oficiais.</p>
+        <strong>Equipe Suzanne Figueiredo</strong>
+        <span>Advocacia e Soluções Jurídicas</span>
+      </footer>
+    </article>
+  );
+}
+
 export default function ClientPortal() {
   const [session, setSession] = useState<any>(undefined),
     [cpf, setCpf] = useState(""),
@@ -704,19 +762,23 @@ export default function ClientPortal() {
               <h3>Recados do Escritório</h3>
               <p>Informações importantes sobre seu atendimento.</p>
               {messages.length ? (
-                messages.map((m: any) => (
-                  <article
-                    className={
-                      "cp-notice " + String(m.category || "").toLowerCase()
-                    }
-                    key={m.id}
-                  >
-                    <small>{m.category || "INFORMATIVO"}</small>
-                    <b>{m.title}</b>
-                    <p>{m.body}</p>
-                    <time>{new Date(m.sent_at).toLocaleString("pt-BR")}</time>
-                  </article>
-                ))
+                messages.map((m: any) =>
+                  ["movement_digest", "movement_important"].includes(String(m?.metadata?.kind || "")) ? (
+                    <ProcessUpdateReport key={m.id} message={m} processes={processes} clientName={ctx?.client_name} />
+                  ) : (
+                    <article
+                      className={
+                        "cp-notice " + String(m.category || "").toLowerCase()
+                      }
+                      key={m.id}
+                    >
+                      <small>{m.category || "INFORMATIVO"}</small>
+                      <b>{m.title}</b>
+                      <p>{m.body}</p>
+                      <time>{new Date(m.sent_at).toLocaleString("pt-BR")}</time>
+                    </article>
+                  ),
+                )
               ) : (
                 <p>Nenhum recado novo.</p>
               )}
