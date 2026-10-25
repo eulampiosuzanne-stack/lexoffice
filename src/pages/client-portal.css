@@ -70,3 +70,35 @@
 .cp-shell .cp-focus-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .cp-shell .cp-focus-grid button{min-height:72px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:12px;border:1px solid var(--lx-accent);border-radius:var(--lx-radius-md);background:var(--lx-canvas);color:var(--lx-text);text-align:left}
 .cp-shell .cp-focus-grid button b{font-size:var(--lx-font-sm);color:var(--lx-accent)}.cp-shell .cp-focus-grid button span{font-size:var(--lx-font-xs);line-height:1.35;color:var(--lx-text)}
+
+
+/* Relatório visual de andamento — leitura confortável no celular */
+.cp-shell .cp-process-report{position:relative;overflow:hidden;margin:18px 0 24px;border:1px solid color-mix(in srgb,var(--lx-accent) 72%,transparent);border-radius:22px;background:linear-gradient(160deg,color-mix(in srgb,var(--lx-surface) 95%,var(--lx-accent) 5%),var(--lx-canvas));box-shadow:0 18px 50px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.06)}
+.cp-shell .cp-process-report::before{content:"";position:absolute;inset:-90px -80px auto auto;width:210px;height:210px;border:1px solid color-mix(in srgb,var(--lx-accent) 22%,transparent);border-radius:50%;box-shadow:0 0 0 26px color-mix(in srgb,var(--lx-accent) 5%,transparent),0 0 0 52px color-mix(in srgb,var(--lx-accent) 3%,transparent);pointer-events:none}
+.cp-shell .cp-report-hero{position:relative;display:flex;gap:15px;align-items:center;padding:24px 20px 20px;border-bottom:1px solid color-mix(in srgb,var(--lx-accent) 28%,transparent);background:linear-gradient(120deg,color-mix(in srgb,var(--lx-accent) 12%,transparent),transparent 60%)}
+.cp-shell .cp-report-mark{display:grid;place-items:center;flex:0 0 54px;height:54px;border:1px solid var(--lx-accent);border-radius:50%;color:var(--lx-accent);font:700 20px Georgia,serif;box-shadow:0 0 22px color-mix(in srgb,var(--lx-accent) 28%,transparent)}
+.cp-shell .cp-report-hero small,.cp-shell .cp-report-section small{display:block;margin-bottom:6px;color:var(--lx-accent);font-size:10px;font-weight:800;letter-spacing:.14em}
+.cp-shell .cp-report-hero h3{margin:0 0 5px!important;color:var(--lx-text)!important;font:600 22px/1.15 Georgia,serif!important}
+.cp-shell .cp-report-hero p{margin:0;color:var(--lx-text);font-size:13px;opacity:.75}
+.cp-shell .cp-report-identification{display:grid;grid-template-columns:1fr 1fr;gap:1px;margin:0;background:color-mix(in srgb,var(--lx-accent) 18%,transparent)}
+.cp-shell .cp-report-identification div{min-width:0;padding:14px 16px;background:var(--lx-canvas)}
+.cp-shell .cp-report-identification dt{margin-bottom:5px;color:var(--lx-accent);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.cp-shell .cp-report-identification dd{margin:0;color:var(--lx-text);font-size:13px;font-weight:650;line-height:1.4;overflow-wrap:anywhere}
+.cp-shell .cp-report-section{display:grid;grid-template-columns:38px 1fr;gap:12px;padding:22px 18px;border-top:1px solid color-mix(in srgb,var(--lx-accent) 16%,transparent)}
+.cp-shell .cp-report-section:first-of-type{border-top:0}
+.cp-shell .cp-report-icon{display:grid;place-items:center;width:34px;height:34px;border:1px solid color-mix(in srgb,var(--lx-accent) 65%,transparent);border-radius:11px;background:color-mix(in srgb,var(--lx-accent) 10%,transparent);color:var(--lx-accent);font-weight:900}
+.cp-shell .cp-report-section h4{margin:0 0 10px!important;color:var(--lx-text)!important;font:600 17px/1.25 Georgia,serif!important}
+.cp-shell .cp-report-section p{margin:0;color:var(--lx-text);font-size:14px;line-height:1.7}
+.cp-shell .cp-report-summary,.cp-shell .cp-report-meaning{background:color-mix(in srgb,var(--lx-accent) 5%,transparent)}
+.cp-shell .cp-report-timeline{position:relative;display:grid;gap:14px;margin:14px 0 0;padding:0;list-style:none}
+.cp-shell .cp-report-timeline::before{content:"";position:absolute;left:5px;top:7px;bottom:7px;width:1px;background:color-mix(in srgb,var(--lx-accent) 38%,transparent)}
+.cp-shell .cp-report-timeline li{position:relative;display:grid;grid-template-columns:12px 1fr;gap:11px;color:var(--lx-text);font-size:13px;line-height:1.55}
+.cp-shell .cp-report-timeline i{z-index:1;width:11px;height:11px;margin-top:4px;border:2px solid var(--lx-canvas);border-radius:50%;background:var(--lx-accent);box-shadow:0 0 0 1px var(--lx-accent)}
+.cp-shell .cp-report-next{display:grid;gap:10px}
+.cp-shell .cp-report-next p{display:grid;gap:4px;padding:12px 13px;border:1px solid color-mix(in srgb,var(--lx-accent) 22%,transparent);border-radius:12px;background:rgba(255,255,255,.025)}
+.cp-shell .cp-report-next b{color:var(--lx-accent);font-size:11px;letter-spacing:.05em;text-transform:uppercase}.cp-shell .cp-report-next span{font-size:13px;line-height:1.5}
+.cp-shell .cp-report-footer{padding:22px 20px 24px;text-align:center;background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--lx-accent) 7%,transparent))}
+.cp-shell .cp-report-line{width:54px;height:2px;margin:0 auto 16px;background:var(--lx-accent);box-shadow:0 0 12px color-mix(in srgb,var(--lx-accent) 55%,transparent)}
+.cp-shell .cp-report-footer p{margin:0 auto 14px;max-width:430px;color:var(--lx-text);font-size:12px;line-height:1.6;opacity:.78}
+.cp-shell .cp-report-footer strong,.cp-shell .cp-report-footer span{display:block;color:var(--lx-text)}.cp-shell .cp-report-footer strong{font:600 16px Georgia,serif}.cp-shell .cp-report-footer span{margin-top:3px;color:var(--lx-accent);font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+@media(max-width:420px){.cp-shell .cp-report-identification{grid-template-columns:1fr}.cp-shell .cp-report-hero{padding:20px 16px}.cp-shell .cp-report-section{padding:20px 15px}.cp-shell .cp-report-hero h3{font-size:20px!important}}
