@@ -26,6 +26,7 @@ import {
   Trash2,
   MoreHorizontal,
   FileUp,
+  Copy,
   SlidersHorizontal,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
@@ -820,6 +821,24 @@ function sendAppInvite() {
         : `${ok} documento(s) gerado(s) e salvo(s) na ficha do cliente e na Biblioteca de Documentos.`,
     );
   }
+  async function shareClientDoc(d: Doc, send = false) {
+    if (!supabase || !selected) return;
+    setDocNotice("");
+    const { data, error } = await supabase.storage.from("lexoffice-documents").createSignedUrl(d.file_path, 7 * 24 * 60 * 60);
+    if (error || !data?.signedUrl) return setDocNotice(error?.message || "Não foi possível gerar o link do documento.");
+    const link = data.signedUrl;
+    if (!send) {
+      try { await navigator.clipboard.writeText(link); } catch { window.prompt("Copie o link do documento:", link); }
+      return setDocNotice("Link seguro copiado. Ele é válido por 7 dias.");
+    }
+    const phone = String(selected.whatsapp || selected.phone || "").replace(/\D/g, "");
+    if (!phone) return setDocNotice("Cliente sem WhatsApp cadastrado. Use ‘Copiar link’ para enviar por outro canal.");
+    const number = phone.startsWith("55") ? phone : `55${phone}`;
+    const message = `Olá, ${selected.name.split(/\s+/)[0]}. O escritório disponibilizou o documento “${d.name}”. O arquivo segue anexado e também pode ser acessado por este link seguro, válido por 7 dias:\n\n${link}`;
+    const sent = await supabase.functions.invoke("whatsapp-operator-send", { body: { message, document_ids: [d.id], targets: [{ phone: number, name: selected.name }], agent_key: "client_schedule_relationship", next_agent_key: "client_schedule_relationship", keep_ai_active: true, mirror_to_app: false } });
+    if (sent.error || !sent.data?.ok || Number(sent.data?.failed || 0) > 0) return setDocNotice(sent.data?.results?.[0]?.error || sent.data?.error || sent.error?.message || "O WhatsApp não confirmou o envio.");
+    setDocNotice(`Documento enviado para ${selected.name} pelo WhatsApp.`);
+  }
   async function openDoc(d: Doc, download = false) {
     if (!supabase) return;
     const { data, error } = await supabase.storage
@@ -1420,6 +1439,8 @@ function sendAppInvite() {
                                   >
                                     <Download size={15} /> Baixar
                                   </button>
+                                  <button className="secondary" onClick={() => shareClientDoc(d, false)}><Copy size={15} /> Copiar link</button>
+                                  <button className="secondary" onClick={() => shareClientDoc(d, true)}><Send size={15} /> Enviar</button>
                                 </div>
                               </td>
                             </tr>
