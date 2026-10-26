@@ -786,42 +786,38 @@ function sendAppInvite() {
     if (!supabase || !selected || !checked.length) return;
     setGenerating(true);
     setDocNotice("");
-    let ok = 0;
+    let generated = 0, sentCount = 0;
     const failures: string[] = [];
     for (const id of checked) {
       const t = templates.find((x) => x.id === id);
       if (!t) continue;
       try {
-        const { data, error } = await supabase.functions.invoke(
-          "document-generate",
-          {
-            body: {
-              template_id: t.id,
-              client_id: selected.id,
-              process_id: processId || null,
-              title: t.name,
-              include_logo: true,
-              signature_requested: t.signature_enabled !== false,
-            },
-          },
-        );
+        const { data, error } = await supabase.functions.invoke("document-generate", { body: { template_id: t.id, client_id: selected.id, process_id: processId || null, title: t.name, include_logo: true, signature_requested: t.signature_enabled !== false } });
         if (error) throw error;
         if ((data as any)?.error) throw new Error((data as any).error);
-        ok++;
+        generated++;
+        const phone = String(selected.whatsapp || selected.phone || "").replace(/\D/g, "");
+        if (!phone) throw new Error("Documento gerado, mas o cliente não possui WhatsApp cadastrado.");
+        const path = (data as any)?.document?.storage_path;
+        if (!path) throw new Error("Documento gerado, mas o caminho do arquivo não foi retornado.");
+        const signed = await supabase.storage.from("lexoffice-documents").createSignedUrl(path, 7 * 24 * 60 * 60);
+        if (signed.error || !signed.data?.signedUrl) throw new Error("Documento gerado, mas o link seguro não pôde ser criado.");
+        const number = phone.startsWith("55") ? phone : `55${phone}`;
+        const first = selected.name.split(/\s+/)[0];
+        const message = `Olá, ${first}. O escritório disponibilizou o documento “${t.name}”. O arquivo segue anexado e o link seguro abaixo fica disponível por 7 dias:\n\n${signed.data.signedUrl}\n\nSe tiver dificuldade para abrir, responda a esta mensagem.`;
+        const sent = await supabase.functions.invoke("whatsapp-operator-send", { body: { message, document_ids: [(data as any).document_record_id].filter(Boolean), targets: [{ phone: number, name: selected.name }], agent_key: "client_schedule_relationship", next_agent_key: "client_schedule_relationship", keep_ai_active: true, mirror_to_app: false } });
+        if (sent.error || !sent.data?.ok || Number(sent.data?.failed || 0) > 0) throw new Error("Documento gerado, mas o agente não confirmou o envio: " + (sent.data?.results?.[0]?.error || sent.data?.error || sent.error?.message || "falha no provedor"));
+        sentCount++;
       } catch (e: any) {
         failures.push(`${t.name}: ${e?.message || "falha"}`);
       }
     }
     await loadClientDocuments(selected.id);
     setGenerating(false);
-    if (ok) setChecked([]);
-    setDocNotice(
-      failures.length
-        ? `${ok} documento(s) gerado(s). ${failures.length} não puderam ser gerados.`
-        : `${ok} documento(s) gerado(s) e salvo(s) na ficha do cliente e na Biblioteca de Documentos.`,
-    );
+    if (generated) setChecked([]);
+    setDocNotice(failures.length ? `${generated} documento(s) gerado(s), ${sentCount} enviado(s) pelo agente. ${failures.length} ocorrência(s) exigem conferência.` : `${generated} documento(s) gerado(s), salvo(s) e enviado(s) pelo agente no WhatsApp com arquivo e link seguro.`);
   }
-  async function shareClientDoc(d: Doc, send = false) {
+    async function shareClientDoc(d: Doc, send = false) {
     if (!supabase || !selected) return;
     setDocNotice("");
     const { data, error } = await supabase.storage.from("lexoffice-documents").createSignedUrl(d.file_path, 7 * 24 * 60 * 60);
