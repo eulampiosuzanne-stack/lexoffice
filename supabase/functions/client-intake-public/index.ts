@@ -1,7 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-const origins=new Set(["https://lexoffice-ashy.vercel.app","http://localhost:5173","http://localhost:4173"]);
-function headers(req:Request){const o=req.headers.get("origin")||"";return{"Access-Control-Allow-Origin":origins.has(o)?o:"https://lexoffice-ashy.vercel.app","Vary":"Origin","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS","Content-Type":"application/json"}}
+const origins=new Set(["https://lexoffice.univittagroup.com.br","https://lexoffice-ashy.vercel.app","http://localhost:5173","http://localhost:4173"]);
+const canonicalOrigin="https://lexoffice.univittagroup.com.br";
+function headers(req:Request){const o=req.headers.get("origin")||"";return{"Access-Control-Allow-Origin":origins.has(o)?o:canonicalOrigin,"Vary":"Origin","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS","Content-Type":"application/json"}}
 function admin(){const url=Deno.env.get("SUPABASE_URL")!;let key=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";try{key=JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS")||"{}").default||key}catch{}return createClient(url,key,{auth:{persistSession:false}})}
 async function sha(v:string){const d=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(v));return Array.from(new Uint8Array(d)).map(b=>b.toString(16).padStart(2,"0")).join("")}
 const t=(v:unknown,n=255)=>String(v??"").trim().slice(0,n);const nul=(v:unknown,n=255)=>{const s=t(v,n);return s||null};const ms=new Set(["single","married","divorced","widowed","separated"]);const date=(v:unknown)=>{const s=t(v,10);return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:null};
