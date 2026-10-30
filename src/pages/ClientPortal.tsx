@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import "./client-portal.css";
 import InstallAppBanner from "../components/InstallAppBanner";
+import { onboardingCards } from "../lib/onboardingCards";
 import {
   FileText,
   Mail,
@@ -1105,17 +1106,15 @@ export default function ClientPortal() {
             <Header n="08" title="MEU ONBOARDING" />
             <section className="cp-card">
               <h3>Boas-vindas ao escritório</h3>
-              <p>{onboarding.content?.welcome_message}</p>
-              <h4>Quem cuidará do seu atendimento</h4>
-              <p>{onboarding.content?.team_message}</p>
-              <h4>Horários e regras de atendimento</h4>
-              <p>{onboarding.content?.service_rules}</p>
-              <h4>Como acompanhar seu caso</h4>
-              <p>{onboarding.content?.process_tracking}</p>
-              <h4>Próximos passos</h4>
-              <p>{onboarding.content?.next_steps}</p>
-              <h4>Primeira reunião</h4>
-              <p>{onboarding.content?.meeting_notes}</p>
+              <p>Consulte aqui os mesmos cards enviados pelo WhatsApp.</p>
+              <div className="cp-onboarding-cards">
+                {onboardingCards.map((card) => (
+                  <figure key={card.step} className="cp-onboarding-card">
+                    <figcaption>{card.step}/8 — {card.title}</figcaption>
+                    <img src={card.image} alt={`Card ${card.step} de 8: ${card.title}`} loading="lazy" />
+                  </figure>
+                ))}
+              </div>
               <div className="cp-person">
                 <b>Advogada responsável</b>
                 <small>

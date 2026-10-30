@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, Send, Sparkles } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { onboardingCards } from "../lib/onboardingCards";
 
 const defaults = {
   welcome_message:
@@ -46,7 +47,7 @@ export default function ClientOnboardingPanel({ client }: { client: any }) {
     const payload = {
       org_id: orgId,
       client_id: client.id,
-      status: send ? "sent" : row?.status || "draft",
+      status: send ? "draft" : row?.status || "draft",
       content: form,
       sent_at: send ? new Date().toISOString() : row?.sent_at || null,
       updated_at: new Date().toISOString(),
@@ -85,43 +86,69 @@ export default function ClientOnboardingPanel({ client }: { client: any }) {
       );
       return;
     }
-    const url = "https://lexoffice.univittagroup.com.br/cliente";
-    const message = `Olá, ${client.name}! ✨\n\nSeu onboarding com o escritório foi iniciado. Há uma nova mensagem de boas-vindas, apresentação da equipe, regras de atendimento e próximos passos no aplicativo.\n\nAcesse: ${url}\n\nApós a leitura, confirme “Li e estou ciente”.`;
-    const { data, error } = await supabase.functions.invoke(
-      "whatsapp-operator-send",
-      {
-        body: {
-          message,
-          targets: [
-            {
-              phone: phone.startsWith("55") ? phone : `55${phone}`,
-              name: client.name,
-            },
-          ],
-          agent_key: "client_schedule_relationship",
-          keep_ai_active: true,
+    const number = phone.startsWith("55") ? phone : `55${phone}`;
+    const delivered: Array<{ step: number; title: string; sent_at: string }> = [];
+    let failure = "";
+
+    for (const card of onboardingCards) {
+      const image = new URL(card.image, window.location.origin).toString();
+      const caption = `*${card.step}/8 — ${card.title}*`;
+      const { data, error } = await supabase.functions.invoke(
+        "whatsapp-operator-send",
+        {
+          body: {
+            message: caption,
+            image,
+            caption,
+            targets: [{ phone: number, name: client.name }],
+            agent_key: "client_schedule_relationship",
+            next_agent_key: "client_schedule_relationship",
+            keep_ai_active: true,
+            mirror_to_app: false,
+          },
         },
-      },
-    );
-    setBusy(false);
-    if (error || !data?.ok) {
-      let reason = data?.results?.find((r: any) => !r.ok)?.error || data?.error || "";
-      if (!reason && error) {
-        try {
-          const body = await (error as any).context?.json?.();
-          reason = body?.error || "";
-        } catch {
-          /* sem detalhe adicional */
-        }
-        reason = reason || (error as any).message || "";
+      );
+      if (error || !data?.ok || Number(data?.failed || 0) > 0) {
+        failure =
+          data?.results?.find((item: any) => !item.ok)?.error ||
+          data?.error ||
+          error?.message ||
+          `falha no card ${card.step}`;
+        break;
       }
+      delivered.push({
+        step: card.step,
+        title: card.title,
+        sent_at: new Date().toISOString(),
+      });
+    }
+
+    const finalStatus = failure ? "draft" : "sent";
+    const finalContent = {
+      ...form,
+      card_delivery: delivered,
+      card_delivery_error: failure || null,
+    };
+    const finalUpdate = await supabase
+      .from("client_onboarding")
+      .update({
+        status: finalStatus,
+        content: finalContent,
+        sent_at: failure ? null : new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", result.data.id)
+      .select()
+      .single();
+    if (finalUpdate.data) setRow(finalUpdate.data);
+    setBusy(false);
+    if (failure) {
       setNotice(
-        "Onboarding salvo, mas o WhatsApp não foi enviado" +
-          (reason ? `. Motivo: ${reason}` : "."),
+        `${delivered.length} de 8 cards enviados. O onboarding não foi concluído. Motivo: ${failure}`,
       );
       return;
     }
-    setNotice("Onboarding iniciado e link enviado ao cliente.");
+    setNotice("Os 8 cards do onboarding foram enviados separadamente pelo WhatsApp.");
   }
 
   const fields: [string, string, number][] = [
@@ -141,8 +168,8 @@ export default function ClientOnboardingPanel({ client }: { client: any }) {
           </span>
           <h3>Entrada do cliente no escritório</h3>
           <p>
-            Você inicia o processo. O cliente recebe o link, lê as orientações e
-            confirma a ciência no aplicativo.
+            Você inicia o processo. O cliente recebe os oito cards, um a um,
+            diretamente pelo WhatsApp.
           </p>
         </div>
         <span className="status-dot">
@@ -151,7 +178,9 @@ export default function ClientOnboardingPanel({ client }: { client: any }) {
             : row?.status === "sent"
               ? "ENVIADO"
               : row
-                ? "RASCUNHO"
+                ? row?.content?.card_delivery_error
+                  ? "ENVIO INCOMPLETO"
+                  : "RASCUNHO"
                 : "NÃO INICIADO"}
         </span>
       </div>
