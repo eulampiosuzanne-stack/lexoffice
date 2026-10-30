@@ -132,6 +132,13 @@ new MutationObserver(decorateDashboardCards).observe(document.documentElement, {
 decorateDashboardCards();
 if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-        navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+        navigator.serviceWorker.register("/sw.js?v=9").then((registration) => {
+            void registration.update();
+        }).catch(() => undefined);
+    });
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (sessionStorage.getItem("lexoffice-sw-v9-reloaded")) return;
+        sessionStorage.setItem("lexoffice-sw-v9-reloaded", "1");
+        window.location.reload();
     });
 }
