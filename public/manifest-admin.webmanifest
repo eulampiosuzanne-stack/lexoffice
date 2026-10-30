@@ -1,0 +1,16 @@
+{
+  "name": "LEXOFFICE | Painel da Advogada",
+  "short_name": "LEXOFFICE",
+  "description": "Painel jurídico interno da Dra. Suzanne Figueiredo",
+  "id": "/?app=advogada",
+  "start_url": "/?app=advogada",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#05050A",
+  "theme_color": "#05050A",
+  "orientation": "any",
+  "icons": [
+    {"src":"/lexoffice-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"},
+    {"src":"/lexoffice-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"maskable"}
+  ]
+}
