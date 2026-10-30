@@ -28,6 +28,7 @@ import {
   FileUp,
   Copy,
   SlidersHorizontal,
+  Sparkles,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { lookupCpfProviders } from "../lib/cpfLookup";
@@ -130,6 +131,8 @@ function validCpf(value: any) {
 export default function Clients() {
  const {clientId}=useParams<{clientId:string}>();const navigate=useNavigate();
  const [clientSection,setClientSection]=useState('resumo');
+ // Situação do onboarding do cliente aberto (mostrada no botão do topo do card).
+ const [onbStatus,setOnbStatus]=useState<string|null|undefined>(undefined);
  const [statusFilter,setStatusFilter]=useState('');
  const [tierFilter,setTierFilter]=useState('');
  const [contactFilter,setContactFilter]=useState(false);
@@ -159,6 +162,7 @@ export default function Clients() {
     [generating, setGenerating] = useState(false),
     [docNotice, setDocNotice] = useState("");
   const [cpfLookup, setCpfLookup] = useState({ loading: false, notice: "" });
+  useEffect(()=>{let alive=true;setOnbStatus(undefined);const id=selected?.id;if(!id||!supabase)return;(async()=>{const {data}=await supabase.from('client_onboarding').select('status').eq('client_id',id).maybeSingle();if(alive)setOnbStatus(data?.status??null);})();return()=>{alive=false}},[selected?.id,clientSection]);
   const [tierBusy, setTierBusy] = useState(false);
   const [messageTarget, setMessageTarget] = useState<Client | null>(null),
     [messageText, setMessageText] = useState(""),
@@ -252,7 +256,7 @@ export default function Clients() {
   function open(c: Client) {
     if(clientId!==c.id){navigate(`/clientes/${c.id}`);return;}
     const requestedSection=new URLSearchParams(window.location.search).get('secao');
-    const initialSection=requestedSection==='acesso'||requestedSection==='documentos'?requestedSection:'resumo';
+    const initialSection=requestedSection==='acesso'||requestedSection==='documentos'?requestedSection:requestedSection==='onboarding'?'atendimento':'resumo';
     setClientSection(initialSection);
     setTab(initialSection==='documentos'?'documentos':'dados');
     const v = { ...c, address: c.address || {} };
@@ -1158,7 +1162,7 @@ function sendAppInvite() {
                   )}
                 </p>
               </div>
-              {selected&&!editing&&<div className="clients-heading-actions"><button className="secondary" onClick={()=>messageClient(selected)}><MessageCircle size={16}/>Mensagem</button><button className="primary" onClick={beginEdit}>Editar cadastro</button></div>}
+              {selected&&!editing&&<div className="clients-heading-actions"><button className="secondary" title="Abrir o onboarding deste cliente" onClick={()=>{setClientSection('atendimento');setTab('dados')}}><Sparkles size={16}/>Onboarding{onbStatus!==undefined&&<small style={{marginLeft:6,opacity:.8}}>· {onbStatus==='acknowledged'?'concluído':onbStatus==='sent'?'enviado':onbStatus?'rascunho':'não iniciado'}</small>}</button><button className="secondary" onClick={()=>messageClient(selected)}><MessageCircle size={16}/>Mensagem</button><button className="primary" onClick={beginEdit}>Editar cadastro</button></div>}
               <button
                 className="icon-btn ux-modal-close"
                 aria-label="Fechar ficha"
@@ -1167,7 +1171,7 @@ function sendAppInvite() {
               >
                 <X size={20} />
               </button>
-            </div><SectionWorkspace navigation={selected && !editing ? <InternalNavigation variant="sections" aria-label="Seções do cliente">{[['resumo','Resumo'],['atendimento','Atendimento'],['processos','Processos'],['documentos','Documentos'],['financeiro','Financeiro'],['acesso','Acesso ao aplicativo']].map(([key,label])=><button key={key} type="button" aria-current={clientSection===key?'page':undefined} onClick={()=>{setClientSection(key);setTab(key==='documentos'?'documentos':'dados')}}>{label}</button>)}</InternalNavigation> : null}>
+            </div><SectionWorkspace navigation={selected && !editing ? <InternalNavigation variant="sections" aria-label="Seções do cliente">{[['resumo','Resumo'],['atendimento','Onboarding'],['processos','Processos'],['documentos','Documentos'],['financeiro','Financeiro'],['acesso','Acesso ao aplicativo']].map(([key,label])=><button key={key} type="button" aria-current={clientSection===key?'page':undefined} onClick={()=>{setClientSection(key);setTab(key==='documentos'?'documentos':'dados')}}>{label}</button>)}</InternalNavigation> : null}>
             {selected && !editing && <><details className="workspace-secondary-actions"><summary>Mais ações do cliente</summary><div className="workspace-inline-actions">                <button
                   type="button"
                   className={selected.is_vip ? "primary" : "secondary"}

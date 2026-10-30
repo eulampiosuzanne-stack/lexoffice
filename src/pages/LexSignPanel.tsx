@@ -41,6 +41,7 @@ export default function LexSignPanel() {
   const [busy, setBusy] = useState('');
   const [notice, setNotice] = useState('');
   const [link, setLink] = useState('');
+  const [shareMsg, setShareMsg] = useState('');
   const [uploading, setUploading] = useState(false);
   const [review, setReview] = useState<any>(null);
   const [reviewNote, setReviewNote] = useState('');
@@ -101,16 +102,25 @@ export default function LexSignPanel() {
   const client = clients.find((c) => c.id === clientId);
   const phone = client?.whatsapp || client?.phone || '';
 
-  async function send() {
-    setBusy('send'); setNotice(''); setLink('');
+  // Copia um texto; se o navegador bloquear, avisa para copiar à mão.
+  async function copyText(text: string, ok: string) {
+    try { await navigator.clipboard.writeText(text); setNotice(ok); }
+    catch { setNotice('O navegador não deixou copiar automaticamente. Selecione o texto abaixo e copie.'); }
+  }
+  // mode 'whatsapp': o sistema envia ao WhatsApp cadastrado. mode 'copy': não envia; devolve a mensagem pronta (link, código e explicação da biometria facial) para copiar.
+  async function send(mode: 'whatsapp' | 'copy' = 'whatsapp') {
+    setBusy(mode === 'copy' ? 'send-copy' : 'send'); setNotice(''); setLink(''); setShareMsg('');
     try {
       // Todos os documentos marcados vão num único link: o cliente valida a identidade uma vez só e assina todos.
       const ordered = docs.filter((d) => docIds.includes(d.id)).map((d) => d.id);
       if (ordered.length > 30) throw new Error('Envie no máximo 30 documentos por vez.');
-      const d = await invoke({ action: 'create', document_ids: ordered, client_id: clientId });
+      const d = await invoke({ action: 'create', document_ids: ordered, client_id: clientId, send_whatsapp: mode === 'whatsapp' });
       setLink(d.link);
-      const what = ordered.length > 1 ? `${ordered.length} documentos enviados num único link` : 'Link enviado';
-      setNotice(d.whatsapp_sent ? `${what} ao cliente pelo WhatsApp.` : 'Solicitação criada, mas o WhatsApp não enviou a mensagem. Copie o link abaixo e envie manualmente.');
+      const full = String(d.message || d.link || '');
+      setShareMsg(full);
+      const what = ordered.length > 1 ? `${ordered.length} documentos enviados num único link` : 'Link de assinatura com biometria facial enviado';
+      if (mode === 'copy') await copyText(full, 'Mensagem copiada (link, código e explicação da biometria facial). Cole no WhatsApp ou onde preferir.');
+      else setNotice(d.whatsapp_sent ? `${what} ao cliente pelo WhatsApp cadastrado.` : 'Solicitação criada, mas o WhatsApp não confirmou o envio. Use "Copiar mensagem" abaixo e envie manualmente.');
       setDocIds([]);
       await loadReqs();
     } catch (e: any) { setNotice(e?.message || 'Falha ao enviar.'); } finally { setBusy(''); }
@@ -164,8 +174,8 @@ export default function LexSignPanel() {
     } catch (e: any) { setNotice(e?.message || 'Falha ao enviar o arquivo.'); } finally { setUploading(false); }
   }
   async function resend(r: Req) {
-    setBusy(r.id); setNotice(''); setLink('');
-    try { const d = await invoke({ action: 'resend', id: r.id }); setLink(d.link); setNotice(d.whatsapp_sent ? 'Novo link enviado pelo WhatsApp (o link anterior deixou de valer).' : 'Novo link gerado. O WhatsApp não enviou; copie e envie manualmente.'); await loadReqs(); }
+    setBusy(r.id); setNotice(''); setLink(''); setShareMsg('');
+    try { const d = await invoke({ action: 'resend', id: r.id }); setLink(d.link); setShareMsg(String(d.message || d.link || '')); setNotice(d.whatsapp_sent ? 'Novo link enviado pelo WhatsApp (o link anterior deixou de valer).' : 'Novo link gerado. O WhatsApp não enviou; copie e envie manualmente.'); await loadReqs(); }
     catch (e: any) { setNotice(e?.message || 'Falha ao reenviar.'); } finally { setBusy(''); }
   }
   async function cancel(r: Req) {
@@ -265,16 +275,27 @@ export default function LexSignPanel() {
         <small style={{ color: "var(--lx-text)" }}>Pode escolher vários de uma vez; eles entram marcados na lista acima.</small>
       </div>
       <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
-        <button style={{ ...S.btn, opacity: !docIds.length || !phone || busy || uploading ? 0.5 : 1 }} disabled={!docIds.length || !phone || !!busy || uploading} onClick={send}>
-          {busy === 'send' ? 'Criando assinatura...' : 'Assinar pelo sistema LEX'}
+        <button style={{ ...S.btn, opacity: !docIds.length || !phone || busy || uploading ? 0.5 : 1 }} disabled={!docIds.length || !phone || !!busy || uploading} onClick={() => send('whatsapp')}>
+          {busy === 'send' ? 'Enviando...' : 'Assinatura LEX: enviar pelo WhatsApp'}
+        </button>
+        <button style={{ ...S.btnAlt, opacity: !docIds.length || !phone || busy || uploading ? 0.5 : 1 }} disabled={!docIds.length || !phone || !!busy || uploading} onClick={() => send('copy')}>
+          {busy === 'send-copy' ? 'Gerando...' : 'Assinatura LEX: copiar mensagem com link'}
         </button>
         <button style={{ ...S.btnAlt, opacity: !docIds.length || !phone || busy || uploading ? 0.5 : 1 }} disabled={!docIds.length || !phone || !!busy || uploading} onClick={sendWhatsAppOnly}>
           {busy === 'whatsapp-only' ? 'Enviando PDFs...' : 'Enviar PDFs pelo WhatsApp (sem assinatura LEX)'}
         </button>
       </div>
-      <small style={{ ...S.p, display: 'block', marginTop: 8 }}>A segunda opção apenas entrega os arquivos no WhatsApp. Ela não cria solicitação, biometria ou assinatura dentro da Lex.</small>
+      <small style={{ ...S.p, display: 'block', marginTop: 8 }}>"Enviar pelo WhatsApp" manda a mensagem ao número cadastrado do cliente. "Copiar mensagem" não envia nada: copia o texto pronto (link, código e explicação da assinatura com biometria facial) para você colar onde quiser. A última opção apenas entrega os arquivos no WhatsApp. Ela não cria solicitação, biometria ou assinatura dentro da Lex.</small>
       {notice && <p style={S.notice}>{notice}</p>}
-      {link && <div style={S.linkBox}><code style={{ wordBreak: 'break-all' }}>{link}</code><button style={S.small} onClick={() => { navigator.clipboard?.writeText(link); setNotice('Link copiado.'); }}>Copiar link</button></div>}
+      {link && (
+        <div style={{ ...S.linkBox, flexDirection: 'column', alignItems: 'stretch' }}>
+          {shareMsg && <textarea readOnly value={shareMsg} rows={8} style={{ ...S.input, width: '100%', resize: 'vertical', fontFamily: 'inherit' }} onFocus={(e) => e.currentTarget.select()} />}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {shareMsg && <button style={S.small} onClick={() => copyText(shareMsg, 'Mensagem copiada (link, código e explicação da biometria facial).')}>Copiar mensagem completa</button>}
+            <button style={S.small} onClick={() => copyText(link, 'Link copiado. Atenção: sem a mensagem, o cliente não recebe o código nem a explicação da biometria facial.')}>Copiar só o link</button>
+          </div>
+        </div>
+      )}
 
       {review && (
         <div style={S.overlay} onClick={() => busy !== 'review' && setReview(null)}>
