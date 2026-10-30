@@ -139,6 +139,37 @@ export default function Tipografia() {
     load();
   }
 
+  // ---- Revisar minha peça: a IA compara com os modelos e devolve o mesmo Word melhorado ----
+  const [revFile, setRevFile] = useState<File | null>(null);
+  const [revKind, setRevKind] = useState(TYPES[0]);
+  const [revNotes, setRevNotes] = useState("");
+  const [revHighlight, setRevHighlight] = useState(true);
+  const [revBusy, setRevBusy] = useState(false);
+  const [revNotice, setRevNotice] = useState("");
+  const [revResult, setRevResult] = useState<any>(null);
+
+  async function review() {
+    if (!supabase) return;
+    if (!revFile) return setRevNotice("Escolha a peça em Word (.docx).");
+    if (revFile.name.split(".").pop()?.toLowerCase() !== "docx") return setRevNotice("Envie a peça em Word (.docx). PDF não pode ser editado.");
+    if (!revFile.size) return setRevNotice("O arquivo está vazio.");
+    if (revFile.size > MAX) return setRevNotice("O arquivo excede o limite de 20 MB.");
+    setRevBusy(true); setRevResult(null);
+    setRevNotice("Enviando a peça...");
+    const { data: orgId } = await supabase.rpc("current_org_id");
+    const safe = revFile.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `${orgId}/tipografia-entrada/${crypto.randomUUID()}-${safe}`;
+    const up = await supabase.storage.from(BUCKET).upload(path, revFile, { upsert: false, contentType: revFile.type || undefined });
+    if (up.error) { setRevBusy(false); return setRevNotice("Não foi possível enviar a peça: " + up.error.message); }
+    setRevNotice("A IA está comparando com os modelos e melhorando a peça. Isso leva de 30 segundos a 2 minutos...");
+    const { data, error } = await supabase.functions.invoke("petition-assistant", { body: { action: "typography_improve", path, file_name: revFile.name, piece_type: revKind, instructions: revNotes, highlight: revHighlight } });
+    setRevBusy(false);
+    const err = (data as any)?.error || (error ? (await (error as any)?.context?.json?.().catch(() => null))?.error || error.message : "");
+    if (err || !(data as any)?.ok) return setRevNotice("Não foi possível revisar: " + (err || "tente novamente."));
+    setRevResult(data);
+    setRevNotice((data as any).unchanged ? "A IA não encontrou o que melhorar em relação aos modelos." : `Peça revisada: ${(data as any).alteracoes?.length || 0} alteração(ões)${revHighlight ? ", destacadas em amarelo no Word" : ""}.`);
+  }
+
   const counts = TYPES.map((t) => [t, rows.filter((r) => r.piece_type === t).length] as const);
 
   return (
@@ -150,6 +181,43 @@ export default function Tipografia() {
         </div>
       </div>
 
+      <section className="integration-panel">
+        <h2>Revisar minha peça</h2>
+        <p>Anexe a peça em Word. A IA compara com os modelos aprovados, melhora, acrescenta ou substitui trechos e devolve o mesmo Word, com o seu timbrado e formatação, pronto para você conferir.</p>
+        <label>Tipo da peça
+          <select value={revKind} onChange={(e) => setRevKind(e.target.value)} disabled={revBusy}>{TYPES.map((t) => <option key={t}>{t}</option>)}</select>
+        </label>
+        <label>Peça (.docx)
+          <input type="file" accept=".docx" disabled={revBusy} onChange={(e) => { setRevFile(e.target.files?.[0] || null); setRevResult(null); setRevNotice(""); }} />
+        </label>
+        <label>O que quer que a IA observe (opcional)
+          <textarea rows={3} value={revNotes} disabled={revBusy} onChange={(e) => setRevNotes(e.target.value)} placeholder="Ex.: reforçar o pedido de tutela; deixar os fatos mais objetivos." />
+        </label>
+        <label><input type="checkbox" checked={revHighlight} disabled={revBusy} onChange={(e) => setRevHighlight(e.target.checked)} /> Destacar as alterações em amarelo no Word</label>
+        <button type="button" disabled={revBusy || !revFile} onClick={review}>{revBusy ? "Revisando..." : "Revisar com a IA"}</button>
+        {revNotice && <p role="status">{revNotice}</p>}
+        {revResult && !revResult.unchanged && (
+          <div>
+            {revResult.url && <p><a href={revResult.url}>Baixar a peça revisada (Word)</a></p>}
+            {revResult.resumo && <p>{revResult.resumo}</p>}
+            {revResult.modelos?.length > 0 && <small>Modelos usados: {revResult.modelos.join(", ")}</small>}
+            <details>
+              <summary>Ver as {revResult.alteracoes?.length || 0} alterações</summary>
+              <ol>
+                {(revResult.alteracoes || []).map((c: any, k: number) => (
+                  <li key={k}>
+                    <b>{c.op === "replace" ? "Substituído" : c.op === "insert_after" ? "Acrescentado" : "Retirado"}</b>{c.motivo ? ` — ${c.motivo}` : ""}
+                    {c.antes && <p><small>Antes: {c.antes}</small></p>}
+                    {c.depois && <p><small>Depois: {c.depois}</small></p>}
+                  </li>
+                ))}
+              </ol>
+            </details>
+          </div>
+        )}
+      </section>
+
+      <h2>Modelos que a IA usa como referência</h2>
       <div className="workspace-hub">
         {counts.map(([t, n]) => (
           <button key={t} type="button" className={`workspace-hub-card${filter === t ? " active" : ""}`} onClick={() => setFilter(filter === t ? "Todas" : t)}>
