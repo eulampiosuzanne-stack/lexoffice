@@ -92,6 +92,9 @@ export default function AssinarPublico() {
   const [faceAttempts, setFaceAttempts] = useState(0);
   const [reviewAllowed, setReviewAllowed] = useState(false);
   const [manualReview, setManualReview] = useState(false);
+  const [livenessFailed, setLivenessFailed] = useState<string[]>([]);
+  const [livenessPassed, setLivenessPassed] = useState(true);
+  const [fallbackSelfie, setFallbackSelfie] = useState(false);
   const [resumed, setResumed] = useState(false);
   // Progresso guardado só neste aparelho (foto do documento), apagado ao concluir ou em 48h.
   const progressKey = `lexsign-${String(token || '').slice(-16)}`;
@@ -167,7 +170,7 @@ export default function AssinarPublico() {
   }
 
   async function startSelfie() {
-    setError(''); setNotice(''); setDoneSteps([]); setSelfieJpeg(''); setFaceDistance(null);
+    setError(''); setNotice(''); setDoneSteps([]); setSelfieJpeg(''); setFaceDistance(null); setLivenessFailed([]); setLivenessPassed(true); setFallbackSelfie(false);
     setBusy(true);
     try {
       const fa = await loadFaceApi(); setModelsReady(true);
@@ -212,9 +215,19 @@ export default function AssinarPublico() {
     const baseline = () => { if (!samples.length) return 0; const s = [...samples].sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; };
     const opts = new fa.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.4 });
     const started = Date.now();
+    // Selfie de reserva: último quadro de frente com rosto detectado. Se a prova de vida falhar,
+    // o escritório ainda recebe uma foto para conferir visualmente.
+    let lastFace = '', lastFaceAt = 0;
+    const grab = () => { if (Date.now() - lastFaceAt > 600) { lastFace = toJpeg(v, 720).toDataURL('image/jpeg', 0.88); lastFaceAt = Date.now(); } };
+    const failLiveness = async (kind: 'liveness' | 'eyes', okSteps: string[], missing: string[]) => {
+      stopCamera(); setChallenge(''); setNotice('');
+      setLivenessPassed(false); setLivenessFailed(missing); setDoneSteps(okSteps);
+      if (lastFace) { setSelfieJpeg(lastFace); setFallbackSelfie(true); setFaceDistance(null); }
+      await registerFaceFail(kind);
+    };
     setChallenge(labels[queue[0]]);
     while (runRef.current === my && idx < queue.length) {
-      if (Date.now() - started > 120000) { stopCamera(); setChallenge(''); setError('O tempo acabou. Toque em "Tentar de novo".'); return; }
+      if (Date.now() - started > 120000) { await failLiveness('liveness', passed, queue.slice(idx).map((q) => names[q])); return; }
       const cur = queue[idx];
       // Se a piscada não for reconhecida em 10s (óculos, pouca luz, pálpebra caída,
       // idosos), troca por virar o rosto para o outro lado — continua sendo prova de vida.
@@ -234,6 +247,7 @@ export default function AssinarPublico() {
       const r = (pts[30].x - box.x) / box.width;
       const frontal = r > 0.4 && r < 0.6;
       const base = baseline();
+      if (frontal) grab();
       // Só alimenta a referência com olho aberto e rosto de frente.
       if (frontal && (samples.length < 5 || e > base * 0.85)) { samples.push(e); if (samples.length > 25) samples.shift(); }
       let ok = false;
@@ -264,19 +278,23 @@ export default function AssinarPublico() {
     // A foto final só é aceita com os olhos abertos e o rosto de frente.
     // Se a pessoa piscar ou fechar os olhos na hora, tira outra automaticamente.
     setChallenge('Olhe para a câmera com os olhos bem abertos');
-    const eyeMin = samples.length >= 5 ? Math.max(0.13, baseline() * 0.7) : 0.16;
+    // Mais tolerante com óculos (reflexo e armação reduzem a abertura medida do olho).
+    const eyeMin = samples.length >= 5 ? Math.max(0.10, baseline() * 0.6) : 0.12;
     const ssd = new fa.SsdMobilenetv1Options({ minConfidence: 0.4 });
     let canvas: HTMLCanvasElement | null = null;
     let det: any = null;
     const shotStarted = Date.now();
-    while (runRef.current === my && Date.now() - shotStarted < 20000) {
+    let best: { eyes: number; jpeg: string } | null = null;
+    while (runRef.current === my && Date.now() - shotStarted < 25000) {
       const c = toJpeg(v, 720);
       const d: any = await fa.detectSingleFace(c, ssd).withFaceLandmarks().withFaceDescriptor();
       if (runRef.current !== my) return;
       if (d) {
         const eyes = (ear(d.landmarks.getLeftEye()) + ear(d.landmarks.getRightEye())) / 2;
         const rr = (d.landmarks.positions[30].x - d.detection.box.x) / d.detection.box.width;
-        if (eyes >= eyeMin && rr > 0.4 && rr < 0.6) { canvas = c; det = d; break; }
+        const waited = Date.now() - shotStarted, need = waited > 15000 ? eyeMin * 0.8 : waited > 8000 ? eyeMin * 0.9 : eyeMin;
+        if (rr > 0.4 && rr < 0.6 && (!best || eyes > best.eyes)) best = { eyes, jpeg: c.toDataURL('image/jpeg', 0.88) };
+        if (eyes >= need && rr > 0.4 && rr < 0.6) { canvas = c; det = d; break; }
         setNotice(eyes < eyeMin ? 'Mantenha os olhos abertos.' : 'Olhe de frente para a câmera.');
       } else {
         setNotice('Posicione seu rosto dentro do círculo.');
@@ -287,8 +305,8 @@ export default function AssinarPublico() {
     stopCamera();
     setNotice('');
     if (!canvas || !det) {
-      setChallenge('');
-      setError('Não conseguimos uma foto com os olhos abertos. Toque em "Tentar de novo" e olhe para a câmera com os olhos abertos.');
+      if (best) lastFace = best.jpeg;
+      await failLiveness('eyes', passed, ['foto com olhos abertos']);
       return;
     }
     setChallenge('Conferindo seu rosto...');
@@ -303,10 +321,13 @@ export default function AssinarPublico() {
 
   // Selfie não bateu com a foto do documento (comum em RG antigo): conta a tentativa e,
   // a partir da 2ª, permite mandar para a conferência manual do escritório.
-  async function registerFaceFail() {
+  async function registerFaceFail(kind: 'face' | 'liveness' | 'eyes' = 'face') {
     let allowed = reviewAllowed;
-    try { const d = await call({ token, action: 'face_fail' }); setFaceAttempts(d.face_attempts || 0); allowed = Boolean(d.review_allowed); setReviewAllowed(allowed); } catch { /* segue */ }
-    setError(allowed
+    try { const d = await call({ token, action: 'face_fail', kind }); setFaceAttempts(d.face_attempts || 0); allowed = Boolean(d.review_allowed); setReviewAllowed(allowed); } catch { /* segue */ }
+    if (kind !== 'face') setError(allowed
+      ? 'Não conseguimos concluir a prova de vida automaticamente (isso pode acontecer com óculos ou pouca luz). Você pode tentar de novo ou enviar para o escritório conferir.'
+      : 'Não conseguimos concluir a verificação. Tente de novo em um lugar bem iluminado, olhando para a câmera. Se não der certo, você poderá enviar para o escritório conferir.');
+    else setError(allowed
       ? 'Não foi possível confirmar pelo reconhecimento automático. Isso é comum quando a foto do documento é antiga. Você pode tentar de novo ou enviar para o escritório conferir.'
       : 'A selfie não ficou parecida com a foto do documento. Tente de novo em um lugar bem iluminado, olhando para a câmera.');
   }
@@ -321,7 +342,7 @@ export default function AssinarPublico() {
       });
     } catch { geo = null; }
     try {
-      const d = await call({ token, action: 'submit', manual_review: manualReview, consent_terms: consentTerms, consent_biometrics: consentBio, face_distance: faceDistance, liveness: { passed: true, steps: doneSteps }, selfie_jpeg: selfieJpeg, id_photo_jpeg: idJpeg, geo, user_agent: navigator.userAgent });
+      const d = await call({ token, action: 'submit', manual_review: manualReview, consent_terms: consentTerms, consent_biometrics: consentBio, face_distance: faceDistance, liveness: { passed: livenessPassed, steps: doneSteps, failed: livenessFailed, fallback_selfie: fallbackSelfie }, selfie_jpeg: selfieJpeg, id_photo_jpeg: idJpeg, geo, user_agent: navigator.userAgent });
       try { localStorage.removeItem(progressKey); } catch {}
       if (d.status === 'pending_review') { setStep('review'); return; }
       setInfo((i) => (i ? { ...i, status: 'signed', verification_code: d.verification_code, signed_at: d.signed_at, documents: Array.isArray(d.documents) ? d.documents : i.documents } : i));
