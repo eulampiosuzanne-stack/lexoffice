@@ -23,9 +23,10 @@ export function nextProcessEvents(deadlines:ProcessRow[],hearings:ProcessRow[],n
 }
 /** Keep the two existing records consistent where possible and report partial changes explicitly. */
 export async function decideProcessNotice(db:any,item:ProcessRow,approved:boolean,orgId:string){
- const current=await db.from('process_notification_queue').select('id,movement_id,message_text,send_to_client_app,status').eq('id',item.id).eq('org_id',orgId).maybeSingle();
+ const current=await db.from('process_notification_queue').select('id,process_id,client_id,movement_id,message_text,send_to_client_app,status').eq('id',item.id).eq('org_id',orgId).maybeSingle();
  if(current.error)throw new Error(current.error.message);if(!current.data||current.data.status!=='awaiting_review')throw new Error('Esta comunicação já mudou. Atualize a lista antes de decidir.');
  if(current.data.message_text!==item.message_text||Boolean(current.data.send_to_client_app)!==Boolean(item.send_to_client_app)||current.data.movement_id!==item.movement_id)throw new Error('O conteúdo ou destino mudou. Reabra e revise a comunicação.');
+ if(approved&&(!current.data.process_id||!current.data.client_id))throw new Error('Processo ou cliente não vinculado. A comunicação não pode ser autorizada.');
  if(approved&&!String(current.data.message_text||'').trim())throw new Error('A mensagem está vazia. A comunicação não foi autorizada.');
  let movementChanged=false;
  if(current.data.movement_id){const movement=await db.from('process_movements').update({approved_for_client:approved}).eq('id',current.data.movement_id).eq('org_id',orgId).select('id');if(movement.error||!movement.data?.length)throw new Error(movement.error?.message||'A movimentação não foi confirmada. Nenhuma alteração foi aplicada à fila.');movementChanged=true;}
