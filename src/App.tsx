@@ -37,6 +37,7 @@ const Tipografia = lazy(() => import("./pages/Tipografia"));
 const Consultations = lazy(() => import("./pages/Consultations"));
 const Documents = lazy(() => import("./pages/Documents"));
 const Finance = lazy(() => import("./pages/Finance"));
+const InfinitePay = lazy(() => import("./pages/InfinitePay"));
 const Security = lazy(() => import("./pages/Security"));
 const Reports = lazy(() => import("./pages/Reports"));
 const OrgSettings = lazy(() => import("./pages/Settings"));
@@ -833,7 +834,8 @@ export default function App() {
     <Route path="/cobranca/configuracoes" element={financeBlocked ? <Navigate to="/" replace/> : <Finance view="cobranca" section="configuracoes"/>}/>
             <Route path="/jornada-comercial" element={<JornadaComercial />}/>
             <Route path="/honorarios-propostas" element={<Navigate to="/jornada-comercial" replace/>}/>
-            <Route path="/financeiro" element={financeBlocked ? <Navigate to="/" replace/> : <Finance />}/>
+            <Route path="/financeiro/infinitepay" element={financeBlocked ? <Navigate to="/" replace/> : <InfinitePay/>}/>
+                    <Route path="/financeiro" element={financeBlocked ? <Navigate to="/" replace/> : <Finance />}/>
             <Route path="/cobranca" element={financeBlocked ? (<Navigate to="/" replace/>) : (<Finance view="cobranca"/>)}/>
             <Route path="/prospeccao" element={isPlatformAdmin ? (<ProspectCenter />) : (<Navigate to="/" replace/>)}/>
             <Route path="/prospeccao-atual" element={<Navigate to="/prospeccao" replace/>}/>
