@@ -96,8 +96,8 @@ function handoffReason(p:any,msg:string,ctx:any):{reason:string,critical:boolean
   if (/^(?:(?:bom dia|boa tarde|boa noite|oi|ola|opa|alo|hey)[!,.?\s]*)?(?:(?:dra\.?|doutora)\s*)?suzanne\s*[?!.,]*$/.test(t) || /^(?:bom dia|boa tarde|boa noite|oi|ola|opa|alo|hey)[!,.?\s]*$/.test(t)) return null;
   const synthetic=/^a cliente selecionou:/.test(t);
   if(pol.critical_handoff!==false&&((synthetic&&ctx?.urgent===true)||CRITICAL_RE.test(t)))return {reason:'Situação crítica/urgente relatada pelo cliente',critical:true};
-  if(pol.handoff_on_human_request!==false&&HUMAN_REQ_RE.test(t))return {reason:'Cliente pediu para falar com uma pessoa / pediu ligação',critical:false};
-  if(pol.handoff_on_threat_or_complaint!==false&&COMPLAINT_RE.test(t))return {reason:'Reclamação/ameaça de reclamação',critical:false};
+  if(pol.handoff_on_human_request===true&&HUMAN_REQ_RE.test(t))return {reason:'Cliente pediu para falar com uma pessoa / pediu ligação',critical:false};
+  if(pol.handoff_on_threat_or_complaint===true&&COMPLAINT_RE.test(t))return {reason:'Reclamação/ameaça de reclamação',critical:false};
   if(p?.handoff_enabled!==false&&Array.isArray(p?.handoff_keywords)){
     for(const k of p.handoff_keywords){const kw=norm(String(k||'')).trim();if(kw&&new RegExp(`(^|[^a-z0-9])${kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}([^a-z0-9]|$)`).test(t))return {reason:`Palavra de transferência: "${k}"`,critical:/urgen/.test(kw)}}
   }
@@ -379,6 +379,8 @@ Deno.serve(async req=>{
       String(policy.system_prompt||'').trim(),
       policy.agent_key!=='helena_chatbot'&&base?.active&&base?.system_prompt?`Orientações gerais do atendimento: ${String(base.system_prompt).trim()}`:'',
       rules.length?'REGRAS OBRIGATÓRIAS (configuradas pela Dra. Suzanne):\n- '+rules.join('\n- '):'',
+      agentKey==='support_n1'?'SUPORTE N1 PARA RECLAMACOES: mantenha tom firme, institucional e impessoal. Nao discuta, nao ironize e nao ofereca acesso direto a advogada como resposta a pressao. Identifique a reclamacao concreta, consulte o historico autorizado e responda objetivamente com a providencia possivel. Se nao houver fato novo, informe que a demanda ja esta registrada e nao reabra debate repetitivo. Em ofensa, estabeleca limite respeitoso; se persistir, encerre somente a interacao abusiva e preserve canais para urgencias, prazos e deveres profissionais. Nunca dificulte reclamacoes legitimas ou ameace o cliente. Maximo de tres linhas e uma pergunta por vez.':'',
+      'POLITICA DE COMUNICACAO: responda em no maximo tres linhas curtas, com espacamento legivel. Faca apenas uma pergunta por vez. Sem blocos de perguntas, desculpas desnecessarias, intimidade, bajulacao ou excesso de empatia. Seja institucional, objetiva e firme. Resolva a demanda com os dados autorizados da LexOffice e a base de conhecimento disponivel antes de solicitar atendimento humano. Nao transfira automaticamente por insistencia, insulto ou pedido de falar com a advogada. Em ofensas, advirta uma vez de modo formal, sem discutir; se persistirem, encerre a interacao abusiva preservando canais para urgencias e prazos. Nunca invente acesso a documentos ou consultas que nao foram realizadas.',
       'Nunca invente processo, andamento, agenda, pagamento, honorários ou resultado jurídico.',
       followup?'A pessoa parou de responder. Siga a TAREFA abaixo: escreva UMA mensagem curta de retomada, retomando exatamente o ponto em que a conversa parou, sem pressionar e sem inventar valores, datas ou informações.':'Responda somente ao que o cliente disse nas últimas mensagens (o bloco "MENSAGENS NOVAS DO CLIENTE"). Se ele não falou de processo, pagamento ou agenda agora, não traga esses assuntos. Se ele mandou várias mensagens, responda tudo numa única mensagem curta.',
       contextBlock,dossier,processUpdateContext,billingRules,hotBlock,
