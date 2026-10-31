@@ -7,7 +7,7 @@ type Entry={id:string;description:string|null;due_date:string|null;amount:number
 type Charge={id:string;method:string;environment:string;amount_cents:number;description:string;status:string;checkout_url:string|null;created_at:string;client_id:string};
 const money=(cents:number)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(cents/100);
 const day=(d?:string|null)=>d?d.split('-').reverse().join('/'):'—';
-const methods={pix_card:'Pix ou cartão (um link)',recurring:'Recorrente (um link por parcela)'} as const;
+const methods={pix_card:'Pix ou cartão (link único)',recurring:'Links individuais por parcela (não é débito automático)'} as const;
 type Method=keyof typeof methods;
 const statusLabel:Record<string,string>={homologation:'Homologação (sem link)',active:'Aguardando pagamento',paid:'Paga',failed:'Falhou',cancelled:'Cancelada'};
 const steps=['Cliente','Contrato','Parcelas','Pagamento','Conferência'];
@@ -59,7 +59,7 @@ export function InfinitePayWizard({onDone}:{onDone:()=>void}){
    {!open.length&&<p>Este contrato não tem parcelas com saldo a cobrar.</p>}
    <div style={{display:'grid',gap:8,margin:'12px 0',maxHeight:280,overflowY:'auto'}}>{open.map(i=><label key={i.id} style={{display:'flex',gap:10,alignItems:'center'}}><input type="checkbox" checked={selected.includes(i.id)} onChange={()=>setSelected(s=>s.includes(i.id)?s.filter(x=>x!==i.id):[...s,i.id])}/><span>{i.description||'Parcela'} · venc. {day(i.due_date)} · saldo {money(balance(i))}</span></label>)}</div>
    <p><strong>{chosen.length} parcela(s) · Total {money(total)}</strong></p></>}
-  {step===3&&<label className="collection-new-field">Forma de pagamento<select value={method} onChange={e=>setMethod(e.target.value as Method)}>{(Object.keys(methods) as Method[]).map(k=><option key={k} value={k}>{methods[k]}</option>)}</select></label>}
+  {step===3&&<><label className="collection-new-field">Forma de pagamento<select value={method} onChange={e=>setMethod(e.target.value as Method)}>{(Object.keys(methods) as Method[]).map(k=><option key={k} value={k}>{methods[k]}</option>)}</select></label>{method==='recurring'&&<p role="note">Esta opção cria um link para cada parcela. Não cadastra cartão nem realiza débitos automáticos mensais.</p>}</>}
   {step===4&&<dl><div><dt>Cliente</dt><dd>{clientName}</dd></div><div><dt>Parcelas</dt><dd>{chosen.map(i=>i.description||'Parcela').join('; ')}</dd></div><div><dt>Forma</dt><dd>{methods[method]}{method==='recurring'?` · ${chosen.length} link(s)`:''}</dd></div><div><dt>Total</dt><dd>{money(total)}</dd></div></dl>}
   <div style={{display:'flex',gap:8,marginTop:12}}>
    {step>0&&<button type="button" className="secondary" disabled={busy} onClick={()=>{setError('');setStep(step-1)}}>Voltar</button>}
