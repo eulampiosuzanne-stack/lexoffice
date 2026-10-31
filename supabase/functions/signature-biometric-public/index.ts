@@ -94,6 +94,22 @@ async function sendWhatsApp(orgId: string, phone: string, message: string, key: 
   return r.ok && d?.allowed !== false && !d?.error;
 }
 
+// Cartilha (guia rápido com desenhos) enviada logo depois do link + código, só em "create"/"resend".
+// Mesmo canal de WhatsApp (whatsapp-outbound-gate, que aceita image+caption). Falha aqui NUNCA trava a assinatura:
+// link e código já foram enviados; a falha é só registrada. Não é usada nos lembretes automáticos.
+const GUIDE_URL = "https://lexoffice-ashy.vercel.app/cartilhas/assinatura-biometrica.png";
+const GUIDE_CAPTION = "Guia rápido para assinar pelo celular";
+async function sendGuide(orgId: string, phone: string, key: string) {
+  try {
+    const u = Deno.env.get("SUPABASE_URL")!, sk = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const r = await fetch(`${u}/functions/v1/whatsapp-outbound-gate`, { method: "POST", headers: { Authorization: `Bearer ${sk}`, apikey: sk, "Content-Type": "application/json" }, body: JSON.stringify({ org_id: orgId, conversation_id: null, phone, agent_key: "system", idempotency_key: key, message: GUIDE_CAPTION, image: GUIDE_URL, caption: GUIDE_CAPTION, format_agent_reply: false, operator_send: true }), signal: AbortSignal.timeout(20000) });
+    const d = await r.json().catch(() => ({}));
+    const sent = r.ok && d?.allowed !== false && !d?.error;
+    if (!sent) console.error("signature guide not sent", r.status, String(d?.error || d?.reason || "").slice(0, 200));
+    return sent;
+  } catch (e) { console.error("signature guide failed", e instanceof Error ? e.message : e); return false; }
+}
+
 // v26 (13/10/2026) — pedido da Dra. Suzanne: envio do link e lembretes de assinatura também aparecem no aplicativo do cliente.
 // Um aviso por link (source = principal do lote); cada reenvio/lembrete atualiza o mesmo aviso com o link novo e dispara push de novo.
 // Só publica se o cliente tiver o app ativo (regra dentro de lexoffice_client_app_publish). Falha aqui nunca impede o WhatsApp.
@@ -522,7 +538,11 @@ async function adminHandler(req: Request, body: any) {
       msg = `Olá, ${firstName(row.signer_name)}! O escritório Suzanne Figueiredo Advocacia ${what}\n\nToque no link abaixo para começar:\n${link}\n\nÉ bem simples: você lê ${members.length > 1 ? "os documentos" : "o documento"}, digita o código abaixo, tira uma foto do seu RG ou CNH e uma selfie, que é a biometria facial: ela confirma que é você mesmo(a) quem está assinando. Se quiser, peça ajuda a alguém de confiança para segurar o celular.\n\n${codeLine}\n\nO link é pessoal e vale por 15 dias. Qualquer dúvida, é só responder esta mensagem.`;
     }
     // "Copiar link": o escritório recebe a mensagem pronta (com o código) para colar onde quiser.
-    if (body.send_whatsapp !== false) whatsapp = { ok: await sendWhatsApp(org, row.signer_phone, msg, `lexsign-link-${row.id}-${Date.now()}`), reason: null };
+    if (body.send_whatsapp !== false) {
+      whatsapp = { ok: await sendWhatsApp(org, row.signer_phone, msg, `lexsign-link-${row.id}-${Date.now()}`), reason: null };
+      // Só depois que o link e o código foram enviados, e em segundo plano (não atrasa nem trava a resposta).
+      if (whatsapp.ok) { const g = sendGuide(org, row.signer_phone, `lexsign-guide-${row.id}-${Date.now()}`); try { (globalThis as any).EdgeRuntime?.waitUntil?.(g); } catch { /* segue */ } }
+    }
     const appId = await appNotify(db, row, members.length > 1 ? "Documentos para assinar" : "Documento para assinar", `${appBody(members, link, false)}\n\n${codeLine.replace(/\*/g, "")}`, "signature_link");
     return J({ ok: true, id: row.id, count: members.length, link, message: msg, whatsapp_sent: whatsapp.ok, whatsapp_reason: body.send_whatsapp === false ? "copiar_link" : (whatsapp.ok ? null : "whatsapp_nao_confirmou"), app_notified: Boolean(appId) });
 }

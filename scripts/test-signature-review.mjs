@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync, statSync } from 'node:fs';
 import { nextAttempts, reviewAllowed, cleanKind, sanitizeLiveness, decideSubmit, livenessReportText } from '../supabase/functions/signature-biometric-public/_shared/review-policy.mjs';
 const LIM = 0.55, full = { passed: true, steps: ['piscar os olhos', 'virar o rosto', 'olhar de frente'] };
 // 1) toda falha conta; 2 liberam conferência
@@ -34,4 +34,17 @@ assert.ok(/face_fail[\s\S]{0,400}nextAttempts/.test(fn)); assert.ok(!fn.includes
 // tela: falhas registradas, selfie de reserva e tolerância
 const ui = readFileSync('src/pages/AssinarPublico.tsx', 'utf8');
 for (const k of ["failLiveness('liveness'", "failLiveness('eyes'", 'registerFaceFail(kind)', "kind })", 'fallback_selfie: fallbackSelfie', 'Math.max(0.10, baseline() * 0.6)', 'Enviar para o escritório conferir']) assert.ok(ui.includes(k), 'faltou na tela: ' + k);
+// cartilha: arquivo existe e é PNG de verdade; enviada só em create/resend, nunca nos lembretes; falha não trava
+assert.ok(existsSync('public/cartilhas/assinatura-biometrica.png'),'faltou public/cartilhas/assinatura-biometrica.png');
+const png=readFileSync('public/cartilhas/assinatura-biometrica.png'); assert.ok(png.length>5000 && png.slice(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])),'não é um PNG válido');
+assert.ok(fn.includes('Guia rápido para assinar pelo celular')); assert.ok(fn.includes('/cartilhas/assinatura-biometrica.png'));
+const remind=fn.slice(fn.indexOf('async function remindInternal'),fn.indexOf('const APP = '));
+assert.ok(!remind.includes('sendGuide'),'lembretes automáticos não enviam a cartilha');
+const guideFn=fn.slice(fn.indexOf('async function sendGuide'),fn.indexOf('// v26 (13/10/2026)'));
+assert.ok(/try \{[\s\S]*\} catch/.test(guideFn) && guideFn.includes('return false'),'falha da cartilha deve ser capturada');
+assert.equal((fn.match(/sendGuide\(/g)||[]).length,2,'definição + 1 chamada (create/resend)');
+assert.ok(/whatsapp\.ok\) \{ const g = sendGuide/.test(fn),'só depois do link+código enviados');
+assert.ok(ui.includes('Ver o guia com desenhos')&&ui.includes('/cartilhas/assinatura-biometrica.png'));
+// nada de hash/carimbo/código/relatório mudou
+for (const k of ['evDigest','stampHash(signedSha)','signed_sha256: signedSha','rowKV("SHA-256 do original"','rowKV("Código de verificação"']) assert.ok(fn.includes(k),'faltou: '+k);
 console.log('signature-review: ok');
