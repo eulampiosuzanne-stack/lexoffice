@@ -35,8 +35,10 @@ export function groupCharges(method, items) {
 export const describeCharge = (items) => (items.length === 1 ? `Honorários advocatícios · ${items[0].label}` : `Honorários advocatícios · ${items.length} parcelas`).slice(0, 200);
 
 // Payload do link (preço sempre em centavos inteiros).
+// Aviso de pagamento: a documentação atual usa webhook:{url,events}; versões anteriores usavam webhook_url.
+// Enviamos os dois (a baixa é idempotente), pedindo só o evento "paid".
 export const checkoutPayload = ({ handle, orderNsu, description, amountCents, redirectUrl, webhookUrl }) =>
-  ({ handle, order_nsu: orderNsu, items: [{ quantity: 1, price: amountCents, description }], redirect_url: redirectUrl, webhook_url: webhookUrl });
+  ({ handle, order_nsu: orderNsu, items: [{ quantity: 1, price: amountCents, description }], redirect_url: redirectUrl, webhook: { url: webhookUrl, events: ['paid'] }, webhook_url: webhookUrl });
 
 // O campo da URL na resposta não é documentado: aceita url/link e exige https.
 export const extractCheckoutUrl = (reply) => {

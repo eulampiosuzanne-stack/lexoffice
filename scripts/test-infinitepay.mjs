@@ -22,6 +22,8 @@ assert.equal(balanceCents(10.1,0),1010);
 assert.deepEqual(METHODS,['pix_card','recurring']); // sem "só cartão": exige chave de API
 // payload / URL / confirmação
 assert.equal(checkoutPayload({handle:'h',orderNsu:'o',description:'d',amountCents:100010}).items[0].price,100010);
+const pl=checkoutPayload({handle:'h',orderNsu:'o',description:'d',amountCents:100010,webhookUrl:'https://x/y?token=t'});
+assert.deepEqual(pl.webhook,{url:'https://x/y?token=t',events:['paid']}); assert.equal(pl.webhook_url,'https://x/y?token=t'); assert.equal(pl.items.length,1); assert.equal(pl.items[0].quantity,1);
 assert.equal(extractCheckoutUrl({url:'https://x/y'}),'https://x/y'); assert.equal(extractCheckoutUrl({link:'https://x'}),'https://x');
 assert.equal(extractCheckoutUrl({url:'http://x'}),null); assert.equal(extractCheckoutUrl({url:'javascript:alert(1)'}),null); assert.equal(extractCheckoutUrl(null),null);
 assert.ok(paymentConfirmed({success:true,paid:true,paid_amount:100},100));
