@@ -35,8 +35,9 @@ assert.ok(/face_fail[\s\S]{0,400}nextAttempts/.test(fn)); assert.ok(!fn.includes
 const ui = readFileSync('src/pages/AssinarPublico.tsx', 'utf8');
 for (const k of ["failLiveness('liveness'", "failLiveness('eyes'", 'registerFaceFail(kind)', "kind })", 'fallback_selfie: fallbackSelfie', 'Math.max(0.10, baseline() * 0.6)', 'Enviar para o escritório conferir']) assert.ok(ui.includes(k), 'faltou na tela: ' + k);
 // cartilha: arquivo existe e é PNG de verdade; enviada só em create/resend, nunca nos lembretes; falha não trava
-assert.ok(existsSync('public/cartilhas/assinatura-biometrica.png'),'faltou public/cartilhas/assinatura-biometrica.png');
-const png=readFileSync('public/cartilhas/assinatura-biometrica.png'); assert.ok(png.length>5000 && png.slice(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])),'não é um PNG válido');
+// A cartilha é opcional na publicação: o envio e o botão só ligam quando o PNG existir. Se existir, tem de ser PNG válido.
+if (existsSync('public/cartilhas/assinatura-biometrica.png')) { const png=readFileSync('public/cartilhas/assinatura-biometrica.png'); assert.ok(png.length>5000 && png.slice(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])),'não é um PNG válido'); } else console.log('aviso: cartilha ainda não adicionada (envio e botão ficam desligados)');
+assert.ok(fn.includes('image\\/png')&&fn.includes('method: "HEAD"'),'envio só com a cartilha publicada'); assert.ok(ui.includes('guideReady'),'botão só com a cartilha publicada');
 assert.ok(fn.includes('Guia rápido para assinar pelo celular')); assert.ok(fn.includes('/cartilhas/assinatura-biometrica.png'));
 const remind=fn.slice(fn.indexOf('async function remindInternal'),fn.indexOf('const APP = '));
 assert.ok(!remind.includes('sendGuide'),'lembretes automáticos não enviam a cartilha');

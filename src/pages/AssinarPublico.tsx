@@ -92,6 +92,9 @@ export default function AssinarPublico() {
   const [faceAttempts, setFaceAttempts] = useState(0);
   const [reviewAllowed, setReviewAllowed] = useState(false);
   const [manualReview, setManualReview] = useState(false);
+  // O botão do guia só aparece se a cartilha estiver publicada (o site devolve HTML para caminhos que não existem).
+  const [guideReady, setGuideReady] = useState(false);
+  useEffect(() => { let alive = true; fetch('/cartilhas/assinatura-biometrica.png', { method: 'HEAD' }).then((r) => { if (alive) setGuideReady(r.ok && /image\/png/i.test(r.headers.get('content-type') || '')); }).catch(() => { /* sem guia */ }); return () => { alive = false; }; }, []);
   const [livenessFailed, setLivenessFailed] = useState<string[]>([]);
   const [livenessPassed, setLivenessPassed] = useState(true);
   const [fallbackSelfie, setFallbackSelfie] = useState(false);
@@ -424,7 +427,7 @@ export default function AssinarPublico() {
           {!streamRef.current && <button className="lxs-btn" disabled={busy} onClick={startSelfie}>{busy ? 'Abrindo câmera...' : selfieJpeg || error ? 'Tentar de novo' : 'Abrir câmera'}</button>}
           {error && reviewAllowed && selfieJpeg && <button className="lxs-btn lxs-ghost" onClick={() => { setError(''); setNotice(''); setManualReview(true); setStep('confirm'); }}>Enviar para o escritório conferir</button>}
           {error && <button className="lxs-link" onClick={() => { setError(''); setStep('idphoto'); }}>Tirar outra foto do documento</button>}
-          <a className="lxs-link" href="/cartilhas/assinatura-biometrica.png" target="_blank" rel="noopener noreferrer">Ver o guia com desenhos</a>
+          {guideReady && <a className="lxs-link" href="/cartilhas/assinatura-biometrica.png" target="_blank" rel="noopener noreferrer">Ver o guia com desenhos</a>}
           {faceAttempts > 0 && !reviewAllowed && <p className="lxs-muted">Tentativa {faceAttempts}. Se não der certo na próxima, você poderá enviar para o escritório conferir.</p>}
         </div>}
 

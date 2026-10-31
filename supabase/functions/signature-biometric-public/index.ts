@@ -101,6 +101,9 @@ const GUIDE_URL = "https://lexoffice-ashy.vercel.app/cartilhas/assinatura-biomet
 const GUIDE_CAPTION = "Guia rápido para assinar pelo celular";
 async function sendGuide(orgId: string, phone: string, key: string) {
   try {
+    // Só envia se a cartilha já estiver publicada (o site devolve index.html para caminhos que não existem).
+    const head = await fetch(GUIDE_URL, { method: "HEAD", signal: AbortSignal.timeout(8000) });
+    if (!head.ok || !/image\/png/i.test(head.headers.get("content-type") || "")) { console.error("signature guide skipped: image not published", head.status); return false; }
     const u = Deno.env.get("SUPABASE_URL")!, sk = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const r = await fetch(`${u}/functions/v1/whatsapp-outbound-gate`, { method: "POST", headers: { Authorization: `Bearer ${sk}`, apikey: sk, "Content-Type": "application/json" }, body: JSON.stringify({ org_id: orgId, conversation_id: null, phone, agent_key: "system", idempotency_key: key, message: GUIDE_CAPTION, image: GUIDE_URL, caption: GUIDE_CAPTION, format_agent_reply: false, operator_send: true }), signal: AbortSignal.timeout(20000) });
     const d = await r.json().catch(() => ({}));
