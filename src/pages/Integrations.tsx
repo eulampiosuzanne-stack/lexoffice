@@ -11,7 +11,7 @@ const catalog=[
  {key:'google',name:'Google Agenda',desc:'OAuth e sincronização de compromissos do escritório.',icon:CalendarDays,path:'/agenda'},
  {key:'tribunal',name:'Tribunais',desc:'Conexões processuais, sincronização e monitoramento.',icon:Gavel,path:'/tribunais'},
  {key:'escavador',name:'Escavador — Monitoramento da OAB',desc:'Descubra e monitore processos vinculados à sua inscrição da OAB.',icon:SearchCheck,path:'/tribunais'},
- {key:'infinitepay',name:'InfinitePay · Honorários',desc:'Acompanhe a integração de pagamentos. Cobranças automáticas permanecem indisponíveis até homologação segura.',icon:Plug,path:'/financeiro'},
+ {key:'infinitepay',name:'InfinitePay · Honorários',desc:'Acompanhe a integração de pagamentos. Cobranças automáticas permanecem indisponíveis até homologação segura.',icon:Plug,path:'/financeiro/infinitepay'},
  {key:'openai',name:'Inteligência Artificial',desc:'Modelos e agentes especializados do LEXOFFICE.',icon:Bot,path:'/agentes-ia?area=infraestrutura'}
 ];
 export default function Integrations({embedded=false}:{embedded?:boolean}){
