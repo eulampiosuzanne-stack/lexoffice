@@ -56,10 +56,12 @@ export const DEFAULT_NODES:Record<string,N>={
     {id:'counter',label:'💬 Fazer proposta',agent:'billing',ctx:{collection_action:'counter',negotiation_stage:'awaiting_proposal',negotiation_kind:'amount'}},
     {id:'human',label:'👩‍⚖️ Falar com responsável',agent:'billing',ctx:{collection_action:'human'}}]},
 };
-async function loadNodes(a:any,orgId:string):Promise<{nodes:Record<string,N>,enabled:boolean}>{
+const ENTRY_MENU:N={message:'Olá! Sou Helena, assistente virtual do escritório Suzanne Figueiredo. Como posso ajudar?',options:[{id:'client',label:'Já sou cliente',description:'Processos, documentos, financeiro e agendamentos',next:'client_menu'},{id:'new',label:'Desejo atendimento',description:'Orientações para novos interessados',next:'new'},{id:'other',label:'Outros assuntos',description:'Falar sobre outro assunto',agent:'client_service_triage'}]};
+const CLIENT_MENU:N={message:'Como posso ajudar com seu atendimento?',options:[{id:'process',label:'Meu processo',description:'Andamentos e dúvidas',agent:'client_process_updates'},{id:'docs',label:'Documentos',description:'Envio e solicitações',agent:'client_service_triage'},{id:'finance',label:'Financeiro',description:'Honorários e pagamentos',agent:'billing'},{id:'schedule',label:'Agendamentos',description:'Gláucia 8h–14h; Dra. Suzanne 14h–18h, a partir do próximo dia útil',agent:'client_schedule_relationship'},{id:'urgent',label:'Situação urgente',description:'Situações que exigem análise prioritária',next:'urgent'},back]};
+function normalizeNodes(nodes:Record<string,N>):Record<string,N>{return {...nodes,start:ENTRY_MENU,client_menu:CLIENT_MENU}}async function loadNodes(a:any,orgId:string):Promise<{nodes:Record<string,N>,enabled:boolean}>{
   const {data}=await a.from('whatsapp_chatbot_flow_config').select('enabled,flow').eq('org_id',orgId).maybeSingle();
   const saved=data?.flow?.nodes&&typeof data.flow.nodes==='object'?data.flow.nodes:{};
-  return {nodes:{...DEFAULT_NODES,...saved},enabled:data?.enabled!==false};
+  return {nodes:normalizeNodes({...DEFAULT_NODES,...saved}),enabled:data?.enabled!==false};
 }
 // Resolve a resposta do cliente: 1) id do botão ("no:opcao" ou "opcao"); 2) número da opção; 3) texto igual ao rótulo.
 function resolve(nodes:Record<string,N>,node:string,choice:string,text:string):{node:string,opt:O}|null{
