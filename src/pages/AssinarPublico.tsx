@@ -424,6 +424,7 @@ export default function AssinarPublico() {
           {!streamRef.current && <button className="lxs-btn" disabled={busy} onClick={startSelfie}>{busy ? 'Abrindo câmera...' : selfieJpeg || error ? 'Tentar de novo' : 'Abrir câmera'}</button>}
           {error && reviewAllowed && selfieJpeg && <button className="lxs-btn lxs-ghost" onClick={() => { setError(''); setNotice(''); setManualReview(true); setStep('confirm'); }}>Enviar para o escritório conferir</button>}
           {error && <button className="lxs-link" onClick={() => { setError(''); setStep('idphoto'); }}>Tirar outra foto do documento</button>}
+          <a className="lxs-link" href="/cartilhas/assinatura-biometrica.png" target="_blank" rel="noopener noreferrer">Ver o guia com desenhos</a>
           {faceAttempts > 0 && !reviewAllowed && <p className="lxs-muted">Tentativa {faceAttempts}. Se não der certo na próxima, você poderá enviar para o escritório conferir.</p>}
         </div>}
 
