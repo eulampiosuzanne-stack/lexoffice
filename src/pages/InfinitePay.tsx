@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { Link } from 'react-router-dom';
 import './integrations.css';
 
-type PaymentLink = { id:string; amount:number|null; status:string; url:string|null; created_at:string; installment_id:string|null };
+type PaymentLink = { id:string; amount:number|null; status:string; url:string|null; created_at:string; installment_id:string|null; provider:string };
 const money=(n:number)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(n);
 export default function InfinitePay(){
  const [rows,setRows]=useState<PaymentLink[]>([]);
@@ -17,9 +17,9 @@ export default function InfinitePay(){
    if(authError||!user)throw new Error('Entre na sua conta para consultar pagamentos.');
    const {data:profile,error:profileError}=await supabase.from('profiles').select('org_id').eq('id',user.id).single();
    if(profileError||!profile?.org_id)throw new Error('Escritório não identificado.');
-   const {data,error:queryError}=await supabase.from('payment_links').select('id,amount,status,url,created_at,installment_id').eq('org_id',profile.org_id).eq('provider','infinitepay').order('created_at',{ascending:false}).limit(100);
+   const {data,error:queryError}=await supabase.from('payment_links').select('id,amount,status,url,created_at,installment_id,provider').eq('org_id',profile.org_id).eq('provider','infinitepay').order('created_at',{ascending:false}).limit(100);
    if(queryError)throw queryError;
-   setRows(data||[]);
+   setRows((data||[]).filter((link:PaymentLink)=>link.provider==='infinitepay'));
   }catch(e:any){setError(e?.message||'Falha ao consultar pagamentos.')}finally{setLoading(false)}
  }
  useEffect(()=>{void refresh()},[]);
@@ -33,7 +33,7 @@ export default function InfinitePay(){
   <section className="module-box"><h2>Links de cobrança InfinitePay</h2>
    {loading?<p>Consultando…</p>:rows.length===0?<p>Nenhum link de cobrança InfinitePay registrado neste escritório.</p>:
     <div style={{overflowX:'auto'}}><table style={{width:'100%',textAlign:'left'}}><thead><tr><th>Data</th><th>Valor</th><th>Status</th><th>Cobrança</th></tr></thead><tbody>
-     {rows.map(r=><tr key={r.id}><td>{new Date(r.created_at).toLocaleDateString('pt-BR')}</td><td>{money(Number(r.amount||0))}</td><td>{r.status==='paid'?'Pago':r.status==='active'?'Pendente':r.status}</td><td>{r.url?.startsWith('https://')?<a href={r.url} target="_blank" rel="noopener noreferrer">Abrir link</a>:'Sem link'}</td></tr>)}
+     {rows.map(r=><tr key={r.id}><td>{new Date(r.created_at).toLocaleDateString('pt-BR')}</td><td>{money(Number(r.amount||0))}</td><td>{r.status==='paid'?'Confirmado no cadastro':r.status==='active'?'Aguardando confirmação':r.status}</td><td>{r.url?.startsWith('https://')?<a href={r.url} target="_blank" rel="noopener noreferrer">Abrir link</a>:'Sem link'}</td></tr>)}
     </tbody></table></div>}
   </section>
  </main>;
