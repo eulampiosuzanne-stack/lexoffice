@@ -42,4 +42,4 @@ export default function ProcessUpdateAutomationPanel({orgId,onDirtyChange}:Props
  </div></section>
 }
 
-function Toggle({title,desc,value,onChange}:{title:string;desc:string;value:boolean;onChange:(v:boolean)=>void}){const id=useId();return <div className="setting-row"><div className="setting-copy"><b id={id}>{title}</b><small>{desc}</small></div><button type="button" role="switch" aria-labelledby={id} className={`switch ${value?'on':''}`} aria-checked={value} onClick={()=>onChange(!value)}/></div>}
+function Toggle({title,desc,value,onChange}:{title:string;desc:string;value:boolean;onChange:(v:boolean)=>void}){const id=useId();return <div className="setting-row"><div className="setting-copy"><b id={id}>{title}</b><small>{desc}</small></div><button type="button" role="switch" aria-labelledby={id} className={`switch proc-visible-toggle ${value?'on':''}`} aria-checked={value} onClick={()=>onChange(!value)}><span>{value ? "ATIVADO" : "DESATIVADO"}</span></button></div>}
