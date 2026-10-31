@@ -1,3 +1,4 @@
+import {Link} from 'react-router-dom';
 import InternalNavigation from '../components/InternalNavigation';
 import { useEffect, useMemo, useState } from 'react';
 import { BarChart3, CheckCircle2, ClipboardList, Clock3, FileSignature, Pencil, Pause, Plus, RefreshCw, Save, Scale, XCircle } from 'lucide-react';
@@ -41,7 +42,7 @@ export default function JornadaComercial() {
   const flash = (m: string) => { setNotice(m); setError(''); setTimeout(() => setNotice(''), 5000); };
   const fail = (m: string) => { setError(m); setNotice(''); };
   return <div className="module jornada-page">
-    <div className="page-head"><div><h1>Jornada Comercial</h1><p>Da triagem boutique à contratação — propostas, follow-up, métricas e tabelas internas 2026.</p></div></div>
+    <div className="page-head"><div><h1>Jornada Comercial</h1><Link to="/perfil-cliente/honorarios">Honorários Inteligentes · Tabela OAB/MG e simulador</Link><p>Da triagem boutique à contratação — propostas, follow-up, métricas e tabelas internas 2026.</p></div></div>
     <InternalNavigation variant="underline" label="Navegação desta área">{tabs.map(([k, l, I]) => <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? 'active' : ''} onClick={() => { setTab(k); setError(''); setNotice(''); }}><I size={15} />{l}</button>)}</InternalNavigation>
     {error && <div className="crm-error" role="alert">{error}</div>}
     {notice && <div className="integration-notice" role="status"><CheckCircle2 size={15} />{notice}</div>}

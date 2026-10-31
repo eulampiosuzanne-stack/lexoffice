@@ -1,0 +1,4 @@
+import {Link,useNavigate} from 'react-router-dom';
+import OabReference from './FeePlanning';
+import './fee-planning.css';
+export default function Honorarios(){const navigate=useNavigate();return <div className="fee-workspace"><header><span className="fee-eyebrow">COMERCIAL · HONORÁRIOS</span><h1>Honorários Inteligentes</h1><p>Consulte a referência profissional e abra a proposta com a sugestão de honorários, entrada e parcelas.</p><p><Link className="btn-primary" to="/perfil-cliente">Criar proposta com sugestão automática →</Link></p></header><OabReference onSelect={key=>navigate('/perfil-cliente?oab='+encodeURIComponent(key))}/><p>As propostas, seus custos e o histórico de aprovação são salvos na área Comercial → Propostas. A consulta à tabela não gera cobranças nem modifica contratos.</p><p><Link to="/agentes-ia?area=triagem">Configurar roteiro da Helena →</Link></p></div>}

@@ -1,3 +1,12 @@
+import ProposalHistory from '../components/ProposalHistory';
+import {validateProposal,changeProposalStatus,type ProposalRecord,type ProposalStatus} from '../lib/proposalWorkspace';
+import {proposalRepository} from '../lib/proposalRepository';
+import {suggestCommercialPlan} from '../lib/commercialSuggestion';
+import OabReference from './FeePlanning';
+import ProposalFeeCosts,{DEFAULT_PROPOSAL_COSTS,type ProposalCostState} from '../components/ProposalFeeCosts';
+import oabFees from '../lib/oabFees.json';
+import {preferredOfficeAmount} from '../lib/honorarios';
+import {Link,useSearchParams} from 'react-router-dom';
 import { useEffect, useMemo, useState } from "react";
 import "./integrations.css";
 import { supabase } from "../lib/supabase";
@@ -15,22 +24,33 @@ const normalizeFinancialProfile = (value?: string | null) =>
     ? DEFAULT_IDEAL_CLIENT_PROFILE
     : value;
 export default function PerfilCliente() {
+  const [params]=useSearchParams();
   const [proposalStep,setProposalStep]=useState(0);
+  const [proposalCosts,setProposalCosts]=useState<ProposalCostState>({...DEFAULT_PROPOSAL_COSTS});
+  const [savingProposal,setSavingProposal]=useState(false);
+  const [showHistory,setShowHistory]=useState(false),[records,setRecords]=useState<ProposalRecord[]>([]),[savedId,setSavedId]=useState(''),[savedRevision,setSavedRevision]=useState(0),[historyError,setHistoryError]=useState('');
+  const [linkedLead,setLinkedLead]=useState(''),[availableLeads,setAvailableLeads]=useState<{id:string;name:string}[]>([]);
+  useEffect(()=>{proposalRepository.leads().then(setAvailableLeads).catch(e=>setHistoryError(e.message))},[]);
+  useEffect(()=>{void refreshProposals()},[]);
+  async function refreshProposals(){try{setRecords(await proposalRepository.list());setHistoryError('')}catch(e){setHistoryError((e as Error).message)}}
+  const [autoMode,setAutoMode]=useState(true);
+  const [oabItem,setOabItem]=useState(()=>oabFees.find(f=>f.key===params.get('oab'))?.key||oabFees.find(f=>f.id==='11.12')!.key);
+  const oabReference=oabFees.find(f=>f.key===oabItem);
   const [expectations, setExpectations] = useState(false),
     [documentsReady, setDocumentsReady] = useState(false),
     [history, setHistory] = useState("desconhecido"),
     [name, setName] = useState(""),
-    [income, setIncome] = useState(3000),
-    [kind, setKind] = useState("Ação de alimentos"),
-    [claim, setClaim] = useState(5000),
-    [fees, setFees] = useState(5000),
+    [income, setIncome] = useState(0),
+    [kind, setKind] = useState(oabReference?.id==='11.12'?'Ação de alimentos':oabReference?.service||'Definir serviço'),
+    [claim, setClaim] = useState(0),
+    [fees, setFees] = useState(7000),
     [installments, setInstallments] = useState(12),
     [entryMode, setEntryMode] = useState<"percent" | "fixed">("percent"),
     [entryPct, setEntryPct] = useState(20),
     [entryAmount, setEntryAmount] = useState(1000),
     [cashDiscount, setCashDiscount] = useState(0),
     [cardInstallments, setCardInstallments] = useState(12),
-    [cardMarkup, setCardMarkup] = useState(12),
+    [cardMarkup, setCardMarkup] = useState(0),
     [boletoMarkup, setBoletoMarkup] = useState(25),
     [boletoReleased, setBoletoReleased] = useState(false),
     [recurringLink, setRecurringLink] = useState(""),
@@ -41,6 +61,9 @@ export default function PerfilCliente() {
     [notes, setNotes] = useState(""),
     [notice, setNotice] = useState(""),
     [idealClientProfile, setIdealClientProfile] = useState("");
+  const suggestedBase=oabReference?preferredOfficeAmount(oabReference.id,oabReference.value):null;
+  const automatic=suggestCommercialPlan(Math.max(1,suggestedBase||fees||1),income);
+  useEffect(()=>{if(!autoMode)return;if(suggestedBase!==null)setFees(suggestedBase);setEntryMode('fixed');setEntryAmount(automatic.entry);setEntryPct(30);setCardInstallments(Math.max(1,automatic.months));setInstallments(Math.max(1,automatic.months));setCashDiscount(0);setCardMarkup(0);},[autoMode,income,oabItem]);
   const monthlyCap = 15;
   useEffect(() => {
     (async () => {
@@ -79,13 +102,14 @@ export default function PerfilCliente() {
       entry = Math.min(base, calculatedEntry),
       cap = (salary * monthlyCap) / 100;
     const suggestedMonths =
-      cap > 0 ? clamp(Math.ceil((base * 1.25 - entry) / cap), 1, 24) : 12;
+      cap > 0 ? clamp(Math.ceil((base - entry) / cap), 1, 10) : 10;
     return { entry, suggestedMonths, capacity: cap };
   }, [fees, income, entryMode, entryPct, entryAmount]);
   const cash = Math.max(0, fees) * (1 - clamp(cashDiscount, 0, 100) / 100);
   const cardMonths = clamp(Math.round(cardInstallments) || 1, 1, 24),
     cardTotal = Math.max(0, fees) * (1 + Math.max(0, cardMarkup) / 100),
-    cardMonthly = cardTotal / cardMonths;
+    cardEntry=Math.min(cardTotal,recommendation.entry),
+    cardMonthly = Math.max(0,cardTotal-cardEntry) / cardMonths;
   const boleto = Math.max(0, fees) * (1 + Math.max(0, boletoMarkup) / 100);
   const entry = Math.min(boleto, recommendation.entry),
     balance = Math.max(0, boleto - entry),
@@ -102,7 +126,7 @@ export default function PerfilCliente() {
     return "Baixo risco";
   };
   const overCapacity =
-      recommendation.capacity > 0 && monthly > recommendation.capacity,
+      boletoReleased && recommendation.capacity > 0 && monthly > recommendation.capacity,
     cardOverCapacity =
       recommendation.capacity > 0 && cardMonthly > recommendation.capacity;
   const profile =
@@ -141,15 +165,21 @@ export default function PerfilCliente() {
   const feasibleBoleto = income > 0 && monthly <= recommendation.capacity;
   const feasibleCard = income > 0 && cardMonthly <= recommendation.capacity;
   const best = feasibleCard
-    ? "Cartão com cobrança recorrente pela InfinitePay"
+    ? (cardTotal>cardEntry?"Entrada + saldo em cobranças mensais, sujeito à habilitação do provedor":"Pagamento integral na entrada, sem recorrência")
     : "Pagamento à vista ou revisão das condições";
-  const why = `À vista: ${money(cash)}. Cartão recorrente: ${cardMonths} cobranças mensais de ${money(cardMonthly)}, comprometendo ${cardIncomePct === null ? "—" : cardIncomePct.toFixed(1) + "%"} da renda por mês e ocupando apenas o valor mensal no limite. ${boletoReleased ? `Boleto excepcional: entrada de ${money(entry)} e ${months} parcelas de ${money(monthly)}.` : "Boleto não liberado para esta proposta."}`;
-  const customerSuggestion = `Apresentamos o pagamento à vista por Pix ou transferência e, para parcelamento, a cobrança recorrente pela InfinitePay: uma cobrança por mês, ocupando somente o valor da parcela no limite do cartão.${boletoReleased ? ` Excepcionalmente, foi liberado boleto com entrada de ${money(entry)} e ${months} parcelas.` : ""}`;
+  const cardSchedule=cardTotal>cardEntry?`${cardMonths} cobranças mensais de aproximadamente ${money(cardMonthly)}.`:'Sem saldo: pagamento integral na entrada, sem recorrência.';
+  const why = `À vista: ${money(cash)}. Cartão recorrente: ${cardMonths} cobranças mensais de ${money(cardMonthly)}, comprometendo ${cardIncomePct === null ? "—" : cardIncomePct.toFixed(1) + "%"} da renda por mês além da entrada independente de ${money(cardEntry)}; condições sujeitas à validação do provedor. ${boletoReleased ? `Boleto excepcional: entrada de ${money(entry)} e ${months} parcelas de ${money(monthly)}.` : "Boleto não liberado para esta proposta."}`;
+  const customerSuggestion = `Apresentamos o pagamento à vista por Pix ou transferência e, para parcelamento, a cobrança recorrente pela InfinitePay: entrada independente de ${money(cardEntry)} e saldo em cobranças mensais, conforme as condições disponíveis no provedor.${boletoReleased ? ` Excepcionalmente, foi liberado boleto com entrada de ${money(entry)} e ${months} parcelas.` : ""}`;
   const boletoText = boletoReleased
     ? `\n\nOPÇÃO 3 · BOLETO PARCELADO — EXCEÇÃO AUTORIZADA\nHonorários totais: ${money(boleto)}\nEntrada: ${money(entry)}\n${months} parcelas de aproximadamente ${money(monthly)}.`
     : "";
-  const proposal = `PROPOSTA DE HONORÁRIOS ADVOCATÍCIOS\nSuzanne Figueiredo Advocacia e Soluções Jurídicas\n\nInteressado(a): ${name.trim() || "[nome do cliente]"}\nDemanda: ${kind}\nValor da causa: ${money(claim)}\nHonorários-base: ${money(fees)}\n\nOPÇÃO 1 · PAGAMENTO À VISTA\nPix ou transferência: ${money(cash)}\n\nOPÇÃO 2 · CARTÃO COM COBRANÇA RECORRENTE — RECOMENDADA\n${cardMonths} cobranças mensais de aproximadamente ${money(cardMonthly)}. O cartão é cobrado mês a mês e ocupa do limite somente o valor da parcela.\n${recurringLink ? `Link InfinitePay: ${recurringLink}` : "O link da InfinitePay será enviado após a criação manual da recorrência pelo escritório."}${boletoText}${hasCounteroffer ? `\n\nCONTRAPROPOSTA DO CLIENTE — PENDENTE DE APROVAÇÃO\nEntrada: ${money(counterEntry)}\n${counterMonths} parcelas de ${money(counterInstallmentAmount)}\nTotal: ${money(counterTotal)}` : ""}\n\nSem confirmação da entrada, o trabalho não é iniciado. Nenhuma cobrança ao cliente é feita automaticamente pela LEX sem conferência do escritório.\n\n${notes.trim() ? notes.trim() + "\n\n" : ""}Proposta sujeita à aprovação do escritório e formalização contratual.`;
+  const proposal = `PROPOSTA DE HONORÁRIOS ADVOCATÍCIOS\nSuzanne Figueiredo Advocacia e Soluções Jurídicas\n\nInteressado(a): ${name.trim() || "[nome do cliente]"}\nDemanda: ${kind}\nValor da causa: ${money(claim)}\nHonorários-base: ${money(fees)}\n\nOPÇÃO 1 · PAGAMENTO À VISTA\nPix ou transferência: ${money(cash)}\n\nOPÇÃO 2 · CARTÃO COM COBRANÇA RECORRENTE — RECOMENDADA\nEntrada independente: ${money(cardEntry)}.\nSaldo: ${cardSchedule} Cobrança mensal sujeita à disponibilidade do provedor e à autorização do cliente.\n${recurringLink ? `Link InfinitePay: ${recurringLink}` : "O link da InfinitePay será enviado após a criação manual da recorrência pelo escritório."}${boletoText}${hasCounteroffer ? `\n\nCONTRAPROPOSTA DO CLIENTE — PENDENTE DE APROVAÇÃO\nEntrada: ${money(counterEntry)}\n${counterMonths} parcelas de ${money(counterInstallmentAmount)}\nTotal: ${money(counterTotal)}` : ""}\n\nSem confirmação da entrada, o trabalho não é iniciado. Nenhuma cobrança ao cliente é feita automaticamente pela LEX sem conferência do escritório.\n\n${notes.trim() ? notes.trim() + "\n\n" : ""}Proposta sujeita à aprovação do escritório e formalização contratual.`;
+  async function saveProposal(){if(savingProposal)return;setSavingProposal(true);try{validateProposal(name,fees,cardEntry,cardMonths);const current=await proposalRepository.list(),existing=current.find(r=>r.id===savedId);if(savedId&&(!existing||existing.revision!==savedRevision))throw Error('A proposta mudou em outra aba. Reabra a versão atual antes de salvar.');if(existing?.status==='contratacao')throw Error('Proposta encaminhada à contratação: crie uma nova proposta para revisar as condições.');const now=new Date().toISOString();const snapshot={proposalCosts,linkedLead,oabItem,autoMode,name,income,kind,claim,fees,installments,entryMode,entryPct,entryAmount,cashDiscount,cardInstallments,cardMarkup,boletoMarkup,boletoReleased,recurringLink,hasCounteroffer,counterEntry,counterInstallments,counterInstallmentAmount,notes,expectations,documentsReady,history};const record:ProposalRecord={id:existing?.id||`proposal-${Date.now()}-${Math.random().toString(36).slice(2)}`,revision:(existing?.revision||0)+1,name:name.trim(),subject:kind,total:fees,entry:cardEntry,months:cardMonths,installment:cardMonthly,text:proposal,snapshot,status:'rascunho',createdAt:existing?.createdAt||now,updatedAt:now,events:[...(existing?.events||[]),{at:now,action:existing?'Condições revisadas; nova aprovação necessária':'Rascunho criado'}]};const persisted=await proposalRepository.save(record,existing?.revision);setRecords([persisted,...current.filter(r=>r.id!==record.id)]);setSavedId(record.id);setSavedRevision(record.revision);setNotice('Proposta salva no escritório. Nenhuma mensagem ou cobrança foi enviada.')}catch(e){setNotice((e as Error).message)}finally{setSavingProposal(false)}}
+  function openProposal(r:ProposalRecord){const v=r.snapshot;setProposalCosts(v.proposalCosts||{...DEFAULT_PROPOSAL_COSTS});setLinkedLead(v.linkedLead||'');setAutoMode(false);setOabItem(v.oabItem);setName(v.name);setIncome(v.income);setKind(v.kind);setClaim(v.claim);setFees(v.fees);setInstallments(v.installments);setEntryMode(v.entryMode);setEntryPct(v.entryPct);setEntryAmount(v.entryAmount);setCashDiscount(v.cashDiscount);setCardInstallments(v.cardInstallments);setCardMarkup(v.cardMarkup);setBoletoMarkup(v.boletoMarkup);setBoletoReleased(v.boletoReleased);setRecurringLink(v.recurringLink||'');setHasCounteroffer(v.hasCounteroffer);setCounterEntry(v.counterEntry);setCounterInstallments(v.counterInstallments);setCounterInstallmentAmount(v.counterInstallmentAmount);setNotes(v.notes);setExpectations(v.expectations);setDocumentsReady(v.documentsReady);setHistory(v.history);setSavedId(r.id);setSavedRevision(r.revision);setShowHistory(false);setProposalStep(3);setNotice('Proposta carregada. Alterar e salvar as condições devolve a proposta para revisão.');}
+  async function statusProposal(r:ProposalRecord,status:ProposalStatus){if(savingProposal)return;setSavingProposal(true);try{const current=await proposalRepository.list(),fresh=current.find(x=>x.id===r.id);if(!fresh||fresh.revision!==r.revision)throw Error('Proposta atualizada em outra aba. Recarregue o histórico.');const next=changeProposalStatus(fresh,status);const persisted=await proposalRepository.save(next,fresh.revision);setRecords(current.map(x=>x.id===r.id?persisted:x));setNotice('Etapa registrada no histórico. Nenhuma ação externa foi executada.')}catch(e){setNotice((e as Error).message)}finally{setSavingProposal(false)}}
+  function newProposal(){setShowHistory(false);setSavedId('');setSavedRevision(0);setProposalCosts({...DEFAULT_PROPOSAL_COSTS});setLinkedLead('');setName('');setNotes('');setIncome(0);setClaim(0);setRecurringLink('');setBoletoReleased(false);setHasCounteroffer(false);setExpectations(false);setDocumentsReady(false);setHistory('desconhecido');setAutoMode(true);setProposalStep(0);setNotice('Nova proposta. Dados do interessado anterior foram removidos.')}
   function copy() {
+    if(!Number.isFinite(fees)||fees<=0){setNotice('Revise os honorários antes de gerar a proposta.');return}
     navigator.clipboard
       .writeText(proposal)
       .then(() =>
@@ -158,6 +188,7 @@ export default function PerfilCliente() {
       .catch(() => setNotice("Não foi possível copiar automaticamente."));
   }
   function print() {
+    if(!Number.isFinite(fees)||fees<=0){setNotice('Revise os honorários antes de gerar a proposta.');return}
     const w = window.open("", "_blank");
     if (!w) {
       setNotice("Permita janelas pop-up para gerar a proposta em PDF.");
@@ -201,9 +232,13 @@ export default function PerfilCliente() {
           </p>
         </div>
       </div>
+      <div className="workspace-step-actions"><button type="button" className="btn-secondary" onClick={()=>{void refreshProposals();setShowHistory(v=>!v)}}>{showHistory?'Voltar ao editor':`Propostas salvas (${records.length})`}</button></div>
+      {notice&&<p role="status">{notice}</p>}{historyError&&<p role="alert">{historyError}</p>}
+      {showHistory&&<ProposalHistory records={records} onOpen={openProposal} onStatus={statusProposal} onNew={newProposal} busy={savingProposal}/>}
+      <div hidden={showHistory}>
       <nav className="workspace-steps" aria-label="Etapas da proposta">{['Dados','Condições','Análise','Prévia e envio'].map((label,index)=><button type="button" key={label} aria-current={proposalStep===index?'step':undefined} onClick={()=>setProposalStep(index)}><span>{index+1}</span>{label}</button>)}</nav><p className="lx-muted">Etapa {proposalStep+1} de 4 · Volte às etapas anteriores para ajustar os dados.</p><div className="workspace-single-column">
         <section className="panel" hidden={proposalStep>1}>
-          {proposalStep===0 && <><h2>Dados da negociação</h2></>}
+          {proposalStep===0 && <><h2>Dados da negociação</h2><label>Interessado cadastrado (opcional)<select value={linkedLead} onChange={e=>{setLinkedLead(e.target.value);const found=availableLeads.find(x=>x.id===e.target.value);if(found)setName(found.name)}}><option value="">Novo interessado / sem vínculo</option>{availableLeads.map(lead=><option key={lead.id} value={lead.id}>{lead.name}</option>)}</select></label></>}
           {proposalStep===0 && <><label>
             Nome do cliente
             <input
@@ -221,6 +256,7 @@ export default function PerfilCliente() {
               onChange={(e) => setIncome(+e.target.value)}
             />
           </label></>}
+          {proposalStep===0&&<div className="integration-card"><h3>Referência OAB/MG e preço do escritório</h3><p>Item {oabReference?.id} · Edição 2023 · {oabReference?.value} · {oabReference?.percentage||'—'}. Valores nominais, sem atualização monetária aplicada.</p><p>{oabReference?.id==='11.12'?'Referência interna de alimentos: R$ 7.000. Não é teto oficial da OAB.':'Valor interno sugerido sujeito aos critérios, percentuais e atualização da tabela aplicável.'}</p><details className="fee-workspace"><summary>Selecionar serviço na tabela OAB/MG</summary><OabReference onSelect={id=>{const f=oabFees.find(x=>x.key===id);if(!f)return;setAutoMode(true);setOabItem(id);setKind(f.service);const amount=preferredOfficeAmount(f.id,f.value);if(amount!==null)setFees(amount)}}/></details><p><Link to="/perfil-cliente/honorarios">Abrir simulador detalhado de honorários →</Link></p></div>}
           {proposalStep===0 && <><label>
             Tipo de ação
             <input value={kind} onChange={(e) => setKind(e.target.value)} />
@@ -235,14 +271,16 @@ export default function PerfilCliente() {
             />
           </label></>}
           {proposalStep===0 && <><label>
-            Honorários-base propostos pelo escritório (R$)
+            Honorários-base sugeridos pelo escritório (R$)
             <input
               type="number"
               min="0"
               value={fees}
-              onChange={(e) => setFees(+e.target.value)}
+              onChange={(e) => {setAutoMode(false);setFees(+e.target.value)}}
             />
           </label></>}
+          {proposalStep===1&&<div className="integration-card"><h2>Sugestão pronta para sua revisão</h2><p><strong>{autoMode?'Plano automático':'Ajuste manual em revisão'}</strong></p><p>Honorários sugeridos: <b>{money(automatic.total)}</b><br/>Entrada: <b>{money(automatic.entry)}</b><br/>{automatic.months?`${automatic.months} parcelas de ${money(automatic.installment)}; última ${money(automatic.last)}.`:'Pagamento integral na entrada.'}</p><p>{automatic.reason}</p><p>Condição preferencial: entrada por Pix e saldo em cobrança mensal pelo provedor habilitado, após assinatura e confirmação da entrada. Recorrência depende de disponibilidade e autorização.</p><p>Alternativa 1: à vista, sem desconto automático. Alternativa 2: entrada e saldo mensal. Boleto com acréscimo de 25% permanece exceção, sujeito à sua liberação.</p><p>Taxas do provedor, tributos e repasses ainda não cadastrados: líquido pendente de apuração. Nenhum desses custos foi presumido como zero.</p>{!autoMode&&<button type="button" className="btn-secondary" onClick={()=>setAutoMode(true)}>Reaplicar sugestão automática</button>}</div>}
+          <details hidden={proposalStep!==1} open={!autoMode&&proposalStep===1} onToggle={e=>{if(e.currentTarget.open)setAutoMode(false)}}><summary>Revisar parâmetros manualmente (opcional)</summary>
           {proposalStep===1 && <><h3>Parâmetros ajustáveis</h3></>}
           {proposalStep===1 && <><label>
             Forma de definir a entrada
@@ -401,9 +439,10 @@ export default function PerfilCliente() {
               placeholder="Ex.: despesas não incluídas, validade da proposta, escopo dos serviços"
             />
           </label></>}
+          </details>
         </section>
         <section className="panel" hidden={proposalStep<2}>
-          {proposalStep===2 && <><h2>Simulação assistida</h2></>}
+          {proposalStep===2 && <><h2>Simulação assistida</h2><ProposalFeeCosts value={proposalCosts} onChange={setProposalCosts} total={fees} entry={Math.min(fees,recommendation.entry)} months={cardMonths}/></>}
           {proposalStep===2 && <><p>
             A renda é apenas referência de planejamento, não prova de capacidade
             de pagamento. A sugestão usa uma regra transparente, sem decisão
@@ -432,8 +471,7 @@ export default function PerfilCliente() {
             <h2>{money(cardTotal)}</h2>
             <p>
               Acréscimo/juros: {money(cardTotal - Math.max(0, fees))}.{" "}
-              {cardMonths} cobranças mensais de {money(cardMonthly)}, ocupando
-              somente a parcela no limite e equivalentes a{" "}
+              {cardMonths} cobranças mensais de {money(cardMonthly)}, além da entrada de {money(cardEntry)}, equivalentes a{" "}
               {cardIncomePct === null ? "—" : cardIncomePct.toFixed(1) + "%"} da
               renda mensal.
             </p>
@@ -472,7 +510,7 @@ export default function PerfilCliente() {
             <p>
               Entrada de referência: {money(recommendation.entry)}.
               Aproximadamente {recommendation.suggestedMonths} parcelas para se
-              aproximar do limite mensal informado, até 24 meses.
+              aproximar do limite mensal informado, até 10 meses.
             </p>
             {(overCapacity || cardOverCapacity) && (
               <p role="alert">
@@ -568,6 +606,7 @@ export default function PerfilCliente() {
             {proposal}
           </pre></>}
           {proposalStep===3 && <><div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button className="btn-primary" type="button" onClick={saveProposal} disabled={savingProposal||!!historyError}>{savingProposal?'Salvando…':savedId?'Salvar revisão da proposta':'Salvar proposta'}</button>
             <button className="btn-primary" type="button" onClick={copy}>
               Copiar para WhatsApp
             </button>
@@ -582,9 +621,10 @@ export default function PerfilCliente() {
               Gerar cartilha de pagamento
             </button>
           </div></>}
-          {proposalStep===3 && <>{notice && <p role="status">{notice}</p>}</>}
+
         </section>
       </div><div className="workspace-step-actions"><button type="button" className="lx-button" disabled={proposalStep===0} onClick={()=>setProposalStep(s=>Math.max(0,s-1))}>← Voltar</button>{proposalStep<3&&<button type="button" className="lx-button lx-button--primary" onClick={()=>setProposalStep(s=>Math.min(3,s+1))}>Continuar →</button>}</div>
+      </div>
     </div>
   );
 }

@@ -1,0 +1,4642 @@
+[
+  {
+    "id": "4.1",
+    "area": "Atividades Avulsas ou Extrajudiciais",
+    "service": "Consulta (Vide artigo 48 e seguintes do CED)",
+    "value": "R$ 300,00",
+    "percentage": "-",
+    "page": 11,
+    "year": 2023,
+    "key": "4.1-11-0"
+  },
+  {
+    "id": "4.1.1",
+    "area": "Atividades Avulsas ou Extrajudiciais",
+    "service": "Consulta em condições excepcionais (com exame de documentos ou fora do escritório ou fora do horário de expediente)",
+    "value": "R$ 900,00",
+    "percentage": "-",
+    "page": 11,
+    "year": 2023,
+    "key": "4.1.1-11-1"
+  },
+  {
+    "id": "4.2",
+    "area": "Atividades Avulsas ou Extrajudiciais",
+    "service": "Hora intelectual",
+    "value": "R$ 700,00",
+    "percentage": "-",
+    "page": 11,
+    "year": 2023,
+    "key": "4.2-11-2"
+  },
+  {
+    "id": "4.3",
+    "area": "Atividades Avulsas ou Extrajudiciais",
+    "service": "Acompanhamento ou exame de documentos em órgão público",
+    "value": "R$ 1.200,00",
+    "percentage": "-",
+    "page": 11,
+    "year": 2023,
+    "key": "4.3-11-3"
+  },
+  {
+    "id": "4.4",
+    "area": "Atividades Avulsas ou Extrajudiciais",
+    "service": "Acompanhamento de citação, notificação, intimação, interpelação e exames periciais; distribuição e cumprimento de carta precatória",
+    "value": "R$ 800,00",
+    "percentage": "-",
+    "page": 12,
+    "year": 2023,
+    "key": "4.4-12-4"
+  },
+  {
+    "id": "4.5",
+    "area": "Atividades Avulsas ou Extrajudiciais",
+    "service": "Acompanhamento de depoimento pessoal ou inquirição de testemunhas (por ato)",
+    "value": "R$ 1.700,00",
+    "percentage": "-",
+    "page": 12,
+    "year": 2023,
+    "key": "4.5-12-5"
+  },
+  {
+    "id": "4.6",
+    "area": "Atividades Avulsas ou Extrajudiciais",
+    "service": "Cobrança extrajudicial",
+    "value": "R$ 900,00",
+    "percentage": "10%",
+    "page": 12,
+    "year": 2023,
+    "key": "4.6-12-6"
+  },
+  {
+    "id": "4.7",
+    "area": "Atividades Avulsas ou Extrajudiciais",
+    "service": "Elaboração de notificação extrajudicial",
+    "value": "R$ 1.300,00",
+    "percentage": "-",
+    "page": 12,
+    "year": 2023,
+    "key": "4.7-12-7"
+  },
+  {
+    "id": "4.8",
+    "area": "Atividades Avulsas ou Extrajudiciais",
+    "service": "Exame e elaboração de minutas de contrato, distrato, alteração, estatuto, escritura ou documento",
+    "value": "R$ 4.000,00",
+    "percentage": "-",
+    "page": 12,
+    "year": 2023,
+    "key": "4.8-12-8"
+  },
+  {
+    "id": "4.9",
+    "area": "Atividades Avulsas ou Extrajudiciais",
+    "service": "Memorial",
+    "value": "R$ 2.500,00",
+    "percentage": "-",
+    "page": 12,
+    "year": 2023,
+    "key": "4.9-12-9"
+  },
+  {
+    "id": "4.10",
+    "area": "Atividades Avulsas ou Extrajudiciais",
+    "service": "Parecer",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 12,
+    "year": 2023,
+    "key": "4.10-12-10"
+  },
+  {
+    "id": "4.11",
+    "area": "Atividades Avulsas ou Extrajudiciais",
+    "service": "Exame de processo em geral",
+    "value": "R$ 3.000,00",
+    "percentage": "-",
+    "page": 12,
+    "year": 2023,
+    "key": "4.11-12-11"
+  },
+  {
+    "id": "4.12",
+    "area": "Atividades Avulsas ou Extrajudiciais",
+    "service": "Atuação em negociação extrajudicial, ainda que seja de valor inestimável",
+    "value": "R$ 1.300,00",
+    "percentage": "-",
+    "page": 12,
+    "year": 2023,
+    "key": "4.12-12-12"
+  },
+  {
+    "id": "4.12.1",
+    "area": "Atividades Avulsas ou Extrajudiciais",
+    "service": "Havendo interesse econômico",
+    "value": "-",
+    "percentage": "10%",
+    "page": 12,
+    "year": 2023,
+    "key": "4.12.1-12-13"
+  },
+  {
+    "id": "4.13",
+    "area": "Atividades Avulsas ou Extrajudiciais",
+    "service": "Assesoria em geral mensal (previdenciária, sindical, empresarial, etc.)",
+    "value": "R$ 3.000,00",
+    "percentage": "-",
+    "page": 12,
+    "year": 2023,
+    "key": "4.13-12-14"
+  },
+  {
+    "id": "5.1",
+    "area": "Processo Administrativo",
+    "service": "Sindicância - acompanha- mento/defesa",
+    "value": "R$ 4.000,00",
+    "percentage": "5%",
+    "page": 13,
+    "year": 2023,
+    "key": "5.1-13-15"
+  },
+  {
+    "id": "5.2",
+    "area": "Processo Administrativo",
+    "service": "Representação ou defesa - processo administrativo",
+    "value": "R$ 9.000,00",
+    "percentage": "10%",
+    "page": 13,
+    "year": 2023,
+    "key": "5.2-13-16"
+  },
+  {
+    "id": "5.3",
+    "area": "Processo Administrativo",
+    "service": "Recurso – processo ad- ministrativo",
+    "value": "R$ 5.200,00",
+    "percentage": "5%",
+    "page": 13,
+    "year": 2023,
+    "key": "5.3-13-17"
+  },
+  {
+    "id": "5.4",
+    "area": "Processo Administrativo",
+    "service": "Ação ou defesa – proces- so judicial",
+    "value": "R$ 14.000,00",
+    "percentage": "10%",
+    "page": 13,
+    "year": 2023,
+    "key": "5.4-13-18"
+  },
+  {
+    "id": "5.5",
+    "area": "Processo Administrativo",
+    "service": "Recurso – fase judicial",
+    "value": "R$ 7.000,00",
+    "percentage": "5%",
+    "page": 13,
+    "year": 2023,
+    "key": "5.5-13-19"
+  },
+  {
+    "id": "6.1",
+    "area": "Ações Constitucionais e Coletivas",
+    "service": "Habeas Corpus",
+    "value": "R$ 12.000,00",
+    "percentage": "-",
+    "page": 13,
+    "year": 2023,
+    "key": "6.1-13-20"
+  },
+  {
+    "id": "6.2",
+    "area": "Ações Constitucionais e Coletivas",
+    "service": "Habeas Data",
+    "value": "R$ 4.000,00",
+    "percentage": "-",
+    "page": 13,
+    "year": 2023,
+    "key": "6.2-13-21"
+  },
+  {
+    "id": "6.3",
+    "area": "Ações Constitucionais e Coletivas",
+    "service": "Mandado de Segurança individual",
+    "value": "R$ 6.000,00",
+    "percentage": "-",
+    "page": 13,
+    "year": 2023,
+    "key": "6.3-13-22"
+  },
+  {
+    "id": "6.4",
+    "area": "Ações Constitucionais e Coletivas",
+    "service": "Mandado de Segurança coletivo",
+    "value": "R$ 12.000,00",
+    "percentage": "-",
+    "page": 13,
+    "year": 2023,
+    "key": "6.4-13-23"
+  },
+  {
+    "id": "6.5",
+    "area": "Ações Constitucionais e Coletivas",
+    "service": "Mandado de Injunção",
+    "value": "R$ 6.000,00",
+    "percentage": "-",
+    "page": 13,
+    "year": 2023,
+    "key": "6.5-13-24"
+  },
+  {
+    "id": "6.6",
+    "area": "Ações Constitucionais e Coletivas",
+    "service": "Ação Popular",
+    "value": "R$ 12.000,00",
+    "percentage": "-",
+    "page": 14,
+    "year": 2023,
+    "key": "6.6-14-25"
+  },
+  {
+    "id": "6.7",
+    "area": "Ações Constitucionais e Coletivas",
+    "service": "Ação Civil Pública",
+    "value": "R$ 12.000,00",
+    "percentage": "-",
+    "page": 14,
+    "year": 2023,
+    "key": "6.7-14-26"
+  },
+  {
+    "id": "6.8",
+    "area": "Ações Constitucionais e Coletivas",
+    "service": "Reclamação Constitucional",
+    "value": "R$ 6.000,00",
+    "percentage": "-",
+    "page": 14,
+    "year": 2023,
+    "key": "6.8-14-27"
+  },
+  {
+    "id": "6.9",
+    "area": "Ações Constitucionais e Coletivas",
+    "service": "Ação Direta de Inconstitucionalidade",
+    "value": "R$ 12.000,00",
+    "percentage": "-",
+    "page": 14,
+    "year": 2023,
+    "key": "6.9-14-28"
+  },
+  {
+    "id": "6.10",
+    "area": "Ações Constitucionais e Coletivas",
+    "service": "Arguição de Descumprimento de Preceito Fundamental",
+    "value": "R$ 12.000,00",
+    "percentage": "-",
+    "page": 14,
+    "year": 2023,
+    "key": "6.10-14-29"
+  },
+  {
+    "id": "6.11",
+    "area": "Ações Constitucionais e Coletivas",
+    "service": "Outras ações constitucionais",
+    "value": "R$ 6.000,00",
+    "percentage": "-",
+    "page": 14,
+    "year": 2023,
+    "key": "6.11-14-30"
+  },
+  {
+    "id": "7.1",
+    "area": "Juizados Especiais Estaduais e Federais",
+    "service": "Atuação em primeira instância",
+    "value": "R$ 3.000,00",
+    "percentage": "20%",
+    "page": 14,
+    "year": 2023,
+    "key": "7.1-14-31"
+  },
+  {
+    "id": "7.2",
+    "area": "Juizados Especiais Estaduais e Federais",
+    "service": "Atuação em segunda instância",
+    "value": "R$ 1.000,00",
+    "percentage": "10%",
+    "page": 14,
+    "year": 2023,
+    "key": "7.2-14-32"
+  },
+  {
+    "id": "7.3",
+    "area": "Juizados Especiais Estaduais e Federais",
+    "service": "Sustentação oral perante turmas recursais",
+    "value": "R$ 1.000,00",
+    "percentage": "10%",
+    "page": 14,
+    "year": 2023,
+    "key": "7.3-14-33"
+  },
+  {
+    "id": "8.1",
+    "area": "Direito Civil",
+    "service": "Procedimento comum: atuação em primeira instância",
+    "value": "R$ 7.000,00",
+    "percentage": "20%",
+    "page": 15,
+    "year": 2023,
+    "key": "8.1-15-34"
+  },
+  {
+    "id": "8.2",
+    "area": "Direito Civil",
+    "service": "Cumprimento de sentença",
+    "value": "R$ 4.000,00",
+    "percentage": "20%",
+    "page": 15,
+    "year": 2023,
+    "key": "8.2-15-35"
+  },
+  {
+    "id": "8.3",
+    "area": "Direito Civil",
+    "service": "Impugnação ao cumprimento de sentença",
+    "value": "R$ 4.000,00",
+    "percentage": "20%",
+    "page": 15,
+    "year": 2023,
+    "key": "8.3-15-36"
+  },
+  {
+    "id": "8.4",
+    "area": "Direito Civil",
+    "service": "Execução de título extrajudicial",
+    "value": "R$ 4.000,00",
+    "percentage": "20%",
+    "page": 15,
+    "year": 2023,
+    "key": "8.4-15-37"
+  },
+  {
+    "id": "8.5",
+    "area": "Direito Civil",
+    "service": "Embargos à execução de título extrajudicial",
+    "value": "R$ 4.000,00",
+    "percentage": "20%",
+    "page": 15,
+    "year": 2023,
+    "key": "8.5-15-38"
+  },
+  {
+    "id": "8.6",
+    "area": "Direito Civil",
+    "service": "Embargos à penhora, à arrematação, à adjudicação, ao leilão, de títulos judiciais e extrajudiciais",
+    "value": "R$ 5.000,00",
+    "percentage": "20%",
+    "page": 15,
+    "year": 2023,
+    "key": "8.6-15-39"
+  },
+  {
+    "id": "8.7",
+    "area": "Direito Civil",
+    "service": "Tutelas de urgência de natureza antecipatória, de natureza cautelar e tutela de evidência",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 15,
+    "year": 2023,
+    "key": "8.7-15-40"
+  },
+  {
+    "id": "8.8",
+    "area": "Direito Civil",
+    "service": "Consignação em pagamento",
+    "value": "R$ 4.000,00",
+    "percentage": "20%",
+    "page": 15,
+    "year": 2023,
+    "key": "8.8-15-41"
+  },
+  {
+    "id": "8.9",
+    "area": "Direito Civil",
+    "service": "Ação de exigir contas",
+    "value": "R$ 7.000,00",
+    "percentage": "-",
+    "page": 15,
+    "year": 2023,
+    "key": "8.9-15-42"
+  },
+  {
+    "id": "8.10",
+    "area": "Direito Civil",
+    "service": "Possessórias de bem móvel: manutenção e reintegração de posse",
+    "value": "R$ 4.000,00",
+    "percentage": "20%",
+    "page": 15,
+    "year": 2023,
+    "key": "8.10-15-43"
+  },
+  {
+    "id": "8.11",
+    "area": "Direito Civil",
+    "service": "Possessórias de bem imóvel: manutenção, reintegração e interdido proibitório",
+    "value": "R$ 8.000,00",
+    "percentage": "20%",
+    "page": 15,
+    "year": 2023,
+    "key": "8.11-15-44"
+  },
+  {
+    "id": "8.12",
+    "area": "Direito Civil",
+    "service": "Divisão e demarcação de terras",
+    "value": "R$ 8.000,00",
+    "percentage": "10%",
+    "page": 16,
+    "year": 2023,
+    "key": "8.12-16-45"
+  },
+  {
+    "id": "8.13",
+    "area": "Direito Civil",
+    "service": "Embargos de terceiro",
+    "value": "R$ 5.000,00",
+    "percentage": "10%",
+    "page": 16,
+    "year": 2023,
+    "key": "8.13-16-46"
+  },
+  {
+    "id": "8.14",
+    "area": "Direito Civil",
+    "service": "Habilitação",
+    "value": "R$ 5.000,00",
+    "percentage": "10%",
+    "page": 16,
+    "year": 2023,
+    "key": "8.14-16-47"
+  },
+  {
+    "id": "8.15",
+    "area": "Direito Civil",
+    "service": "Restauração de autos",
+    "value": "R$ 4.000,00",
+    "percentage": "10%",
+    "page": 16,
+    "year": 2023,
+    "key": "8.15-16-48"
+  },
+  {
+    "id": "8.16",
+    "area": "Direito Civil",
+    "service": "Oposição",
+    "value": "R$ 5.000,00",
+    "percentage": "10%",
+    "page": 16,
+    "year": 2023,
+    "key": "8.16-16-49"
+  },
+  {
+    "id": "8.17",
+    "area": "Direito Civil",
+    "service": "Ação monitória",
+    "value": "R$ 5.000,00",
+    "percentage": "10%",
+    "page": 16,
+    "year": 2023,
+    "key": "8.17-16-50"
+  },
+  {
+    "id": "8.18",
+    "area": "Direito Civil",
+    "service": "Homologação do penhor legal",
+    "value": "R$ 4.000,00",
+    "percentage": "-",
+    "page": 16,
+    "year": 2023,
+    "key": "8.18-16-51"
+  },
+  {
+    "id": "8.19",
+    "area": "Direito Civil",
+    "service": "Procedimentos inominados",
+    "value": "R$ 4.000,00",
+    "percentage": "10%",
+    "page": 16,
+    "year": 2023,
+    "key": "8.19-16-52"
+  },
+  {
+    "id": "8.20",
+    "area": "Direito Civil",
+    "service": "Retificação de registro público",
+    "value": "R$ 4.000,00",
+    "percentage": "-",
+    "page": 16,
+    "year": 2023,
+    "key": "8.20-16-53"
+  },
+  {
+    "id": "8.21",
+    "area": "Direito Civil",
+    "service": "Alvará judicial",
+    "value": "R$ 3.000,00",
+    "percentage": "20%",
+    "page": 16,
+    "year": 2023,
+    "key": "8.21-16-54"
+  },
+  {
+    "id": "8.22",
+    "area": "Direito Civil",
+    "service": "Ação de constituição, extinção de usufruto ou fideicomisso",
+    "value": "R$ 5.000,00",
+    "percentage": "10%",
+    "page": 16,
+    "year": 2023,
+    "key": "8.22-16-55"
+  },
+  {
+    "id": "8.23",
+    "area": "Direito Civil",
+    "service": "Alienação e locação de bem comum",
+    "value": "R$ 7.000,00",
+    "percentage": "10%",
+    "page": 16,
+    "year": 2023,
+    "key": "8.23-16-56"
+  },
+  {
+    "id": "8.24",
+    "area": "Direito Civil",
+    "service": "Ação de cancelamento de protesto",
+    "value": "R$ 5.000,00",
+    "percentage": "15%",
+    "page": 16,
+    "year": 2023,
+    "key": "8.24-16-57"
+  },
+  {
+    "id": "8.25",
+    "area": "Direito Civil",
+    "service": "Homologação de autocomposição extrajudicial",
+    "value": "R$ 4.000,00",
+    "percentage": "-",
+    "page": 16,
+    "year": 2023,
+    "key": "8.25-16-58"
+  },
+  {
+    "id": "8.26",
+    "area": "Direito Civil",
+    "service": "Notificação e interpelação",
+    "value": "R$ 3.000,00",
+    "percentage": "-",
+    "page": 16,
+    "year": 2023,
+    "key": "8.26-16-59"
+  },
+  {
+    "id": "9.1",
+    "area": "Recursos e Atuação Perante Tribunais e Conselhos",
+    "service": "Apelação",
+    "value": "R$ 4.000,00",
+    "percentage": "-",
+    "page": 17,
+    "year": 2023,
+    "key": "9.1-17-60"
+  },
+  {
+    "id": "9.2",
+    "area": "Recursos e Atuação Perante Tribunais e Conselhos",
+    "service": "Agravo de Instrumento",
+    "value": "R$ 3.000,00",
+    "percentage": "-",
+    "page": 17,
+    "year": 2023,
+    "key": "9.2-17-61"
+  },
+  {
+    "id": "9.3",
+    "area": "Recursos e Atuação Perante Tribunais e Conselhos",
+    "service": "Agravo interno",
+    "value": "R$ 2.000,00",
+    "percentage": "-",
+    "page": 17,
+    "year": 2023,
+    "key": "9.3-17-62"
+  },
+  {
+    "id": "9.4",
+    "area": "Recursos e Atuação Perante Tribunais e Conselhos",
+    "service": "Embargos de declaração",
+    "value": "R$ 2.000,00",
+    "percentage": "-",
+    "page": 17,
+    "year": 2023,
+    "key": "9.4-17-63"
+  },
+  {
+    "id": "9.5",
+    "area": "Recursos e Atuação Perante Tribunais e Conselhos",
+    "service": "Recurso ordinário nas instâncias superiores",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 17,
+    "year": 2023,
+    "key": "9.5-17-64"
+  },
+  {
+    "id": "9.6",
+    "area": "Recursos e Atuação Perante Tribunais e Conselhos",
+    "service": "Agravo em recurso especial ou extraordinário",
+    "value": "R$ 3.000,00",
+    "percentage": "-",
+    "page": 17,
+    "year": 2023,
+    "key": "9.6-17-65"
+  },
+  {
+    "id": "9.7",
+    "area": "Recursos e Atuação Perante Tribunais e Conselhos",
+    "service": "Embargos de divergência",
+    "value": "R$ 3.000,00",
+    "percentage": "-",
+    "page": 17,
+    "year": 2023,
+    "key": "9.7-17-66"
+  },
+  {
+    "id": "9.8",
+    "area": "Recursos e Atuação Perante Tribunais e Conselhos",
+    "service": "Recurso em sentido estrito",
+    "value": "R$ 4.000,00",
+    "percentage": "-",
+    "page": 17,
+    "year": 2023,
+    "key": "9.8-17-67"
+  },
+  {
+    "id": "9.9",
+    "area": "Recursos e Atuação Perante Tribunais e Conselhos",
+    "service": "Apelação criminal",
+    "value": "R$ 10.000,00",
+    "percentage": "-",
+    "page": 17,
+    "year": 2023,
+    "key": "9.9-17-68"
+  },
+  {
+    "id": "9.10",
+    "area": "Recursos e Atuação Perante Tribunais e Conselhos",
+    "service": "Carta testemunhável",
+    "value": "R$ 4.000,00",
+    "percentage": "-",
+    "page": 17,
+    "year": 2023,
+    "key": "9.10-17-69"
+  },
+  {
+    "id": "9.11",
+    "area": "Recursos e Atuação Perante Tribunais e Conselhos",
+    "service": "Agravos criminais",
+    "value": "R$ 6.000,00",
+    "percentage": "-",
+    "page": 17,
+    "year": 2023,
+    "key": "9.11-17-70"
+  },
+  {
+    "id": "9.12",
+    "area": "Recursos e Atuação Perante Tribunais e Conselhos",
+    "service": "Embargos Infringentes",
+    "value": "R$ 6.000,00",
+    "percentage": "-",
+    "page": 17,
+    "year": 2023,
+    "key": "9.12-17-71"
+  },
+  {
+    "id": "9.13",
+    "area": "Recursos e Atuação Perante Tribunais e Conselhos",
+    "service": "Correição parcial",
+    "value": "R$ 3.000,00",
+    "percentage": "-",
+    "page": 17,
+    "year": 2023,
+    "key": "9.13-17-72"
+  },
+  {
+    "id": "9.14",
+    "area": "Recursos e Atuação Perante Tribunais e Conselhos",
+    "service": "Reclamação",
+    "value": "R$ 6.000,00",
+    "percentage": "-",
+    "page": 17,
+    "year": 2023,
+    "key": "9.14-17-73"
+  },
+  {
+    "id": "9.15",
+    "area": "Recursos e Atuação Perante Tribunais e Conselhos",
+    "service": "Revisão",
+    "value": "R$ 11.000,00",
+    "percentage": "-",
+    "page": 17,
+    "year": 2023,
+    "key": "9.15-17-74"
+  },
+  {
+    "id": "9.16",
+    "area": "Recursos e Atuação Perante Tribunais e Conselhos",
+    "service": "Atuação em ampliação de colegiado (julgamento não unânime)",
+    "value": "R$ 4.000,00",
+    "percentage": "-",
+    "page": 18,
+    "year": 2023,
+    "key": "9.16-18-75"
+  },
+  {
+    "id": "9.17",
+    "area": "Recursos e Atuação Perante Tribunais e Conselhos",
+    "service": "Procedimentos isolados perante os Tribunais Estaduais e/ou Regionais",
+    "value": "",
+    "percentage": "",
+    "page": 18,
+    "year": 2023,
+    "key": "9.17-18-76"
+  },
+  {
+    "id": "9.18",
+    "area": "Recursos e Atuação Perante Tribunais e Conselhos",
+    "service": "Recursos perante tribunais superiores:",
+    "value": "",
+    "percentage": "",
+    "page": 18,
+    "year": 2023,
+    "key": "9.18-18-77"
+  },
+  {
+    "id": "9.19",
+    "area": "Recursos e Atuação Perante Tribunais e Conselhos",
+    "service": "Ação rescisória – proposição ou defesa",
+    "value": "R$ 12.800,00",
+    "percentage": "20%",
+    "page": 18,
+    "year": 2023,
+    "key": "9.19-18-78"
+  },
+  {
+    "id": "9.20",
+    "area": "Recursos e Atuação Perante Tribunais e Conselhos",
+    "service": "Mandado de Injunção",
+    "value": "R$ 8.000,00",
+    "percentage": "-",
+    "page": 18,
+    "year": 2023,
+    "key": "9.20-18-79"
+  },
+  {
+    "id": "9.21",
+    "area": "Recursos e Atuação Perante Tribunais e Conselhos",
+    "service": "Mandado de segurança",
+    "value": "R$ 8.000,00",
+    "percentage": "-",
+    "page": 18,
+    "year": 2023,
+    "key": "9.21-18-80"
+  },
+  {
+    "id": "9.22",
+    "area": "Recursos e Atuação Perante Tribunais e Conselhos",
+    "service": "Atuação perante Tribunal de Contas",
+    "value": "R$ 14.350,00",
+    "percentage": "-",
+    "page": 18,
+    "year": 2023,
+    "key": "9.22-18-81"
+  },
+  {
+    "id": "9.23",
+    "area": "Recursos e Atuação Perante Tribunais e Conselhos",
+    "service": "Atuação perante Conselho Profissional",
+    "value": "R$ 8.800,00",
+    "percentage": "-",
+    "page": 18,
+    "year": 2023,
+    "key": "9.23-18-82"
+  },
+  {
+    "id": "9.24",
+    "area": "Recursos e Atuação Perante Tribunais e Conselhos",
+    "service": "Atuação perante Conselho Administrativo",
+    "value": "R$ 10.000,00",
+    "percentage": "-",
+    "page": 18,
+    "year": 2023,
+    "key": "9.24-18-83"
+  },
+  {
+    "id": "9.25",
+    "area": "Recursos e Atuação Perante Tribunais e Conselhos",
+    "service": "Sustentação oral",
+    "value": "",
+    "percentage": "",
+    "page": 18,
+    "year": 2023,
+    "key": "9.25-18-84"
+  },
+  {
+    "id": "10.1",
+    "area": "Falência, Recuperação de Empresas e Insolvência",
+    "service": "Pedido de falência e acompanhamento até a decretação",
+    "value": "R$ 10.000,00",
+    "percentage": "20%",
+    "page": 19,
+    "year": 2023,
+    "key": "10.1-19-85"
+  },
+  {
+    "id": "10.2",
+    "area": "Falência, Recuperação de Empresas e Insolvência",
+    "service": "Pedido de declaração de insolvência",
+    "value": "R$ 5.000,00",
+    "percentage": "20%",
+    "page": 19,
+    "year": 2023,
+    "key": "10.2-19-86"
+  },
+  {
+    "id": "10.3",
+    "area": "Falência, Recuperação de Empresas e Insolvência",
+    "service": "Pedido de recuperação judicial",
+    "value": "R$ 10.000,00",
+    "percentage": "2% a 10%",
+    "page": 19,
+    "year": 2023,
+    "key": "10.3-19-87"
+  },
+  {
+    "id": "10.4",
+    "area": "Falência, Recuperação de Empresas e Insolvência",
+    "service": "Habilitação/divergência de crédito",
+    "value": "R$ 3.000,00",
+    "percentage": "20%",
+    "page": 19,
+    "year": 2023,
+    "key": "10.4-19-88"
+  },
+  {
+    "id": "10.5",
+    "area": "Falência, Recuperação de Empresas e Insolvência",
+    "service": "Representação do falido",
+    "value": "R$ 10.000,00",
+    "percentage": "20% (sobre o montante do passivo)",
+    "page": 19,
+    "year": 2023,
+    "key": "10.5-19-89"
+  },
+  {
+    "id": "10.6",
+    "area": "Falência, Recuperação de Empresas e Insolvência",
+    "service": "Representação do devedor insolvente (sobre o montante do passivo)",
+    "value": "R$ 5.000,00",
+    "percentage": "20% (sobre o montante do passivo)",
+    "page": 19,
+    "year": 2023,
+    "key": "10.6-19-90"
+  },
+  {
+    "id": "10.7",
+    "area": "Falência, Recuperação de Empresas e Insolvência",
+    "service": "Representação do administrador judicial na falência ou na recuperação judicial",
+    "value": "R$ 10.000,00",
+    "percentage": "5% (sobre o montante do passivo)",
+    "page": 19,
+    "year": 2023,
+    "key": "10.7-19-91"
+  },
+  {
+    "id": "11.1",
+    "area": "Direito de Família",
+    "service": "Divórcio/reconhecimento e dissolução de entidade familiar consensual judicial",
+    "value": "R$ 7.000,00",
+    "percentage": "-",
+    "page": 20,
+    "year": 2023,
+    "key": "11.1-20-92"
+  },
+  {
+    "id": "11.2",
+    "area": "Direito de Família",
+    "service": "Divórcio/reconhecimento e dissolução de entidade familiar extrajudicial",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 20,
+    "year": 2023,
+    "key": "11.2-20-93"
+  },
+  {
+    "id": "11.3",
+    "area": "Direito de Família",
+    "service": "Divórcio/reconhecimento e dissolução de união estável consensual judicial cumulado com partilha de bens será acrescido de percentual mínimo",
+    "value": "R$ 7.000,00",
+    "percentage": "6%",
+    "page": 20,
+    "year": 2023,
+    "key": "11.3-20-94"
+  },
+  {
+    "id": "11.4",
+    "area": "Direito de Família",
+    "service": "Divórcio/ reconhecimento e dissolução de entidade familiar extrajudicial cumulado com partilha de bens será acrescido de percentual mínimo",
+    "value": "R$ 5.000,00",
+    "percentage": "6%",
+    "page": 20,
+    "year": 2023,
+    "key": "11.4-20-95"
+  },
+  {
+    "id": "11.5",
+    "area": "Direito de Família",
+    "service": "Divórcio/ reconhecimento e dissolução de entidade familiar litigioso cumulado com alimentos, guarda, visitas/períodos de convivência, arrolamento de bens, sequestro e separação de corpos",
+    "value": "R$ 10.000,00",
+    "percentage": "10%",
+    "page": 20,
+    "year": 2023,
+    "key": "11.5-20-96"
+  },
+  {
+    "id": "11.6",
+    "area": "Direito de Família",
+    "service": "Divórcio/ reconhecimento e dissolução de entidade familiar litigioso cumulado com alimentos, guarda, visitas/ período de convivência, arrolamento de bens, sequestro, separação de corpos e partilha de bens será acrescido de percentual mínimo",
+    "value": "R$ 10.000,00",
+    "percentage": "10%",
+    "page": 21,
+    "year": 2023,
+    "key": "11.6-21-97"
+  },
+  {
+    "id": "11.7",
+    "area": "Direito de Família",
+    "service": "Reconvenção em processo de divórcio/entidade familiar. Se houver patrimônio será acrescido de percentual mínimo",
+    "value": "R$ 8.000,00",
+    "percentage": "8%",
+    "page": 21,
+    "year": 2023,
+    "key": "11.7-21-98"
+  },
+  {
+    "id": "11.8",
+    "area": "Direito de Família",
+    "service": "Nulidade ou anulação de separação judicial, divórcio e/ou recisória",
+    "value": "R$ 8.000,00",
+    "percentage": "8%",
+    "page": 21,
+    "year": 2023,
+    "key": "11.8-21-99"
+  },
+  {
+    "id": "11.9",
+    "area": "Direito de Família",
+    "service": "Reconhecimento de paternidade",
+    "value": "R$ 8.000,00",
+    "percentage": "",
+    "page": 21,
+    "year": 2023,
+    "key": "11.9-21-100"
+  },
+  {
+    "id": "11.10",
+    "area": "Direito de Família",
+    "service": "Reconhecimento de paternidade cumulada com alimentos",
+    "value": "R$ 10.000,00",
+    "percentage": "20%",
+    "page": 21,
+    "year": 2023,
+    "key": "11.10-21-101"
+  },
+  {
+    "id": "11.11",
+    "area": "Direito de Família",
+    "service": "Reconhecimento de paternidade cumulada com petição de herança",
+    "value": "R$ 8.000,00",
+    "percentage": "6%",
+    "page": 21,
+    "year": 2023,
+    "key": "11.11-21-102"
+  },
+  {
+    "id": "11.12",
+    "area": "Direito de Família",
+    "service": "Alimentos provisórios, provisionais, majoração, redução ou contestação",
+    "value": "R$ 5.000,00",
+    "percentage": "20%",
+    "page": 21,
+    "year": 2023,
+    "key": "11.12-21-103"
+  },
+  {
+    "id": "11.13",
+    "area": "Direito de Família",
+    "service": "Negatória de paternidade",
+    "value": "R$ 8.000,00",
+    "percentage": "",
+    "page": 21,
+    "year": 2023,
+    "key": "11.13-21-104"
+  },
+  {
+    "id": "11.14",
+    "area": "Direito de Família",
+    "service": "Execução/Cumprimento de sentença de alimentos, procedimento de prisão",
+    "value": "R$ 3.000,00",
+    "percentage": "20%",
+    "page": 21,
+    "year": 2023,
+    "key": "11.14-21-105"
+  },
+  {
+    "id": "11.15",
+    "area": "Direito de Família",
+    "service": "Cumprimento de sentença de alimentos, procedimento de quantia certa ou por arbitramento",
+    "value": "R$ 3.000,00",
+    "percentage": "20%",
+    "page": 22,
+    "year": 2023,
+    "key": "11.15-22-106"
+  },
+  {
+    "id": "11.16",
+    "area": "Direito de Família",
+    "service": "Filiação socioafetiva consensual judicial",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 22,
+    "year": 2023,
+    "key": "11.16-22-107"
+  },
+  {
+    "id": "11.16.1",
+    "area": "Direito de Família",
+    "service": "Filiação socioafetiva extrajudicial",
+    "value": "R$ 3.000,00",
+    "percentage": "-",
+    "page": 22,
+    "year": 2023,
+    "key": "11.16.1-22-108"
+  },
+  {
+    "id": "11.16.2",
+    "area": "Direito de Família",
+    "service": "Filiação socioafetiva litigiosa",
+    "value": "R$ 8.000,00",
+    "percentage": "-",
+    "page": 22,
+    "year": 2023,
+    "key": "11.16.2-22-109"
+  },
+  {
+    "id": "11.17",
+    "area": "Direito de Família",
+    "service": "Diretivas antecipadas",
+    "value": "R$ 3.000,00",
+    "percentage": "-",
+    "page": 22,
+    "year": 2023,
+    "key": "11.17-22-110"
+  },
+  {
+    "id": "11.18",
+    "area": "Direito de Família",
+    "service": "Tomada de decisão apoiada",
+    "value": "R$ 4.000,00",
+    "percentage": "-",
+    "page": 22,
+    "year": 2023,
+    "key": "11.18-22-111"
+  },
+  {
+    "id": "11.19",
+    "area": "Direito de Família",
+    "service": "Suprimento judicial de outorga de consentimento ou consentimento para o casamento",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 22,
+    "year": 2023,
+    "key": "11.19-22-112"
+  },
+  {
+    "id": "11.20",
+    "area": "Direito de Família",
+    "service": "Retificação de registro civil",
+    "value": "R$ 4.000,00",
+    "percentage": "-",
+    "page": 22,
+    "year": 2023,
+    "key": "11.20-22-113"
+  },
+  {
+    "id": "11.21",
+    "area": "Direito de Família",
+    "service": "Confecção de minuta de escritura pública de pacto antenupcial",
+    "value": "R$ 3.000,00",
+    "percentage": "-",
+    "page": 22,
+    "year": 2023,
+    "key": "11.21-22-114"
+  },
+  {
+    "id": "11.22",
+    "area": "Direito de Família",
+    "service": "Fixação, reversão ou alteração de guarda judicial consensual",
+    "value": "R$ 4.000,00",
+    "percentage": "-",
+    "page": 22,
+    "year": 2023,
+    "key": "11.22-22-115"
+  },
+  {
+    "id": "11.23",
+    "area": "Direito de Família",
+    "service": "Fixação, reversão ou alteração de guarda judicial litigiosa",
+    "value": "R$ 9.000,00",
+    "percentage": "-",
+    "page": 22,
+    "year": 2023,
+    "key": "11.23-22-116"
+  },
+  {
+    "id": "11.24",
+    "area": "Direito de Família",
+    "service": "Alienação parental principal ou incidental",
+    "value": "R$ 6.000,00",
+    "percentage": "-",
+    "page": 22,
+    "year": 2023,
+    "key": "11.24-22-117"
+  },
+  {
+    "id": "11.25",
+    "area": "Direito de Família",
+    "service": "Emancipação extrajudicial",
+    "value": "R$ 3.000,00",
+    "percentage": "-",
+    "page": 22,
+    "year": 2023,
+    "key": "11.25-22-118"
+  },
+  {
+    "id": "11.26",
+    "area": "Direito de Família",
+    "service": "Emancipação judicial",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 22,
+    "year": 2023,
+    "key": "11.26-22-119"
+  },
+  {
+    "id": "11.27",
+    "area": "Direito de Família",
+    "service": "Adoção de maiores",
+    "value": "R$ 6.000,00",
+    "percentage": "-",
+    "page": 22,
+    "year": 2023,
+    "key": "11.27-22-120"
+  },
+  {
+    "id": "11.28",
+    "area": "Direito de Família",
+    "service": "Tutelas de urgência - artigo 300 do Código de Processo Civil",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 22,
+    "year": 2023,
+    "key": "11.28-22-121"
+  },
+  {
+    "id": "11.29",
+    "area": "Direito de Família",
+    "service": "Regulamentação de visita consensual",
+    "value": "R$ 4.000,00",
+    "percentage": "-",
+    "page": 23,
+    "year": 2023,
+    "key": "11.29-23-122"
+  },
+  {
+    "id": "11.30",
+    "area": "Direito de Família",
+    "service": "Regulamentação de visita litigiosa",
+    "value": "R$ 8.000,00",
+    "percentage": "-",
+    "page": 23,
+    "year": 2023,
+    "key": "11.30-23-123"
+  },
+  {
+    "id": "11.31",
+    "area": "Direito de Família",
+    "service": "Busca e apreensão de criança e adolescente",
+    "value": "R$ 7.000,00",
+    "percentage": "-",
+    "page": 23,
+    "year": 2023,
+    "key": "11.31-23-124"
+  },
+  {
+    "id": "11.32",
+    "area": "Direito de Família",
+    "service": "Guarda judicial provisória, definitiva, regulamentação, reversão litigiosa ou contestação",
+    "value": "R$ 9.000,00",
+    "percentage": "-",
+    "page": 23,
+    "year": 2023,
+    "key": "11.32-23-125"
+  },
+  {
+    "id": "11.33",
+    "area": "Direito de Família",
+    "service": "Guarda judicial provisória, definitiva, regulamentação ou reversão consensual",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 23,
+    "year": 2023,
+    "key": "11.33-23-126"
+  },
+  {
+    "id": "11.34",
+    "area": "Direito de Família",
+    "service": "Tutela e curatela ou alteração consensual",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 23,
+    "year": 2023,
+    "key": "11.34-23-127"
+  },
+  {
+    "id": "11.34.1",
+    "area": "Direito de Família",
+    "service": "Tutela e curatela ou alteração litigiosa",
+    "value": "R$ 10.000,00",
+    "percentage": "-",
+    "page": 23,
+    "year": 2023,
+    "key": "11.34.1-23-128"
+  },
+  {
+    "id": "11.35",
+    "area": "Direito de Família",
+    "service": "Reconhecimento e dissolução de entidade familiar causa mortis consensual judicial",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 23,
+    "year": 2023,
+    "key": "11.35-23-129"
+  },
+  {
+    "id": "11.36",
+    "area": "Direito de Família",
+    "service": "Reconhecimento e dissolução de entidade familiar causa mortis extrajudicial",
+    "value": "R$ 3.000,00",
+    "percentage": "-",
+    "page": 23,
+    "year": 2023,
+    "key": "11.36-23-130"
+  },
+  {
+    "id": "11.37",
+    "area": "Direito de Família",
+    "service": "Reconhecimento e dissolução de entidade familiar causa mortis litigiosa",
+    "value": "R$ 10.000,00",
+    "percentage": "-",
+    "page": 23,
+    "year": 2023,
+    "key": "11.37-23-131"
+  },
+  {
+    "id": "11.38",
+    "area": "Direito de Família",
+    "service": "Ação de partilha posterior ao divórcio",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 23,
+    "year": 2023,
+    "key": "11.38-23-132"
+  },
+  {
+    "id": "12.1",
+    "area": "Direito das Sucessões",
+    "service": "Inventário consensual ou arrolamento",
+    "value": "R$ 7.000,00",
+    "percentage": "8%",
+    "page": 24,
+    "year": 2023,
+    "key": "12.1-24-133"
+  },
+  {
+    "id": "12.2",
+    "area": "Direito das Sucessões",
+    "service": "Inventário litigioso",
+    "value": "R$ 7.000,00",
+    "percentage": "10%",
+    "page": 24,
+    "year": 2023,
+    "key": "12.2-24-134"
+  },
+  {
+    "id": "12.3",
+    "area": "Direito das Sucessões",
+    "service": "Sobrepartilha",
+    "value": "R$ 3.500,00",
+    "percentage": "Aplicam-se os mesmos índices do inventário ou arrolamento",
+    "page": 24,
+    "year": 2023,
+    "key": "12.3-24-135"
+  },
+  {
+    "id": "12.4",
+    "area": "Direito das Sucessões",
+    "service": "Inventário negativo",
+    "value": "R$ 3.000,00",
+    "percentage": "-",
+    "page": 24,
+    "year": 2023,
+    "key": "12.4-24-136"
+  },
+  {
+    "id": "12.5",
+    "area": "Direito das Sucessões",
+    "service": "Inventário, arrolamento e sobrepartilha extrajudicial",
+    "value": "R$ 5.000,00",
+    "percentage": "8%",
+    "page": 24,
+    "year": 2023,
+    "key": "12.5-24-137"
+  },
+  {
+    "id": "12.6",
+    "area": "Direito das Sucessões",
+    "service": "Reserva de bens",
+    "value": "R$ 4.000,00",
+    "percentage": "8%",
+    "page": 24,
+    "year": 2023,
+    "key": "12.6-24-138"
+  },
+  {
+    "id": "12.7",
+    "area": "Direito das Sucessões",
+    "service": "Remoção de inventariante",
+    "value": "R$ 10.000,00",
+    "percentage": "-",
+    "page": 24,
+    "year": 2023,
+    "key": "12.7-24-139"
+  },
+  {
+    "id": "12.8",
+    "area": "Direito das Sucessões",
+    "service": "Colação",
+    "value": "R$ 5.000,00",
+    "percentage": "8%",
+    "page": 24,
+    "year": 2023,
+    "key": "12.8-24-140"
+  },
+  {
+    "id": "12.9",
+    "area": "Direito das Sucessões",
+    "service": "Anulação ou nulidade de doação inoficiosa",
+    "value": "R$ 12.000,00",
+    "percentage": "-",
+    "page": 24,
+    "year": 2023,
+    "key": "12.9-24-141"
+  },
+  {
+    "id": "12.10",
+    "area": "Direito das Sucessões",
+    "service": "Sonegados",
+    "value": "R$ 8.000,00",
+    "percentage": "10%",
+    "page": 24,
+    "year": 2023,
+    "key": "12.10-24-142"
+  },
+  {
+    "id": "12.11",
+    "area": "Direito das Sucessões",
+    "service": "Nulidade de partilha",
+    "value": "R$ 12.000,00",
+    "percentage": "8%",
+    "page": 24,
+    "year": 2023,
+    "key": "12.11-24-143"
+  },
+  {
+    "id": "12.12",
+    "area": "Direito das Sucessões",
+    "service": "Habilitação de herdeiros consensual",
+    "value": "R$ 4.000,00",
+    "percentage": "8%",
+    "page": 24,
+    "year": 2023,
+    "key": "12.12-24-144"
+  },
+  {
+    "id": "12.13",
+    "area": "Direito das Sucessões",
+    "service": "Habilitação de herdeiros litigiosa",
+    "value": "R$ 5.000,00",
+    "percentage": "10%",
+    "page": 24,
+    "year": 2023,
+    "key": "12.13-24-145"
+  },
+  {
+    "id": "12.14",
+    "area": "Direito das Sucessões",
+    "service": "Habilitação de crédito",
+    "value": "R$ 5.000,00",
+    "percentage": "10%",
+    "page": 24,
+    "year": 2023,
+    "key": "12.14-24-146"
+  },
+  {
+    "id": "12.15",
+    "area": "Direito das Sucessões",
+    "service": "Declaratória de indignidade",
+    "value": "R$ 12.000,00",
+    "percentage": "10% (sobre o valor do quinhão do excluído)",
+    "page": 24,
+    "year": 2023,
+    "key": "12.15-24-147"
+  },
+  {
+    "id": "12.16",
+    "area": "Direito das Sucessões",
+    "service": "Declaratória de deserdação",
+    "value": "R$ 12.000,00",
+    "percentage": "10% (sobre o quinhão do deserdado)",
+    "page": 24,
+    "year": 2023,
+    "key": "12.16-24-148"
+  },
+  {
+    "id": "12.17",
+    "area": "Direito das Sucessões",
+    "service": "Retificação de partilha",
+    "value": "R$ 5.000,00",
+    "percentage": "8%",
+    "page": 25,
+    "year": 2023,
+    "key": "12.17-25-149"
+  },
+  {
+    "id": "12.18",
+    "area": "Direito das Sucessões",
+    "service": "Minuta de testamento",
+    "value": "R$ 6.000,00",
+    "percentage": "-",
+    "page": 25,
+    "year": 2023,
+    "key": "12.18-25-150"
+  },
+  {
+    "id": "12.19",
+    "area": "Direito das Sucessões",
+    "service": "Planejamento familiar sucessório",
+    "value": "R$ 11.000,00",
+    "percentage": "8%",
+    "page": 25,
+    "year": 2023,
+    "key": "12.19-25-151"
+  },
+  {
+    "id": "12.20",
+    "area": "Direito das Sucessões",
+    "service": "Cumprimento e registro de testamento",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 25,
+    "year": 2023,
+    "key": "12.20-25-152"
+  },
+  {
+    "id": "12.21",
+    "area": "Direito das Sucessões",
+    "service": "Anulação de testamento",
+    "value": "R$ 12.000,00",
+    "percentage": "8%",
+    "page": 25,
+    "year": 2023,
+    "key": "12.21-25-153"
+  },
+  {
+    "id": "13.1",
+    "area": "Direito Previdenciário",
+    "service": "Fase Administrativa",
+    "value": "",
+    "percentage": "",
+    "page": 25,
+    "year": 2023,
+    "key": "13.1-25-154"
+  },
+  {
+    "id": "13.1.1",
+    "area": "Direito Previdenciário",
+    "service": "Concessão ou restabelecimento de aposentadoria, auxílio - acidente, pensão por morte e benefícios assistenciais (BPC)",
+    "value": "03 (três) parcelas do valor total bruto do benefício",
+    "percentage": "Até 30% do Proveito Econômico. Vide Item 11 das Normas Gerais.",
+    "page": 25,
+    "year": 2023,
+    "key": "13.1.1-25-155"
+  },
+  {
+    "id": "13.1.2",
+    "area": "Direito Previdenciário",
+    "service": "Concessão ou restabelecimento de auxílio-doença ou auxílio- reclusão",
+    "value": "02 (duas) parcelas do valor total bruto do benefício",
+    "percentage": "Até 30% do Proveito Econômico. Vide Item 11 das Normas Gerais.",
+    "page": 25,
+    "year": 2023,
+    "key": "13.1.2-25-156"
+  },
+  {
+    "id": "13.1.3",
+    "area": "Direito Previdenciário",
+    "service": "Concessão de salário- maternidade",
+    "value": "R$ 1.000,00",
+    "percentage": "Até 30% do Proveito Econômico. Vide Item 11 das Normas Gerais.",
+    "page": 25,
+    "year": 2023,
+    "key": "13.1.3-25-157"
+  },
+  {
+    "id": "13.1.4",
+    "area": "Direito Previdenciário",
+    "service": "Revisão de benefício",
+    "value": "02 (duas) parcelas do valor do benefício revisado",
+    "percentage": "Até 30% do Proveito Econômico. Vide Item 11 das Normas Gerais.",
+    "page": 25,
+    "year": 2023,
+    "key": "13.1.4-25-158"
+  },
+  {
+    "id": "13.1.5",
+    "area": "Direito Previdenciário",
+    "service": "Recursos Administrativos",
+    "value": "02 (duas) parcelas do valor do benefício revisado",
+    "percentage": "Até 30% do Proveito Econômico. Vide Item 11 das Normas Gerais.",
+    "page": 26,
+    "year": 2023,
+    "key": "13.1.5-26-159"
+  },
+  {
+    "id": "13.1.6",
+    "area": "Direito Previdenciário",
+    "service": "Solicitação e expedição de certidão de tempo de contribuição",
+    "value": "R$ 2.500,00",
+    "percentage": "-",
+    "page": 26,
+    "year": 2023,
+    "key": "13.1.6-26-160"
+  },
+  {
+    "id": "13.1.7",
+    "area": "Direito Previdenciário",
+    "service": "Justificação administrativa",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 26,
+    "year": 2023,
+    "key": "13.1.7-26-161"
+  },
+  {
+    "id": "13.1.8",
+    "area": "Direito Previdenciário",
+    "service": "Retificação e atualização do Cadastro Nacional de Informações Sociais – CNIS",
+    "value": "R$ 2.500,00",
+    "percentage": "-",
+    "page": 26,
+    "year": 2023,
+    "key": "13.1.8-26-162"
+  },
+  {
+    "id": "13.1.9",
+    "area": "Direito Previdenciário",
+    "service": "Regularização de recolhimento previdenciário",
+    "value": "R$ 2.500,00",
+    "percentage": "-",
+    "page": 26,
+    "year": 2023,
+    "key": "13.1.9-26-163"
+  },
+  {
+    "id": "13.1.10",
+    "area": "Direito Previdenciário",
+    "service": "Cálculo e planejamento previdenciário",
+    "value": "R$ 2.500,00",
+    "percentage": "-",
+    "page": 26,
+    "year": 2023,
+    "key": "13.1.10-26-164"
+  },
+  {
+    "id": "13.1.11",
+    "area": "Direito Previdenciário",
+    "service": "Atuação a partir da fase recursal",
+    "value": "R$ 4.000,00",
+    "percentage": "+ percentual mínimo (vide item 11 das normas gerais)",
+    "page": 26,
+    "year": 2023,
+    "key": "13.1.11-26-165"
+  },
+  {
+    "id": "13.1.12",
+    "area": "Direito Previdenciário",
+    "service": "Procedimento de restituição de valores indevidamente cobrados, retidos ou repetição de indébito",
+    "value": "R$ 3.000,00",
+    "percentage": "+ percentual mínimo (vide item 11 das normas gerais)",
+    "page": 26,
+    "year": 2023,
+    "key": "13.1.12-26-166"
+  },
+  {
+    "id": "13.1.13",
+    "area": "Direito Previdenciário",
+    "service": "Sustentação oral perante órgãos recursais administrativos",
+    "value": "R$ 1.000,00",
+    "percentage": "-",
+    "page": 26,
+    "year": 2023,
+    "key": "13.1.13-26-167"
+  },
+  {
+    "id": "13.1.14",
+    "area": "Direito Previdenciário",
+    "service": "Atuação em processo administrativo para evitar a suspensão do benefício previdenciário ou assistencial",
+    "value": "R$ 3.000,00",
+    "percentage": "Valor de dois benefício mensais",
+    "page": 26,
+    "year": 2023,
+    "key": "13.1.14-26-168"
+  },
+  {
+    "id": "13.1.15",
+    "area": "Direito Previdenciário",
+    "service": "Parecer jurídico previdenciário",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 27,
+    "year": 2023,
+    "key": "13.1.15-27-169"
+  },
+  {
+    "id": "13.2",
+    "area": "Direito Previdenciário",
+    "service": "Fase Judicial",
+    "value": "",
+    "percentage": "",
+    "page": 27,
+    "year": 2023,
+    "key": "13.2-27-170"
+  },
+  {
+    "id": "13.2.1",
+    "area": "Direito Previdenciário",
+    "service": "Na hipótese de concessão de tutelas de urgência",
+    "value": "",
+    "percentage": "Vide item 11 das normas gerais",
+    "page": 27,
+    "year": 2023,
+    "key": "13.2.1-27-171"
+  },
+  {
+    "id": "13.2.2",
+    "area": "Direito Previdenciário",
+    "service": "Concessão ou restabelecimento de aposentadoria, auxílio - acidente, pensão por morte e benefícios assistenciais (BPC)",
+    "value": "R$ 5.000,00",
+    "percentage": "+ percentual mínimo (vide item 11 das normas gerais)",
+    "page": 27,
+    "year": 2023,
+    "key": "13.2.2-27-172"
+  },
+  {
+    "id": "13.2.3",
+    "area": "Direito Previdenciário",
+    "service": "Concessão ou restabelecimento de auxílio-doença ou auxílio- reclusão",
+    "value": "R$ 4.000,00",
+    "percentage": "+ percentual mínimo mínimo mínimo (vide item 11 das normas gerais)",
+    "page": 27,
+    "year": 2023,
+    "key": "13.2.3-27-173"
+  },
+  {
+    "id": "13.2.4",
+    "area": "Direito Previdenciário",
+    "service": "Concessão de salário- maternidade",
+    "value": "R$ 1.000,00",
+    "percentage": "20% do proveito econômico",
+    "page": 27,
+    "year": 2023,
+    "key": "13.2.4-27-174"
+  },
+  {
+    "id": "13.2.5",
+    "area": "Direito Previdenciário",
+    "service": "Revisão de benefício",
+    "value": "02 (duas) parcelas do valor do benefício revisado",
+    "percentage": "+ percentual mínimo (vide item 11 das normas gerais)",
+    "page": 27,
+    "year": 2023,
+    "key": "13.2.5-27-175"
+  },
+  {
+    "id": "13.2.7",
+    "area": "Direito Previdenciário",
+    "service": "Reconhecimento de tempo de serviço/ contribuição",
+    "value": "R$ 5.000,00",
+    "percentage": "",
+    "page": 27,
+    "year": 2023,
+    "key": "13.2.7-27-176"
+  },
+  {
+    "id": "13.2.8",
+    "area": "Direito Previdenciário",
+    "service": "Ação ou contestação visando a manutenção de benefício previdenciário",
+    "value": "R$ 5.000,00",
+    "percentage": "+ percentual mínimo (vide item 11 das normas gerais)",
+    "page": 27,
+    "year": 2023,
+    "key": "13.2.8-27-177"
+  },
+  {
+    "id": "13.2.9",
+    "area": "Direito Previdenciário",
+    "service": "Procedimento de restituição de valores indevidamente cobrados, retidos ou repetição de indébito",
+    "value": "R$ 5.000,00",
+    "percentage": "+ percentual mínimo (vide item 11 das normas gerais)",
+    "page": 27,
+    "year": 2023,
+    "key": "13.2.9-27-178"
+  },
+  {
+    "id": "13.2.10",
+    "area": "Direito Previdenciário",
+    "service": "Atuação somente a partir da fase recursal",
+    "value": "R$ 4.000,00",
+    "percentage": "+ percentual mínimo (vide ítem 11 das normas gerais)",
+    "page": 28,
+    "year": 2023,
+    "key": "13.2.10-28-179"
+  },
+  {
+    "id": "13.2.11",
+    "area": "Direito Previdenciário",
+    "service": "Advocacia Contenciosa Administrativa Previdenciária Empresarial",
+    "value": "",
+    "percentage": "-",
+    "page": 28,
+    "year": 2023,
+    "key": "13.2.11-28-180"
+  },
+  {
+    "id": "13.2.12",
+    "area": "Direito Previdenciário",
+    "service": "Atuação em Processo Administrativo – Acidente do Trabalho",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 28,
+    "year": 2023,
+    "key": "13.2.12-28-181"
+  },
+  {
+    "id": "13.2.13",
+    "area": "Direito Previdenciário",
+    "service": "Atuação em Processo Administrativo Fase Recursal – Acidente do Trabalho",
+    "value": "R$ 3.000,00",
+    "percentage": "-",
+    "page": 28,
+    "year": 2023,
+    "key": "13.2.13-28-182"
+  },
+  {
+    "id": "13.2.14",
+    "area": "Direito Previdenciário",
+    "service": "Atuação no Programa de Reabilitação Profissional junto ao INSS",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 28,
+    "year": 2023,
+    "key": "13.2.14-28-183"
+  },
+  {
+    "id": "13.2.15",
+    "area": "Direito Previdenciário",
+    "service": "Contestação FAP",
+    "value": "R$ 8.000,00",
+    "percentage": "-",
+    "page": 28,
+    "year": 2023,
+    "key": "13.2.15-28-184"
+  },
+  {
+    "id": "13.2.16",
+    "area": "Direito Previdenciário",
+    "service": "Advocacia Contenciosa Judicial Previdenciária Empresarial",
+    "value": "",
+    "percentage": "-",
+    "page": 28,
+    "year": 2023,
+    "key": "13.2.16-28-185"
+  },
+  {
+    "id": "13.2.17",
+    "area": "Direito Previdenciário",
+    "service": "Atuação em Ação de Acidente do Trabalho como Terceiro Interveniente Interessado",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 28,
+    "year": 2023,
+    "key": "13.2.17-28-186"
+  },
+  {
+    "id": "13.2.18",
+    "area": "Direito Previdenciário",
+    "service": "Ação de Descaracterização de Acidente do Trabalho",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 28,
+    "year": 2023,
+    "key": "13.2.18-28-187"
+  },
+  {
+    "id": "13.2.19",
+    "area": "Direito Previdenciário",
+    "service": "Ação de Redução Alíquota FAP/SAT",
+    "value": "R$ 5.000,00",
+    "percentage": "20% a 30% do valor da economia que obtiver",
+    "page": 28,
+    "year": 2023,
+    "key": "13.2.19-28-188"
+  },
+  {
+    "id": "13.2.20",
+    "area": "Direito Previdenciário",
+    "service": "Ação de Repetição Indébito ou Compensação",
+    "value": "R$ 5.000,00",
+    "percentage": "20% a 30% do valor da economia que obtiver",
+    "page": 29,
+    "year": 2023,
+    "key": "13.2.20-29-189"
+  },
+  {
+    "id": "13.2.21",
+    "area": "Direito Previdenciário",
+    "service": "Defesa em Ação Regressiva Previdenciária – Acidente do Trabalho",
+    "value": "R$ 5.000,00",
+    "percentage": "20% a 30% do valor da economia que obtiver",
+    "page": 29,
+    "year": 2023,
+    "key": "13.2.21-29-190"
+  },
+  {
+    "id": "14.1",
+    "area": "Direito do Trabalho",
+    "service": "Reclamação trabalhista",
+    "value": "R$ 2.000,00",
+    "percentage": "20% a 30%",
+    "page": 29,
+    "year": 2023,
+    "key": "14.1-29-191"
+  },
+  {
+    "id": "14.2",
+    "area": "Direito do Trabalho",
+    "service": "Acréscimo no caso de recurso ordinário",
+    "value": "R$ 2.000,00",
+    "percentage": "5%",
+    "page": 29,
+    "year": 2023,
+    "key": "14.2-29-192"
+  },
+  {
+    "id": "14.3",
+    "area": "Direito do Trabalho",
+    "service": "Acréscimo no caso de recurso de revista e/ou contrarrazões",
+    "value": "R$ 2.000,00",
+    "percentage": "5%",
+    "page": 29,
+    "year": 2023,
+    "key": "14.3-29-193"
+  },
+  {
+    "id": "14.4",
+    "area": "Direito do Trabalho",
+    "service": "Ações ou defesas em favor do reclamado",
+    "value": "R$ 3.500,00",
+    "percentage": "20% a 30%",
+    "page": 29,
+    "year": 2023,
+    "key": "14.4-29-194"
+  },
+  {
+    "id": "14.5",
+    "area": "Direito do Trabalho",
+    "service": "Acréscimo no caso de recurso ordinário",
+    "value": "R$ 3.500,00",
+    "percentage": "5%",
+    "page": 29,
+    "year": 2023,
+    "key": "14.5-29-195"
+  },
+  {
+    "id": "14.6",
+    "area": "Direito do Trabalho",
+    "service": "Acréscimo no caso de recurso de revista e/ou contrarrazões",
+    "value": "R$ 3.500,00",
+    "percentage": "5%",
+    "page": 29,
+    "year": 2023,
+    "key": "14.6-29-196"
+  },
+  {
+    "id": "14.7",
+    "area": "Direito do Trabalho",
+    "service": "Cumprimento de sentença ou embargos",
+    "value": "",
+    "percentage": "",
+    "page": 29,
+    "year": 2023,
+    "key": "14.7-29-197"
+  },
+  {
+    "id": "14.7.1",
+    "area": "Direito do Trabalho",
+    "service": "Contratado na fase de cumprimento de sentença",
+    "value": "R$ 2.000,00",
+    "percentage": "10%",
+    "page": 29,
+    "year": 2023,
+    "key": "14.7.1-29-198"
+  },
+  {
+    "id": "14.7.2",
+    "area": "Direito do Trabalho",
+    "service": "Se já for mandatário da causa principal, acrescer",
+    "value": "-",
+    "percentage": "5%",
+    "page": 29,
+    "year": 2023,
+    "key": "14.7.2-29-199"
+  },
+  {
+    "id": "14.8.1",
+    "area": "Direito do Trabalho",
+    "service": "Em favor do empregado",
+    "value": "R$ 2.000,00",
+    "percentage": "20%",
+    "page": 29,
+    "year": 2023,
+    "key": "14.8.1-29-200"
+  },
+  {
+    "id": "14.8.2",
+    "area": "Direito do Trabalho",
+    "service": "Em favor do empregador",
+    "value": "R$ 3.500,00",
+    "percentage": "20%",
+    "page": 30,
+    "year": 2023,
+    "key": "14.8.2-30-201"
+  },
+  {
+    "id": "14.9",
+    "area": "Direito do Trabalho",
+    "service": "Assistência à demissão de empregado estável.",
+    "value": "R$ 5.000,00",
+    "percentage": "20%",
+    "page": 30,
+    "year": 2023,
+    "key": "14.9-30-202"
+  },
+  {
+    "id": "14.10",
+    "area": "Direito do Trabalho",
+    "service": "Assessoria sindical",
+    "value": "",
+    "percentage": "",
+    "page": 30,
+    "year": 2023,
+    "key": "14.10-30-203"
+  },
+  {
+    "id": "14.10.1",
+    "area": "Direito do Trabalho",
+    "service": "De empresa de até 100 empregados",
+    "value": "R$ 15.000,00",
+    "percentage": "-",
+    "page": 30,
+    "year": 2023,
+    "key": "14.10.1-30-204"
+  },
+  {
+    "id": "14.10.2",
+    "area": "Direito do Trabalho",
+    "service": "De empresa de 101 até 300 empregados",
+    "value": "R$ 20.000,00",
+    "percentage": "-",
+    "page": 30,
+    "year": 2023,
+    "key": "14.10.2-30-205"
+  },
+  {
+    "id": "14.10.3",
+    "area": "Direito do Trabalho",
+    "service": "De empresa de 301 até 600 empregados",
+    "value": "R$ 30.000,00",
+    "percentage": "-",
+    "page": 30,
+    "year": 2023,
+    "key": "14.10.3-30-206"
+  },
+  {
+    "id": "14.10.4",
+    "area": "Direito do Trabalho",
+    "service": "De sindicato com até 50 empresas",
+    "value": "R$ 30.000,00",
+    "percentage": "-",
+    "page": 30,
+    "year": 2023,
+    "key": "14.10.4-30-207"
+  },
+  {
+    "id": "14.10.5",
+    "area": "Direito do Trabalho",
+    "service": "De sindicato com mais de 50 empresas",
+    "value": "R$ 50.000,00",
+    "percentage": "-",
+    "page": 30,
+    "year": 2023,
+    "key": "14.10.5-30-208"
+  },
+  {
+    "id": "14.10.6",
+    "area": "Direito do Trabalho",
+    "service": "De sindicato com até 500 empregados",
+    "value": "R$ 30.000,00",
+    "percentage": "-",
+    "page": 30,
+    "year": 2023,
+    "key": "14.10.6-30-209"
+  },
+  {
+    "id": "14.10.7",
+    "area": "Direito do Trabalho",
+    "service": "De sindicato com mais de 500 empregados",
+    "value": "R$ 50.000,00",
+    "percentage": "-",
+    "page": 30,
+    "year": 2023,
+    "key": "14.10.7-30-210"
+  },
+  {
+    "id": "14.11",
+    "area": "Direito do Trabalho",
+    "service": "Ação trabalhista coletiva",
+    "value": "R$ 5.000,00",
+    "percentage": "20%",
+    "page": 30,
+    "year": 2023,
+    "key": "14.11-30-211"
+  },
+  {
+    "id": "14.12",
+    "area": "Direito do Trabalho",
+    "service": "Assessoria em acordo ou convenção coletiva",
+    "value": "R$ 5.000,00",
+    "percentage": "20%",
+    "page": 30,
+    "year": 2023,
+    "key": "14.12-30-212"
+  },
+  {
+    "id": "15.1",
+    "area": "Direito Empresarial",
+    "service": "Elaboração de contrato social",
+    "value": "R$ 6.000,00",
+    "percentage": "-",
+    "page": 30,
+    "year": 2023,
+    "key": "15.1-30-213"
+  },
+  {
+    "id": "15.2",
+    "area": "Direito Empresarial",
+    "service": "Elaboração de Alteração de Contrato Social",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 30,
+    "year": 2023,
+    "key": "15.2-30-214"
+  },
+  {
+    "id": "15.3",
+    "area": "Direito Empresarial",
+    "service": "Elaboração de Distrato Social",
+    "value": "R$ 6.000,00",
+    "percentage": "-",
+    "page": 30,
+    "year": 2023,
+    "key": "15.3-30-215"
+  },
+  {
+    "id": "15.4",
+    "area": "Direito Empresarial",
+    "service": "Elaboração de Estatuto Social",
+    "value": "R$ 6.000,00",
+    "percentage": "-",
+    "page": 31,
+    "year": 2023,
+    "key": "15.4-31-216"
+  },
+  {
+    "id": "15.5",
+    "area": "Direito Empresarial",
+    "service": "Secretariar reuniões e elaboração de ata",
+    "value": "R$ 3.500,00",
+    "percentage": "-",
+    "page": 31,
+    "year": 2023,
+    "key": "15.5-31-217"
+  },
+  {
+    "id": "15.6",
+    "area": "Direito Empresarial",
+    "service": "Acordo de sócios/acionistas",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 31,
+    "year": 2023,
+    "key": "15.6-31-218"
+  },
+  {
+    "id": "15.7",
+    "area": "Direito Empresarial",
+    "service": "Due Diligence para empresas",
+    "value": "R$ 750,00 por hora trabalhada com mínimo de 10 horas",
+    "percentage": "-",
+    "page": 31,
+    "year": 2023,
+    "key": "15.7-31-219"
+  },
+  {
+    "id": "15.8",
+    "area": "Direito Empresarial",
+    "service": "Comparecimento/ representação sócios em assembleia",
+    "value": "R$ 3.000,00",
+    "percentage": "-",
+    "page": 31,
+    "year": 2023,
+    "key": "15.8-31-220"
+  },
+  {
+    "id": "15.9",
+    "area": "Direito Empresarial",
+    "service": "Elaboração de Contrato de Sociedade por Cota de Participação",
+    "value": "R$ 6.000,00",
+    "percentage": "-",
+    "page": 31,
+    "year": 2023,
+    "key": "15.9-31-221"
+  },
+  {
+    "id": "15.10",
+    "area": "Direito Empresarial",
+    "service": "Exame e visto em instrumento de constituição de Pessoa Jurídica",
+    "value": "R$ 1.500,00",
+    "percentage": "-",
+    "page": 31,
+    "year": 2023,
+    "key": "15.10-31-222"
+  },
+  {
+    "id": "15.11",
+    "area": "Direito Empresarial",
+    "service": "Adequação à Lei de Proteção de Dados-LGPD",
+    "value": "R$ 12.000,00",
+    "percentage": "-",
+    "page": 31,
+    "year": 2023,
+    "key": "15.11-31-223"
+  },
+  {
+    "id": "15.12",
+    "area": "Direito Empresarial",
+    "service": "Assessoria e Manutenção de LGPD - mensal",
+    "value": "R$ 600,00",
+    "percentage": "-",
+    "page": 31,
+    "year": 2023,
+    "key": "15.12-31-224"
+  },
+  {
+    "id": "15.13",
+    "area": "Direito Empresarial",
+    "service": "Auditoria LGPD",
+    "value": "R$ 7.000,00",
+    "percentage": "-",
+    "page": 31,
+    "year": 2023,
+    "key": "15.13-31-225"
+  },
+  {
+    "id": "15.14",
+    "area": "Direito Empresarial",
+    "service": "Ação de dissolução parcial ou integral de sociedade",
+    "value": "R$ 12.000,00",
+    "percentage": "-",
+    "page": 31,
+    "year": 2023,
+    "key": "15.14-31-226"
+  },
+  {
+    "id": "16.1",
+    "area": "Direito Fiscal e Tributário",
+    "service": "Planejamento tributário",
+    "value": "R$ 12.000,00",
+    "percentage": "10%",
+    "page": 32,
+    "year": 2023,
+    "key": "16.1-32-227"
+  },
+  {
+    "id": "16.2",
+    "area": "Direito Fiscal e Tributário",
+    "service": "Ação anulatória de débito tributário",
+    "value": "R$ 6.000,00",
+    "percentage": "10%",
+    "page": 32,
+    "year": 2023,
+    "key": "16.2-32-228"
+  },
+  {
+    "id": "16.3",
+    "area": "Direito Fiscal e Tributário",
+    "service": "Ação de repetição de indébito",
+    "value": "R$ 4.000,00",
+    "percentage": "10%",
+    "page": 32,
+    "year": 2023,
+    "key": "16.3-32-229"
+  },
+  {
+    "id": "16.4",
+    "area": "Direito Fiscal e Tributário",
+    "service": "Liberação de mercadorias",
+    "value": "R$ 6.000,00",
+    "percentage": "10%",
+    "page": 32,
+    "year": 2023,
+    "key": "16.4-32-230"
+  },
+  {
+    "id": "16.5",
+    "area": "Direito Fiscal e Tributário",
+    "service": "Embargos à Execução Fiscal",
+    "value": "R$ 6.000,00",
+    "percentage": "10%",
+    "page": 32,
+    "year": 2023,
+    "key": "16.5-32-231"
+  },
+  {
+    "id": "17.1",
+    "area": "Direito do Consumidor",
+    "service": "Reclamação e comparecimento em audiência representando o consumidor",
+    "value": "R$ 1.500,00",
+    "percentage": "-",
+    "page": 32,
+    "year": 2023,
+    "key": "17.1-32-232"
+  },
+  {
+    "id": "17.2",
+    "area": "Direito do Consumidor",
+    "service": "Defesa e/ou comparecimento em audiência representando o fornecedor",
+    "value": "R$ 1.500,00",
+    "percentage": "-",
+    "page": 32,
+    "year": 2023,
+    "key": "17.2-32-233"
+  },
+  {
+    "id": "17.3",
+    "area": "Direito do Consumidor",
+    "service": "Fase Judicial (vide procedimentos comum, especiais e juizado especial)",
+    "value": "-",
+    "percentage": "-",
+    "page": 32,
+    "year": 2023,
+    "key": "17.3-32-234"
+  },
+  {
+    "id": "18.1",
+    "area": "Direito Ambiental",
+    "service": "Atuação ou acompanhamento de licenciamento ambiental",
+    "value": "R$ 10.000,00",
+    "percentage": "3%",
+    "page": 33,
+    "year": 2023,
+    "key": "18.1-33-235"
+  },
+  {
+    "id": "18.2",
+    "area": "Direito Ambiental",
+    "service": "Atuação e acompanhamento em certificação ambiental",
+    "value": "R$ 12.000,00",
+    "percentage": "-",
+    "page": 33,
+    "year": 2023,
+    "key": "18.2-33-236"
+  },
+  {
+    "id": "18.3",
+    "area": "Direito Ambiental",
+    "service": "Defesa em inquérito civil",
+    "value": "R$ 8.000,00",
+    "percentage": "-",
+    "page": 33,
+    "year": 2023,
+    "key": "18.3-33-237"
+  },
+  {
+    "id": "18.4",
+    "area": "Direito Ambiental",
+    "service": "Defesa em processo civil",
+    "value": "R$ 12.000,00",
+    "percentage": "-",
+    "page": 33,
+    "year": 2023,
+    "key": "18.4-33-238"
+  },
+  {
+    "id": "18.5",
+    "area": "Direito Ambiental",
+    "service": "Acompanhamento de estudos ambientais",
+    "value": "R$ 11.000,00",
+    "percentage": "15%",
+    "page": 33,
+    "year": 2023,
+    "key": "18.5-33-239"
+  },
+  {
+    "id": "19.1",
+    "area": "Direito Eleitoral",
+    "service": "Queixa, representação ou impugnação",
+    "value": "R$ 5.500,00",
+    "percentage": "-",
+    "page": 33,
+    "year": 2023,
+    "key": "19.1-33-240"
+  },
+  {
+    "id": "19.2",
+    "area": "Direito Eleitoral",
+    "service": "Defesa em processo eleitoral (investigação judicial ou impugnação de mandato)",
+    "value": "R$ 6.500,00",
+    "percentage": "-",
+    "page": 33,
+    "year": 2023,
+    "key": "19.2-33-241"
+  },
+  {
+    "id": "19.3",
+    "area": "Direito Eleitoral",
+    "service": "Defesa por crime eleitoral",
+    "value": "R$ 8.000,00",
+    "percentage": "-",
+    "page": 33,
+    "year": 2023,
+    "key": "19.3-33-242"
+  },
+  {
+    "id": "19.4",
+    "area": "Direito Eleitoral",
+    "service": "Prestação de contas administrativas",
+    "value": "R$ 2.000,00",
+    "percentage": "-",
+    "page": 33,
+    "year": 2023,
+    "key": "19.4-33-243"
+  },
+  {
+    "id": "19.5",
+    "area": "Direito Eleitoral",
+    "service": "Recurso contra a expedição de diploma",
+    "value": "R$ 8.000,00",
+    "percentage": "-",
+    "page": 33,
+    "year": 2023,
+    "key": "19.5-33-244"
+  },
+  {
+    "id": "19.6",
+    "area": "Direito Eleitoral",
+    "service": "Defesa perante o TRE",
+    "value": "R$ 13.000,00",
+    "percentage": "-",
+    "page": 33,
+    "year": 2023,
+    "key": "19.6-33-245"
+  },
+  {
+    "id": "19.7",
+    "area": "Direito Eleitoral",
+    "service": "Defesa perante o TSE",
+    "value": "R$ 18.000,00",
+    "percentage": "-",
+    "page": 33,
+    "year": 2023,
+    "key": "19.7-33-246"
+  },
+  {
+    "id": "19.8",
+    "area": "Direito Eleitoral",
+    "service": "Outros procedimentos ou atos perante a Justiça Eleitoral",
+    "value": "R$ 5.500,00",
+    "percentage": "-",
+    "page": 33,
+    "year": 2023,
+    "key": "19.8-33-247"
+  },
+  {
+    "id": "19.9",
+    "area": "Direito Eleitoral",
+    "service": "Advocacia de partido, sem vínculo empregatício - valor mensal mínimo",
+    "value": "R$ 3.000,00",
+    "percentage": "-",
+    "page": 33,
+    "year": 2023,
+    "key": "19.9-33-248"
+  },
+  {
+    "id": "20.1",
+    "area": "Direito Penal",
+    "service": "Diligência em termo circunstanciado de Juizados Especiais Criminais – horário diurno (das 7 às 19 horas)",
+    "value": "R$ 1.500,00",
+    "percentage": "",
+    "page": 34,
+    "year": 2023,
+    "key": "20.1-34-249"
+  },
+  {
+    "id": "20.2",
+    "area": "Direito Penal",
+    "service": "Diligência em termo circunstanciado de Juizados Especiais Criminais – horário noturno (das 19 às 7 horas)",
+    "value": "R$ 3.000,00",
+    "percentage": "",
+    "page": 34,
+    "year": 2023,
+    "key": "20.2-34-250"
+  },
+  {
+    "id": "20.3",
+    "area": "Direito Penal",
+    "service": "Atuação em inquérito policial (e outras investigações criminais) desde a instauração de portaria até a apresentação de relatório final",
+    "value": "R$ 9.000,00",
+    "percentage": "",
+    "page": 34,
+    "year": 2023,
+    "key": "20.3-34-251"
+  },
+  {
+    "id": "20.4",
+    "area": "Direito Penal",
+    "service": "Atos em órgãos policiais – horário diurno (das 7 às 19 horas)",
+    "value": "R$ 2.000,00",
+    "percentage": "",
+    "page": 34,
+    "year": 2023,
+    "key": "20.4-34-252"
+  },
+  {
+    "id": "20.5",
+    "area": "Direito Penal",
+    "service": "Atos em órgãos policiais – horário noturno (das 19 às 7 horas)",
+    "value": "R$ 4.000,00",
+    "percentage": "-",
+    "page": 34,
+    "year": 2023,
+    "key": "20.5-34-253"
+  },
+  {
+    "id": "20.6",
+    "area": "Direito Penal",
+    "service": "Defesa em procedimento sumário (desde a denúncia até a publicação da sentença)",
+    "value": "R$ 10.000,00",
+    "percentage": "-",
+    "page": 34,
+    "year": 2023,
+    "key": "20.6-34-254"
+  },
+  {
+    "id": "20.7",
+    "area": "Direito Penal",
+    "service": "Defesa em procedimento comum (desde a denúncia até a publicação da sentença)",
+    "value": "R$ 15.000,00",
+    "percentage": "-",
+    "page": 34,
+    "year": 2023,
+    "key": "20.7-34-255"
+  },
+  {
+    "id": "20.8",
+    "area": "Direito Penal",
+    "service": "Defesa em procedimentos especiais (desde a denúncia até publicação da sentença)",
+    "value": "R$ 20.000,00",
+    "percentage": "-",
+    "page": 34,
+    "year": 2023,
+    "key": "20.8-34-256"
+  },
+  {
+    "id": "20.9",
+    "area": "Direito Penal",
+    "service": "Defesa em procedimentos especiais, com foro privilegiado (desde a denúncia até a publicação da sentença)",
+    "value": "R$ 30.000,00",
+    "percentage": "-",
+    "page": 34,
+    "year": 2023,
+    "key": "20.9-34-257"
+  },
+  {
+    "id": "20.10",
+    "area": "Direito Penal",
+    "service": "Defesa em procedimento de júri (desde a denúncia até a sentença de pronúncia)",
+    "value": "R$ 25.000,00",
+    "percentage": "-",
+    "page": 35,
+    "year": 2023,
+    "key": "20.10-35-258"
+  },
+  {
+    "id": "20.11",
+    "area": "Direito Penal",
+    "service": "Defesa em procedimento de júri: atuação em plenário e recursos inerentes no Tribunal do Estado",
+    "value": "R$ 30.000,00",
+    "percentage": "-",
+    "page": 35,
+    "year": 2023,
+    "key": "20.11-35-259"
+  },
+  {
+    "id": "20.12",
+    "area": "Direito Penal",
+    "service": "Assistência à acusação (os mesmos valores aplicados à defesa)",
+    "value": "",
+    "percentage": "",
+    "page": 35,
+    "year": 2023,
+    "key": "20.12-35-260"
+  },
+  {
+    "id": "20.13",
+    "area": "Direito Penal",
+    "service": "Oferecimento de queixa-crime ou representação",
+    "value": "-",
+    "percentage": "-",
+    "page": 35,
+    "year": 2023,
+    "key": "20.13-35-261"
+  },
+  {
+    "id": "20.14",
+    "area": "Direito Penal",
+    "service": "Pela representação",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 35,
+    "year": 2023,
+    "key": "20.14-35-262"
+  },
+  {
+    "id": "20.15",
+    "area": "Direito Penal",
+    "service": "Pelo acompanhamento",
+    "value": "R$ 7.000,00",
+    "percentage": "-",
+    "page": 35,
+    "year": 2023,
+    "key": "20.15-35-263"
+  },
+  {
+    "id": "20.16",
+    "area": "Direito Penal",
+    "service": "Defesa em processo de execução penal",
+    "value": "R$ 10.000,00",
+    "percentage": "-",
+    "page": 35,
+    "year": 2023,
+    "key": "20.16-35-264"
+  },
+  {
+    "id": "20.17",
+    "area": "Direito Penal",
+    "service": "Pedido de suspensão condicional da pena, de reabilitação, de explicações (interpelação judicial), de liberdade provisória, de relaxamento de flagrante ou concessão de fiança",
+    "value": "R$ 7.000,00",
+    "percentage": "-",
+    "page": 35,
+    "year": 2023,
+    "key": "20.17-35-265"
+  },
+  {
+    "id": "20.18",
+    "area": "Direito Penal",
+    "service": "Pedido de concessão de graça, indulto, anistia, comutação de penas, livramento condicional, unificação de penas, revogação de medida de segurança, prisão albergue, prisão domiciliar, progressão de regime ou qualquer pedido incidental de beneficio em processo de execução penal",
+    "value": "R$ 7.000,00",
+    "percentage": "-",
+    "page": 35,
+    "year": 2023,
+    "key": "20.18-35-266"
+  },
+  {
+    "id": "20.19",
+    "area": "Direito Penal",
+    "service": "Acompanhamento de busca e apreensão",
+    "value": "R$ 4.000,00",
+    "percentage": "-",
+    "page": 36,
+    "year": 2023,
+    "key": "20.19-36-267"
+  },
+  {
+    "id": "20.20",
+    "area": "Direito Penal",
+    "service": "Acompanhamento de busca e apreensão em procedimento de crime contra a propriedade material",
+    "value": "R$ 9.000,00",
+    "percentage": "-",
+    "page": 36,
+    "year": 2023,
+    "key": "20.20-36-268"
+  },
+  {
+    "id": "20.21",
+    "area": "Direito Penal",
+    "service": "Impetração de ação autônoma de habeas corpus para trancamento de ação penal",
+    "value": "R$ 15.000,00",
+    "percentage": "-",
+    "page": 36,
+    "year": 2023,
+    "key": "20.21-36-269"
+  },
+  {
+    "id": "20.22",
+    "area": "Direito Penal",
+    "service": "Impetração de ação autônoma de revisão criminal",
+    "value": "R$ 15.000,00",
+    "percentage": "-",
+    "page": 36,
+    "year": 2023,
+    "key": "20.22-36-270"
+  },
+  {
+    "id": "20.23",
+    "area": "Direito Penal",
+    "service": "Cumprimento de precatória",
+    "value": "R$ 3.000,00",
+    "percentage": "-",
+    "page": 36,
+    "year": 2023,
+    "key": "20.23-36-271"
+  },
+  {
+    "id": "21.1",
+    "area": "Direito Militar",
+    "service": "Atuação em inquérito policial militar (e outras investigações criminais) desde a instauração de portaria até a apresentação de relatório final",
+    "value": "R$ 9.000,00",
+    "percentage": "-",
+    "page": 36,
+    "year": 2023,
+    "key": "21.1-36-272"
+  },
+  {
+    "id": "21.2",
+    "area": "Direito Militar",
+    "service": "Ato judicial",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 36,
+    "year": 2023,
+    "key": "21.2-36-273"
+  },
+  {
+    "id": "21.3",
+    "area": "Direito Militar",
+    "service": "Atos em órgãos policiais – horário diurno (das 7 às 19 horas)",
+    "value": "R$ 2.000,00",
+    "percentage": "-",
+    "page": 36,
+    "year": 2023,
+    "key": "21.3-36-274"
+  },
+  {
+    "id": "21.4",
+    "area": "Direito Militar",
+    "service": "Atos em órgãos policiais – horário noturno (das 19 às 7 horas)",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 36,
+    "year": 2023,
+    "key": "21.4-36-275"
+  },
+  {
+    "id": "21.5",
+    "area": "Direito Militar",
+    "service": "Exame de processo penal militar com parecer verbal",
+    "value": "R$ 6.000,00",
+    "percentage": "-",
+    "page": 36,
+    "year": 2023,
+    "key": "21.5-36-276"
+  },
+  {
+    "id": "21.6",
+    "area": "Direito Militar",
+    "service": "Defesa em procedimento comum (desde a denúncia até a publicação da sentença)",
+    "value": "R$ 14.000,00",
+    "percentage": "-",
+    "page": 36,
+    "year": 2023,
+    "key": "21.6-36-277"
+  },
+  {
+    "id": "21.7",
+    "area": "Direito Militar",
+    "service": "Defesa em procedimentos especiais (desde a denúncia até a publicação da sentença)",
+    "value": "R$ 20.000,00",
+    "percentage": "-",
+    "page": 37,
+    "year": 2023,
+    "key": "21.7-37-278"
+  },
+  {
+    "id": "21.8",
+    "area": "Direito Militar",
+    "service": "Assistência à acusação (os mesmos valores aplicados à defesa)",
+    "value": "",
+    "percentage": "",
+    "page": 37,
+    "year": 2023,
+    "key": "21.8-37-279"
+  },
+  {
+    "id": "21.9",
+    "area": "Direito Militar",
+    "service": "Atuação em processo de execução penal",
+    "value": "R$ 11.000,00",
+    "percentage": "-",
+    "page": 37,
+    "year": 2023,
+    "key": "21.9-37-280"
+  },
+  {
+    "id": "21.10",
+    "area": "Direito Militar",
+    "service": "Impetração de ação autônoma de habeas corpus preventivo ou liberatório",
+    "value": "R$ 14.000,00",
+    "percentage": "-",
+    "page": 37,
+    "year": 2023,
+    "key": "21.10-37-281"
+  },
+  {
+    "id": "21.11",
+    "area": "Direito Militar",
+    "service": "Impetração de ação autônoma de habeas corpus preventivo ou liberatório (em horário de plantão)",
+    "value": "R$ 21.000,00",
+    "percentage": "-",
+    "page": 37,
+    "year": 2023,
+    "key": "21.11-37-282"
+  },
+  {
+    "id": "21.12",
+    "area": "Direito Militar",
+    "service": "Impetração de ação autônoma de habeas corpus para trancamento de ação penal",
+    "value": "R$ 14.000,00",
+    "percentage": "-",
+    "page": 37,
+    "year": 2023,
+    "key": "21.12-37-283"
+  },
+  {
+    "id": "21.13",
+    "area": "Direito Militar",
+    "service": "Impetração de ação autônoma de mandado de segurança contra ato jurisdicional penal",
+    "value": "R$ 14.000,00",
+    "percentage": "-",
+    "page": 37,
+    "year": 2023,
+    "key": "21.13-37-284"
+  },
+  {
+    "id": "22.1",
+    "area": "Direito de Trânsito",
+    "service": "Assistência a defesa prévia e recursos de infração de trânsito",
+    "value": "R$ 1.000,00",
+    "percentage": "-",
+    "page": 38,
+    "year": 2023,
+    "key": "22.1-38-285"
+  },
+  {
+    "id": "22.2",
+    "area": "Direito de Trânsito",
+    "service": "Suspensão do direito de dirigir por pontuação",
+    "value": "R$ 1.000,00",
+    "percentage": "20%",
+    "page": 38,
+    "year": 2023,
+    "key": "22.2-38-286"
+  },
+  {
+    "id": "22.3",
+    "area": "Direito de Trânsito",
+    "service": "Suspensão do direito de dirigir decorrente de penalidade administrativa",
+    "value": "R$ 2.000,00",
+    "percentage": "20%",
+    "page": 38,
+    "year": 2023,
+    "key": "22.3-38-287"
+  },
+  {
+    "id": "22.4",
+    "area": "Direito de Trânsito",
+    "service": "Sumário de Centro de Formação de Condutores",
+    "value": "R$ 4.000,00",
+    "percentage": "20%",
+    "page": 38,
+    "year": 2023,
+    "key": "22.4-38-288"
+  },
+  {
+    "id": "22.5",
+    "area": "Direito de Trânsito",
+    "service": "Sumário de Centro de Remoção e Depósito",
+    "value": "R$ 4.000,00",
+    "percentage": "20%",
+    "page": 38,
+    "year": 2023,
+    "key": "22.5-38-289"
+  },
+  {
+    "id": "22.6",
+    "area": "Direito de Trânsito",
+    "service": "Sumário de Centro de Registros de Veículos Automotores",
+    "value": "R$ 4.000,00",
+    "percentage": "20%",
+    "page": 38,
+    "year": 2023,
+    "key": "22.6-38-290"
+  },
+  {
+    "id": "22.7",
+    "area": "Direito de Trânsito",
+    "service": "Recurso administrativo perante o Departamento Estadual de Trânsito/Conselho Estadual de Trânsito",
+    "value": "R$ 3.965,79",
+    "percentage": "-",
+    "page": 38,
+    "year": 2023,
+    "key": "22.7-38-291"
+  },
+  {
+    "id": "22.8",
+    "area": "Direito de Trânsito",
+    "service": "Ação ou defesa",
+    "value": "R$ 5.187,46",
+    "percentage": "20%",
+    "page": 38,
+    "year": 2023,
+    "key": "22.8-38-292"
+  },
+  {
+    "id": "23.1",
+    "area": "Direito Desportivo",
+    "service": "Defesa Justiça Desportiva por denunciado (1º grau CD – Pleno do TJD)",
+    "value": "R$ 1.500,00",
+    "percentage": "-",
+    "page": 39,
+    "year": 2023,
+    "key": "23.1-39-293"
+  },
+  {
+    "id": "23.2",
+    "area": "Direito Desportivo",
+    "service": "Procedimentos Especiais na Justiça Desportiva",
+    "value": "R$ 3.500,00",
+    "percentage": "-",
+    "page": 39,
+    "year": 2023,
+    "key": "23.2-39-294"
+  },
+  {
+    "id": "23.3",
+    "area": "Direito Desportivo",
+    "service": "Ação Cível em Matéria Desportiva Procedimento Comum (proposição ou defesa)",
+    "value": "R$ 7.500,00",
+    "percentage": "20%",
+    "page": 39,
+    "year": 2023,
+    "key": "23.3-39-295"
+  },
+  {
+    "id": "23.4",
+    "area": "Direito Desportivo",
+    "service": "Ação Trabalhista",
+    "value": "Vide Item da Advocacia da matéria trabalhista (08)",
+    "percentage": "20%",
+    "page": 39,
+    "year": 2023,
+    "key": "23.4-39-296"
+  },
+  {
+    "id": "23.5",
+    "area": "Direito Desportivo",
+    "service": "Consultoria jurídica, sem vínculo empregatício, entidade de prática desportiva com mais de 35 atletas e/ou membro(s) de comissão(ões) técnica(s)",
+    "value": "R$ 15.000,00",
+    "percentage": "-",
+    "page": 39,
+    "year": 2023,
+    "key": "23.5-39-297"
+  },
+  {
+    "id": "23.6",
+    "area": "Direito Desportivo",
+    "service": "Consultoria jurídica, sem vínculo empregatício, entidade de prática desportiva com menos de 35 atletas e/ou membro(s) de comissão (ões) técnica(s)",
+    "value": "R$ 7.500,00",
+    "percentage": "-",
+    "page": 39,
+    "year": 2023,
+    "key": "23.6-39-298"
+  },
+  {
+    "id": "23.7",
+    "area": "Direito Desportivo",
+    "service": "Procedimento litigioso na defesa de interesse de cliente (clube, agente, atleta etc.) frente às entidades de administração do desporto – âmbito nacional e regional",
+    "value": "R$ 7.500,00",
+    "percentage": "20%",
+    "page": 40,
+    "year": 2023,
+    "key": "23.7-40-299"
+  },
+  {
+    "id": "23.8",
+    "area": "Direito Desportivo",
+    "service": "Procedimento litigioso na defesa de interesse de cliente (clube, agente, atleta etc.) frente à FIFA e TAS/CAS",
+    "value": "R$ 32.000,00",
+    "percentage": "20%",
+    "page": 40,
+    "year": 2023,
+    "key": "23.8-40-300"
+  },
+  {
+    "id": "23.9",
+    "area": "Direito Desportivo",
+    "service": "Participação em painel (audiência/recurso)",
+    "value": "R$ 7.500,00",
+    "percentage": "5%",
+    "page": 40,
+    "year": 2023,
+    "key": "23.9-40-301"
+  },
+  {
+    "id": "23.10",
+    "area": "Direito Desportivo",
+    "service": "Procedimento litigioso perante a ABCD (Doping).",
+    "value": "R$ 12.000,00",
+    "percentage": "20%",
+    "page": 40,
+    "year": 2023,
+    "key": "23.10-40-302"
+  },
+  {
+    "id": "24.1",
+    "area": "Diligências de Correspondentes",
+    "service": "Protocolo de petição em qualquer área",
+    "value": "R$ 150,00",
+    "percentage": "-",
+    "page": 41,
+    "year": 2023,
+    "key": "24.1-41-303"
+  },
+  {
+    "id": "24.2",
+    "area": "Diligências de Correspondentes",
+    "service": "Distribuição de ação em qualquer área (primeira instância)",
+    "value": "R$ 200,00",
+    "percentage": "-",
+    "page": 41,
+    "year": 2023,
+    "key": "24.2-41-304"
+  },
+  {
+    "id": "24.3",
+    "area": "Diligências de Correspondentes",
+    "service": "Interposição de qualquer recurso",
+    "value": "R$ 260,00",
+    "percentage": "-",
+    "page": 41,
+    "year": 2023,
+    "key": "24.3-41-305"
+  },
+  {
+    "id": "24.4",
+    "area": "Diligências de Correspondentes",
+    "service": "Audiência de conciliação em qualquer área como advogada/advogado ou representante",
+    "value": "R$ 500,00",
+    "percentage": "-",
+    "page": 41,
+    "year": 2023,
+    "key": "24.4-41-306"
+  },
+  {
+    "id": "24.5",
+    "area": "Diligências de Correspondentes",
+    "service": "Audiência de instrução em qualquer área como advogada/ advogado ou representante",
+    "value": "R$ 1.000,00",
+    "percentage": "-",
+    "page": 41,
+    "year": 2023,
+    "key": "24.5-41-307"
+  },
+  {
+    "id": "24.6",
+    "area": "Diligências de Correspondentes",
+    "service": "Acompanhamento a cliente em repartição policial por ato",
+    "value": "R$ 1.000,00",
+    "percentage": "-",
+    "page": 41,
+    "year": 2023,
+    "key": "24.6-41-308"
+  },
+  {
+    "id": "24.7",
+    "area": "Diligências de Correspondentes",
+    "service": "Despacho com juiz ou chefe de secretaria",
+    "value": "R$ 600,00",
+    "percentage": "-",
+    "page": 41,
+    "year": 2023,
+    "key": "24.7-41-309"
+  },
+  {
+    "id": "24.8",
+    "area": "Diligências de Correspondentes",
+    "service": "Despacho em qualquer órgão público",
+    "value": "R$ 600,00",
+    "percentage": "-",
+    "page": 41,
+    "year": 2023,
+    "key": "24.8-41-310"
+  },
+  {
+    "id": "24.9",
+    "area": "Diligências de Correspondentes",
+    "service": "Acompanhamento a clientes em exames periciais",
+    "value": "R$ 800,00",
+    "percentage": "-",
+    "page": 41,
+    "year": 2023,
+    "key": "24.9-41-311"
+  },
+  {
+    "id": "24.10",
+    "area": "Diligências de Correspondentes",
+    "service": "Requerimento ou retirada de documentos e/ou certidões",
+    "value": "R$ 300,00",
+    "percentage": "-",
+    "page": 41,
+    "year": 2023,
+    "key": "24.10-41-312"
+  },
+  {
+    "id": "24.11",
+    "area": "Diligências de Correspondentes",
+    "service": "Levantamento e/ou Retirada de alvará/RPV/ Precatório",
+    "value": "R$ 500,00",
+    "percentage": "-",
+    "page": 42,
+    "year": 2023,
+    "key": "24.11-42-313"
+  },
+  {
+    "id": "24.12",
+    "area": "Diligências de Correspondentes",
+    "service": "Acompanhamento de busca e apreensão de veículo ou outros bens",
+    "value": "R$ 1.000,00",
+    "percentage": "-",
+    "page": 42,
+    "year": 2023,
+    "key": "24.12-42-314"
+  },
+  {
+    "id": "24.13",
+    "area": "Diligências de Correspondentes",
+    "service": "Carga dos autos para extração de cópias/ digitalização (até 03 volumes)",
+    "value": "R$ 150,00",
+    "percentage": "-",
+    "page": 42,
+    "year": 2023,
+    "key": "24.13-42-315"
+  },
+  {
+    "id": "24.14",
+    "area": "Diligências de Correspondentes",
+    "service": "Acesso aos autos para digitalização/extração de cópias em balcão de secretaria ou cartório (até 30 folhas)",
+    "value": "R$ 150,00",
+    "percentage": "-",
+    "page": 42,
+    "year": 2023,
+    "key": "24.14-42-316"
+  },
+  {
+    "id": "24.15",
+    "area": "Diligências de Correspondentes",
+    "service": "Acompanhamento de movimentação processual (processo físico ou PJE)",
+    "value": "R$ 200,00 (por mês)",
+    "percentage": "-",
+    "page": 42,
+    "year": 2023,
+    "key": "24.15-42-317"
+  },
+  {
+    "id": "24.16",
+    "area": "Diligências de Correspondentes",
+    "service": "Distribuição de carta precatória",
+    "value": "R$ 200,00",
+    "percentage": "-",
+    "page": 42,
+    "year": 2023,
+    "key": "24.16-42-318"
+  },
+  {
+    "id": "24.17",
+    "area": "Diligências de Correspondentes",
+    "service": "Preenchimento de guias e pagamentos de custas",
+    "value": "R$ 200,00",
+    "percentage": "-",
+    "page": 42,
+    "year": 2023,
+    "key": "24.17-42-319"
+  },
+  {
+    "id": "24.18",
+    "area": "Diligências de Correspondentes",
+    "service": "Diligência em presídio/ visita a cliente",
+    "value": "R$ 1.000,00",
+    "percentage": "-",
+    "page": 42,
+    "year": 2023,
+    "key": "24.18-42-320"
+  },
+  {
+    "id": "25.1",
+    "area": "Atividades de Assessoria Jurídica em Práticas Colaborativas",
+    "service": "Atuação em processo relativo ao Estatuto da Criança e do Adolescente",
+    "value": "R$ 14.000,00",
+    "percentage": "-",
+    "page": 43,
+    "year": 2023,
+    "key": "25.1-43-321"
+  },
+  {
+    "id": "25.2",
+    "area": "Atividades de Assessoria Jurídica em Práticas Colaborativas",
+    "service": "Acompanhamento em sessão ou reunião de Práticas Colaborativas, Mediação, Conciliação, Negociação ou qualquer método autocompositivo (por ato)",
+    "value": "R$ 3.000,00",
+    "percentage": "-",
+    "page": 43,
+    "year": 2023,
+    "key": "25.2-43-322"
+  },
+  {
+    "id": "25.3",
+    "area": "Atividades de Assessoria Jurídica em Práticas Colaborativas",
+    "service": "Elaboração e/ou revisão de Termo de Acordo total ou parcial resultante do encerramento de Práticas Colaborativas, Mediação, Conciliação, Negociação ou qualquer método autocompositivo",
+    "value": "R$ 6.500,00",
+    "percentage": "3%",
+    "page": 43,
+    "year": 2023,
+    "key": "25.3-43-323"
+  },
+  {
+    "id": "25.4",
+    "area": "Atividades de Assessoria Jurídica em Práticas Colaborativas",
+    "service": "Requerimento de homologação de acordo realizado em esfera extrajudicial perante o Poder Judiciário.",
+    "value": "R$ 4.000,00",
+    "percentage": "-",
+    "page": 43,
+    "year": 2023,
+    "key": "25.4-43-324"
+  },
+  {
+    "id": "25.5",
+    "area": "Atividades de Assessoria Jurídica em Práticas Colaborativas",
+    "service": "Assessoria jurídica exclusivamente para procedimento de método autocompositivo de solução de conflitos, especialmente Práticas Colaborativas, Mediação, Conciliação e Negociação, em qualquer matéria, considerando todas as etapas, ressalvadas a elaboração do termo de acordo e sua homologação.",
+    "value": "R$ 9.000,00",
+    "percentage": "6% a 10%",
+    "page": 44,
+    "year": 2023,
+    "key": "25.5-44-325"
+  },
+  {
+    "id": "26.1",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Atuação em procedimento de apuração de ato infracional",
+    "value": "",
+    "percentage": "",
+    "page": 45,
+    "year": 2023,
+    "key": "26.1-45-326"
+  },
+  {
+    "id": "26.2",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Acompanhamento do adolescente em delegacia especializada",
+    "value": "período diurno (das 7 às 19 horas) R$ 2.000,00 período noturno (das 19 às 7 horas) R$ 4.000,00",
+    "percentage": "-",
+    "page": 45,
+    "year": 2023,
+    "key": "26.2-45-327"
+  },
+  {
+    "id": "26.3",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Audiência de oitava informal de adolescente perante o Ministério Público, art. 179 da Lei nº. 8.069/1990",
+    "value": "R$ 6.000,00",
+    "percentage": "-",
+    "page": 45,
+    "year": 2023,
+    "key": "26.3-45-328"
+  },
+  {
+    "id": "26.4",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Pedido de revogação de internação provisória",
+    "value": "R$ 8.000,00",
+    "percentage": "",
+    "page": 45,
+    "year": 2023,
+    "key": "26.4-45-329"
+  },
+  {
+    "id": "26.5",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Defesa técnica em execução de medidas socioeducativas",
+    "value": "",
+    "percentage": "",
+    "page": 45,
+    "year": 2023,
+    "key": "26.5-45-330"
+  },
+  {
+    "id": "26.6",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Acompanhamento de formulação do Plano Individual de Atendimento",
+    "value": "R$ 8.000,00",
+    "percentage": "-",
+    "page": 45,
+    "year": 2023,
+    "key": "26.6-45-331"
+  },
+  {
+    "id": "26.7",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Impugnação ao Plano Individual de atendimento",
+    "value": "R$ 8.000,00",
+    "percentage": "-",
+    "page": 45,
+    "year": 2023,
+    "key": "26.7-45-332"
+  },
+  {
+    "id": "26.8",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Audiência de reavaliação de medida socioeducativa",
+    "value": "R$ 8.000,00",
+    "percentage": "-",
+    "page": 45,
+    "year": 2023,
+    "key": "26.8-45-333"
+  },
+  {
+    "id": "26.9",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Atuação em procedimento de aplicação de sanção disciplinar a adolescente submetido a medida de internação",
+    "value": "R$ 8.000,00",
+    "percentage": "-",
+    "page": 45,
+    "year": 2023,
+    "key": "26.9-45-334"
+  },
+  {
+    "id": "26.10",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Pedido incidental (revogação, unificação ou substituição de medida socioducativa)",
+    "value": "R$ 8.000,00",
+    "percentage": "-",
+    "page": 46,
+    "year": 2023,
+    "key": "26.10-46-335"
+  },
+  {
+    "id": "26.11",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "PROCEDIMENTO REFERENTE AO DIREITO À CONVIVÊNCIA FAMILIAR E COMUNITÁRIA",
+    "value": "",
+    "percentage": "",
+    "page": 46,
+    "year": 2023,
+    "key": "26.11-46-336"
+  },
+  {
+    "id": "26.12",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Adoção de menores",
+    "value": "R$ 8.000,00",
+    "percentage": "-",
+    "page": 46,
+    "year": 2023,
+    "key": "26.12-46-337"
+  },
+  {
+    "id": "26.13",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Habilitação de pretedentes à adoção",
+    "value": "R$ 8.000,00",
+    "percentage": "-",
+    "page": 46,
+    "year": 2023,
+    "key": "26.13-46-338"
+  },
+  {
+    "id": "26.14",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Tutela ou modificação",
+    "value": "R$ 9.000,00",
+    "percentage": "-",
+    "page": 46,
+    "year": 2023,
+    "key": "26.14-46-339"
+  },
+  {
+    "id": "26.15",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Guarda ou modificação",
+    "value": "R$ 8.000,00",
+    "percentage": "-",
+    "page": 46,
+    "year": 2023,
+    "key": "26.15-46-340"
+  },
+  {
+    "id": "26.16",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Destituição, suspensão ou renúncia do poder familiar",
+    "value": "R$ 6.000,00",
+    "percentage": "-",
+    "page": 46,
+    "year": 2023,
+    "key": "26.16-46-341"
+  },
+  {
+    "id": "26.17",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Ação de danos materiais e morais decorretes de desistência do pretendente em relação à guarda para fins de adoção ou a devolução da criança ou do adolescente depois do trânsito em julgado da sentença de adoção",
+    "value": "R$ 14.000,00",
+    "percentage": "-",
+    "page": 46,
+    "year": 2023,
+    "key": "26.17-46-342"
+  },
+  {
+    "id": "26.18",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Acompanhamento da formulação do Plano Individual de Atendimento",
+    "value": "R$ 8.000,00",
+    "percentage": "-",
+    "page": 46,
+    "year": 2023,
+    "key": "26.18-46-343"
+  },
+  {
+    "id": "26.19",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Impugnação ao Plano Individual de Atendimento",
+    "value": "R$ 8.000,00",
+    "percentage": "-",
+    "page": 46,
+    "year": 2023,
+    "key": "26.19-46-344"
+  },
+  {
+    "id": "26.20",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Audiência de reavaliação de medida socioeducativa",
+    "value": "R$ 8.000,00",
+    "percentage": "-",
+    "page": 46,
+    "year": 2023,
+    "key": "26.20-46-345"
+  },
+  {
+    "id": "26.21",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Defesa em procedimento de aplicação de sanção disciplinar a adolescente submetido a medida de internação",
+    "value": "R$ 8.000,00",
+    "percentage": "-",
+    "page": 46,
+    "year": 2023,
+    "key": "26.21-46-346"
+  },
+  {
+    "id": "26.22",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Pedido incidental (revogação, unificação ou substituição de medida socioeducativa)",
+    "value": "R$ 8.000,00",
+    "percentage": "-",
+    "page": 47,
+    "year": 2023,
+    "key": "26.22-47-347"
+  },
+  {
+    "id": "26.23",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Ação de colocação em família substituta nas modalidades guarda e tutela",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 47,
+    "year": 2023,
+    "key": "26.23-47-348"
+  },
+  {
+    "id": "26.24",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Defesa dos genitores em caso de destituição do poder familiar",
+    "value": "R$ 6.000,00",
+    "percentage": "-",
+    "page": 47,
+    "year": 2023,
+    "key": "26.24-47-349"
+  },
+  {
+    "id": "26.25",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Defesa do tutor ou do guardião legal em caso de perda ou modificação da tutela ou guarda",
+    "value": "R$ 6.000,00",
+    "percentage": "-",
+    "page": 47,
+    "year": 2023,
+    "key": "26.25-47-350"
+  },
+  {
+    "id": "26.26",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Ação de danos morais e materiais em razão da desistência da guarda para fins de adoção ou devolução da criança/ adolescente, antes do trânsito em julgado da sentença de adoção",
+    "value": "R$ 6.000,00",
+    "percentage": "-",
+    "page": 47,
+    "year": 2023,
+    "key": "26.26-47-351"
+  },
+  {
+    "id": "26.27",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Reconhecimento voluntário da paternidade perante o oficial de registro civil das pessoas naturais (Provimento nº 83/2019 do CNJ)",
+    "value": "R$ 2.000,00",
+    "percentage": "-",
+    "page": 47,
+    "year": 2023,
+    "key": "26.27-47-352"
+  },
+  {
+    "id": "26.28",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Suspensão do poder familiar",
+    "value": "R$ 14.000,00",
+    "percentage": "-",
+    "page": 47,
+    "year": 2023,
+    "key": "26.28-47-353"
+  },
+  {
+    "id": "26.28",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Representação de entidade em ação civil pública",
+    "value": "R$ 7.000,00",
+    "percentage": "-",
+    "page": 47,
+    "year": 2023,
+    "key": "26.28-47-354"
+  },
+  {
+    "id": "26.29",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Ação judicial visando concretização de direito fundamental (saúde, educação e similares)",
+    "value": "R$ 7.000,00",
+    "percentage": "-",
+    "page": 48,
+    "year": 2023,
+    "key": "26.29-48-355"
+  },
+  {
+    "id": "26.30",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Retirada de crianças e adolescentes de local que ameace ou viole seus direitos, ou busca e apreensão de bens",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 48,
+    "year": 2023,
+    "key": "26.30-48-356"
+  },
+  {
+    "id": "26.31",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Curadoria especial, nos termos do art. 142, parágrafo único do ECA",
+    "value": "R$ 6.000,00",
+    "percentage": "-",
+    "page": 48,
+    "year": 2023,
+    "key": "26.31-48-357"
+  },
+  {
+    "id": "26.32",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Atuação extrajudicial junto ao Conselho Tutelar",
+    "value": "R$ 4.000,00",
+    "percentage": "-",
+    "page": 48,
+    "year": 2023,
+    "key": "26.32-48-358"
+  },
+  {
+    "id": "26.33",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Atuação judicial contra decisões do Conselho Tutelar",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 48,
+    "year": 2023,
+    "key": "26.33-48-359"
+  },
+  {
+    "id": "26.34",
+    "area": "Direitos da Criança e do Adolescente",
+    "service": "Pedido à autoridade judiciária de revisão de deliberação do Conselho Tutelar (art. 137 do Estatuto da Criança e do Adolescente)",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 48,
+    "year": 2023,
+    "key": "26.34-48-360"
+  },
+  {
+    "id": "27.1",
+    "area": "Direito Artístico e do Entretenimento",
+    "service": "Obtenção de alvará judicial para trabalho infantil artístico",
+    "value": "R$ 6.000,00",
+    "percentage": "De 10% a 20%",
+    "page": 49,
+    "year": 2023,
+    "key": "27.1-49-361"
+  },
+  {
+    "id": "27.2",
+    "area": "Direito Artístico e do Entretenimento",
+    "service": "Elaboração de contrato cível para atuação de gamers",
+    "value": "R$ 5.000,00",
+    "percentage": "De 10% a 20%",
+    "page": 49,
+    "year": 2023,
+    "key": "27.2-49-362"
+  },
+  {
+    "id": "27.3",
+    "area": "Direito Artístico e do Entretenimento",
+    "service": "Elaboração de contrato cível para trabalho infantil artístico em mídias tradicionais",
+    "value": "R$ 5.000,00",
+    "percentage": "De 10% a 20%",
+    "page": 49,
+    "year": 2023,
+    "key": "27.3-49-363"
+  },
+  {
+    "id": "27.4",
+    "area": "Direito Artístico e do Entretenimento",
+    "service": "Elaboração de contrato cível envolvendo publicidade comercial em mídias tradicionais",
+    "value": "R$ 5.000,00",
+    "percentage": "De 10% a 20%",
+    "page": 49,
+    "year": 2023,
+    "key": "27.4-49-364"
+  },
+  {
+    "id": "27.5",
+    "area": "Direito Artístico e do Entretenimento",
+    "service": "Elaboração de contrato cível envolvendo publicidade comercial na internet/redes",
+    "value": "R$ 5.000,00",
+    "percentage": "De 10% a 20%",
+    "page": 49,
+    "year": 2023,
+    "key": "27.5-49-365"
+  },
+  {
+    "id": "27.6",
+    "area": "Direito Artístico e do Entretenimento",
+    "service": "Elaboração de parecer sobre cumprimento de cota de aprendizagem",
+    "value": "R$ 4.000,00",
+    "percentage": "De 10% a 20%",
+    "page": 49,
+    "year": 2023,
+    "key": "27.6-49-366"
+  },
+  {
+    "id": "27.7",
+    "area": "Direito Artístico e do Entretenimento",
+    "service": "Ação de reintegração diante do não cumprimento de cota de aprendizagem",
+    "value": "R$ 4.000,00",
+    "percentage": "De 10% a 20%",
+    "page": 49,
+    "year": 2023,
+    "key": "27.7-49-367"
+  },
+  {
+    "id": "27.8",
+    "area": "Direito Artístico e do Entretenimento",
+    "service": "Contrato de incentivo material para atividade voluntária, educativa e de detenção de direitos econômicos.",
+    "value": "R$ 7.000,00",
+    "percentage": "De 10% a 20%",
+    "page": 49,
+    "year": 2023,
+    "key": "27.8-49-368"
+  },
+  {
+    "id": "27.9",
+    "area": "Direito Artístico e do Entretenimento",
+    "service": "Contrato de Representação (Atleta)",
+    "value": "R$ 5.000,00",
+    "percentage": "De 10% a 20%",
+    "page": 49,
+    "year": 2023,
+    "key": "27.9-49-369"
+  },
+  {
+    "id": "27.10",
+    "area": "Direito Artístico e do Entretenimento",
+    "service": "Contrato de Representação (Atleta menor)",
+    "value": "R$ 6.000,00",
+    "percentage": "De 10% a 20%",
+    "page": 49,
+    "year": 2023,
+    "key": "27.10-49-370"
+  },
+  {
+    "id": "27.11",
+    "area": "Direito Artístico e do Entretenimento",
+    "service": "Contrato de Transferência de Jogador (Lei Pelé)",
+    "value": "R$ 8.500,00",
+    "percentage": "De 10% a 20%",
+    "page": 50,
+    "year": 2023,
+    "key": "27.11-50-371"
+  },
+  {
+    "id": "27.12",
+    "area": "Direito Artístico e do Entretenimento",
+    "service": "Contrato de Agenciamento (Modelos)",
+    "value": "R$ 5.000,00",
+    "percentage": "De 10% a 20%",
+    "page": 50,
+    "year": 2023,
+    "key": "27.12-50-372"
+  },
+  {
+    "id": "28.1",
+    "area": "Direito Imobiliário",
+    "service": "Due Diligence Imobiliária – Valor Por hora R$ 750,00 - Mínimo 3 horas",
+    "value": "R$ 2.250,00",
+    "percentage": "-",
+    "page": 50,
+    "year": 2023,
+    "key": "28.1-50-373"
+  },
+  {
+    "id": "28.2",
+    "area": "Direito Imobiliário",
+    "service": "Ação de despejo",
+    "value": "R$ 5.000,00",
+    "percentage": "20%",
+    "page": 50,
+    "year": 2023,
+    "key": "28.2-50-374"
+  },
+  {
+    "id": "28.3",
+    "area": "Direito Imobiliário",
+    "service": "Ação renovatória de locação",
+    "value": "R$ 5.000,00",
+    "percentage": "20%",
+    "page": 50,
+    "year": 2023,
+    "key": "28.3-50-375"
+  },
+  {
+    "id": "28.4",
+    "area": "Direito Imobiliário",
+    "service": "Ação de revisão e/ou arbitramento de aluguel",
+    "value": "R$ 4.000,00",
+    "percentage": "20%",
+    "page": 50,
+    "year": 2023,
+    "key": "28.4-50-376"
+  },
+  {
+    "id": "28.5",
+    "area": "Direito Imobiliário",
+    "service": "Ação de consignação de aluguel",
+    "value": "R$ 4.000,00",
+    "percentage": "-",
+    "page": 50,
+    "year": 2023,
+    "key": "28.5-50-377"
+  },
+  {
+    "id": "28.6",
+    "area": "Direito Imobiliário",
+    "service": "Atos/acompanhamento despejo/reintegração",
+    "value": "R$ 5.000,00",
+    "percentage": "10%",
+    "page": 50,
+    "year": 2023,
+    "key": "28.6-50-378"
+  },
+  {
+    "id": "28.7",
+    "area": "Direito Imobiliário",
+    "service": "Análise da documentação e pedido de registro de loteamento ou desmembramento, por grupo de dez lotes",
+    "value": "R$ 10.000,00",
+    "percentage": "-",
+    "page": 50,
+    "year": 2023,
+    "key": "28.7-50-379"
+  },
+  {
+    "id": "28.8",
+    "area": "Direito Imobiliário",
+    "service": "Elaboração de convenção de condomínio e regimento interno, por unidade autônoma.",
+    "value": "R$ 150,00 (mínimo vide item 4.8)",
+    "percentage": "-",
+    "page": 50,
+    "year": 2023,
+    "key": "28.8-50-380"
+  },
+  {
+    "id": "28.9",
+    "area": "Direito Imobiliário",
+    "service": "Elaboração de notificação extrajudicial",
+    "value": "R$ 600,00",
+    "percentage": "-",
+    "page": 50,
+    "year": 2023,
+    "key": "28.9-50-381"
+  },
+  {
+    "id": "28.10",
+    "area": "Direito Imobiliário",
+    "service": "Participação e assessoria em assembleia",
+    "value": "R$ 1.200,00 (Até 04 horas técnicas)",
+    "percentage": "-",
+    "page": 51,
+    "year": 2023,
+    "key": "28.10-51-382"
+  },
+  {
+    "id": "28.11",
+    "area": "Direito Imobiliário",
+    "service": "Consultoria jurídica mensal para Condomínios",
+    "value": "",
+    "percentage": "",
+    "page": 51,
+    "year": 2023,
+    "key": "28.11-51-383"
+  },
+  {
+    "id": "28.11.1",
+    "area": "Direito Imobiliário",
+    "service": "Até 20 unidades autônomas",
+    "value": "Mínimo de R$ 500,00",
+    "percentage": "-",
+    "page": 51,
+    "year": 2023,
+    "key": "28.11.1-51-384"
+  },
+  {
+    "id": "28.11.2",
+    "area": "Direito Imobiliário",
+    "service": "21 a 50 unidades autônomas",
+    "value": "Mínimo de R$ 1.000,00",
+    "percentage": "-",
+    "page": 51,
+    "year": 2023,
+    "key": "28.11.2-51-385"
+  },
+  {
+    "id": "28.11.3",
+    "area": "Direito Imobiliário",
+    "service": "51 a 100 unidades autônomas",
+    "value": "Mínimo de R$ 1.500,00",
+    "percentage": "-",
+    "page": 51,
+    "year": 2023,
+    "key": "28.11.3-51-386"
+  },
+  {
+    "id": "28.11.4",
+    "area": "Direito Imobiliário",
+    "service": "Acima de 100 unidades autônomas",
+    "value": "Mínimo de R$ 2.000,00",
+    "percentage": "-",
+    "page": 51,
+    "year": 2023,
+    "key": "28.11.4-51-387"
+  },
+  {
+    "id": "28.11.5",
+    "area": "Direito Imobiliário",
+    "service": "Em caso de Condomínios Resorts/Clubes",
+    "value": "-",
+    "percentage": "40% nos va- lores mínimos",
+    "page": 51,
+    "year": 2023,
+    "key": "28.11.5-51-388"
+  },
+  {
+    "id": "28.12",
+    "area": "Direito Imobiliário",
+    "service": "Auditoria legal (due diligence) para avaliação de situação de contratantes em operações imobiliárias, com análise de até 2 ações judiciais por CPF ou CNPJ verificados.",
+    "value": "R$ 1.200,00",
+    "percentage": "-",
+    "page": 51,
+    "year": 2023,
+    "key": "28.12-51-389"
+  },
+  {
+    "id": "28.13",
+    "area": "Direito Imobiliário",
+    "service": "Auditoria legal (due diligence) para avaliação de situação de contratantes em operações imobiliárias, com análise de até 2 ações judiciais por matrícula",
+    "value": "R$ 1.200,00",
+    "percentage": "-",
+    "page": 51,
+    "year": 2023,
+    "key": "28.13-51-390"
+  },
+  {
+    "id": "28.14",
+    "area": "Direito Imobiliário",
+    "service": "Regularização fundiária rural ou urbana ou procedimento de retificação de registro",
+    "value": "Mínimo de R$ 3.000,00",
+    "percentage": "-",
+    "page": 51,
+    "year": 2023,
+    "key": "28.14-51-391"
+  },
+  {
+    "id": "28.15",
+    "area": "Direito Imobiliário",
+    "service": "Procedimento de dúvida",
+    "value": "R$ 2.000,00",
+    "percentage": "-",
+    "page": 51,
+    "year": 2023,
+    "key": "28.15-51-392"
+  },
+  {
+    "id": "28.16",
+    "area": "Direito Imobiliário",
+    "service": "Memorial de incorporação imobiliária (certidões, minutas e demais documentos previstos no art. 32, da Lei nº. 4.591/1964, com exceção dos que competem a engenheiros e/ ou arquitetos) até o registro",
+    "value": "R$ 25.000,00",
+    "percentage": "-",
+    "page": 52,
+    "year": 2023,
+    "key": "28.16-52-393"
+  },
+  {
+    "id": "28.17",
+    "area": "Direito Imobiliário",
+    "service": "Ação de consignação de entrega das chaves",
+    "value": "R$ 3.000,00",
+    "percentage": "-",
+    "page": 52,
+    "year": 2023,
+    "key": "28.17-52-394"
+  },
+  {
+    "id": "28.18",
+    "area": "Direito Imobiliário",
+    "service": "Ação de vícios de construção",
+    "value": "R$ 4.000,00",
+    "percentage": "-",
+    "page": 52,
+    "year": 2023,
+    "key": "28.18-52-395"
+  },
+  {
+    "id": "28.19",
+    "area": "Direito Imobiliário",
+    "service": "Suscitação de dúvida",
+    "value": "R$ 2.500,00",
+    "percentage": "-",
+    "page": 52,
+    "year": 2023,
+    "key": "28.19-52-396"
+  },
+  {
+    "id": "28.20",
+    "area": "Direito Imobiliário",
+    "service": "Ação de preferência de inquilino preterido",
+    "value": "Mínimo de R$ 5.000",
+    "percentage": "10% sobre o valor do bem",
+    "page": 52,
+    "year": 2023,
+    "key": "28.20-52-397"
+  },
+  {
+    "id": "29.1",
+    "area": "Direito Internacional",
+    "service": "Execução de sentença ou laudo arbitral estrangeiros",
+    "value": "R$ 12.000,00",
+    "percentage": "-",
+    "page": 52,
+    "year": 2023,
+    "key": "29.1-52-398"
+  },
+  {
+    "id": "29.2",
+    "area": "Direito Internacional",
+    "service": "Homologação de sentença ou lado arbitral estrangeiros",
+    "value": "R$ 12.000,00",
+    "percentage": "-",
+    "page": 52,
+    "year": 2023,
+    "key": "29.2-52-399"
+  },
+  {
+    "id": "29.3",
+    "area": "Direito Internacional",
+    "service": "Concessão de exequator à carta rogatória do STJ",
+    "value": "R$ 5.000,00",
+    "percentage": "-",
+    "page": 52,
+    "year": 2023,
+    "key": "29.3-52-400"
+  },
+  {
+    "id": "29.4",
+    "area": "Direito Internacional",
+    "service": "Procedimentos comuns com conexão estrangeira",
+    "value": "R$ 6.000,00",
+    "percentage": "20% sobre o valor real da causa",
+    "page": 52,
+    "year": 2023,
+    "key": "29.4-52-401"
+  },
+  {
+    "id": "29.5",
+    "area": "Direito Internacional",
+    "service": "Exame de processos inter- nacionais em geral",
+    "value": "R$ 2.500,00",
+    "percentage": "-",
+    "page": 53,
+    "year": 2023,
+    "key": "29.5-53-402"
+  },
+  {
+    "id": "29.6",
+    "area": "Direito Internacional",
+    "service": "Juízo arbitral internacional",
+    "value": "R$ 6.000,00",
+    "percentage": "-",
+    "page": 53,
+    "year": 2023,
+    "key": "29.6-53-403"
+  },
+  {
+    "id": "29.7",
+    "area": "Direito Internacional",
+    "service": "Conciliação/mediação inter- nacionais",
+    "value": "R$ 4.500,00",
+    "percentage": "-",
+    "page": 53,
+    "year": 2023,
+    "key": "29.7-53-404"
+  },
+  {
+    "id": "29.8",
+    "area": "Direito Internacional",
+    "service": "Advocacia consultiva na abertura de empresas por estrangeiros no Brasil",
+    "value": "R$ 15.000,00",
+    "percentage": "-",
+    "page": 53,
+    "year": 2023,
+    "key": "29.8-53-405"
+  },
+  {
+    "id": "29.9",
+    "area": "Direito Internacional",
+    "service": "Adoção internacional",
+    "value": "",
+    "percentage": "",
+    "page": 53,
+    "year": 2023,
+    "key": "29.9-53-406"
+  },
+  {
+    "id": "29.9.1",
+    "area": "Direito Internacional",
+    "service": "Adoção no Brasil por ad- otante(s) estrangeiro(s)",
+    "value": "R$ 10.000,00",
+    "percentage": "-",
+    "page": 53,
+    "year": 2023,
+    "key": "29.9.1-53-407"
+  },
+  {
+    "id": "29.9.2",
+    "area": "Direito Internacional",
+    "service": "Adoção no exterior por adotante(s) brasileiro(s) ou estrangeiro(s)",
+    "value": "R$ 18.000,00",
+    "percentage": "-",
+    "page": 53,
+    "year": 2023,
+    "key": "29.9.2-53-408"
+  },
+  {
+    "id": "29.9.3",
+    "area": "Direito Internacional",
+    "service": "Ação de restituição de menores, nos termos da Convenção de Haia",
+    "value": "R$ 14.000,00",
+    "percentage": "-",
+    "page": 53,
+    "year": 2023,
+    "key": "29.9.3-53-409"
+  },
+  {
+    "id": "29.9.4",
+    "area": "Direito Internacional",
+    "service": "Ação de alimento internacional",
+    "value": "R$ 10.000,00",
+    "percentage": "-",
+    "page": 53,
+    "year": 2023,
+    "key": "29.9.4-53-410"
+  },
+  {
+    "id": "29.9.5",
+    "area": "Direito Internacional",
+    "service": "Ação de reconhecimento de paternidade/filiação internacional",
+    "value": "R$ 12.000,00",
+    "percentage": "-",
+    "page": 53,
+    "year": 2023,
+    "key": "29.9.5-53-411"
+  },
+  {
+    "id": "29.10",
+    "area": "Direito Internacional",
+    "service": "Divórcio no Brasil com conexão estrangeira",
+    "value": "",
+    "percentage": "",
+    "page": 53,
+    "year": 2023,
+    "key": "29.10-53-412"
+  },
+  {
+    "id": "29.10.1",
+    "area": "Direito Internacional",
+    "service": "Judicial",
+    "value": "R$ 10.000,00",
+    "percentage": "8% do valor dos bens a partilhar",
+    "page": 53,
+    "year": 2023,
+    "key": "29.10.1-53-413"
+  },
+  {
+    "id": "29.10.2",
+    "area": "Direito Internacional",
+    "service": "Extrajudicial",
+    "value": "R$ 6.000,00",
+    "percentage": "8% do valor dos bens a partilhar",
+    "page": 53,
+    "year": 2023,
+    "key": "29.10.2-53-414"
+  },
+  {
+    "id": "29.11",
+    "area": "Direito Internacional",
+    "service": "Procedimentos de inventário no Brasil com conexão estrangeira",
+    "value": "",
+    "percentage": "",
+    "page": 53,
+    "year": 2023,
+    "key": "29.11-53-415"
+  },
+  {
+    "id": "29.11",
+    "area": "Direito Internacional",
+    "service": "Judicial",
+    "value": "R$ 8.000,00",
+    "percentage": "8% do valor dos bens inventariados",
+    "page": 53,
+    "year": 2023,
+    "key": "29.11-53-416"
+  },
+  {
+    "id": "29.11",
+    "area": "Direito Internacional",
+    "service": "Extrajudicial",
+    "value": "R$ 5.000,00",
+    "percentage": "8% do valor dos bens inventariados",
+    "page": 54,
+    "year": 2023,
+    "key": "29.11-54-417"
+  },
+  {
+    "id": "29.12",
+    "area": "Direito Internacional",
+    "service": "Diligências extrajudiciais junto às Autoridades Centrais",
+    "value": "R$ 3.000,00",
+    "percentage": "-",
+    "page": 54,
+    "year": 2023,
+    "key": "29.12-54-418"
+  },
+  {
+    "id": "29.13",
+    "area": "Direito Internacional",
+    "service": "Averbação cartorária de atos civis familiaristas",
+    "value": "R$ 3.000,00",
+    "percentage": "-",
+    "page": 54,
+    "year": 2023,
+    "key": "29.13-54-419"
+  },
+  {
+    "id": "29.14",
+    "area": "Direito Internacional",
+    "service": "Registro/Transcrição de casamento realizado no exterior",
+    "value": "R$ 3.500,00",
+    "percentage": "-",
+    "page": 54,
+    "year": 2023,
+    "key": "29.14-54-420"
+  },
+  {
+    "id": "29.15",
+    "area": "Direito Internacional",
+    "service": "Registro/Reconhecimento de divórcio realizado no exterior",
+    "value": "R$ 4.500,00",
+    "percentage": "-",
+    "page": 54,
+    "year": 2023,
+    "key": "29.15-54-421"
+  },
+  {
+    "id": "29.16",
+    "area": "Direito Internacional",
+    "service": "Assessoria na emissão de vistos e pedidos de autorização de residência",
+    "value": "R$ 6.500,00",
+    "percentage": "-",
+    "page": 54,
+    "year": 2023,
+    "key": "29.16-54-422"
+  },
+  {
+    "id": "29.17",
+    "area": "Direito Internacional",
+    "service": "Pedidos de concessão de refúgio e autorização de residência",
+    "value": "R$ 6.500,00",
+    "percentage": "-",
+    "page": 54,
+    "year": 2023,
+    "key": "29.17-54-423"
+  },
+  {
+    "id": "29.18",
+    "area": "Direito Internacional",
+    "service": "Acompanhamento pessoal ao Departamento de Polícia Federal",
+    "value": "R$ 1.200,00",
+    "percentage": "-",
+    "page": 54,
+    "year": 2023,
+    "key": "29.18-54-424"
+  },
+  {
+    "id": "29.19",
+    "area": "Direito Internacional",
+    "service": "Defesa administrativa contra medidas de retirada compulsória do território nacional",
+    "value": "R$ 10.000,00",
+    "percentage": "-",
+    "page": 54,
+    "year": 2023,
+    "key": "29.19-54-425"
+  },
+  {
+    "id": "29.20",
+    "area": "Direito Internacional",
+    "service": "Nacionalidade",
+    "value": "",
+    "percentage": "",
+    "page": 54,
+    "year": 2023,
+    "key": "29.20-54-426"
+  },
+  {
+    "id": "29.20.1",
+    "area": "Direito Internacional",
+    "service": "Naturalização brasileira",
+    "value": "R$ 6.000,00",
+    "percentage": "-",
+    "page": 54,
+    "year": 2023,
+    "key": "29.20.1-54-427"
+  },
+  {
+    "id": "29.20.2",
+    "area": "Direito Internacional",
+    "service": "Procedimentos de dupla cidadania (1 requerente)",
+    "value": "R$ 6.000,00",
+    "percentage": "-",
+    "page": 54,
+    "year": 2023,
+    "key": "29.20.2-54-428"
+  },
+  {
+    "id": "29.20.3",
+    "area": "Direito Internacional",
+    "service": "Ação de opção de nacionalidade",
+    "value": "R$ 4.000,00",
+    "percentage": "-",
+    "page": 54,
+    "year": 2023,
+    "key": "29.20.3-54-429"
+  },
+  {
+    "id": "29.20.4",
+    "area": "Direito Internacional",
+    "service": "Defesa contra a perda de nacionalidade",
+    "value": "R$ 20.000,00",
+    "percentage": "-",
+    "page": 54,
+    "year": 2023,
+    "key": "29.20.4-54-430"
+  },
+  {
+    "id": "29.20.5",
+    "area": "Direito Internacional",
+    "service": "Recursos inominados",
+    "value": "R$ 4.500,00",
+    "percentage": "-",
+    "page": 54,
+    "year": 2023,
+    "key": "29.20.5-54-431"
+  },
+  {
+    "id": "30.1",
+    "area": "Propriedade Intelectual",
+    "service": "Registro de Marca / Programa de Computador",
+    "value": "",
+    "percentage": "",
+    "page": 55,
+    "year": 2023,
+    "key": "30.1-55-432"
+  },
+  {
+    "id": "30.1.1",
+    "area": "Propriedade Intelectual",
+    "service": "Requerimento administrativo no INPI",
+    "value": "R$ 1.500,00",
+    "percentage": "-",
+    "page": 55,
+    "year": 2023,
+    "key": "30.1.1-55-433"
+  },
+  {
+    "id": "30.1.2",
+    "area": "Propriedade Intelectual",
+    "service": "Oposição/defesa à oposição/recurso administrativo no INPI",
+    "value": "R$ 2.500,00",
+    "percentage": "-",
+    "page": 55,
+    "year": 2023,
+    "key": "30.1.2-55-434"
+  },
+  {
+    "id": "30.1.3",
+    "area": "Propriedade Intelectual",
+    "service": "Ação para obtenção de registro",
+    "value": "R$ 7.000,00",
+    "percentage": "20%",
+    "page": 55,
+    "year": 2023,
+    "key": "30.1.3-55-435"
+  },
+  {
+    "id": "30.1.4",
+    "area": "Propriedade Intelectual",
+    "service": "Defesa em ação judicial",
+    "value": "R$ 7.000,00",
+    "percentage": "20%",
+    "page": 55,
+    "year": 2023,
+    "key": "30.1.4-55-436"
+  },
+  {
+    "id": "30.2",
+    "area": "Propriedade Intelectual",
+    "service": "Registro de Patente",
+    "value": "",
+    "percentage": "",
+    "page": 55,
+    "year": 2023,
+    "key": "30.2-55-437"
+  },
+  {
+    "id": "30.2.1",
+    "area": "Propriedade Intelectual",
+    "service": "Requerimento administrativo no INPI",
+    "value": "R$ 4.500,00",
+    "percentage": "-",
+    "page": 55,
+    "year": 2023,
+    "key": "30.2.1-55-438"
+  },
+  {
+    "id": "30.2.2",
+    "area": "Propriedade Intelectual",
+    "service": "Defesa/recurso administrativo no INPI",
+    "value": "R$ 5.500,00",
+    "percentage": "-",
+    "page": 55,
+    "year": 2023,
+    "key": "30.2.2-55-439"
+  },
+  {
+    "id": "30.2.3",
+    "area": "Propriedade Intelectual",
+    "service": "Ação para obtenção de registro",
+    "value": "R$ 7.000,00",
+    "percentage": "20%",
+    "page": 55,
+    "year": 2023,
+    "key": "30.2.3-55-440"
+  },
+  {
+    "id": "30.2.4",
+    "area": "Propriedade Intelectual",
+    "service": "Defesa em ação judicial",
+    "value": "R$ 7.000,00",
+    "percentage": "20%",
+    "page": 55,
+    "year": 2023,
+    "key": "30.2.4-55-441"
+  },
+  {
+    "id": "30.3",
+    "area": "Propriedade Intelectual",
+    "service": "Registro de Desenho Industrial / Indicação Geográfica",
+    "value": "",
+    "percentage": "",
+    "page": 55,
+    "year": 2023,
+    "key": "30.3-55-442"
+  },
+  {
+    "id": "30.3.1",
+    "area": "Propriedade Intelectual",
+    "service": "Requerimento administrativo no INPI",
+    "value": "R$ 2.500,00",
+    "percentage": "-",
+    "page": 55,
+    "year": 2023,
+    "key": "30.3.1-55-443"
+  },
+  {
+    "id": "30.3.2",
+    "area": "Propriedade Intelectual",
+    "service": "Defesa/recurso administrativo no INPI",
+    "value": "R$ 3.500,00",
+    "percentage": "-",
+    "page": 55,
+    "year": 2023,
+    "key": "30.3.2-55-444"
+  },
+  {
+    "id": "30.4",
+    "area": "Propriedade Intelectual",
+    "service": "Registro de Direitos Autorais (obras, composições etc.)",
+    "value": "",
+    "percentage": "",
+    "page": 55,
+    "year": 2023,
+    "key": "30.4-55-445"
+  },
+  {
+    "id": "30.4.1",
+    "area": "Propriedade Intelectual",
+    "service": "Registro na Biblioteca Nacional",
+    "value": "R$ 2.500,00",
+    "percentage": "-",
+    "page": 55,
+    "year": 2023,
+    "key": "30.4.1-55-446"
+  },
+  {
+    "id": "30.4.2",
+    "area": "Propriedade Intelectual",
+    "service": "Registro no Copyright",
+    "value": "R$ 1.500,00",
+    "percentage": "-",
+    "page": 55,
+    "year": 2023,
+    "key": "30.4.2-55-447"
+  },
+  {
+    "id": "31.1",
+    "area": "Direito Digital",
+    "service": "Consultoria para startups",
+    "value": "R$ 4.000,00",
+    "percentage": "-",
+    "page": 56,
+    "year": 2023,
+    "key": "31.1-56-448"
+  },
+  {
+    "id": "31.2",
+    "area": "Direito Digital",
+    "service": "Consultoria para empresas de venda online (e-commerce), YouTubers, Influenciador Digital, Streamers",
+    "value": "R$ 4.000,00 mínimo",
+    "percentage": "-",
+    "page": 56,
+    "year": 2023,
+    "key": "31.2-56-449"
+  },
+  {
+    "id": "31.3",
+    "area": "Direito Digital",
+    "service": "Consultoria em compliance",
+    "value": "R$ 700 reais (hora) ou mínimo R$ 4.000,00",
+    "percentage": "-",
+    "page": 56,
+    "year": 2023,
+    "key": "31.3-56-450"
+  },
+  {
+    "id": "31.4",
+    "area": "Direito Digital",
+    "service": "Elaboração de termos digitais",
+    "value": "",
+    "percentage": "",
+    "page": 56,
+    "year": 2023,
+    "key": "31.4-56-451"
+  },
+  {
+    "id": "31.4.1",
+    "area": "Direito Digital",
+    "service": "Termos de Uso de Site",
+    "value": "R$ 3.000,00",
+    "percentage": "-",
+    "page": 56,
+    "year": 2023,
+    "key": "31.4.1-56-452"
+  },
+  {
+    "id": "31.4.2",
+    "area": "Direito Digital",
+    "service": "Termo de Uso de Software e/ou Aplicativo",
+    "value": "R$ 4.000,00",
+    "percentage": "-",
+    "page": 56,
+    "year": 2023,
+    "key": "31.4.2-56-453"
+  },
+  {
+    "id": "31.4.3",
+    "area": "Direito Digital",
+    "service": "Termo de Políticas de Privacidade",
+    "value": "R$ 2.000,00",
+    "percentage": "-",
+    "page": 56,
+    "year": 2023,
+    "key": "31.4.3-56-454"
+  },
+  {
+    "id": "31.4.4",
+    "area": "Direito Digital",
+    "service": "Termo de Autorização de Uso de Imagem",
+    "value": "R$ 2.000,00",
+    "percentage": "-",
+    "page": 56,
+    "year": 2023,
+    "key": "31.4.4-56-455"
+  },
+  {
+    "id": "31.4.5",
+    "area": "Direito Digital",
+    "service": "Para Desbloqueio e/ou Reativação de Conta em Marketplace em Mercado Internacional",
+    "value": "R$ 7.000,00",
+    "percentage": "-",
+    "page": 56,
+    "year": 2023,
+    "key": "31.4.5-56-456"
+  },
+  {
+    "id": "31.5",
+    "area": "Direito Digital",
+    "service": "Direito digital contencioso",
+    "value": "",
+    "percentage": "",
+    "page": 56,
+    "year": 2023,
+    "key": "31.5-56-457"
+  },
+  {
+    "id": "31.5.1",
+    "area": "Direito Digital",
+    "service": "Ação de Desbloqueio e/ou Reativação de Conta Digital",
+    "value": "remissão aos valores conforme fase processual da área cível",
+    "percentage": "-",
+    "page": 57,
+    "year": 2023,
+    "key": "31.5.1-57-458"
+  },
+  {
+    "id": "31.5.2",
+    "area": "Direito Digital",
+    "service": "Ação de Desbloqueio e/ou Reativação de Conta em Marketplace",
+    "value": "remissão aos valores conforme fase processual da área cível",
+    "percentage": "-",
+    "page": 57,
+    "year": 2023,
+    "key": "31.5.2-57-459"
+  },
+  {
+    "id": "31.5.3",
+    "area": "Direito Digital",
+    "service": "Ação para Remoção de Conteúdo Online",
+    "value": "remissão aos valores conforme fase processual da área cível",
+    "percentage": "-",
+    "page": 57,
+    "year": 2023,
+    "key": "31.5.3-57-460"
+  },
+  {
+    "id": "31.5.4",
+    "area": "Direito Digital",
+    "service": "Ação para Identificação de Usuário em Plataforma Digital",
+    "value": "remissão aos valores conforme fase processual da área cível",
+    "percentage": "-",
+    "page": 57,
+    "year": 2023,
+    "key": "31.5.4-57-461"
+  },
+  {
+    "id": "31.5.5",
+    "area": "Direito Digital",
+    "service": "Defesas Judiciais e Administrativas em Ações Relacionadas a Direito Digital",
+    "value": "remissão aos valores conforme fase processual da área cível",
+    "percentage": "-",
+    "page": 57,
+    "year": 2023,
+    "key": "31.5.5-57-462"
+  },
+  {
+    "id": "31.5.6",
+    "area": "Direito Digital",
+    "service": "Defesa em crimes digitais Lei nº 12.737/2012",
+    "value": "remissão aos valores conforme fase processual da área cível",
+    "percentage": "-",
+    "page": 57,
+    "year": 2023,
+    "key": "31.5.6-57-463"
+  }
+]

@@ -12,6 +12,7 @@ import AssinarPublico from "./pages/AssinarPublico";
 import VerificarPublico from "./pages/VerificarPublico";
 import GlobalSearch from "./components/GlobalSearch";
 import { applyLexTheme, readLexTheme, type LexTheme } from "./ThemeController";
+const Honorarios = lazy(() => import('./pages/Honorarios'));
 const ToolHub = lazy(() => import('./pages/ToolHub'));
 const ScheduledMessages = lazy(() => import('./pages/ScheduledMessages'));
 const WhatsAppFlow = lazy(() => import('./pages/WhatsAppFlow'));
@@ -791,6 +792,8 @@ export default function App() {
             <Route path="/clientes" element={<Clients />}/>
     <Route path="/clientes/:clientId" element={<Clients />}/>
             <Route path="/perfil-cliente" element={<PerfilCliente />}/>
+<Route path="/perfil-cliente/honorarios" element={financeBlocked ? <Navigate to="/" replace/> : <Honorarios />}/>
+<Route path="/financeiro/honorarios" element={<Navigate to="/perfil-cliente/honorarios" replace/>}/>
             <Route path="/processos" element={<Processes />}/>
     <Route path="/processos/:recordId" element={<Processes />}/>
     <Route path="/configuracoes/automacoes-processuais" element={<Processes mode="automacoes"/>}/>
