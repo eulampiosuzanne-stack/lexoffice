@@ -68,6 +68,30 @@ export function InfinitePayWizard({onDone}:{onDone:()=>void}){
  </div>;
 }
 
+type Subscription={id:string;client_id:string;contract_id:string;provider_reference:string|null;plan_name:string|null;amount:number;due_day:number|null;status:string;notes:string|null};
+function InfinitePaySubscriptions(){
+ const [clients,setClients]=useState<Client[]>([]),[contracts,setContracts]=useState<Contract[]>([]),[rows,setRows]=useState<Subscription[]>([]);
+ const [org,setOrg]=useState(''),[clientId,setClientId]=useState(''),[contractId,setContractId]=useState('');
+ const [reference,setReference]=useState(''),[amount,setAmount]=useState(''),[dueDay,setDueDay]=useState('10'),[status,setStatus]=useState('pending');
+ const [error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false);
+ const refresh=useCallback(async(o:string)=>{const {data,error:e}=await supabase!.from('infinitepay_subscriptions').select('id,client_id,contract_id,provider_reference,plan_name,amount,due_day,status,notes').eq('org_id',o).order('created_at',{ascending:false});if(e)throw e;setRows((data||[]) as Subscription[])},[]);
+ useEffect(()=>{let alive=true;(async()=>{try{const {org:o}=await ctx();const {data,error:e}=await supabase!.from('clients').select('id,name').eq('org_id',o).order('name');if(e)throw e;if(alive){setOrg(o);setClients(data||[]);await refresh(o)}}catch(e:any){if(alive)setError(e.message)}})();return()=>{alive=false}},[refresh]);
+ useEffect(()=>{setContractId('');setContracts([]);if(!clientId||!org)return;let alive=true;void supabase!.from('fee_contracts').select('id,title,status').eq('org_id',org).eq('client_id',clientId).then(({data,error:e})=>{if(alive){if(e)setError(e.message);else setContracts(data||[])}});return()=>{alive=false}},[org,clientId]);
+ async function save(){setError('');setNotice('');const value=Number(amount.replace(',','.'));if(!contractId||!Number.isFinite(value)||value<=0){setError('Selecione contrato e valor mensal válido.');return}setBusy(true);try{const {data:{user}}=await supabase!.auth.getUser();if(!user)throw Error('Sessão expirada');const {error:e}=await supabase!.from('infinitepay_subscriptions').insert({org_id:org,owner_user_id:user.id,client_id:clientId,contract_id:contractId,provider_reference:reference.trim()||null,amount:value,due_day:Number(dueDay),status});if(e)throw e;await refresh(org);setNotice('Assinatura vinculada. Nenhuma cobrança foi criada e nenhuma parcela foi baixada.');setReference('');setAmount('')}catch(e:any){setError(e.code==='23505'?'Este contrato já possui uma assinatura vinculada.':e.message)}finally{setBusy(false)}}
+ async function updateStatus(id:string,next:string){setError('');const {error:e}=await supabase!.from('infinitepay_subscriptions').update({status:next,updated_at:new Date().toISOString()}).eq('id',id).eq('org_id',org);if(e)setError(e.message);else await refresh(org)}
+ return <section className="collection-panel"><div className="collection-panel-head"><div><h2>Assinaturas InfinitePay vinculadas</h2><p>Controle administrativo de assinaturas criadas na InfinitePay. Situação informada manualmente; não confirma pagamento nem dá baixa automática.</p></div></div>
+ {error&&<p role="alert">{error}</p>}{notice&&<p role="status">{notice}</p>}
+ <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(210px,1fr))',gap:12}}>
+ <label className="collection-new-field">Cliente<select value={clientId} onChange={e=>setClientId(e.target.value)}><option value="">Selecione</option>{clients.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+ <label className="collection-new-field">Contrato<select value={contractId} onChange={e=>setContractId(e.target.value)}><option value="">Selecione</option>{contracts.map(c=><option key={c.id} value={c.id}>{c.title||'Contrato de honorários'}</option>)}</select></label>
+ <label className="collection-new-field">Referência da assinatura (opcional)<input value={reference} onChange={e=>setReference(e.target.value)} placeholder="Identificador da InfinitePay"/></label>
+ <label className="collection-new-field">Valor mensal (R$)<input type="number" min="0.01" step="0.01" value={amount} onChange={e=>setAmount(e.target.value)}/></label>
+ <label className="collection-new-field">Dia de vencimento<input type="number" min="1" max="31" value={dueDay} onChange={e=>setDueDay(e.target.value)}/></label>
+ <label className="collection-new-field">Situação informada<select value={status} onChange={e=>setStatus(e.target.value)}><option value="pending">Aguardando autorização</option><option value="active">Ativa (informado)</option><option value="paused">Pausada</option><option value="cancelled">Cancelada</option><option value="completed">Concluída</option></select></label>
+ </div><button type="button" className="primary" disabled={busy||!contractId} onClick={()=>void save()}>{busy?'Salvando…':'Vincular assinatura existente'}</button>
+ {rows.length>0&&<div className="collection-table-scroll"><table><thead><tr><th>Cliente / contrato</th><th>Valor mensal</th><th>Referência</th><th>Situação manual</th></tr></thead><tbody>{rows.map(r=><tr key={r.id}><td>{clients.find(c=>c.id===r.client_id)?.name||'Cliente'}<small>{r.contract_id}</small></td><td>{new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(r.amount))} · dia {r.due_day||'—'}</td><td>{r.provider_reference||'Não informada'}</td><td><select aria-label="Atualizar situação manual" value={r.status} onChange={e=>void updateStatus(r.id,e.target.value)}><option value="pending">Aguardando</option><option value="active">Ativa (informado)</option><option value="paused">Pausada</option><option value="cancelled">Cancelada</option><option value="completed">Concluída</option></select></td></tr>)}</tbody></table></div>}
+ </section>
+}
 export function InfinitePayList({refreshKey}:{refreshKey:number}){
  const [rows,setRows]=useState<Charge[]>([]);const [names,setNames]=useState<Record<string,string>>({});
  const [loading,setLoading]=useState(true);const [error,setError]=useState('');const [busy,setBusy]=useState('');
@@ -82,8 +106,8 @@ export function InfinitePayList({refreshKey}:{refreshKey:number}){
   setBusy(id);setError('');
   try{const {data,error:e}=await supabase!.functions.invoke('infinitepay-webhook',{body:{action:'cancel',charge_id:id}});if(e||data?.error)throw new Error(data?.error||e?.message||'Falha ao cancelar.');await load()}catch(e:any){setError(e.message)}finally{setBusy('')}
  }
- return <section className="collection-panel"><div className="collection-panel-head"><div><h2>Cobranças InfinitePay emitidas</h2><p>Links de pagamento e situação de cada cobrança.</p></div></div>
+ return <><InfinitePaySubscriptions/><section className="collection-panel"><div className="collection-panel-head"><div><h2>Cobranças InfinitePay emitidas</h2<p>Links de pagamento e situação de cada cobrança.</p></div></div>
   {error?<div className="collection-empty" role="alert">{error}</div>:loading?<div className="collection-empty" role="status">Carregando…</div>:!rows.length?<div className="collection-empty">Nenhuma cobrança InfinitePay emitida.</div>:
   <div className="collection-table-scroll"><table><thead><tr><th>Cliente / descrição</th><th>Valor</th><th>Forma</th><th>Situação</th><th><span className="sr-only">Ações</span></th></tr></thead><tbody>{rows.map(r=><tr key={r.id}><td><strong>{names[r.client_id]||'Cliente'}</strong><small>{r.description} · {new Date(r.created_at).toLocaleDateString('pt-BR')}</small></td><td className="collection-money">{money(r.amount_cents)}</td><td>{methods[r.method as Method]||r.method}</td><td>{statusLabel[r.status]||r.status}</td><td>{r.checkout_url?.startsWith('https://')&&<a href={r.checkout_url} target="_blank" rel="noopener noreferrer">Abrir link</a>}{['homologation','active'].includes(r.status)&&<button type="button" className="secondary" disabled={busy===r.id} onClick={()=>void cancel(r.id)}>{busy===r.id?'Cancelando…':'Cancelar'}</button>}</td></tr>)}</tbody></table></div>}
- </section>;
+ </section></>;
 }
