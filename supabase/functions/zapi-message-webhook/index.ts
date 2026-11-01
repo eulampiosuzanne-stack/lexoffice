@@ -441,6 +441,7 @@ if(fromMe&&fromApi)return J({ok:true,ignored:'own_api_echo'});
 if(!p)return J({ok:true,ignored:'phone'});
 if(b.isGroup||b.isNewsletter)return J({ok:true,ignored:'non_inbound'});
 if(!fromMe&&!t&&!ch&&!m)return J({ok:true,ignored:'empty_inbound_event'});
+if(!fromMe&&(/\\b(mensagem autom[aá]tica|n[aã]o responda|resposta autom[aá]tica|atendimento autom[aá]tico|este [eé] um aviso autom[aá]tico|sou um rob[oô]|assistente virtual automatizad[oa])\\b/i.test(t)||/\\b(bot|rob[oô]|atendimento autom[aá]tico)\\b/i.test(senderName)))return J({ok:true,ignored:'automated_sender'});
 if(!fromMe&&inboundId){
   const {data:seen}=await a.from('whatsapp_messages').select('id').eq('external_message_id',inboundId).limit(1).maybeSingle();
   if(seen?.id)return J({ok:true,ignored:'duplicate_or_own_message',external_message_id:inboundId});
