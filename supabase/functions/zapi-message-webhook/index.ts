@@ -234,7 +234,7 @@ async function bot(a:any,p:string,ch0:string,t:string,inboundId:string,preClaime
       if(accessReply)return true; // o fluxo de acesso já respondeu depois desta mensagem
     }
   }
-  if(x.v.org_id===DEFAULT_ORG&&!restriction&&(t||ch0)){await runAgent(x.v.org_id,x.v.id,p,'client_service_triage',t||ch0,testMode);return true;}
+  if(x.v.org_id===DEFAULT_ORG&&!restriction&&(t||ch0)){const agent=await pickAgent(a,x,t||ch0);await runAgent(x.v.org_id,x.v.id,p,agent,t||ch0,testMode);return true;}
   const {data:st}=await a.from('whatsapp_chatbot_flow_state').select('current_node,path').eq('conversation_id',x.v.id).maybeSingle();
   const node=String(st?.current_node||'start'),path=Array.isArray(st?.path)?st.path:[],svc=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const call=async(q:any)=>{const r=await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/whatsapp-chatbot-flow`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${svc}`},body:JSON.stringify(q)}),d=await r.json().catch(()=>({}));if(!r.ok||d?.ok===false)throw new Error(d?.error||`chatbot ${r.status}`);return d};
