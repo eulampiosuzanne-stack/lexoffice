@@ -21,6 +21,7 @@ import {
   ChevronLeft,
   ChevronRight,
   MessageCircle,
+  CalendarClock,
   Send,
   Megaphone,
   Trash2,
@@ -37,6 +38,7 @@ import MissingWhatsAppPanel from "../components/MissingWhatsAppPanel";
 import './clients-workspace.css';
 import ClientActionMenu from '../components/ClientActionMenu';
 import ClientOnboardingPanel from "../components/ClientOnboardingPanel";
+import ClientMessageScheduler from "../components/ClientMessageScheduler";
 type Client = {
   id: string;
   name: string;
@@ -164,6 +166,7 @@ export default function Clients() {
   const [cpfLookup, setCpfLookup] = useState({ loading: false, notice: "" });
   useEffect(()=>{let alive=true;setOnbStatus(undefined);const id=selected?.id;if(!id||!supabase)return;(async()=>{const {data}=await supabase.from('client_onboarding').select('status').eq('client_id',id).maybeSingle();if(alive)setOnbStatus(data?.status??null);})();return()=>{alive=false}},[selected?.id,clientSection]);
   const [tierBusy, setTierBusy] = useState(false);
+  const [scheduleTarget, setScheduleTarget] = useState<Client | null>(null);
   const [messageTarget, setMessageTarget] = useState<Client | null>(null),
     [messageText, setMessageText] = useState(""),
     [messageBusy, setMessageBusy] = useState(false),
@@ -1972,6 +1975,7 @@ function sendAppInvite() {
           </div>
         </div>
       )}
+      {scheduleTarget && <ClientMessageScheduler client={scheduleTarget} onClose={() => setScheduleTarget(null)} />}
       {messageTarget && (
         <div
           className="modal-overlay"
@@ -2051,6 +2055,7 @@ function sendAppInvite() {
               >
                 Cancelar
               </button>
+              <button className="secondary" disabled={messageBusy} onClick={() => { setScheduleTarget(messageTarget); setMessageTarget(null); }}><CalendarClock size={15} /> Agendar mensagem</button>
               <button
                 className="primary"
                 disabled={messageBusy || !messageText.trim()}
