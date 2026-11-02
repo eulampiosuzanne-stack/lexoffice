@@ -63,14 +63,14 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,text
   background:#171b22;
   color:#fff;
   border:2px solid #58616e;
-  border-left:5px solid #b51f43;
+  border-left:5px solid #76102e;
   box-shadow:0 2px 0 rgba(255,255,255,.055) inset,0 4px 0 #0b0e13,0 9px 18px rgba(0,0,0,.3);
 }
 .app input::placeholder,.app textarea::placeholder{color:#c2c7ce;opacity:1}
 .app label{color:#f3f3f4}
 .app label:has(>input),.app label:has(>select),.app label:has(>textarea){font-weight:750}
 .app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):hover,
-.app select:hover,.app textarea:hover{border-color:#8b94a1;border-left-color:#d73c5b}
+.app select:hover,.app textarea:hover{border-color:#8b94a1;border-left-color:#8e1837}
 .app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
 .app select:focus,.app textarea:focus,
 .app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus-visible,
@@ -78,10 +78,10 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,text
   outline:3px solid #f0a1b3;
   outline-offset:3px;
   border-color:#fff;
-  border-left-color:#d73c5b;
-  box-shadow:0 0 0 2px #8f1837,0 4px 0 #4d091a,0 10px 22px rgba(0,0,0,.42);
+  border-left-color:#8e1837;
+  box-shadow:0 0 0 2px #620b25,0 4px 0 #310410,0 10px 22px rgba(0,0,0,.42);
 }
-.app input[type="checkbox"],.app input[type="radio"]{width:22px;height:22px;min-width:22px;accent-color:#b51f43;filter:drop-shadow(0 3px 2px rgba(0,0,0,.45))}
+.app input[type="checkbox"],.app input[type="radio"]{width:22px;height:22px;min-width:22px;accent-color:#76102e;filter:drop-shadow(0 3px 2px rgba(0,0,0,.45))}
 
 /* Elementos clicáveis ganham borda e resposta visual inequívoca. */
 .app button,.app a{transition:background var(--lx-transition),color var(--lx-transition),border-color var(--lx-transition),box-shadow var(--lx-transition),transform var(--lx-transition)}
@@ -140,16 +140,16 @@ html body .app.app.app.app .workspace-area-toggle:hover{
   transform:translateY(-1px);
 }
 html body .app.app.app.app .workspace-area-toggle.is-current-area,
-html body .app.app.app.app .workspace-submenu .workspace-submenu-link.is-current-page{
+html body .app.app.app.app .workspace-area-toggle.is-current-area{
   color:#fff!important;
-  background:linear-gradient(180deg,#8f1837 0%,#74112c 56%,#59091f 100%)!important;
-  border:2px solid #b73352!important;
-  border-top-color:#d45a73!important;
-  box-shadow:0 2px 0 rgba(255,255,255,.15) inset,0 -2px 0 rgba(42,1,13,.8) inset,0 6px 0 #350512,0 13px 24px rgba(0,0,0,.5)!important;
+  background:linear-gradient(180deg,#620b25 0%,#4b071a 56%,#350412 100%)!important;
+  border:2px solid #7d1733!important;
+  border-top-color:#982b48!important;
+  box-shadow:0 2px 0 rgba(255,255,255,.11) inset,0 -2px 0 rgba(28,0,8,.88) inset,0 6px 0 #21020b,0 13px 24px rgba(0,0,0,.56)!important;
   font-weight:800;
 }
 html body .app.app.app.app .workspace-area-toggle.is-current-area svg,
-html body .app.app.app.app .workspace-submenu .workspace-submenu-link.is-current-page svg{
+html body .app.app.app.app .workspace-area-toggle.is-current-area svg{
   color:#fff!important;
 }
 html body .app.app.app.app .workspace-submenu{
@@ -159,8 +159,20 @@ html body .app.app.app.app .workspace-submenu{
 }
 html body .app.app.app.app .workspace-submenu .workspace-submenu-link{
   min-height:44px;
-  border:1px solid transparent;
+  color:#d5d8dd;
+  background:linear-gradient(180deg,#292f38,#20252d);
+  border:1px solid #414a56;
   border-radius:8px;
+  box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 3px 0 #0a0d11,0 7px 14px rgba(0,0,0,.26);
+  margin-bottom:7px;
+}
+html body .app.app.app.app .workspace-submenu .workspace-submenu-link.is-current-page{
+  color:#fff!important;
+  background:linear-gradient(180deg,#343b45,#282e37)!important;
+  border:1px solid #687381!important;
+  border-left:5px solid #76102e!important;
+  box-shadow:0 1px 0 rgba(255,255,255,.08) inset,0 4px 0 #090c10,0 9px 18px rgba(0,0,0,.34)!important;
+  font-weight:800;
 }
 
 /* Abas internas também usam vermelho ao serem selecionadas. */
@@ -170,10 +182,10 @@ html body .app.app.app.app .workspace-submenu .workspace-submenu-link{
 .lx-navigation .lx-navigation-item.active,
 .lx-navigation .lx-navigation-item[aria-selected="true"]{
   color:#fff;
-  background:linear-gradient(180deg,#8f1837,#650c27);
-  border:2px solid #b73352;
-  border-top-color:#d45a73;
-  border-bottom-color:#b73352;
+  background:linear-gradient(180deg,#620b25,#3f0616);
+  border:2px solid #7d1733;
+  border-top-color:#982b48;
+  border-bottom-color:#7d1733;
   border-radius:8px 8px 5px 5px;
   box-shadow:0 2px 0 rgba(255,255,255,.14) inset,0 5px 0 #350512,0 11px 20px rgba(0,0,0,.42);
   transform:translateY(-2px);
@@ -185,9 +197,9 @@ html body .app.app.app.app [role="tab"][aria-current="page"],
 html body .app.app.app.app .lx-tab[aria-selected="true"],
 html body .app.app.app.app .lx-tab[aria-current="page"]{
   color:#fff!important;
-  background:linear-gradient(180deg,#8f1837 0%,#74112c 58%,#59091f 100%)!important;
-  border:2px solid #b73352!important;
-  border-top-color:#d45a73!important;
+  background:linear-gradient(180deg,#620b25 0%,#4b071a 58%,#350412 100%)!important;
+  border:2px solid #7d1733!important;
+  border-top-color:#982b48!important;
   border-radius:9px!important;
   box-shadow:0 2px 0 rgba(255,255,255,.14) inset,0 -2px 0 rgba(42,1,13,.8) inset,0 5px 0 #350512,0 11px 20px rgba(0,0,0,.42)!important;
   transform:translateY(-2px);
@@ -196,7 +208,7 @@ html body .app.app.app.app .lx-tab[aria-current="page"]{
 
 /* Planejamento é a tela de referência: caixas opacas e nitidamente elevadas. */
 .plan-page .plan-panel{background:linear-gradient(180deg,#2a3039 0%,#222730 55%,#1d222a 100%);border:1px solid #48515d;box-shadow:var(--lx-depth-card)}
-.plan-page .plan-verdict div{background:linear-gradient(180deg,#2d333d,#222730);border-color:#b51f43;box-shadow:0 1px 0 rgba(255,255,255,.07) inset,0 4px 0 #11151b,0 9px 20px rgba(0,0,0,.3)}
+.plan-page .plan-verdict div{background:linear-gradient(180deg,#2d333d,#222730);border-color:#76102e;box-shadow:0 1px 0 rgba(255,255,255,.07) inset,0 4px 0 #11151b,0 9px 20px rgba(0,0,0,.3)}
 .plan-page input,.plan-page select{background:#171b22;border-color:#414955;box-shadow:0 2px 0 rgba(255,255,255,.035) inset,0 4px 0 #0c0f14,0 8px 14px rgba(0,0,0,.24)}
 
 /* Painel inicial: a folha própria usa alta especificidade; o relevo precisa
@@ -207,8 +219,10 @@ html body .app.app.app.app .hc-metrics>button{
   background:linear-gradient(180deg,#303741 0%,#252b34 58%,#20252d 100%);
   border:2px solid #4e5865;
   border-top-color:#697481;
-  box-shadow:0 2px 0 rgba(255,255,255,.12) inset,0 -2px 0 rgba(0,0,0,.48) inset,0 8px 0 #090c11,0 17px 32px rgba(0,0,0,.48);
-  margin-bottom:8px;
+  border-bottom:6px solid #080a0e;
+  box-shadow:0 2px 0 rgba(255,255,255,.14) inset,0 -2px 0 rgba(0,0,0,.52) inset,0 3px 0 #59636f,0 10px 0 #07090d,0 20px 34px rgba(0,0,0,.58);
+  margin-bottom:12px;
+  transform:translateY(-3px);
 }
 html body .app.app.app.app .hc-metrics>button:hover{
   background:linear-gradient(180deg,#38404b,#292f39);
@@ -220,8 +234,10 @@ html body .app.app.app.app .hc-panel{
   background:linear-gradient(180deg,#2b313b 0%,#222831 58%,#1e232b 100%);
   border:2px solid #4b5561;
   border-top-color:#697481;
-  box-shadow:0 2px 0 rgba(255,255,255,.1) inset,0 -2px 0 rgba(0,0,0,.5) inset,0 9px 0 #090c11,0 20px 38px rgba(0,0,0,.5);
-  margin-bottom:10px;
+  border-bottom:7px solid #080a0e;
+  box-shadow:0 2px 0 rgba(255,255,255,.12) inset,0 -2px 0 rgba(0,0,0,.55) inset,0 3px 0 #535e6a,0 12px 0 #07090d,0 24px 42px rgba(0,0,0,.6);
+  margin-bottom:16px;
+  transform:translateY(-3px);
 }
 html body .app.app.app.app .hc-panel-title{
   background:linear-gradient(180deg,#252b34,#1c2129);
