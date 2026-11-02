@@ -200,6 +200,16 @@ export function planejamentoTributario(d: Dict) {
   const iss = num(d.issRate === '' || d.issRate == null ? '5' : d.issRate) / 100;
   if (iss < 0 || iss > 0.05) fail('A alíquota de ISS deve estar entre 0% e 5%.');
   const rbt12Inf = num(d.annualRevenue); const rbt12 = rbt12Inf > 0 ? rbt12Inf : receita * 12;
+  const empresa = String(d.companyName || '').trim();
+  const cnpj = String(d.cnpj || '').replace(/\D/g, '');
+  const cnae = String(d.cnae || '').trim();
+  const municipio = String(d.municipality || '').trim();
+  const uf = String(d.state || '').trim();
+  const porte = String(d.businessSize || 'nao_informado');
+  const regimeAtual = String(d.currentRegime || 'nao_informado');
+  const creditoMensal = num(d.taxCredits);
+  const custoMudanca = num(d.transitionCost);
+  if (creditoMensal < 0 || custoMudanca < 0) fail('Créditos e custos de transição não podem ser negativos.');
   const atividade = String(d.activity || 'advocacia');
   const socios = Math.max(1, Math.floor(num(d.partners) || 1));
   const avisos: string[] = [];
@@ -224,13 +234,14 @@ export function planejamentoTributario(d: Dict) {
   const irDivPres = dividendosIR(dividPres / socios) * socios; const totalPres = pres.total + cpp + encargoPL + irDivPres;
   if (pres.excedente > 0) avisos.push('Receita acima de R$ 5 milhões/ano: aplicada a presunção majorada em 10% (LC 224/2025) sobre o excedente — há discussões judiciais sobre essa majoração.');
   const regimes = [{ nome: 'Pessoa física (carnê-leão + INSS 20%)', total: totalPF }, ...(totalSimples != null ? [{ nome: `Simples Nacional — Anexo ${anexo}`, total: totalSimples }] : []), { nome: 'Lucro presumido', total: totalPres }].sort((a, b) => a.total - b.total);
+  const dadosCompletos = Boolean(empresa && cnpj.length === 14 && cnae && municipio && uf && porte !== 'nao_informado' && regimeAtual !== 'nao_informado');
   const melhor = regimes[0]; const pior = regimes[regimes.length - 1];
   if ((receita - despesas) * 12 > PARAMS_2026.altaRendaAnual) avisos.push('Renda anual acima de R$ 600 mil: pode haver imposto mínimo anual (IRPFM, Lei 15.270/2025) na declaração, não incluído aqui.');
   if (atividade === 'advocacia') avisos.push('Advocacia no Simples fica no Anexo IV (INSS patronal de 20% sobre o pró-labore pago à parte). Sociedade uniprofissional pode ter ISS fixo no município.');
   if (atividade === 'fator_r') avisos.push(`Fator R de ${pct(fatorR)}, enquadramento no ${fatorR >= 0.28 ? 'Anexo III' : 'Anexo V'}.`);
-  const linhas = ['PLANEJAMENTO TRIBUTÁRIO — COMPARATIVO MENSAL (2026)', `Faturamento mensal: ${money(receita)}`, `Receita bruta 12 meses: ${money(rbt12)}`, `Despesas dedutíveis/operacionais: ${money(despesas)}`, `Pró-labore total: ${money(proLabore)} (${socios} sócio(s))`, '', `PF — INSS contribuinte individual: ${money(inssPF)}`, `PF — IRPF carnê-leão: ${money(irPF)}`, `PF — Carga total: ${money(totalPF)} (${pct(totalPF / receita)} do faturamento)`, ''];
+  const linhas = ['Empresa: ' + (empresa || 'não informada') + ' | CNPJ: ' + (cnpj || 'não informado') + ' | CNAE: ' + (cnae || 'não informado'), 'Município/UF: ' + municipio + '/' + uf + ' | Porte: ' + porte + ' | Regime atual: ' + regimeAtual, 'Créditos declarados: ' + money(creditoMensal) + ' | Custo de transição: ' + money(custoMudanca), 'PLANEJAMENTO TRIBUTÁRIO — COMPARATIVO MENSAL (2026)', `Faturamento mensal: ${money(receita)}`, `Receita bruta 12 meses: ${money(rbt12)}`, `Despesas dedutíveis/operacionais: ${money(despesas)}`, `Pró-labore total: ${money(proLabore)} (${socios} sócio(s))`, '', `PF — INSS contribuinte individual: ${money(inssPF)}`, `PF — IRPF carnê-leão: ${money(irPF)}`, `PF — Carga total: ${money(totalPF)} (${pct(totalPF / receita)} do faturamento)`, ''];
   if (totalSimples != null && efetiva != null) linhas.push(`Simples — Alíquota efetiva Anexo ${anexo}: ${pct(efetiva)}`, `Simples — DAS: ${money(receita * efetiva)}`, ...(anexo === 'IV' ? [`Simples — INSS patronal (20% pró-labore): ${money(cpp)}`] : []), `Simples — INSS e IRPF do pró-labore: ${money(encargoPL)}`, `Simples — Lucro distribuível: ${money(dividSimples)}`, `Simples — Carga total: ${money(totalSimples)} (${pct(totalSimples / receita)} do faturamento)`, '');
-  linhas.push(`Presumido — IRPJ: ${money(pres.irpj)}`, `Presumido — CSLL: ${money(pres.csll)}`, `Presumido — PIS/COFINS: ${money(pres.pis + pres.cofins)}`, `Presumido — ISS: ${money(pres.iss)}`, `Presumido — INSS patronal (20% pró-labore): ${money(cpp)}`, `Presumido — INSS e IRPF do pró-labore: ${money(encargoPL)}`, `Presumido — Lucro distribuível: ${money(dividPres)}`, ...(irDivPres > 0 ? [`Presumido — IRRF sobre dividendos (10%): ${money(irDivPres)}`] : []), `Presumido — Carga total: ${money(totalPres)} (${pct(totalPres / receita)} do faturamento)`, '', `Regime mais econômico: ${melhor.nome}`, `Economia mensal frente ao regime mais caro: ${money(pior.total - melhor.total)}`, `TOTAL ECONOMIA ANUAL ESTIMADA: ${money((pior.total - melhor.total) * 12)}`, '', ...avisos.map((a) => `Atenção: ${a}`), 'Observação: não considera créditos, retenções, ISS fixo, regimes especiais nem a reforma tributária (CBS/IBS a partir de 2027).', 'Recomendação: validar com a contabilidade antes de mudar de regime.');
+  linhas.push(`Presumido — IRPJ: ${money(pres.irpj)}`, `Presumido — CSLL: ${money(pres.csll)}`, `Presumido — PIS/COFINS: ${money(pres.pis + pres.cofins)}`, `Presumido — ISS: ${money(pres.iss)}`, `Presumido — INSS patronal (20% pró-labore): ${money(cpp)}`, `Presumido — INSS e IRPF do pró-labore: ${money(encargoPL)}`, `Presumido — Lucro distribuível: ${money(dividPres)}`, ...(irDivPres > 0 ? [`Presumido — IRRF sobre dividendos (10%): ${money(irDivPres)}`] : []), `Presumido — Carga total: ${money(totalPres)} (${pct(totalPres / receita)} do faturamento)`, '', `Regime mais econômico: ${melhor.nome}`, `Economia mensal frente ao regime mais caro: ${money(pior.total - melhor.total)}`, `TOTAL ECONOMIA ANUAL ESTIMADA: ${money((pior.total - melhor.total) * 12)}`, '', ...avisos.map((a) => `Atenção: ${a}`), 'Observação: comparação parcial. Lucro Real, créditos de PIS/Cofins e IBS/CBS, ISS fixo, perfil de clientes, custos de conformidade, riscos e transição ainda exigem apuração específica.', dadosCompletos ? 'Decisão: DADOS INSUFICIENTES para recomendar mudança. Validar elegibilidade, Lucro Real, créditos, reforma IBS/CBS, custos de transição e prazos com a contabilidade.' : 'Decisão: DADOS INSUFICIENTES. Preencha identificação, CNAE, localização, porte e regime atual; valide com a contabilidade.');
   return { texto: linhas.join('\n'), regimes, melhor };
 }
 
@@ -290,7 +301,7 @@ export const CALCS: Record<CalcKey, { nome: string; aba: string; fn: (d: Dict) =
   },
   trib: {
     nome: 'Planejamento Tributário', aba: 'Tributário', fn: planejamentoTributario,
-    resumo: [['Regime mais econômico', /^Regime mais econômico/], ['Economia por ano', /^TOTAL ECONOMIA/]],
+    resumo: [['Menor carga simulada', /^Menor carga estimada/], ['Economia por ano', /^TOTAL ECONOMIA/]],
     fields: [
       { key: 'activity', label: 'Atividade', type: 'select', options: [['advocacia', 'Advocacia (Simples Anexo IV)'], ['servicos', 'Serviços do Anexo III'], ['fator_r', 'Serviços com Fator R (Anexo III ou V)']] },
       { key: 'monthlyRevenue', label: 'Faturamento mensal, R$', type: 'number' },
