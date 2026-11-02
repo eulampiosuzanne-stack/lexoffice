@@ -91,6 +91,9 @@ const COMPLAINT_RE=/(procon|reclame aqui|denunciar|vou processar|processar voces
 const PROCESS_TOPIC_RE=/(process|andamento|audiencia|prazo|sentenca|decisao|juiz|juiza|forum|vara|intimacao|citacao|\d{7}-\d{2}\.\d{4})/;
 function handoffReason(p:any,msg:string,ctx:any):{reason:string,critical:boolean}|null{
   const pol=p?.policy||{};const t=norm(msg);
+  // Uma saudação ou chamada pelo nome da advogada não é pedido de transferência.
+  // Mantenha a conversa na triagem antes de considerar palavras-chave configuradas.
+  if (/^(?:(?:bom dia|boa tarde|boa noite|oi|ola|opa|alo|hey)[!,.?\s]*)?(?:(?:dra\.?|doutora)\s*)?suzanne\s*[?!.,]*$/.test(t) || /^(?:bom dia|boa tarde|boa noite|oi|ola|opa|alo|hey)[!,.?\s]*$/.test(t)) return null;
   const synthetic=/^a cliente selecionou:/.test(t);
   if(pol.critical_handoff!==false&&((synthetic&&ctx?.urgent===true)||CRITICAL_RE.test(t)))return {reason:'Situação crítica/urgente relatada pelo cliente',critical:true};
   if(pol.handoff_on_human_request!==false&&HUMAN_REQ_RE.test(t))return {reason:'Cliente pediu para falar com uma pessoa / pediu ligação',critical:false};
