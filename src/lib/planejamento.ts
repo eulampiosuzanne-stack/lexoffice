@@ -187,6 +187,41 @@ function inssContribuinte(valor: number, aliquota: number) {
 function dividendosIR(v: number) { return v > PARAMS_2026.dividendosLimiteMensal ? r2(v * PARAMS_2026.dividendosAliquota) : 0; }
 
 export function planejamentoTributario(d: Dict) {
+  const razaoSocial = String(d.companyName || '').trim();
+  const cnpj = String(d.companyCnpj || '').replace(/\D/g, '');
+  if (!razaoSocial) fail('Informe a razão social ou nome da empresa.');
+  if (!/^\d{14}$/.test(cnpj)) fail('Informe o CNPJ com 14 dígitos.');
+  const digitoCnpj = (base: string, pesos: number[]) => { const soma = pesos.reduce((acc, peso, i) => acc + Number(base[i]) * peso, 0); const resto = soma % 11; return resto < 2 ? 0 : 11 - resto; };
+  if (/^(\d)\1{13}$/.test(cnpj) || digitoCnpj(cnpj.slice(0,12),[5,4,3,2,9,8,7,6,5,4,3,2]) !== Number(cnpj[12]) || digitoCnpj(cnpj.slice(0,13),[6,5,4,3,2,9,8,7,6,5,4,3,2]) !== Number(cnpj[13])) fail('CNPJ inválido: confira os dígitos verificadores.');
+  const cnpjFormatado = cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+  const porte = d.companySize || 'me';
+  const regimeAtual = String(d.taxRegime || 'nao_informado');
+  const hibrido = d.hybridOption === 'sim';
+  const cnae = String(d.cnae || '').replace(/\D/g, '');
+  const localTributario = `${String(d.city || 'não informado')}/${String(d.state || 'UF não informada')}`;
+  const receitaAnualDeclarada = num(d.annualRevenue);
+  const receitaProjetada = receitaAnualDeclarada > 0 ? receitaAnualDeclarada : num(d.monthlyRevenue) * 12;
+  const meiAtividadePermitida = d.meiEligible === 'sim';
+  const meiEmpregados = Math.floor(num(d.meiEmployees));
+  const meiSocioOutra = d.meiOtherCompany === 'sim';
+  const limiteMei = 81000;
+  const meiElegivel = meiAtividadePermitida && meiEmpregados <= 1 && !meiSocioOutra && receitaProjetada <= limiteMei && num(d.partners) <= 1;
+  const limiteMe = 360000;
+  const limiteEpp = 4800000;
+  const porteCalculado = receitaProjetada <= limiteMe ? 'ME' : receitaProjetada <= limiteEpp ? 'EPP' : 'acima do limite de EPP';
+  const recomendacoesPorte:string[] = [];
+  if (hibrido) recomendacoesPorte.push('Simples híbrido 2027: IBS e CBS recolhidos no regime regular fora do DAS. Créditos exigem documentos fiscais e hipóteses legais; simulação numérica indisponível sem alíquotas e classificação fiscal da operação.');
+  if (hibrido && (porte === 'mei' || regimeAtual === 'simei')) recomendacoesPorte.push('MEI não pode optar pelo Simples híbrido: seleção incompatível.');
+  if (hibrido && !['simples','simei'].includes(regimeAtual)) recomendacoesPorte.push('Regime híbrido somente para optantes do Simples Nacional elegíveis.');
+  if (!/^\d{7}$/.test(cnae)) recomendacoesPorte.push('CNAE ausente ou inválido: não é possível validar anexos, tributos por atividade e elegibilidade do MEI.');
+  if (regimeAtual === 'real') recomendacoesPorte.push('Lucro Real: apuração não implementada nesta simulação. Exige escrituração, adições/exclusões fiscais, créditos e dados contábeis; não usar ranking para decisão.');
+  if (num(d.payroll) > 0) recomendacoesPorte.push('Folha informada: encargos de empregados e RAT/terceiros não foram incluídos na carga tributária comparada.');
+  if(porte==='mei' && !meiElegivel) recomendacoesPorte.push('MEI: condições informadas incompatíveis com a permanência. Avaliar desenquadramento para ME ou EPP, conforme receita e atividade.');
+  if(porte==='mei' && meiElegivel) recomendacoesPorte.push('MEI: condições preliminares atendidas. Confirmar CNAE, natureza jurídica, proporcionalidade do limite no ano de abertura e demais impedimentos.');
+  if(porte!=='mei' && meiElegivel) recomendacoesPorte.push('MEI pode ser avaliado como alternativa, mas a migração não é automática e exige atividade permitida, empresário individual e análise cadastral e societária.');
+  if(porte==='me' && receitaProjetada>limiteMe) recomendacoesPorte.push('Receita acima do limite de ME: avaliar enquadramento como EPP ou porte superior, observando regras de excesso e período.');
+  if(porte==='epp' && receitaProjetada<=limiteMe) recomendacoesPorte.push('Receita compatível com ME: verificar reenquadramento, sem presumir economia tributária apenas pela mudança de porte.');
+  if(d.activity==='advocacia') recomendacoesPorte.push('Advocacia não é atividade permitida ao MEI. Sociedade de advocacia exige enquadramento próprio e análise na OAB.');
   const receita = num(d.monthlyRevenue);
   if (receita <= 0) fail('Informe o faturamento mensal (maior que zero).');
   if (receita > 10000000) fail('Faturamento mensal acima de R$ 10 milhões: use análise contábil específica.');
@@ -223,14 +258,32 @@ export function planejamentoTributario(d: Dict) {
   const lucroPres = receita - despesas - pres.total - cpp - proLabore; const dividPres = Math.max(0, lucroPres);
   const irDivPres = dividendosIR(dividPres / socios) * socios; const totalPres = pres.total + cpp + encargoPL + irDivPres;
   if (pres.excedente > 0) avisos.push('Receita acima de R$ 5 milhões/ano: aplicada a presunção majorada em 10% (LC 224/2025) sobre o excedente — há discussões judiciais sobre essa majoração.');
+  // DAS-MEI 2026: contribuição previdenciária de 5% do salário mínimo,
+  // acrescida de ICMS (comércio/indústria) e/ou ISS (serviços).
+  // Não inclui DAS complementar, excesso de receita, empregados ou tributos fora do SIMEI.
+  const meiTipo = String(d.meiTaxActivity || 'servicos');
+  const meiINSS = r2(PARAMS_2026.salarioMinimo * 0.05);
+  const meiICMS = meiTipo === 'comercio' || meiTipo === 'misto' ? 1 : 0;
+  const meiISS = meiTipo === 'servicos' || meiTipo === 'misto' ? 5 : 0;
+  const meiDAS = r2(meiINSS + meiICMS + meiISS);
+  const compararMei = meiElegivel && atividade !== 'advocacia';
+  if (compararMei) recomendacoesPorte.push(`DAS-MEI mensal estimado: ${money(meiDAS)} (INSS ${money(meiINSS)}, ICMS ${money(meiICMS)}, ISS ${money(meiISS)}). Não inclui empregados nem outros encargos.`);
+  if (porte === 'mei' && !compararMei) recomendacoesPorte.push('DAS-MEI não calculado como regime elegível: verificar requisitos legais antes de comparar tributos.');
+  if (porte !== 'mei' && compararMei) recomendacoesPorte.push('A comparação MEI depende de confirmar a possibilidade legal de enquadramento; alteração de porte não significa, por si, menor tributação.');
   const regimes = [{ nome: 'Pessoa física (carnê-leão + INSS 20%)', total: totalPF }, ...(totalSimples != null ? [{ nome: `Simples Nacional — Anexo ${anexo}`, total: totalSimples }] : []), { nome: 'Lucro presumido', total: totalPres }].sort((a, b) => a.total - b.total);
   const melhor = regimes[0]; const pior = regimes[regimes.length - 1];
+  const dadosCriticos = [cnae.length !== 7 || !Array.from(cnae).every(ch => ch >= '0' && ch <= '9') ? 'CNAE válido' : '', !d.city?.trim() ? 'município' : '', !d.state?.trim() ? 'UF' : '', !d.taxRegime ? 'regime atual' : ''].filter(Boolean);
+  const comparacaoIncompleta = hibrido || regimeAtual === 'real' || num(d.payroll) > 0 || num(d.monthlyPurchases) > 0 || num(d.icmsRate) > 0 || atividade !== 'advocacia';
+  const recomendacao = dadosCriticos.length ? 'DADOS INSUFICIENTES PARA RECOMENDAR MUDANÇA' : comparacaoIncompleta ? 'REVISÃO CONTÁBIL NECESSÁRIA: TRIBUTOS OU CRÉDITOS NÃO APURADOS' : 'SIMULAÇÃO PRELIMINAR: VALIDAR ELEGIBILIDADE, RETENÇÕES E CUSTOS ANTES DE ALTERAR REGIME';
+
+  if (compararMei) avisos.push(`DAS-MEI estimado: ${money(meiDAS)}. NÃO incluído no ranking de economia, pois encargos e tributos externos ao SIMEI não foram apurados.`);
+  if (atividade !== 'advocacia' && atividade !== 'servicos' && atividade !== 'fator_r') avisos.push('Atividade não modelada integralmente: confirmar anexos, ICMS, IPI, PIS/Cofins e retenções com contabilidade.');
   if ((receita - despesas) * 12 > PARAMS_2026.altaRendaAnual) avisos.push('Renda anual acima de R$ 600 mil: pode haver imposto mínimo anual (IRPFM, Lei 15.270/2025) na declaração, não incluído aqui.');
   if (atividade === 'advocacia') avisos.push('Advocacia no Simples fica no Anexo IV (INSS patronal de 20% sobre o pró-labore pago à parte). Sociedade uniprofissional pode ter ISS fixo no município.');
   if (atividade === 'fator_r') avisos.push(`Fator R de ${pct(fatorR)}, enquadramento no ${fatorR >= 0.28 ? 'Anexo III' : 'Anexo V'}.`);
-  const linhas = ['PLANEJAMENTO TRIBUTÁRIO — COMPARATIVO MENSAL (2026)', `Faturamento mensal: ${money(receita)}`, `Receita bruta 12 meses: ${money(rbt12)}`, `Despesas dedutíveis/operacionais: ${money(despesas)}`, `Pró-labore total: ${money(proLabore)} (${socios} sócio(s))`, '', `PF — INSS contribuinte individual: ${money(inssPF)}`, `PF — IRPF carnê-leão: ${money(irPF)}`, `PF — Carga total: ${money(totalPF)} (${pct(totalPF / receita)} do faturamento)`, ''];
+  const linhas = ['PLANEJAMENTO TRIBUTÁRIO — COMPARATIVO MENSAL (2026)', `Empresa: ${razaoSocial}`, `CNPJ: ${cnpjFormatado}`, `Porte informado: ${porte.toUpperCase()}`, `Regime atual: ${regimeAtual}`, `Cenário 2027: ${hibrido ? 'Simples híbrido (IBS/CBS fora do DAS)' : 'Simples unificado'}`, `Vendas B2B informadas: ${num(d.b2bShare)}%`, `Aquisições potencialmente creditáveis: ${money(num(d.creditablePurchases))}`, `CNAE: ${cnae || 'não informado'}`, `Localidade: ${localTributario}`, `Folha informada: ${money(num(d.payroll))}`, `Insumos informados: ${money(num(d.monthlyPurchases))}`, `Porte estimado pelo faturamento: ${porteCalculado}`, `MEI: ${meiElegivel ? 'condições preliminares atendidas' : 'não elegível com os dados informados'}`, ...recomendacoesPorte.map(x=>`Orientação de enquadramento: ${x}`), 'ATENÇÃO: simulação não apura DAS-MEI, tributos estaduais por CNAE, folha integral ou créditos fiscais; não utilizar como guia de recolhimento.', `Faturamento mensal: ${money(receita)}`, `Receita bruta 12 meses: ${money(rbt12)}`, `Despesas dedutíveis/operacionais: ${money(despesas)}`, `Pró-labore total: ${money(proLabore)} (${socios} sócio(s))`, '', `PF — INSS contribuinte individual: ${money(inssPF)}`, `PF — IRPF carnê-leão: ${money(irPF)}`, `PF — Carga total: ${money(totalPF)} (${pct(totalPF / receita)} do faturamento)`, ''];
   if (totalSimples != null && efetiva != null) linhas.push(`Simples — Alíquota efetiva Anexo ${anexo}: ${pct(efetiva)}`, `Simples — DAS: ${money(receita * efetiva)}`, ...(anexo === 'IV' ? [`Simples — INSS patronal (20% pró-labore): ${money(cpp)}`] : []), `Simples — INSS e IRPF do pró-labore: ${money(encargoPL)}`, `Simples — Lucro distribuível: ${money(dividSimples)}`, `Simples — Carga total: ${money(totalSimples)} (${pct(totalSimples / receita)} do faturamento)`, '');
-  linhas.push(`Presumido — IRPJ: ${money(pres.irpj)}`, `Presumido — CSLL: ${money(pres.csll)}`, `Presumido — PIS/COFINS: ${money(pres.pis + pres.cofins)}`, `Presumido — ISS: ${money(pres.iss)}`, `Presumido — INSS patronal (20% pró-labore): ${money(cpp)}`, `Presumido — INSS e IRPF do pró-labore: ${money(encargoPL)}`, `Presumido — Lucro distribuível: ${money(dividPres)}`, ...(irDivPres > 0 ? [`Presumido — IRRF sobre dividendos (10%): ${money(irDivPres)}`] : []), `Presumido — Carga total: ${money(totalPres)} (${pct(totalPres / receita)} do faturamento)`, '', `Regime mais econômico: ${melhor.nome}`, `Economia mensal frente ao regime mais caro: ${money(pior.total - melhor.total)}`, `TOTAL ECONOMIA ANUAL ESTIMADA: ${money((pior.total - melhor.total) * 12)}`, '', ...avisos.map((a) => `Atenção: ${a}`), 'Observação: não considera créditos, retenções, ISS fixo, regimes especiais nem a reforma tributária (CBS/IBS a partir de 2027).', 'Recomendação: validar com a contabilidade antes de mudar de regime.');
+  linhas.push(`Presumido — IRPJ: ${money(pres.irpj)}`, `Presumido — CSLL: ${money(pres.csll)}`, `Presumido — PIS/COFINS: ${money(pres.pis + pres.cofins)}`, `Presumido — ISS: ${money(pres.iss)}`, `Presumido — INSS patronal (20% pró-labore): ${money(cpp)}`, `Presumido — INSS e IRPF do pró-labore: ${money(encargoPL)}`, `Presumido — Lucro distribuível: ${money(dividPres)}`, ...(irDivPres > 0 ? [`Presumido — IRRF sobre dividendos (10%): ${money(irDivPres)}`] : []), `Presumido — Carga total: ${money(totalPres)} (${pct(totalPres / receita)} do faturamento)`, '', `Regime mais econômico no cenário parcial: ${melhor.nome}`, `RECOMENDAÇÃO: ${recomendacao}`, `Economia mensal frente ao regime mais caro: ${money(pior.total - melhor.total)}`, `TOTAL ECONOMIA ANUAL ESTIMADA: ${money((pior.total - melhor.total) * 12)}`, '', ...avisos.map((a) => `Atenção: ${a}`), 'Observação: não considera créditos, retenções, ISS fixo, regimes especiais nem a reforma tributária (CBS/IBS a partir de 2027).', 'Recomendação: validar com a contabilidade antes de mudar de regime.');
   return { texto: linhas.join('\n'), regimes, melhor };
 }
 
@@ -292,6 +345,23 @@ export const CALCS: Record<CalcKey, { nome: string; aba: string; fn: (d: Dict) =
     nome: 'Planejamento Tributário', aba: 'Tributário', fn: planejamentoTributario,
     resumo: [['Regime mais econômico', /^Regime mais econômico/], ['Economia por ano', /^TOTAL ECONOMIA/]],
     fields: [
+      { key: 'companyName', label: 'Razão social / nome da empresa', type: 'text' },
+      { key: 'companyCnpj', label: 'CNPJ da empresa (14 dígitos)', type: 'text' },
+      { key: 'hybridOption', label: 'Cenário IBS/CBS em 2027', type: 'select', options: [['nao','Simples Nacional unificado'],['sim','Simples híbrido: IBS/CBS no regime regular']] },
+      { key: 'b2bShare', label: 'Percentual de vendas para outras empresas (%)', type: 'number' },
+      { key: 'creditablePurchases', label: 'Aquisições potencialmente creditáveis por mês (R$)', type: 'number' },
+      { key: 'taxRegime', label: 'Regime tributário atual', type: 'select', options: [['simei','SIMEI (MEI)'],['simples','Simples Nacional'],['presumido','Lucro Presumido'],['real','Lucro Real'],['outro','Outro ou não identificado']] },
+      { key: 'cnae', label: 'CNAE principal (7 dígitos)', type: 'text' },
+      { key: 'state', label: 'UF da empresa', type: 'text' },
+      { key: 'city', label: 'Município da empresa', type: 'text' },
+      { key: 'payroll', label: 'Folha de salários mensal, R$', type: 'number' },
+      { key: 'monthlyPurchases', label: 'Compras e insumos mensais, R$', type: 'number' },
+      { key: 'icmsRate', label: 'Alíquota ICMS estimada (%), se aplicável', type: 'number' },
+      { key: 'companySize', label: 'Porte atual da empresa', type: 'select', options: [['mei','MEI'],['me','Microempresa (ME)'],['epp','Empresa de pequeno porte (EPP)'],['demais','Empresa de maior porte']] },
+      { key: 'meiEligible', label: 'Atividade consta na lista permitida ao MEI?', type: 'select', options: [['nao','Não ou não verificado'],['sim','Sim, confirmado pelo CNAE']] },
+      { key: 'meiEmployees', label: 'Número de empregados para análise do MEI', type: 'number' },
+      { key: 'meiTaxActivity', label: 'Tributação da atividade no MEI', type: 'select', options: [['servicos','Serviços (ISS)'],['comercio','Comércio/indústria (ICMS)'],['misto','Comércio e serviços (ICMS + ISS)']] },
+      { key: 'meiOtherCompany', label: 'Titular participa de outra empresa?', type: 'select', options: [['nao','Não'],['sim','Sim']] },
       { key: 'activity', label: 'Atividade', type: 'select', options: [['advocacia', 'Advocacia (Simples Anexo IV)'], ['servicos', 'Serviços do Anexo III'], ['fator_r', 'Serviços com Fator R (Anexo III ou V)']] },
       { key: 'monthlyRevenue', label: 'Faturamento mensal, R$', type: 'number' },
       { key: 'annualRevenue', label: 'Faturamento dos últimos 12 meses (em branco = mensal × 12)', type: 'number' },
@@ -301,7 +371,152 @@ export const CALCS: Record<CalcKey, { nome: string; aba: string; fn: (d: Dict) =
       { key: 'issRate', label: 'Alíquota de ISS (%)', type: 'number' },
       { key: 'pfIss', label: 'Como pessoa física recolhe ISS sobre o faturamento?', type: 'select', options: [['nao', 'Não (ISS fixo de autônomo)'], ['sim', 'Sim']] },
     ],
-    example: { activity: 'advocacia', monthlyRevenue: '30000', annualRevenue: '360000', monthlyExpenses: '5000', proLabore: '3000', partners: '1', issRate: '5', pfIss: 'nao' },
+    example: { companyName:'',companyCnpj:'',hybridOption:'nao',b2bShare:'70',creditablePurchases:'0',taxRegime:'simples',cnae:'6911701',state:'MG',city:'Belo Horizonte',payroll:'0',monthlyPurchases:'0',icmsRate:'0',companySize:'me',meiEligible:'nao',meiEmployees:'0',meiTaxActivity:'servicos',meiOtherCompany:'nao',activity: 'advocacia', monthlyRevenue: '30000', annualRevenue: '360000', monthlyExpenses: '5000', proLabore: '3000', partners: '1', issRate: '5', pfIss: 'nao' },
+  },
+  pat: {
+    nome: 'Planejamento Patrimonial e Sucessório', aba: 'Patrimonial', fn: planejamentoPatrimonial,
+    resumo: [['Cenário mais econômico', /^Cenário mais econômico/], ['Economia no período', /^TOTAL ECONOMIA/]],
+    fields: [
+      { key: 'totalAssets', label: 'Valor total do patrimônio, R$', type: 'number' },
+      { key: 'realEstateValue', label: 'Valor dos imóveis, R$', type: 'number' },
+      { key: 'monthlyRent', label: 'Renda mensal de aluguéis, R$', type: 'number' },
+      { key: 'heirs', label: 'Número de herdeiros', type: 'number' },
+      { key: 'horizonYears', label: 'Horizonte de comparação (anos)', type: 'number' },
+      { key: 'itcmdRate', label: 'Alíquota do ITCMD (%) — MG 5', type: 'number' },
+      { key: 'inventoryFeeRate', label: 'Honorários do inventário (%)', type: 'number' },
+      { key: 'inventoryCostsRate', label: 'Custas e emolumentos (%)', type: 'number' },
+      { key: 'itbiRate', label: 'Alíquota do ITBI (%)', type: 'number' },
+      { key: 'itbiImmunity', label: 'Imunidade de ITBI na integralização?', type: 'select', options: [['nao', 'Não (holding de locação)'], ['sim', 'Sim']] },
+      { key: 'quotaBase', label: 'Base do ITCMD na doação das quotas', type: 'select', options: [['mercado', 'Valor de mercado'], ['contabil', 'Valor declarado (contábil)']] },
+      { key: 'bookValue', label: 'Valor declarado dos bens, R$', type: 'number' },
+      { key: 'holdingSetupCost', label: 'Custo de constituição da holding, R$', type: 'number' },
+      { key: 'holdingAnnualCost', label: 'Custo anual de contabilidade da holding, R$', type: 'number' },
+    ],
+    example: { totalAssets: '2000000', realEstateValue: '1500000', monthlyRent: '10000', heirs: '2', horizonYears: '10', itcmdRate: '5', inventoryFeeRate: '6', inventoryCostsRate: '2', itbiRate: '3', itbiImmunity: 'nao', quotaBase: 'mercado', bookValue: '', holdingSetupCost: '15000', holdingAnnualCost: '6000' },
+  },
+};
+
+export type Linha = { sep?: true; label?: string; value?: string };
+const isNote = (l: string) => /^(Atenção|Observação|Conferir antes de usar|Recomendação)\b/.test(l);
+/** Converte o texto da memória de cálculo em linhas de tabela, notas e resumo. */
+export function calcular(key: CalcKey, d: Dict): { ok: true; rows: Linha[]; notes: string[]; resumo: [string, string][]; texto: string } | { ok: false; erro: string } {
+  let texto: string;
+  try { texto = CALCS[key].fn(d).texto; } catch (e: any) {
+    return { ok: false, erro: e instanceof PlanningInputError ? e.message : 'Não foi possível calcular. Confira os dados.' };
+  }
+  const rows: Linha[] = []; const notes: string[] = [];
+  for (const raw of texto.split('\n').slice(1)) {
+    const l = raw.trim();
+    if (!l) { rows.push({ sep: true }); continue; }
+    if (isNote(l)) { notes.push(l); continue; }
+    const i = l.indexOf(':'); if (i < 0) continue;
+    rows.push({ label: l.slice(0, i).trim(), value: l.slice(i + 1).trim() });
+  }
+  const resumo = CALCS[key].resumo
+    .map(([t, re]) => [t, rows.find((r) => r.label && re.test(r.label))?.value] as [string, string | undefined])
+    .filter((x): x is [string, string] => !!x[1]);
+  return { ok: true, rows, notes, resumo, texto };
+}
+).test(cnae) ? 'CNAE válido' : '', !d.city?.trim() ? 'município' : '', !d.state?.trim() ? 'UF' : '', !d.taxRegime ? 'regime atual' : ''].filter(Boolean);
+  const comparacaoIncompleta = hibrido || regimeAtual === 'real' || num(d.payroll) > 0 || num(d.monthlyPurchases) > 0 || num(d.icmsRate) > 0 || atividade !== 'advocacia';
+  const recomendacao = dadosCriticos.length ? 'DADOS INSUFICIENTES PARA RECOMENDAR MUDANÇA' : comparacaoIncompleta ? 'REVISÃO CONTÁBIL NECESSÁRIA: TRIBUTOS OU CRÉDITOS NÃO APURADOS' : 'SIMULAÇÃO PRELIMINAR: VALIDAR ELEGIBILIDADE, RETENÇÕES E CUSTOS ANTES DE ALTERAR REGIME';
+
+  if (compararMei) avisos.push(`DAS-MEI estimado: ${money(meiDAS)}. NÃO incluído no ranking de economia, pois encargos e tributos externos ao SIMEI não foram apurados.`);
+  if (atividade !== 'advocacia' && atividade !== 'servicos' && atividade !== 'fator_r') avisos.push('Atividade não modelada integralmente: confirmar anexos, ICMS, IPI, PIS/Cofins e retenções com contabilidade.');
+  if ((receita - despesas) * 12 > PARAMS_2026.altaRendaAnual) avisos.push('Renda anual acima de R$ 600 mil: pode haver imposto mínimo anual (IRPFM, Lei 15.270/2025) na declaração, não incluído aqui.');
+  if (atividade === 'advocacia') avisos.push('Advocacia no Simples fica no Anexo IV (INSS patronal de 20% sobre o pró-labore pago à parte). Sociedade uniprofissional pode ter ISS fixo no município.');
+  if (atividade === 'fator_r') avisos.push(`Fator R de ${pct(fatorR)}, enquadramento no ${fatorR >= 0.28 ? 'Anexo III' : 'Anexo V'}.`);
+  const linhas = ['PLANEJAMENTO TRIBUTÁRIO — COMPARATIVO MENSAL (2026)', `Empresa: ${razaoSocial}`, `CNPJ: ${cnpjFormatado}`, `Porte informado: ${porte.toUpperCase()}`, `Regime atual: ${regimeAtual}`, `Cenário 2027: ${hibrido ? 'Simples híbrido (IBS/CBS fora do DAS)' : 'Simples unificado'}`, `Vendas B2B informadas: ${num(d.b2bShare)}%`, `Aquisições potencialmente creditáveis: ${money(num(d.creditablePurchases))}`, `CNAE: ${cnae || 'não informado'}`, `Localidade: ${localTributario}`, `Folha informada: ${money(num(d.payroll))}`, `Insumos informados: ${money(num(d.monthlyPurchases))}`, `Porte estimado pelo faturamento: ${porteCalculado}`, `MEI: ${meiElegivel ? 'condições preliminares atendidas' : 'não elegível com os dados informados'}`, ...recomendacoesPorte.map(x=>`Orientação de enquadramento: ${x}`), 'ATENÇÃO: simulação não apura DAS-MEI, tributos estaduais por CNAE, folha integral ou créditos fiscais; não utilizar como guia de recolhimento.', `Faturamento mensal: ${money(receita)}`, `Receita bruta 12 meses: ${money(rbt12)}`, `Despesas dedutíveis/operacionais: ${money(despesas)}`, `Pró-labore total: ${money(proLabore)} (${socios} sócio(s))`, '', `PF — INSS contribuinte individual: ${money(inssPF)}`, `PF — IRPF carnê-leão: ${money(irPF)}`, `PF — Carga total: ${money(totalPF)} (${pct(totalPF / receita)} do faturamento)`, ''];
+  if (totalSimples != null && efetiva != null) linhas.push(`Simples — Alíquota efetiva Anexo ${anexo}: ${pct(efetiva)}`, `Simples — DAS: ${money(receita * efetiva)}`, ...(anexo === 'IV' ? [`Simples — INSS patronal (20% pró-labore): ${money(cpp)}`] : []), `Simples — INSS e IRPF do pró-labore: ${money(encargoPL)}`, `Simples — Lucro distribuível: ${money(dividSimples)}`, `Simples — Carga total: ${money(totalSimples)} (${pct(totalSimples / receita)} do faturamento)`, '');
+  linhas.push(`Presumido — IRPJ: ${money(pres.irpj)}`, `Presumido — CSLL: ${money(pres.csll)}`, `Presumido — PIS/COFINS: ${money(pres.pis + pres.cofins)}`, `Presumido — ISS: ${money(pres.iss)}`, `Presumido — INSS patronal (20% pró-labore): ${money(cpp)}`, `Presumido — INSS e IRPF do pró-labore: ${money(encargoPL)}`, `Presumido — Lucro distribuível: ${money(dividPres)}`, ...(irDivPres > 0 ? [`Presumido — IRRF sobre dividendos (10%): ${money(irDivPres)}`] : []), `Presumido — Carga total: ${money(totalPres)} (${pct(totalPres / receita)} do faturamento)`, '', `Regime mais econômico no cenário parcial: ${melhor.nome}`, `RECOMENDAÇÃO: ${recomendacao}`, `Economia mensal frente ao regime mais caro: ${money(pior.total - melhor.total)}`, `TOTAL ECONOMIA ANUAL ESTIMADA: ${money((pior.total - melhor.total) * 12)}`, '', ...avisos.map((a) => `Atenção: ${a}`), 'Observação: não considera créditos, retenções, ISS fixo, regimes especiais nem a reforma tributária (CBS/IBS a partir de 2027).', 'Recomendação: validar com a contabilidade antes de mudar de regime.');
+  return { texto: linhas.join('\n'), regimes, melhor };
+}
+
+export function planejamentoPatrimonial(d: Dict) {
+  const patrimonio = num(d.totalAssets);
+  if (patrimonio <= 0) fail('Informe o valor total do patrimônio (maior que zero).');
+  const imoveis = num(d.realEstateValue);
+  if (imoveis < 0 || imoveis > patrimonio) fail('O valor dos imóveis deve estar entre zero e o patrimônio total.');
+  const aluguel = num(d.monthlyRent);
+  if (aluguel < 0) fail('A renda de aluguel não pode ser negativa.');
+  const herdeiros = Math.floor(num(d.heirs));
+  if (herdeiros < 1 || herdeiros > 50) fail('Informe o número de herdeiros (de 1 a 50).');
+  const anos = Math.floor(num(d.horizonYears) || 10);
+  if (anos < 1 || anos > 50) fail('O horizonte de comparação deve ser de 1 a 50 anos.');
+  const p = (v: string, padrao: number, campo: string, max = 20) => { const x = v === '' || v == null ? padrao : num(v); if (x < 0 || x > max) fail(`${campo} deve estar entre 0% e ${max}%.`); return x / 100; };
+  const itcmd = p(d.itcmdRate, 5, 'A alíquota de ITCMD', 8); const honor = p(d.inventoryFeeRate, 6, 'O percentual de honorários do inventário'); const custas = p(d.inventoryCostsRate, 2, 'O percentual de custas e emolumentos'); const itbi = p(d.itbiRate, 3, 'A alíquota de ITBI', 10);
+  const baseQuotas = d.quotaBase === 'contabil' ? 'contabil' : 'mercado'; const valorContabil = num(d.bookValue);
+  if (baseQuotas === 'contabil' && valorContabil <= 0) fail('Informe o valor declarado (contábil) dos bens para usar essa base no ITCMD.');
+  const constituicao = num(d.holdingSetupCost); const anual = num(d.holdingAnnualCost);
+  if (constituicao < 0 || anual < 0) fail('Custos da holding não podem ser negativos.');
+  const imunidadeItbi = d.itbiImmunity === 'sim'; const avisos: string[] = [];
+  const itcmdInv = patrimonio * itcmd; const honorInv = patrimonio * honor; const custasInv = patrimonio * custas; const totalInv = itcmdInv + honorInv + custasInv;
+  const irAluguelPF = irpfMensal2026(aluguel) * 12 * anos;
+  const baseDoacao = baseQuotas === 'contabil' ? Math.min(valorContabil, patrimonio) : patrimonio; const itcmdDoacao = baseDoacao * itcmd;
+  const itbiIntegr = imunidadeItbi ? 0 : imoveis * itbi;
+  const aluguelPJ = presumidoServicosMensal(aluguel, 0, aluguel * 12); const distribuicao = Math.max(0, aluguel - aluguelPJ.total);
+  const irDiv = dividendosIR(distribuicao / herdeiros) * herdeiros; const tribAluguelPJ = (aluguelPJ.total + irDiv) * 12 * anos;
+  const totalHolding = constituicao + itbiIntegr + itcmdDoacao + anual * anos + tribAluguelPJ; const totalSem = totalInv + irAluguelPF; const economia = totalSem - totalHolding;
+  if (!imunidadeItbi && imoveis > 0) avisos.push('ITBI cobrado na integralização: holdings com atividade preponderante de compra, venda ou locação de imóveis em regra não têm a imunidade (STF, Tema 796).');
+  if (baseQuotas === 'contabil') avisos.push('ITCMD calculado sobre o valor contábil das quotas: o Fisco estadual pode exigir o valor de mercado dos bens, gerando diferença a pagar.');
+  avisos.push('Em MG o ITCD vigente é de 5%; o PL 2881/2024 (alíquotas progressivas) ainda tramita na ALMG — rever se for aprovado.');
+  if (aluguel > 0) avisos.push('A partir de 2027 a locação por pessoa jurídica passa a ter CBS/IBS (reforma tributária), ainda não incluídos aqui.');
+  const linhas = ['PLANEJAMENTO PATRIMONIAL E SUCESSÓRIO — COMPARATIVO', `Patrimônio total: ${money(patrimonio)}`, `Imóveis: ${money(imoveis)}`, `Aluguel mensal: ${money(aluguel)}`, `Herdeiros: ${herdeiros}`, `Horizonte: ${anos} ano(s)`, '', `Sem planejamento — ITCMD causa mortis (${pct(itcmd)}): ${money(itcmdInv)}`, `Sem planejamento — Honorários do inventário (${pct(honor)}): ${money(honorInv)}`, `Sem planejamento — Custas e emolumentos (${pct(custas)}): ${money(custasInv)}`, `Sem planejamento — IRPF sobre aluguéis no período: ${money(irAluguelPF)}`, `Sem planejamento — Custo total: ${money(totalSem)}`, '', `Holding — Constituição: ${money(constituicao)}`, `Holding — ITBI na integralização: ${money(itbiIntegr)}`, `Holding — ITCMD na doação das quotas (base ${baseQuotas === 'contabil' ? 'contábil' : 'de mercado'}): ${money(itcmdDoacao)}`, `Holding — Manutenção (contabilidade) no período: ${money(anual * anos)}`, `Holding — Tributos sobre aluguéis no período: ${money(tribAluguelPJ)}`, `Holding — Custo total: ${money(totalHolding)}`, '', `Quinhão estimado por herdeiro (após custos do inventário): ${money((patrimonio - totalInv) / herdeiros)}`, `Cenário mais econômico: ${economia > 0 ? 'Holding patrimonial' : 'Sem holding (inventário)'}`, `TOTAL ECONOMIA ESTIMADA NO PERÍODO: ${money(Math.abs(economia))}`, '', ...avisos.map((a) => `Atenção: ${a}`), 'Observação: valores de hoje, sem correção; não considera ganho de capital, usufruto, dívidas do espólio nem o tempo do inventário.'];
+  return { texto: linhas.join('\n'), totalSem, totalHolding, economia };
+}
+
+export type CalcKey = 'prev' | 'trib' | 'pat';
+export type Field = { key: string; label: string; type: 'number' | 'date' | 'select'; options?: [string, string][] };
+export const CALCS: Record<CalcKey, { nome: string; aba: string; fn: (d: Dict) => { texto: string }; fields: Field[]; example: Dict; resumo: [string, RegExp][] }> = {
+  prev: {
+    nome: 'Planejamento Previdenciário', aba: 'Previdenciário', fn: planejamentoPrevidenciario,
+    resumo: [['Regra mais rápida', /^Regra mais rápida/], ['Maior benefício', /^Maior benefício/], ['Retorno do investimento', /^Retorno/]],
+    fields: [
+      { key: 'sex', label: 'Sexo para parâmetros previdenciários', type: 'select', options: [['female', 'Feminino'], ['male', 'Masculino']] },
+      { key: 'birthDate', label: 'Data de nascimento', type: 'date' },
+      { key: 'referenceDate', label: 'Data de referência (em branco = hoje)', type: 'date' },
+      { key: 'contributionYears', label: 'Tempo de contribuição até hoje (anos)', type: 'number' },
+      { key: 'affiliatedBeforeReform', label: 'Contribuía ao INSS antes de 13/11/2019?', type: 'select', options: [['sim', 'Sim'], ['nao', 'Não']] },
+      { key: 'contributionAtReform', label: 'Tempo de contribuição em 13/11/2019 (anos)', type: 'number' },
+      { key: 'averageSalary', label: 'Média salarial atual (CNIS), R$', type: 'number' },
+      { key: 'keepContributing', label: 'Vai continuar contribuindo?', type: 'select', options: [['sim', 'Sim'], ['nao', 'Não']] },
+      { key: 'futureContributionBase', label: 'Salário de contribuição futuro, R$', type: 'number' },
+      { key: 'contributionRate', label: 'Alíquota da contribuição (%)', type: 'number' },
+      { key: 'lifeExpectancy', label: 'Expectativa de sobrevida IBGE (anos) — só pedágio 50%', type: 'number' },
+    ],
+    example: { sex: 'female', birthDate: '1970-05-10', referenceDate: '', contributionYears: '28', affiliatedBeforeReform: 'sim', contributionAtReform: '21', averageSalary: '4000', keepContributing: 'sim', futureContributionBase: '5000', contributionRate: '20', lifeExpectancy: '' },
+  },
+  trib: {
+    nome: 'Planejamento Tributário', aba: 'Tributário', fn: planejamentoTributario,
+    resumo: [['Regime mais econômico', /^Regime mais econômico/], ['Economia por ano', /^TOTAL ECONOMIA/]],
+    fields: [
+      { key: 'companyName', label: 'Razão social / nome da empresa', type: 'text' },
+      { key: 'companyCnpj', label: 'CNPJ da empresa (14 dígitos)', type: 'text' },
+      { key: 'hybridOption', label: 'Cenário IBS/CBS em 2027', type: 'select', options: [['nao','Simples Nacional unificado'],['sim','Simples híbrido: IBS/CBS no regime regular']] },
+      { key: 'b2bShare', label: 'Percentual de vendas para outras empresas (%)', type: 'number' },
+      { key: 'creditablePurchases', label: 'Aquisições potencialmente creditáveis por mês (R$)', type: 'number' },
+      { key: 'taxRegime', label: 'Regime tributário atual', type: 'select', options: [['simei','SIMEI (MEI)'],['simples','Simples Nacional'],['presumido','Lucro Presumido'],['real','Lucro Real'],['outro','Outro ou não identificado']] },
+      { key: 'cnae', label: 'CNAE principal (7 dígitos)', type: 'text' },
+      { key: 'state', label: 'UF da empresa', type: 'text' },
+      { key: 'city', label: 'Município da empresa', type: 'text' },
+      { key: 'payroll', label: 'Folha de salários mensal, R$', type: 'number' },
+      { key: 'monthlyPurchases', label: 'Compras e insumos mensais, R$', type: 'number' },
+      { key: 'icmsRate', label: 'Alíquota ICMS estimada (%), se aplicável', type: 'number' },
+      { key: 'companySize', label: 'Porte atual da empresa', type: 'select', options: [['mei','MEI'],['me','Microempresa (ME)'],['epp','Empresa de pequeno porte (EPP)'],['demais','Empresa de maior porte']] },
+      { key: 'meiEligible', label: 'Atividade consta na lista permitida ao MEI?', type: 'select', options: [['nao','Não ou não verificado'],['sim','Sim, confirmado pelo CNAE']] },
+      { key: 'meiEmployees', label: 'Número de empregados para análise do MEI', type: 'number' },
+      { key: 'meiTaxActivity', label: 'Tributação da atividade no MEI', type: 'select', options: [['servicos','Serviços (ISS)'],['comercio','Comércio/indústria (ICMS)'],['misto','Comércio e serviços (ICMS + ISS)']] },
+      { key: 'meiOtherCompany', label: 'Titular participa de outra empresa?', type: 'select', options: [['nao','Não'],['sim','Sim']] },
+      { key: 'activity', label: 'Atividade', type: 'select', options: [['advocacia', 'Advocacia (Simples Anexo IV)'], ['servicos', 'Serviços do Anexo III'], ['fator_r', 'Serviços com Fator R (Anexo III ou V)']] },
+      { key: 'monthlyRevenue', label: 'Faturamento mensal, R$', type: 'number' },
+      { key: 'annualRevenue', label: 'Faturamento dos últimos 12 meses (em branco = mensal × 12)', type: 'number' },
+      { key: 'monthlyExpenses', label: 'Despesas mensais do escritório, R$', type: 'number' },
+      { key: 'proLabore', label: 'Pró-labore mensal total (em branco = 1 salário mínimo)', type: 'number' },
+      { key: 'partners', label: 'Número de sócios', type: 'number' },
+      { key: 'issRate', label: 'Alíquota de ISS (%)', type: 'number' },
+      { key: 'pfIss', label: 'Como pessoa física recolhe ISS sobre o faturamento?', type: 'select', options: [['nao', 'Não (ISS fixo de autônomo)'], ['sim', 'Sim']] },
+    ],
+    example: { companyName:'',companyCnpj:'',hybridOption:'nao',b2bShare:'70',creditablePurchases:'0',taxRegime:'simples',cnae:'6911701',state:'MG',city:'Belo Horizonte',payroll:'0',monthlyPurchases:'0',icmsRate:'0',companySize:'me',meiEligible:'nao',meiEmployees:'0',meiTaxActivity:'servicos',meiOtherCompany:'nao',activity: 'advocacia', monthlyRevenue: '30000', annualRevenue: '360000', monthlyExpenses: '5000', proLabore: '3000', partners: '1', issRate: '5', pfIss: 'nao' },
   },
   pat: {
     nome: 'Planejamento Patrimonial e Sucessório', aba: 'Patrimonial', fn: planejamentoPatrimonial,
