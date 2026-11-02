@@ -1165,7 +1165,7 @@ function sendAppInvite() {
                   )}
                 </p>
               </div>
-              {selected&&!editing&&<div className="clients-heading-actions"><button className="secondary" title="Abrir o onboarding deste cliente" onClick={()=>{setClientSection('atendimento');setTab('dados')}}><Sparkles size={16}/>Onboarding{onbStatus!==undefined&&<small style={{marginLeft:6,opacity:.8}}>· {onbStatus==='acknowledged'?'concluído':onbStatus==='sent'?'enviado':onbStatus?'rascunho':'não iniciado'}</small>}</button><button className="secondary" onClick={()=>messageClient(selected)}><MessageCircle size={16}/>Mensagem</button><button className="primary" onClick={beginEdit}>Editar cadastro</button></div>}
+              {selected&&!editing&&<div className="clients-heading-actions"><button className="secondary" title="Abrir o onboarding deste cliente" onClick={()=>{setClientSection('atendimento');setTab('dados')}}><Sparkles size={16}/>Onboarding{onbStatus!==undefined&&<small style={{marginLeft:6,opacity:.8}}>· {onbStatus==='acknowledged'?'concluído':onbStatus==='sent'?'enviado':onbStatus?'rascunho':'não iniciado'}</small>}</button><button className="secondary" onClick={()=>messageClient(selected)}><MessageCircle size={16}/>Mensagem</button><button className="secondary" onClick={()=>setScheduleTarget(selected)}><CalendarClock size={16}/>Agendar mensagem</button><button className="primary" onClick={beginEdit}>Editar cadastro</button></div>}
               <button
                 className="icon-btn ux-modal-close"
                 aria-label="Fechar ficha"
