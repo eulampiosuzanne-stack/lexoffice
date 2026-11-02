@@ -142,10 +142,10 @@ html body .app.app.app.app .workspace-area-toggle:hover{
 html body .app.app.app.app .workspace-area-toggle.is-current-area,
 html body .app.app.app.app .workspace-submenu .workspace-submenu-link.is-current-page{
   color:#fff!important;
-  background:linear-gradient(180deg,#cf3457 0%,#ad193e 56%,#8e102f 100%)!important;
-  border:2px solid #ef6a87!important;
-  border-top-color:#ff9caf!important;
-  box-shadow:0 2px 0 rgba(255,255,255,.22) inset,0 -2px 0 rgba(70,3,22,.72) inset,0 6px 0 #56091e,0 13px 24px rgba(0,0,0,.46)!important;
+  background:linear-gradient(180deg,#8f1837 0%,#74112c 56%,#59091f 100%)!important;
+  border:2px solid #b73352!important;
+  border-top-color:#d45a73!important;
+  box-shadow:0 2px 0 rgba(255,255,255,.15) inset,0 -2px 0 rgba(42,1,13,.8) inset,0 6px 0 #350512,0 13px 24px rgba(0,0,0,.5)!important;
   font-weight:800;
 }
 html body .app.app.app.app .workspace-area-toggle.is-current-area svg,
@@ -170,11 +170,28 @@ html body .app.app.app.app .workspace-submenu .workspace-submenu-link{
 .lx-navigation .lx-navigation-item.active,
 .lx-navigation .lx-navigation-item[aria-selected="true"]{
   color:#fff;
-  background:linear-gradient(180deg,#bd284a,#961633);
-  border:1px solid #d84665;
-  border-bottom-color:#d84665;
+  background:linear-gradient(180deg,#8f1837,#650c27);
+  border:2px solid #b73352;
+  border-top-color:#d45a73;
+  border-bottom-color:#b73352;
   border-radius:8px 8px 5px 5px;
-  box-shadow:0 1px 0 rgba(255,255,255,.16) inset,0 3px 0 #57091d,0 7px 16px rgba(0,0,0,.28);
+  box-shadow:0 2px 0 rgba(255,255,255,.14) inset,0 5px 0 #350512,0 11px 20px rgba(0,0,0,.42);
+  transform:translateY(-2px);
+}
+
+/* Abas de módulos que usam role/aria diretamente recebem a mesma caixa bordô. */
+html body .app.app.app.app [role="tab"][aria-selected="true"],
+html body .app.app.app.app [role="tab"][aria-current="page"],
+html body .app.app.app.app .lx-tab[aria-selected="true"],
+html body .app.app.app.app .lx-tab[aria-current="page"]{
+  color:#fff!important;
+  background:linear-gradient(180deg,#8f1837 0%,#74112c 58%,#59091f 100%)!important;
+  border:2px solid #b73352!important;
+  border-top-color:#d45a73!important;
+  border-radius:9px!important;
+  box-shadow:0 2px 0 rgba(255,255,255,.14) inset,0 -2px 0 rgba(42,1,13,.8) inset,0 5px 0 #350512,0 11px 20px rgba(0,0,0,.42)!important;
+  transform:translateY(-2px);
+  font-weight:800;
 }
 
 /* Planejamento é a tela de referência: caixas opacas e nitidamente elevadas. */
