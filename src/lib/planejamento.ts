@@ -354,128 +354,8 @@ export const CALCS: Record<CalcKey, { nome: string; aba: string; fn: (d: Dict) =
       { key: 'cnae', label: 'CNAE principal (7 dígitos)', type: 'text' },
       { key: 'state', label: 'UF da empresa', type: 'text' },
       { key: 'city', label: 'Município da empresa', type: 'text' },
-      { key: 'payroll', label: 'Folha de salários mensal, R, type: 'select', options: [['mei','MEI'],['me','Microempresa (ME)'],['epp','Empresa de pequeno porte (EPP)'],['demais','Empresa de maior porte']] },
-      { key: 'meiEligible', label: 'Atividade consta na lista permitida ao MEI?', type: 'select', options: [['nao','Não ou não verificado'],['sim','Sim, confirmado pelo CNAE']] },
-      { key: 'meiEmployees', label: 'Número de empregados para análise do MEI', type: 'number' },
-      { key: 'meiTaxActivity', label: 'Tributação da atividade no MEI', type: 'select', options: [['servicos','Serviços (ISS)'],['comercio','Comércio/indústria (ICMS)'],['misto','Comércio e serviços (ICMS + ISS)']] },
-      { key: 'meiOtherCompany', label: 'Titular participa de outra empresa?', type: 'select', options: [['nao','Não'],['sim','Sim']] },
-      { key: 'activity', label: 'Atividade', type: 'select', options: [['advocacia', 'Advocacia (Simples Anexo IV)'], ['servicos', 'Serviços do Anexo III'], ['fator_r', 'Serviços com Fator R (Anexo III ou V)']] },
-      { key: 'monthlyRevenue', label: 'Faturamento mensal, R$', type: 'number' },
-      { key: 'annualRevenue', label: 'Faturamento dos últimos 12 meses (em branco = mensal × 12)', type: 'number' },
-      { key: 'monthlyExpenses', label: 'Despesas mensais do escritório, R$', type: 'number' },
-      { key: 'proLabore', label: 'Pró-labore mensal total (em branco = 1 salário mínimo)', type: 'number' },
-      { key: 'partners', label: 'Número de sócios', type: 'number' },
-      { key: 'issRate', label: 'Alíquota de ISS (%)', type: 'number' },
-      { key: 'pfIss', label: 'Como pessoa física recolhe ISS sobre o faturamento?', type: 'select', options: [['nao', 'Não (ISS fixo de autônomo)'], ['sim', 'Sim']] },
-    ],
-    example: { companyName:'',companyCnpj:'',hybridOption:'nao',b2bShare:'70',creditablePurchases:'0',taxRegime:'simples',cnae:'6911701',state:'MG',city:'Belo Horizonte',payroll:'0',monthlyPurchases:'0',icmsRate:'0',companySize:'me',meiEligible:'nao',meiEmployees:'0',meiTaxActivity:'servicos',meiOtherCompany:'nao',activity: 'advocacia', monthlyRevenue: '30000', annualRevenue: '360000', monthlyExpenses: '5000', proLabore: '3000', partners: '1', issRate: '5', pfIss: 'nao' },
-  },
-  pat: {
-    nome: 'Planejamento Patrimonial e Sucessório', aba: 'Patrimonial', fn: planejamentoPatrimonial,
-    resumo: [['Cenário mais econômico', /^Cenário mais econômico/], ['Economia no período', /^TOTAL ECONOMIA/]],
-    fields: [
-      { key: 'totalAssets', label: 'Valor total do patrimônio, R$', type: 'number' },
-      { key: 'realEstateValue', label: 'Valor dos imóveis, R$', type: 'number' },
-      { key: 'monthlyRent', label: 'Renda mensal de aluguéis, R$', type: 'number' },
-      { key: 'heirs', label: 'Número de herdeiros', type: 'number' },
-      { key: 'horizonYears', label: 'Horizonte de comparação (anos)', type: 'number' },
-      { key: 'itcmdRate', label: 'Alíquota do ITCMD (%) — MG 5', type: 'number' },
-      { key: 'inventoryFeeRate', label: 'Honorários do inventário (%)', type: 'number' },
-      { key: 'inventoryCostsRate', label: 'Custas e emolumentos (%)', type: 'number' },
-      { key: 'itbiRate', label: 'Alíquota do ITBI (%)', type: 'number' },
-      { key: 'itbiImmunity', label: 'Imunidade de ITBI na integralização?', type: 'select', options: [['nao', 'Não (holding de locação)'], ['sim', 'Sim']] },
-      { key: 'quotaBase', label: 'Base do ITCMD na doação das quotas', type: 'select', options: [['mercado', 'Valor de mercado'], ['contabil', 'Valor declarado (contábil)']] },
-      { key: 'bookValue', label: 'Valor declarado dos bens, R$', type: 'number' },
-      { key: 'holdingSetupCost', label: 'Custo de constituição da holding, R$', type: 'number' },
-      { key: 'holdingAnnualCost', label: 'Custo anual de contabilidade da holding, R$', type: 'number' },
-    ],
-    example: { totalAssets: '2000000', realEstateValue: '1500000', monthlyRent: '10000', heirs: '2', horizonYears: '10', itcmdRate: '5', inventoryFeeRate: '6', inventoryCostsRate: '2', itbiRate: '3', itbiImmunity: 'nao', quotaBase: 'mercado', bookValue: '', holdingSetupCost: '15000', holdingAnnualCost: '6000' },
-  },
-};
-
-export type Linha = { sep?: true; label?: string; value?: string };
-const isNote = (l: string) => /^(Atenção|Observação|Conferir antes de usar|Recomendação)\b/.test(l);
-/** Converte o texto da memória de cálculo em linhas de tabela, notas e resumo. */
-export function calcular(key: CalcKey, d: Dict): { ok: true; rows: Linha[]; notes: string[]; resumo: [string, string][]; texto: string } | { ok: false; erro: string } {
-  let texto: string;
-  try { texto = CALCS[key].fn(d).texto; } catch (e: any) {
-    return { ok: false, erro: e instanceof PlanningInputError ? e.message : 'Não foi possível calcular. Confira os dados.' };
-  }
-  const rows: Linha[] = []; const notes: string[] = [];
-  for (const raw of texto.split('\n').slice(1)) {
-    const l = raw.trim();
-    if (!l) { rows.push({ sep: true }); continue; }
-    if (isNote(l)) { notes.push(l); continue; }
-    const i = l.indexOf(':'); if (i < 0) continue;
-    rows.push({ label: l.slice(0, i).trim(), value: l.slice(i + 1).trim() });
-  }
-  const resumo = CALCS[key].resumo
-    .map(([t, re]) => [t, rows.find((r) => r.label && re.test(r.label))?.value] as [string, string | undefined])
-    .filter((x): x is [string, string] => !!x[1]);
-  return { ok: true, rows, notes, resumo, texto };
-}
-, type: 'number' },
-      { key: 'monthlyPurchases', label: 'Compras e insumos mensais, R, type: 'select', options: [['mei','MEI'],['me','Microempresa (ME)'],['epp','Empresa de pequeno porte (EPP)'],['demais','Empresa de maior porte']] },
-      { key: 'meiEligible', label: 'Atividade consta na lista permitida ao MEI?', type: 'select', options: [['nao','Não ou não verificado'],['sim','Sim, confirmado pelo CNAE']] },
-      { key: 'meiEmployees', label: 'Número de empregados para análise do MEI', type: 'number' },
-      { key: 'meiTaxActivity', label: 'Tributação da atividade no MEI', type: 'select', options: [['servicos','Serviços (ISS)'],['comercio','Comércio/indústria (ICMS)'],['misto','Comércio e serviços (ICMS + ISS)']] },
-      { key: 'meiOtherCompany', label: 'Titular participa de outra empresa?', type: 'select', options: [['nao','Não'],['sim','Sim']] },
-      { key: 'activity', label: 'Atividade', type: 'select', options: [['advocacia', 'Advocacia (Simples Anexo IV)'], ['servicos', 'Serviços do Anexo III'], ['fator_r', 'Serviços com Fator R (Anexo III ou V)']] },
-      { key: 'monthlyRevenue', label: 'Faturamento mensal, R$', type: 'number' },
-      { key: 'annualRevenue', label: 'Faturamento dos últimos 12 meses (em branco = mensal × 12)', type: 'number' },
-      { key: 'monthlyExpenses', label: 'Despesas mensais do escritório, R$', type: 'number' },
-      { key: 'proLabore', label: 'Pró-labore mensal total (em branco = 1 salário mínimo)', type: 'number' },
-      { key: 'partners', label: 'Número de sócios', type: 'number' },
-      { key: 'issRate', label: 'Alíquota de ISS (%)', type: 'number' },
-      { key: 'pfIss', label: 'Como pessoa física recolhe ISS sobre o faturamento?', type: 'select', options: [['nao', 'Não (ISS fixo de autônomo)'], ['sim', 'Sim']] },
-    ],
-    example: { companySize:'me',meiEligible:'nao',meiEmployees:'0',meiTaxActivity:'servicos',meiOtherCompany:'nao',activity: 'advocacia', monthlyRevenue: '30000', annualRevenue: '360000', monthlyExpenses: '5000', proLabore: '3000', partners: '1', issRate: '5', pfIss: 'nao' },
-  },
-  pat: {
-    nome: 'Planejamento Patrimonial e Sucessório', aba: 'Patrimonial', fn: planejamentoPatrimonial,
-    resumo: [['Cenário mais econômico', /^Cenário mais econômico/], ['Economia no período', /^TOTAL ECONOMIA/]],
-    fields: [
-      { key: 'totalAssets', label: 'Valor total do patrimônio, R$', type: 'number' },
-      { key: 'realEstateValue', label: 'Valor dos imóveis, R$', type: 'number' },
-      { key: 'monthlyRent', label: 'Renda mensal de aluguéis, R$', type: 'number' },
-      { key: 'heirs', label: 'Número de herdeiros', type: 'number' },
-      { key: 'horizonYears', label: 'Horizonte de comparação (anos)', type: 'number' },
-      { key: 'itcmdRate', label: 'Alíquota do ITCMD (%) — MG 5', type: 'number' },
-      { key: 'inventoryFeeRate', label: 'Honorários do inventário (%)', type: 'number' },
-      { key: 'inventoryCostsRate', label: 'Custas e emolumentos (%)', type: 'number' },
-      { key: 'itbiRate', label: 'Alíquota do ITBI (%)', type: 'number' },
-      { key: 'itbiImmunity', label: 'Imunidade de ITBI na integralização?', type: 'select', options: [['nao', 'Não (holding de locação)'], ['sim', 'Sim']] },
-      { key: 'quotaBase', label: 'Base do ITCMD na doação das quotas', type: 'select', options: [['mercado', 'Valor de mercado'], ['contabil', 'Valor declarado (contábil)']] },
-      { key: 'bookValue', label: 'Valor declarado dos bens, R$', type: 'number' },
-      { key: 'holdingSetupCost', label: 'Custo de constituição da holding, R$', type: 'number' },
-      { key: 'holdingAnnualCost', label: 'Custo anual de contabilidade da holding, R$', type: 'number' },
-    ],
-    example: { totalAssets: '2000000', realEstateValue: '1500000', monthlyRent: '10000', heirs: '2', horizonYears: '10', itcmdRate: '5', inventoryFeeRate: '6', inventoryCostsRate: '2', itbiRate: '3', itbiImmunity: 'nao', quotaBase: 'mercado', bookValue: '', holdingSetupCost: '15000', holdingAnnualCost: '6000' },
-  },
-};
-
-export type Linha = { sep?: true; label?: string; value?: string };
-const isNote = (l: string) => /^(Atenção|Observação|Conferir antes de usar|Recomendação)\b/.test(l);
-/** Converte o texto da memória de cálculo em linhas de tabela, notas e resumo. */
-export function calcular(key: CalcKey, d: Dict): { ok: true; rows: Linha[]; notes: string[]; resumo: [string, string][]; texto: string } | { ok: false; erro: string } {
-  let texto: string;
-  try { texto = CALCS[key].fn(d).texto; } catch (e: any) {
-    return { ok: false, erro: e instanceof PlanningInputError ? e.message : 'Não foi possível calcular. Confira os dados.' };
-  }
-  const rows: Linha[] = []; const notes: string[] = [];
-  for (const raw of texto.split('\n').slice(1)) {
-    const l = raw.trim();
-    if (!l) { rows.push({ sep: true }); continue; }
-    if (isNote(l)) { notes.push(l); continue; }
-    const i = l.indexOf(':'); if (i < 0) continue;
-    rows.push({ label: l.slice(0, i).trim(), value: l.slice(i + 1).trim() });
-  }
-  const resumo = CALCS[key].resumo
-    .map(([t, re]) => [t, rows.find((r) => r.label && re.test(r.label))?.value] as [string, string | undefined])
-    .filter((x): x is [string, string] => !!x[1]);
-  return { ok: true, rows, notes, resumo, texto };
-}
-, type: 'number' },
+      { key: 'payroll', label: 'Folha de salários mensal, R$', type: 'number' },
+      { key: 'monthlyPurchases', label: 'Compras e insumos mensais, R$', type: 'number' },
       { key: 'icmsRate', label: 'Alíquota ICMS estimada (%), se aplicável', type: 'number' },
       { key: 'companySize', label: 'Porte atual da empresa', type: 'select', options: [['mei','MEI'],['me','Microempresa (ME)'],['epp','Empresa de pequeno porte (EPP)'],['demais','Empresa de maior porte']] },
       { key: 'meiEligible', label: 'Atividade consta na lista permitida ao MEI?', type: 'select', options: [['nao','Não ou não verificado'],['sim','Sim, confirmado pelo CNAE']] },
@@ -491,7 +371,7 @@ export function calcular(key: CalcKey, d: Dict): { ok: true; rows: Linha[]; note
       { key: 'issRate', label: 'Alíquota de ISS (%)', type: 'number' },
       { key: 'pfIss', label: 'Como pessoa física recolhe ISS sobre o faturamento?', type: 'select', options: [['nao', 'Não (ISS fixo de autônomo)'], ['sim', 'Sim']] },
     ],
-    example: { companySize:'me',meiEligible:'nao',meiEmployees:'0',meiTaxActivity:'servicos',meiOtherCompany:'nao',activity: 'advocacia', monthlyRevenue: '30000', annualRevenue: '360000', monthlyExpenses: '5000', proLabore: '3000', partners: '1', issRate: '5', pfIss: 'nao' },
+    example: { companyName:'',companyCnpj:'',hybridOption:'nao',b2bShare:'70',creditablePurchases:'0',taxRegime:'simples',cnae:'6911701',state:'MG',city:'Belo Horizonte',payroll:'0',monthlyPurchases:'0',icmsRate:'0',companySize:'me',meiEligible:'nao',meiEmployees:'0',meiTaxActivity:'servicos',meiOtherCompany:'nao',activity: 'advocacia', monthlyRevenue: '30000', annualRevenue: '360000', monthlyExpenses: '5000', proLabore: '3000', partners: '1', issRate: '5', pfIss: 'nao' },
   },
   pat: {
     nome: 'Planejamento Patrimonial e Sucessório', aba: 'Patrimonial', fn: planejamentoPatrimonial,
