@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { RefreshCw, Search, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, CheckCircle2, ShieldCheck, FileText, AlertTriangle, Clock3 } from 'lucide-react';
 import InternalNavigation from '../components/InternalNavigation';
+import LatestProcessStatePanel from '../components/LatestProcessStatePanel';
 import { supabase } from '../lib/supabase';
 import { captureBounds, movementDate, movementPriority, movementDelivery, decideProcessNotice, type ProcessRow } from '../lib/processWorkspace';
 import './process-workspace.css';
@@ -225,6 +226,7 @@ export default function ProcessMovements() {
     const client = selected?.clients?.name || record?.clients?.name || 'Cliente não identificado';
     return <div className="process-workspace movement-workspace"><header className="process-page-heading"><div><h1>Andamentos</h1><p>Acompanhe movimentações, revise comunicações e confira os envios.</p></div><div className="process-heading-actions"><Link className="secondary" to="/tribunais">Monitoramento</Link><button className="secondary" disabled={loading || busy || syncing} onClick={() => setRefresh(value => value + 1)}><RefreshCw size={16}/>Atualizar lista</button><button className="primary" disabled={loading || busy || syncing} onClick={() => void sync()}><Search size={16}/>{syncing ? 'Consultando DJEN…' : 'Consultar DJEN'}</button></div></header>
  <div className="movement-counts"><button disabled={busy || syncing} onClick={() => changeView('aprovacoes')}><span>{loading ? '—' : counts.review ?? '—'}</span>Aprovações pendentes</button><button disabled={busy || syncing} onClick={() => { setSendStatus('waiting'); changeView('envios'); }}><span>{loading ? '—' : counts.pending ?? '—'}</span>Aguardando / em processamento</button><button disabled={busy || syncing} onClick={() => { setSendStatus('failed'); changeView('envios'); }}><span>{loading ? '—' : counts.failed ?? '—'}</span>Falhas no envio</button><div><Clock3 size={15}/><span>{updated ? 'Última consulta da lista: ' + movementDate(updated) : 'Lista ainda não consultada.'}</span></div></div>
+ <LatestProcessStatePanel orgId={orgId} />
  <InternalNavigation label="Visões de andamentos">{[['movimentacoes', 'Movimentações'], ['aprovacoes', 'Aprovações'], ['envios', 'Envios']].map(([value, label]) => <button key={value} aria-current={view === value ? 'page' : undefined} disabled={busy || syncing} onClick={() => changeView(value)}>{label}</button>)}</InternalNavigation>
  {contextProcess && <p className='process-notice'>Exibindo registros do processo selecionado. <button className='process-text-button' onClick={() => { setPage(0); setParams(previous => { const next = new URLSearchParams(previous); next.delete('processo'); return next; }); }}>Ver todos os processos</button></p>}
  {loadError && <p className="process-error" role="alert">{loadError}</p>}{notice && <p className="process-notice" role="status">{notice}</p>}
