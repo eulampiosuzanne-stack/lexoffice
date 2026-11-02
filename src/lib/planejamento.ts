@@ -253,9 +253,9 @@ export function planejamentoTributario(d: Dict) {
   if (compararMei) recomendacoesPorte.push(`DAS-MEI mensal estimado: ${money(meiDAS)} (INSS ${money(meiINSS)}, ICMS ${money(meiICMS)}, ISS ${money(meiISS)}). Não inclui empregados nem outros encargos.`);
   if (porte === 'mei' && !compararMei) recomendacoesPorte.push('DAS-MEI não calculado como regime elegível: verificar requisitos legais antes de comparar tributos.');
   if (porte !== 'mei' && compararMei) recomendacoesPorte.push('A comparação MEI depende de confirmar a possibilidade legal de enquadramento; alteração de porte não significa, por si, menor tributação.');
-  const regimes = [...(compararMei ? [{ nome: 'MEI — DAS mensal (sem encargos adicionais)', total: meiDAS }] : []), { nome: 'Pessoa física (carnê-leão + INSS 20%)', total: totalPF }, ...(totalSimples != null ? [{ nome: `Simples Nacional — Anexo ${anexo}`, total: totalSimples }] : []), { nome: 'Lucro presumido', total: totalPres }].sort((a, b) => a.total - b.total);
+  const regimes = [{ nome: 'Pessoa física (carnê-leão + INSS 20%)', total: totalPF }, ...(totalSimples != null ? [{ nome: `Simples Nacional — Anexo ${anexo}`, total: totalSimples }] : []), { nome: 'Lucro presumido', total: totalPres }].sort((a, b) => a.total - b.total);
   const melhor = regimes[0]; const pior = regimes[regimes.length - 1];
-  if (compararMei) avisos.push('Comparação MEI meramente preliminar: não equiparar DAS-MEI à carga total de outros regimes sem incluir folha, encargos e impostos externos ao SIMEI.');
+  if (compararMei) avisos.push(`DAS-MEI estimado: ${money(meiDAS)}. NÃO incluído no ranking de economia, pois encargos e tributos externos ao SIMEI não foram apurados.`);
   if (atividade !== 'advocacia' && atividade !== 'servicos' && atividade !== 'fator_r') avisos.push('Atividade não modelada integralmente: confirmar anexos, ICMS, IPI, PIS/Cofins e retenções com contabilidade.');
   if ((receita - despesas) * 12 > PARAMS_2026.altaRendaAnual) avisos.push('Renda anual acima de R$ 600 mil: pode haver imposto mínimo anual (IRPFM, Lei 15.270/2025) na declaração, não incluído aqui.');
   if (atividade === 'advocacia') avisos.push('Advocacia no Simples fica no Anexo IV (INSS patronal de 20% sobre o pró-labore pago à parte). Sociedade uniprofissional pode ter ISS fixo no município.');
