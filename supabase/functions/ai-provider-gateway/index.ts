@@ -42,7 +42,7 @@ async function openai(key:string,sys:string,input:string,model:string,temperatur
 }
 async function gemini(key:string,sys:string,input:string,model:string,temperature:number,maxTokens:number){
   if(!key)return{ok:false,error:'gemini_key_missing'};
-  const chosen=model?.startsWith('gemini-')?model:(Deno.env.get('GEMINI_MODEL')||'gemini-2.5-flash');
+  const chosen=model?.startsWith('gemini-')?model:(Deno.env.get('GEMINI_MODEL')||'gemini-flash-latest');
   try{
     const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${chosen}:generateContent?key=${encodeURIComponent(key)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:sys}]},contents:[{role:'user',parts:[{text:input}]}],generationConfig:{temperature,maxOutputTokens:maxTokens}})});
     const d=await r.json().catch(()=>null);
@@ -81,51 +81,17 @@ Deno.serve(async req=>{
   const orgId=await resolveOrg(String(body.org_id||'').trim());
   const agentKey=String(body.agent_key||'').trim();
   const policyRow=await loadAgentPolicy(orgId,agentKey);
-  if(policyRow&&policyRow.active===false)return json({ok:false,error:'agent_inactive'},403);
-
-  const [voai,vge,vg,vor,vol]=await Promise.all([
-    vaultKey(orgId,'openai_api'),vaultKey(orgId,'gemini_api'),vaultKey(orgId,'groq_api'),vaultKey(orgId,'openrouter_api'),vaultKey(orgId,'ollama_base_url')
-  ]);
-  const keys={
-    openai:voai||(Deno.env.get('OPENAI_API_KEY')||'').trim(),
-    gemini:vge||(Deno.env.get('GEMINI_API_KEY')||Deno.env.get('GOOGLE_GEMINI_API_KEY')||'').trim(),
-    groq:(Deno.env.get('GROQ_API_KEY')||'').trim()||vg,
-    openrouter:vor||(Deno.env.get('OPENROUTER_API_KEY')||'').trim(),
-    ollama:vol||(Deno.env.get('OLLAMA_BASE_URL')||'').trim()
-  };
-
-  if(body.action==='health')return json({ok:Object.values(keys).some(Boolean),mode:'policy_driven',groq_configured:Boolean(keys.groq),gemini_configured:Boolean(keys.gemini),openrouter_configured:Boolean(keys.openrouter),ollama_configured:Boolean(keys.ollama),openai_configured:Boolean(keys.openai),providers_ready:Object.values(keys).filter(Boolean).length});
-
+  if(policyRow&&policyRow.active===false)return json({ok:false,error:'agent_inactive'},403)  const geminiKey=await vaultKey(orgId,'gemini_api')||(Deno.env.get('GEMINI_API_KEY')||Deno.env.get('GOOGLE_GEMINI_API_KEY')||'').trim();
+  if(body.action==='health')return json({ok:Boolean(geminiKey),mode:'gemini_only',gemini_configured:Boolean(geminiKey),providers_ready:Number(Boolean(geminiKey))});
   const p=policyRow?.policy||{};
-  const provider=String(policyRow?.provider||body.provider||'auto').toLowerCase();
+  const provider='gemini';
   const model=String(policyRow?.model||body.model||'');
   const temperature=Math.max(0,Math.min(1,Number(p.temperature ?? body.temperature ?? .25)));
   const maxTokens=Math.max(200,Math.min(4000,Number(p.max_output_tokens ?? body.max_output_tokens ?? 1400)));
-  const fallbackEnabled=Boolean(p.fallback_enabled ?? (provider==='auto'));
-  const fallbackProvider=String(p.fallback_provider||'').toLowerCase();
-  const sys=String(policyRow?.system_prompt||body.instructions||'Você é um agente do LEXOFFICE. Responda em português do Brasil, com clareza, cordialidade e objetividade. Nunca invente dados jurídicos, prazos, processos, valores ou compromissos. Se faltar informação essencial, peça-a ou encaminhe para atendimento humano.');
+  const sys=String(policyRow?.system_prompt||body.instructions||'Você é um agente do LEXOFFICE. Responda em português do Brasil, com clareza e sem inventar informações jurídicas.');
   const input=String(body.input||'');
   if(!input.trim())return json({error:'input_required'},400);
-
-  const valid=['groq','gemini','openrouter','ollama','openai'];
-  let order:string[]=[];
-  if(provider==='auto')order=['groq','gemini','openrouter','ollama','openai'];
-  else if(valid.includes(provider)){
-    order=[provider];
-    if(fallbackEnabled&&fallbackProvider&&valid.includes(fallbackProvider)&&fallbackProvider!==provider)order.push(fallbackProvider);
-  }else return json({ok:false,error:'invalid_provider_policy',provider},400);
-
-  const errors:any[]=[];
-  for(const selected of order){
-    let r:any;
-    if(selected==='groq')r=await compat('groq',keys.groq,'https://api.groq.com/openai/v1/chat/completions',model||Deno.env.get('GROQ_MODEL')||'openai/gpt-oss-20b',sys,input,temperature,maxTokens);
-    else if(selected==='gemini')r=await gemini(keys.gemini,sys,input,model,temperature,maxTokens);
-    else if(selected==='openrouter')r=await compat('openrouter',keys.openrouter,'https://openrouter.ai/api/v1/chat/completions',model||Deno.env.get('OPENROUTER_MODEL')||'openrouter/free',sys,input,temperature,maxTokens);
-    else if(selected==='ollama')r=await ollama(keys.ollama,sys,input,model,temperature);
-    else r=await openai(keys.openai,sys,input,model,temperature,maxTokens);
-    if(r.ok)return json({ok:true,...r,agent_key:agentKey||null,policy_provider:provider,policy_model:model||null,temperature,max_output_tokens:maxTokens,fallback_used:selected!==provider&&provider!=='auto'});
-    errors.push(r);
-  }
-
-  return json({ok:false,error:'all_allowed_providers_failed',agent_key:agentKey||null,policy_provider:provider,fallback_enabled:fallbackEnabled,providers:errors.map(x=>({error:x.error,detail:x.detail||null}))},503);
+  const result=await gemini(geminiKey,sys,input,model,temperature,maxTokens);
+  if(result.ok)return json({ok:true,...result,agent_key:agentKey||null,policy_provider:'gemini',fallback_used:false});
+  return json({ok:false,error:'gemini_unavailable',providers:[{error:result.error,detail:result.detail||null}]},503);
 });
