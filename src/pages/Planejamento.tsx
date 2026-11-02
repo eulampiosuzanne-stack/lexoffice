@@ -1,6 +1,6 @@
 import InternalNavigation from '../components/InternalNavigation';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Landmark, Receipt, Building2, Copy, RotateCcw, Calculator } from 'lucide-react';
+import { Landmark, Receipt, Building2, Copy, RotateCcw, Calculator, FileDown } from 'lucide-react';
 import { CALCS, calcular, type CalcKey } from '../lib/planejamento';
 import './planejamento.css';
 
@@ -34,6 +34,7 @@ export default function Planejamento() {
   const out = useMemo(() => calcular(tab, submitted), [tab, submitted]);
   function submit(e: FormEvent) { e.preventDefault(); store.set('lex-plan-' + tab, values); setIsExample(false); setSubmitted({ ...values }); setCopied(false); }
   function reset() { store.del('lex-plan-' + tab); setValues(calc.example); setSubmitted(calc.example); setIsExample(true); setCopied(false); }
+  function exportPdf() { window.print(); }
   async function copy() { if (!out.ok) return; try { await navigator.clipboard.writeText(out.texto); setCopied(true); } catch { setCopied(false); } }
 
   return <div className="plan-page">
@@ -53,7 +54,7 @@ export default function Planejamento() {
         </form>
       </section>
       <section className="plan-panel plan-result" aria-live="polite">
-        <div className="plan-result-head"><div><h2>{calc.nome}</h2>{out.ok && <p>Memória de cálculo com os dados informados.</p>}</div>{out.ok && <button className="plan-btn ghost small" type="button" onClick={copy}><Copy size={14} />{copied ? 'Copiado' : 'Copiar memória'}</button>}</div>
+        <div className="plan-result-head"><div><h2>{calc.nome}</h2>{out.ok && <p>Memória de cálculo com os dados informados.</p>}</div>{out.ok && <button className="plan-btn ghost small" type="button" onClick={exportPdf}><FileDown size={14} />Salvar em PDF</button>}{out.ok && <button className="plan-btn ghost small" type="button" onClick={copy}><Copy size={14} />{copied ? 'Copiado' : 'Copiar memória'}</button>}</div>
         {!out.ok ? <p className="plan-error">{out.erro}</p> : <>
           {out.resumo.length > 0 && <div className="plan-verdict">{out.resumo.map(([t, v]) => <div key={t}><span>{t}</span><b>{v}</b></div>)}</div>}
           <div className="plan-tablewrap"><table><tbody>
