@@ -39,6 +39,7 @@ import "./mobile-shell.css";
 import "./design-system/workspaces.css";
 import "./design-system/navigation.css";
 import "./design-system/accessibility.css";
+import "./design-system/classic-depth.css";
 applyVisibility(readVisibility());
 // Apply saved preference before React renders to prevent dark-theme flash.
 try {

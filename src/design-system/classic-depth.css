@@ -1,0 +1,60 @@
+/* Identidade clássica LEXOFFICE — profundidade visual sem alterar estrutura ou comportamento. */
+:root{
+  --lx-depth-card:0 1px 0 rgba(255,255,255,.035) inset,0 -1px 0 rgba(0,0,0,.34) inset,0 8px 0 #09090b,0 14px 30px rgba(0,0,0,.32);
+  --lx-depth-card-soft:0 1px 0 rgba(255,255,255,.03) inset,0 5px 0 #0c0c0e,0 10px 22px rgba(0,0,0,.24);
+  --lx-depth-button:0 1px 0 rgba(255,255,255,.14) inset,0 -3px 0 rgba(55,4,20,.72),0 5px 12px rgba(0,0,0,.3);
+  --lx-depth-control:0 1px 0 rgba(255,255,255,.025) inset,0 3px 0 #09090b,0 7px 16px rgba(0,0,0,.2);
+}
+
+/* Superfícies principais e caixas de trabalho. */
+.card,.dashboard-kpi,.dashboard-panel,.module-box,.table-panel,.smart-panel,
+.smart-card,.agent-item,.agent-console,.ac-surface,.ac-metrics>div,
+.service-panel,.service-card,.settings-card,.integration-panel,.integration-card,
+.finance-card,.document-card,.client-card,.process-card,.report-card,.modal,
+.rule-modal,.lane,.lead-card,.kanban-column,.whatsapp-panel,.signature-card,
+.agenda-card,.calculator-card,.campaign-card{
+  box-shadow:var(--lx-depth-card-soft);
+}
+
+/* Painéis de maior hierarquia usam relevo mais marcado. */
+.dashboard-panel,.module-box,.table-panel,.smart-panel,.agent-console,
+.ac-surface,.rule-modal,.service-chat-page,.service-workspace{
+  box-shadow:var(--lx-depth-card);
+}
+
+/* Barra superior e navegação preservam a geometria existente. */
+.app>main>header,.app>aside,.mobile-bottom-nav,.vision-dock{
+  box-shadow:0 1px 0 rgba(255,255,255,.025) inset,0 10px 28px rgba(0,0,0,.22);
+}
+
+/* Botões mantêm seus eventos; somente recebem volume e estados táteis. */
+.primary,.legacy-enter,button[type="submit"],.integration-action,
+.agent-save button,.ac-savebar button:not(:disabled){
+  box-shadow:var(--lx-depth-button);
+  transition:transform var(--lx-transition),box-shadow var(--lx-transition),background var(--lx-transition);
+}
+.primary:hover,.legacy-enter:hover,button[type="submit"]:hover,.integration-action:hover,
+.agent-save button:hover,.ac-savebar button:not(:disabled):hover{transform:translateY(-1px)}
+.primary:active,.legacy-enter:active,button[type="submit"]:active,.integration-action:active,
+.agent-save button:active,.ac-savebar button:not(:disabled):active{transform:translateY(2px);box-shadow:0 1px 0 rgba(255,255,255,.08) inset,0 1px 0 rgba(55,4,20,.72)}
+
+/* Campos e controles ficam encaixados, como no visual original. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,textarea,
+.input-search,.global-search-field,.lx-navigation--segmented .lx-navigation-strip{
+  box-shadow:var(--lx-depth-control);
+}
+
+/* Seleção bordô com contorno nítido e acessível. */
+.nav-group a.active,.lx-navigation .lx-navigation-item.is-current,
+.lx-navigation .lx-navigation-item[aria-current="page"],.agent-item.selected,
+.permission.allowed,.power.active{
+  box-shadow:0 0 0 1px rgba(207,54,88,.2) inset,0 5px 12px rgba(0,0,0,.2);
+}
+
+@media(max-width:760px){
+  :root{--lx-depth-card:0 1px 0 rgba(255,255,255,.03) inset,0 5px 0 #09090b,0 10px 20px rgba(0,0,0,.24);--lx-depth-card-soft:0 1px 0 rgba(255,255,255,.025) inset,0 3px 0 #0c0c0e,0 7px 14px rgba(0,0,0,.2)}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .primary,.legacy-enter,button[type="submit"],.integration-action,.agent-save button,.ac-savebar button{transform:none!important}
+}
