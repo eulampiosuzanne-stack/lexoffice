@@ -91,6 +91,9 @@ const COMPLAINT_RE=/(procon|reclame aqui|denunciar|vou processar|processar voces
 const PROCESS_TOPIC_RE=/(process|andamento|audiencia|prazo|sentenca|decisao|juiz|juiza|forum|vara|intimacao|citacao|\d{7}-\d{2}\.\d{4})/;
 function handoffReason(p:any,msg:string,ctx:any):{reason:string,critical:boolean}|null{
   const pol=p?.policy||{};const t=norm(msg);
+  // Uma saudação ou chamada pelo nome da advogada não é pedido de transferência.
+  // Mantenha a conversa na triagem antes de considerar palavras-chave configuradas.
+  if (/^(?:(?:bom dia|boa tarde|boa noite|oi|ola|opa|alo|hey)[!,.?\s]*)?(?:(?:dra\.?|doutora)\s*)?suzanne\s*[?!.,]*$/.test(t) || /^(?:bom dia|boa tarde|boa noite|oi|ola|opa|alo|hey)[!,.?\s]*$/.test(t)) return null;
   const synthetic=/^a cliente selecionou:/.test(t);
   if(pol.critical_handoff!==false&&((synthetic&&ctx?.urgent===true)||CRITICAL_RE.test(t)))return {reason:'Situação crítica/urgente relatada pelo cliente',critical:true};
   if(pol.handoff_on_human_request!==false&&HUMAN_REQ_RE.test(t))return {reason:'Cliente pediu para falar com uma pessoa / pediu ligação',critical:false};
@@ -107,6 +110,9 @@ const PROMISE_ACTION=/(avisad|informad|notificad|comunicad|acionad|\bciente\b|en
 // Promessa de retorno feita pela própria Helena (sem citar a Dra.).
 const PROMISE_SELF=/(entrarei em contato|retornaremos|retorno (em breve|o contato)|assim que (houver|tiver) (um |uma )?(retorno|resposta|confirma[cç][aã]o|posi[cç][aã]o)|vou (registrar|encaminhar|repassar|levar)|registrei|encaminhei|repassei|fica registrad|ficou registrad|segue registrad|est[aá] registrad)/i;
 export function promiseDetected(t:string){const x=String(t||'');return PROMISE_SELF.test(x)||x.split(/[.!?\n]+/).some(s=>PROMISE_ACTOR.test(s)&&PROMISE_ACTION.test(s))}
+// Nunca transforme saudação simples em promessa de encaminhamento ou aviso à sócia.
+export function isGreetingOnly(t:string){const x=norm(t).trim();return /^(?:(?:bom dia|boa tarde|boa noite|oi|ola|opa|alo|hey)[!,.?\s]*)?(?:(?:dra\.?|doutora)\s*)?suzanne\s*[?!.,]*$/.test(x)||/^(?:bom dia|boa tarde|boa noite|oi|ola|opa|alo|hey)[!,.?\s]*$/.test(x)}
+
 async function promiseAlert(a:any,url:string,sk:string,orgId:string,agentKey:string,policy:any,conversationId:string,phone:string,reply:string){
   const since=new Date(Date.now()-2*3600000).toISOString();
   const {data:prev}=await a.from('ai_agent_alerts').select('id').eq('org_id',orgId).eq('contact_phone',phone).like('reason','Helena disse que a Dra. seria avisada%').gt('created_at',since).limit(1).maybeSingle();
@@ -379,6 +385,14 @@ Deno.serve(async req=>{
     ].filter(Boolean).join('\n\n');
 
     let deterministic='',showCollectionConfirmation=false,newCollectionContext:any=null;
+    // Saudações são triagem, não solicitação de contato com a sócia.
+    // A resposta é determinística para evitar promessas de encaminhamento geradas pela IA.
+    if(!followup&&agentKey==='client_service_triage'&&isGreetingOnly(message)){
+      deterministic=conv?.client_id
+        ?'Bom dia! Sou Helena, da equipe da Dra. Suzanne. Como posso ajudar você hoje?'
+        :'Bom dia! Sou Helena, da equipe da Dra. Suzanne. Você já é cliente do escritório?';
+    }
+
     if(agentKey==='billing'&&collection?.negotiation_stage==='awaiting_proposal'){
       const synthetic=/^A cliente selecionou:/i.test(message);
       if(synthetic)deterministic=collection.negotiation_kind==='date'?'Qual nova data de pagamento você deseja propor?':'Qual valor você consegue propor para pagamento?';
