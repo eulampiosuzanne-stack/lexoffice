@@ -188,12 +188,12 @@ function dividendosIR(v: number) { return v > PARAMS_2026.dividendosLimiteMensal
 
 export function planejamentoTributario(d: Dict) {
   const razaoSocial = String(d.companyName || '').trim();
-  const cnpj = String(d.companyCnpj || '').replace(/\\D/g, '');
+  const cnpj = String(d.companyCnpj || '').replace(/\D/g, '');
   if (!razaoSocial) fail('Informe a razão social ou nome da empresa.');
-  if (!/^\\d{14}$/.test(cnpj)) fail('Informe o CNPJ com 14 dígitos.');
+  if (!/^\d{14}$/.test(cnpj)) fail('Informe o CNPJ com 14 dígitos.');
   const digitoCnpj = (base: string, pesos: number[]) => { const soma = pesos.reduce((acc, peso, i) => acc + Number(base[i]) * peso, 0); const resto = soma % 11; return resto < 2 ? 0 : 11 - resto; };
-  if (/^(\\d)\\1{13}$/.test(cnpj) || digitoCnpj(cnpj.slice(0,12),[5,4,3,2,9,8,7,6,5,4,3,2]) !== Number(cnpj[12]) || digitoCnpj(cnpj.slice(0,13),[6,5,4,3,2,9,8,7,6,5,4,3,2]) !== Number(cnpj[13])) fail('CNPJ inválido: confira os dígitos verificadores.');
-  const cnpjFormatado = cnpj.replace(/^(\\d{2})(\\d{3})(\\d{3})(\\d{4})(\\d{2})$/, '$1.$2.$3/$4-$5');
+  if (/^(\d)\1{13}$/.test(cnpj) || digitoCnpj(cnpj.slice(0,12),[5,4,3,2,9,8,7,6,5,4,3,2]) !== Number(cnpj[12]) || digitoCnpj(cnpj.slice(0,13),[6,5,4,3,2,9,8,7,6,5,4,3,2]) !== Number(cnpj[13])) fail('CNPJ inválido: confira os dígitos verificadores.');
+  const cnpjFormatado = cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
   const porte = d.companySize || 'me';
   const regimeAtual = String(d.taxRegime || 'nao_informado');
   const hibrido = d.hybridOption === 'sim';
@@ -213,7 +213,7 @@ export function planejamentoTributario(d: Dict) {
   if (hibrido) recomendacoesPorte.push('Simples híbrido 2027: IBS e CBS recolhidos no regime regular fora do DAS. Créditos exigem documentos fiscais e hipóteses legais; simulação numérica indisponível sem alíquotas e classificação fiscal da operação.');
   if (hibrido && (porte === 'mei' || regimeAtual === 'simei')) recomendacoesPorte.push('MEI não pode optar pelo Simples híbrido: seleção incompatível.');
   if (hibrido && !['simples','simei'].includes(regimeAtual)) recomendacoesPorte.push('Regime híbrido somente para optantes do Simples Nacional elegíveis.');
-  if (!/^\\d{7}$/.test(cnae)) recomendacoesPorte.push('CNAE ausente ou inválido: não é possível validar anexos, tributos por atividade e elegibilidade do MEI.');
+  if (!/^\d{7}$/.test(cnae)) recomendacoesPorte.push('CNAE ausente ou inválido: não é possível validar anexos, tributos por atividade e elegibilidade do MEI.');
   if (regimeAtual === 'real') recomendacoesPorte.push('Lucro Real: apuração não implementada nesta simulação. Exige escrituração, adições/exclusões fiscais, créditos e dados contábeis; não usar ranking para decisão.');
   if (num(d.payroll) > 0) recomendacoesPorte.push('Folha informada: encargos de empregados e RAT/terceiros não foram incluídos na carga tributária comparada.');
   if(porte==='mei' && !meiElegivel) recomendacoesPorte.push('MEI: condições informadas incompatíveis com a permanência. Avaliar desenquadramento para ME ou EPP, conforme receita e atividade.');
