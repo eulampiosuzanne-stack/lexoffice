@@ -385,6 +385,14 @@ Deno.serve(async req=>{
     ].filter(Boolean).join('\n\n');
 
     let deterministic='',showCollectionConfirmation=false,newCollectionContext:any=null;
+    // Saudações são triagem, não solicitação de contato com a sócia.
+    // A resposta é determinística para evitar promessas de encaminhamento geradas pela IA.
+    if(!followup&&agentKey==='client_service_triage'&&isGreetingOnly(message)){
+      deterministic=conv?.client_id
+        ?'Bom dia! Sou Helena, da equipe da Dra. Suzanne. Como posso ajudar você hoje?'
+        :'Bom dia! Sou Helena, da equipe da Dra. Suzanne. Você já é cliente do escritório?';
+    }
+
     if(agentKey==='billing'&&collection?.negotiation_stage==='awaiting_proposal'){
       const synthetic=/^A cliente selecionou:/i.test(message);
       if(synthetic)deterministic=collection.negotiation_kind==='date'?'Qual nova data de pagamento você deseja propor?':'Qual valor você consegue propor para pagamento?';
