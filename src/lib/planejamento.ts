@@ -241,8 +241,22 @@ export function planejamentoTributario(d: Dict) {
   const lucroPres = receita - despesas - pres.total - cpp - proLabore; const dividPres = Math.max(0, lucroPres);
   const irDivPres = dividendosIR(dividPres / socios) * socios; const totalPres = pres.total + cpp + encargoPL + irDivPres;
   if (pres.excedente > 0) avisos.push('Receita acima de R$ 5 milhões/ano: aplicada a presunção majorada em 10% (LC 224/2025) sobre o excedente — há discussões judiciais sobre essa majoração.');
-  const regimes = [{ nome: 'Pessoa física (carnê-leão + INSS 20%)', total: totalPF }, ...(totalSimples != null ? [{ nome: `Simples Nacional — Anexo ${anexo}`, total: totalSimples }] : []), { nome: 'Lucro presumido', total: totalPres }].sort((a, b) => a.total - b.total);
+  // DAS-MEI 2026: contribuição previdenciária de 5% do salário mínimo,
+  // acrescida de ICMS (comércio/indústria) e/ou ISS (serviços).
+  // Não inclui DAS complementar, excesso de receita, empregados ou tributos fora do SIMEI.
+  const meiTipo = String(d.meiTaxActivity || 'servicos');
+  const meiINSS = r2(PARAMS_2026.salarioMinimo * 0.05);
+  const meiICMS = meiTipo === 'comercio' || meiTipo === 'misto' ? 1 : 0;
+  const meiISS = meiTipo === 'servicos' || meiTipo === 'misto' ? 5 : 0;
+  const meiDAS = r2(meiINSS + meiICMS + meiISS);
+  const compararMei = meiElegivel && atividade !== 'advocacia';
+  if (compararMei) recomendacoesPorte.push(`DAS-MEI mensal estimado: ${money(meiDAS)} (INSS ${money(meiINSS)}, ICMS ${money(meiICMS)}, ISS ${money(meiISS)}). Não inclui empregados nem outros encargos.`);
+  if (porte === 'mei' && !compararMei) recomendacoesPorte.push('DAS-MEI não calculado como regime elegível: verificar requisitos legais antes de comparar tributos.');
+  if (porte !== 'mei' && compararMei) recomendacoesPorte.push('A comparação MEI depende de confirmar a possibilidade legal de enquadramento; alteração de porte não significa, por si, menor tributação.');
+  const regimes = [...(compararMei ? [{ nome: 'MEI — DAS mensal (sem encargos adicionais)', total: meiDAS }] : []), { nome: 'Pessoa física (carnê-leão + INSS 20%)', total: totalPF }, ...(totalSimples != null ? [{ nome: `Simples Nacional — Anexo ${anexo}`, total: totalSimples }] : []), { nome: 'Lucro presumido', total: totalPres }].sort((a, b) => a.total - b.total);
   const melhor = regimes[0]; const pior = regimes[regimes.length - 1];
+  if (compararMei) avisos.push('Comparação MEI meramente preliminar: não equiparar DAS-MEI à carga total de outros regimes sem incluir folha, encargos e impostos externos ao SIMEI.');
+  if (atividade !== 'advocacia' && atividade !== 'servicos' && atividade !== 'fator_r') avisos.push('Atividade não modelada integralmente: confirmar anexos, ICMS, IPI, PIS/Cofins e retenções com contabilidade.');
   if ((receita - despesas) * 12 > PARAMS_2026.altaRendaAnual) avisos.push('Renda anual acima de R$ 600 mil: pode haver imposto mínimo anual (IRPFM, Lei 15.270/2025) na declaração, não incluído aqui.');
   if (atividade === 'advocacia') avisos.push('Advocacia no Simples fica no Anexo IV (INSS patronal de 20% sobre o pró-labore pago à parte). Sociedade uniprofissional pode ter ISS fixo no município.');
   if (atividade === 'fator_r') avisos.push(`Fator R de ${pct(fatorR)}, enquadramento no ${fatorR >= 0.28 ? 'Anexo III' : 'Anexo V'}.`);
@@ -313,6 +327,7 @@ export const CALCS: Record<CalcKey, { nome: string; aba: string; fn: (d: Dict) =
       { key: 'companySize', label: 'Porte atual da empresa', type: 'select', options: [['mei','MEI'],['me','Microempresa (ME)'],['epp','Empresa de pequeno porte (EPP)'],['demais','Empresa de maior porte']] },
       { key: 'meiEligible', label: 'Atividade consta na lista permitida ao MEI?', type: 'select', options: [['nao','Não ou não verificado'],['sim','Sim, confirmado pelo CNAE']] },
       { key: 'meiEmployees', label: 'Número de empregados para análise do MEI', type: 'number' },
+      { key: 'meiTaxActivity', label: 'Tributação da atividade no MEI', type: 'select', options: [['servicos','Serviços (ISS)'],['comercio','Comércio/indústria (ICMS)'],['misto','Comércio e serviços (ICMS + ISS)']] },
       { key: 'meiOtherCompany', label: 'Titular participa de outra empresa?', type: 'select', options: [['nao','Não'],['sim','Sim']] },
       { key: 'activity', label: 'Atividade', type: 'select', options: [['advocacia', 'Advocacia (Simples Anexo IV)'], ['servicos', 'Serviços do Anexo III'], ['fator_r', 'Serviços com Fator R (Anexo III ou V)']] },
       { key: 'monthlyRevenue', label: 'Faturamento mensal, R$', type: 'number' },
@@ -323,7 +338,7 @@ export const CALCS: Record<CalcKey, { nome: string; aba: string; fn: (d: Dict) =
       { key: 'issRate', label: 'Alíquota de ISS (%)', type: 'number' },
       { key: 'pfIss', label: 'Como pessoa física recolhe ISS sobre o faturamento?', type: 'select', options: [['nao', 'Não (ISS fixo de autônomo)'], ['sim', 'Sim']] },
     ],
-    example: { companySize:'me',meiEligible:'nao',meiEmployees:'0',meiOtherCompany:'nao',activity: 'advocacia', monthlyRevenue: '30000', annualRevenue: '360000', monthlyExpenses: '5000', proLabore: '3000', partners: '1', issRate: '5', pfIss: 'nao' },
+    example: { companySize:'me',meiEligible:'nao',meiEmployees:'0',meiTaxActivity:'servicos',meiOtherCompany:'nao',activity: 'advocacia', monthlyRevenue: '30000', annualRevenue: '360000', monthlyExpenses: '5000', proLabore: '3000', partners: '1', issRate: '5', pfIss: 'nao' },
   },
   pat: {
     nome: 'Planejamento Patrimonial e Sucessório', aba: 'Patrimonial', fn: planejamentoPatrimonial,
