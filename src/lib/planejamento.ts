@@ -272,7 +272,7 @@ export function planejamentoTributario(d: Dict) {
   if (porte !== 'mei' && compararMei) recomendacoesPorte.push('A comparação MEI depende de confirmar a possibilidade legal de enquadramento; alteração de porte não significa, por si, menor tributação.');
   const regimes = [{ nome: 'Pessoa física (carnê-leão + INSS 20%)', total: totalPF }, ...(totalSimples != null ? [{ nome: `Simples Nacional — Anexo ${anexo}`, total: totalSimples }] : []), { nome: 'Lucro presumido', total: totalPres }].sort((a, b) => a.total - b.total);
   const melhor = regimes[0]; const pior = regimes[regimes.length - 1];
-  const dadosCriticos = [!new RegExp('^[0-9]{7} : '', !d.city?.trim() ? 'município' : '', !d.state?.trim() ? 'UF' : '', !d.taxRegime ? 'regime atual' : ''].filter(Boolean);
+  const dadosCriticos = [cnae.length !== 7 || !Array.from(cnae).every(ch => ch >= '0' && ch <= '9') ? 'CNAE válido' : '', !d.city?.trim() ? 'município' : '', !d.state?.trim() ? 'UF' : '', !d.taxRegime ? 'regime atual' : ''].filter(Boolean);
   const comparacaoIncompleta = hibrido || regimeAtual === 'real' || num(d.payroll) > 0 || num(d.monthlyPurchases) > 0 || num(d.icmsRate) > 0 || atividade !== 'advocacia';
   const recomendacao = dadosCriticos.length ? 'DADOS INSUFICIENTES PARA RECOMENDAR MUDANÇA' : comparacaoIncompleta ? 'REVISÃO CONTÁBIL NECESSÁRIA: TRIBUTOS OU CRÉDITOS NÃO APURADOS' : 'SIMULAÇÃO PRELIMINAR: VALIDAR ELEGIBILIDADE, RETENÇÕES E CUSTOS ANTES DE ALTERAR REGIME';
 
