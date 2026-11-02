@@ -21,6 +21,7 @@ const Clients = lazy(() => import("./pages/Clients"));
 const Processes = lazy(() => import("./pages/Processes"));
 const Dossier = lazy(() => import("./pages/Dossier"));
 const ProcessMovements = lazy(() => import("./pages/ProcessMovements"));
+const ProcessAutomation = lazy(() => import("./pages/ProcessAutomation"));
 const ProcessIntake = lazy(() => import("./pages/ProcessIntake"));
 const Tribunals = lazy(() => import("./pages/Tribunals"));
 const CRM = lazy(() => import("./pages/CRM"));
@@ -799,6 +800,7 @@ export default function App() {
     <Route path="/configuracoes/automacoes-processuais" element={<Processes mode="automacoes"/>}/>
             <Route path="/dossie/:processId" element={<Dossier />}/>
             <Route path="/andamentos" element={<ProcessMovements />}/>
+<Route path="/automacao-processual" element={<ProcessAutomation />}/>
             <Route path="/processos/adicionar" element={<ProcessIntake />}/>
             <Route path="/tribunais" element={<Tribunals />}/>
             <Route path="/agentes-ia" element={<Agents />}/>
