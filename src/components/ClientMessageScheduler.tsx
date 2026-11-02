@@ -13,7 +13,7 @@ export default function ClientMessageScheduler({client,conversationId:providedCo
  const [message,setMessage]=useState(initialMessage),[mode,setMode]=useState<'now'|'schedule'>('schedule'),[when,setWhen]=useState(localNow()),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[error,setError]=useState('');
  const [agents,setAgents]=useState<Agent[]>([]),[agentKey,setAgentKey]=useState('client_schedule_relationship');
  const phone=digits(client.whatsapp||client.phone);
- useEffect(()=>{(async()=>{if(!supabase)return;const {data}=await supabase.from('ai_agents').select('agent_key,name,is_active').eq('is_active',true).order('name');setAgents((data||[]) as Agent[])})()},[]);
+ useEffect(()=>{(async()=>{if(!supabase)return;const {data}=await supabase.from('ai_agents').select('agent_key,name,is_active').eq('is_active',true).order('name');const active=(data||[]) as Agent[];setAgents(active);setAgentKey(current=>active.some(a=>a.agent_key===current)?current:(active[0]?.agent_key||current))})()},[]);
  const selectedAgent=useMemo(()=>agents.find(a=>a.agent_key===agentKey)?.name||'Agente de Agenda e Relacionamento',[agents,agentKey]);
  async function resolveConversationId(){if(providedConversationId)return providedConversationId;if(!supabase||!client.id)return null;const {data:contact}=await supabase.from('whatsapp_contacts').select('id').eq('client_id',client.id).order('updated_at',{ascending:false}).limit(1).maybeSingle();if(!contact?.id)return null;const {data:conv}=await supabase.from('whatsapp_conversations').select('id').eq('contact_id',contact.id).neq('status','closed').order('updated_at',{ascending:false}).limit(1).maybeSingle();return conv?.id||null}
  async function notifyOwnerScheduled(orgId:string,scheduledAt:Date){
