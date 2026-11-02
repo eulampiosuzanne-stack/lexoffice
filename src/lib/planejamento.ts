@@ -187,6 +187,24 @@ function inssContribuinte(valor: number, aliquota: number) {
 function dividendosIR(v: number) { return v > PARAMS_2026.dividendosLimiteMensal ? r2(v * PARAMS_2026.dividendosAliquota) : 0; }
 
 export function planejamentoTributario(d: Dict) {
+  const porte = d.companySize || 'me';
+  const receitaAnualDeclarada = num(d.annualRevenue);
+  const receitaProjetada = receitaAnualDeclarada > 0 ? receitaAnualDeclarada : num(d.monthlyRevenue) * 12;
+  const meiAtividadePermitida = d.meiEligible === 'sim';
+  const meiEmpregados = Math.floor(num(d.meiEmployees));
+  const meiSocioOutra = d.meiOtherCompany === 'sim';
+  const limiteMei = 81000;
+  const meiElegivel = meiAtividadePermitida && meiEmpregados <= 1 && !meiSocioOutra && receitaProjetada <= limiteMei && num(d.partners) <= 1;
+  const limiteMe = 360000;
+  const limiteEpp = 4800000;
+  const porteCalculado = receitaProjetada <= limiteMe ? 'ME' : receitaProjetada <= limiteEpp ? 'EPP' : 'acima do limite de EPP';
+  const recomendacoesPorte:string[] = [];
+  if(porte==='mei' && !meiElegivel) recomendacoesPorte.push('MEI: condições informadas incompatíveis com a permanência. Avaliar desenquadramento para ME ou EPP, conforme receita e atividade.');
+  if(porte==='mei' && meiElegivel) recomendacoesPorte.push('MEI: condições preliminares atendidas. Confirmar CNAE, natureza jurídica, proporcionalidade do limite no ano de abertura e demais impedimentos.');
+  if(porte!=='mei' && meiElegivel) recomendacoesPorte.push('MEI pode ser avaliado como alternativa, mas a migração não é automática e exige atividade permitida, empresário individual e análise cadastral e societária.');
+  if(porte==='me' && receitaProjetada>limiteMe) recomendacoesPorte.push('Receita acima do limite de ME: avaliar enquadramento como EPP ou porte superior, observando regras de excesso e período.');
+  if(porte==='epp' && receitaProjetada<=limiteMe) recomendacoesPorte.push('Receita compatível com ME: verificar reenquadramento, sem presumir economia tributária apenas pela mudança de porte.');
+  if(d.activity==='advocacia') recomendacoesPorte.push('Advocacia não é atividade permitida ao MEI. Sociedade de advocacia exige enquadramento próprio e análise na OAB.');
   const receita = num(d.monthlyRevenue);
   if (receita <= 0) fail('Informe o faturamento mensal (maior que zero).');
   if (receita > 10000000) fail('Faturamento mensal acima de R$ 10 milhões: use análise contábil específica.');
@@ -228,7 +246,7 @@ export function planejamentoTributario(d: Dict) {
   if ((receita - despesas) * 12 > PARAMS_2026.altaRendaAnual) avisos.push('Renda anual acima de R$ 600 mil: pode haver imposto mínimo anual (IRPFM, Lei 15.270/2025) na declaração, não incluído aqui.');
   if (atividade === 'advocacia') avisos.push('Advocacia no Simples fica no Anexo IV (INSS patronal de 20% sobre o pró-labore pago à parte). Sociedade uniprofissional pode ter ISS fixo no município.');
   if (atividade === 'fator_r') avisos.push(`Fator R de ${pct(fatorR)}, enquadramento no ${fatorR >= 0.28 ? 'Anexo III' : 'Anexo V'}.`);
-  const linhas = ['PLANEJAMENTO TRIBUTÁRIO — COMPARATIVO MENSAL (2026)', `Faturamento mensal: ${money(receita)}`, `Receita bruta 12 meses: ${money(rbt12)}`, `Despesas dedutíveis/operacionais: ${money(despesas)}`, `Pró-labore total: ${money(proLabore)} (${socios} sócio(s))`, '', `PF — INSS contribuinte individual: ${money(inssPF)}`, `PF — IRPF carnê-leão: ${money(irPF)}`, `PF — Carga total: ${money(totalPF)} (${pct(totalPF / receita)} do faturamento)`, ''];
+  const linhas = ['PLANEJAMENTO TRIBUTÁRIO — COMPARATIVO MENSAL (2026)', `Porte informado: ${porte.toUpperCase()}`, `Porte estimado pelo faturamento: ${porteCalculado}`, `MEI: ${meiElegivel ? 'condições preliminares atendidas' : 'não elegível com os dados informados'}`, ...recomendacoesPorte.map(x=>`Orientação de enquadramento: ${x}`), 'ATENÇÃO: simulação não apura DAS-MEI, tributos estaduais por CNAE, folha integral ou créditos fiscais; não utilizar como guia de recolhimento.', `Faturamento mensal: ${money(receita)}`, `Receita bruta 12 meses: ${money(rbt12)}`, `Despesas dedutíveis/operacionais: ${money(despesas)}`, `Pró-labore total: ${money(proLabore)} (${socios} sócio(s))`, '', `PF — INSS contribuinte individual: ${money(inssPF)}`, `PF — IRPF carnê-leão: ${money(irPF)}`, `PF — Carga total: ${money(totalPF)} (${pct(totalPF / receita)} do faturamento)`, ''];
   if (totalSimples != null && efetiva != null) linhas.push(`Simples — Alíquota efetiva Anexo ${anexo}: ${pct(efetiva)}`, `Simples — DAS: ${money(receita * efetiva)}`, ...(anexo === 'IV' ? [`Simples — INSS patronal (20% pró-labore): ${money(cpp)}`] : []), `Simples — INSS e IRPF do pró-labore: ${money(encargoPL)}`, `Simples — Lucro distribuível: ${money(dividSimples)}`, `Simples — Carga total: ${money(totalSimples)} (${pct(totalSimples / receita)} do faturamento)`, '');
   linhas.push(`Presumido — IRPJ: ${money(pres.irpj)}`, `Presumido — CSLL: ${money(pres.csll)}`, `Presumido — PIS/COFINS: ${money(pres.pis + pres.cofins)}`, `Presumido — ISS: ${money(pres.iss)}`, `Presumido — INSS patronal (20% pró-labore): ${money(cpp)}`, `Presumido — INSS e IRPF do pró-labore: ${money(encargoPL)}`, `Presumido — Lucro distribuível: ${money(dividPres)}`, ...(irDivPres > 0 ? [`Presumido — IRRF sobre dividendos (10%): ${money(irDivPres)}`] : []), `Presumido — Carga total: ${money(totalPres)} (${pct(totalPres / receita)} do faturamento)`, '', `Regime mais econômico: ${melhor.nome}`, `Economia mensal frente ao regime mais caro: ${money(pior.total - melhor.total)}`, `TOTAL ECONOMIA ANUAL ESTIMADA: ${money((pior.total - melhor.total) * 12)}`, '', ...avisos.map((a) => `Atenção: ${a}`), 'Observação: não considera créditos, retenções, ISS fixo, regimes especiais nem a reforma tributária (CBS/IBS a partir de 2027).', 'Recomendação: validar com a contabilidade antes de mudar de regime.');
   return { texto: linhas.join('\n'), regimes, melhor };
@@ -292,6 +310,10 @@ export const CALCS: Record<CalcKey, { nome: string; aba: string; fn: (d: Dict) =
     nome: 'Planejamento Tributário', aba: 'Tributário', fn: planejamentoTributario,
     resumo: [['Regime mais econômico', /^Regime mais econômico/], ['Economia por ano', /^TOTAL ECONOMIA/]],
     fields: [
+      { key: 'companySize', label: 'Porte atual da empresa', type: 'select', options: [['mei','MEI'],['me','Microempresa (ME)'],['epp','Empresa de pequeno porte (EPP)'],['demais','Empresa de maior porte']] },
+      { key: 'meiEligible', label: 'Atividade consta na lista permitida ao MEI?', type: 'select', options: [['nao','Não ou não verificado'],['sim','Sim, confirmado pelo CNAE']] },
+      { key: 'meiEmployees', label: 'Número de empregados para análise do MEI', type: 'number' },
+      { key: 'meiOtherCompany', label: 'Titular participa de outra empresa?', type: 'select', options: [['nao','Não'],['sim','Sim']] },
       { key: 'activity', label: 'Atividade', type: 'select', options: [['advocacia', 'Advocacia (Simples Anexo IV)'], ['servicos', 'Serviços do Anexo III'], ['fator_r', 'Serviços com Fator R (Anexo III ou V)']] },
       { key: 'monthlyRevenue', label: 'Faturamento mensal, R$', type: 'number' },
       { key: 'annualRevenue', label: 'Faturamento dos últimos 12 meses (em branco = mensal × 12)', type: 'number' },
@@ -301,7 +323,7 @@ export const CALCS: Record<CalcKey, { nome: string; aba: string; fn: (d: Dict) =
       { key: 'issRate', label: 'Alíquota de ISS (%)', type: 'number' },
       { key: 'pfIss', label: 'Como pessoa física recolhe ISS sobre o faturamento?', type: 'select', options: [['nao', 'Não (ISS fixo de autônomo)'], ['sim', 'Sim']] },
     ],
-    example: { activity: 'advocacia', monthlyRevenue: '30000', annualRevenue: '360000', monthlyExpenses: '5000', proLabore: '3000', partners: '1', issRate: '5', pfIss: 'nao' },
+    example: { companySize:'me',meiEligible:'nao',meiEmployees:'0',meiOtherCompany:'nao',activity: 'advocacia', monthlyRevenue: '30000', annualRevenue: '360000', monthlyExpenses: '5000', proLabore: '3000', partners: '1', issRate: '5', pfIss: 'nao' },
   },
   pat: {
     nome: 'Planejamento Patrimonial e Sucessório', aba: 'Patrimonial', fn: planejamentoPatrimonial,
