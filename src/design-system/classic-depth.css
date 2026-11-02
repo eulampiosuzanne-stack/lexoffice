@@ -1,7 +1,7 @@
 /* Identidade clássica LEXOFFICE — profundidade visual sem alterar estrutura ou comportamento. */
 :root{
-  --lx-depth-card:0 1px 0 rgba(255,255,255,.035) inset,0 -1px 0 rgba(0,0,0,.34) inset,0 8px 0 #09090b,0 14px 30px rgba(0,0,0,.32);
-  --lx-depth-card-soft:0 1px 0 rgba(255,255,255,.03) inset,0 5px 0 #0c0c0e,0 10px 22px rgba(0,0,0,.24);
+  --lx-depth-card:0 2px 0 rgba(255,255,255,.09) inset,0 -2px 0 rgba(0,0,0,.48) inset,0 7px 0 #0b0e13,0 15px 34px rgba(0,0,0,.42);
+  --lx-depth-card-soft:0 1px 0 rgba(255,255,255,.075) inset,0 -1px 0 rgba(0,0,0,.38) inset,0 5px 0 #0d1016,0 11px 25px rgba(0,0,0,.34);
   --lx-depth-button:0 1px 0 rgba(255,255,255,.14) inset,0 -3px 0 rgba(55,4,20,.72),0 5px 12px rgba(0,0,0,.3);
   --lx-depth-control:0 1px 0 rgba(255,255,255,.025) inset,0 3px 0 #09090b,0 7px 16px rgba(0,0,0,.2);
 }
@@ -16,6 +16,16 @@
   box-shadow:var(--lx-depth-card-soft);
 }
 
+/* Todas as caixas funcionais recebem o grafite opaco e o relevo clássico. */
+.app :where([class$="-panel"],[class$="-card"],[class$="-surface"],.panel,.card,article){
+  background:linear-gradient(180deg,#272d36 0%,#20252e 58%,#1b2028 100%);
+  border-color:#414955;
+  box-shadow:var(--lx-depth-card-soft);
+}
+.app :where([class$="-panel"],[class$="-surface"],.module-box,.table-panel){
+  box-shadow:var(--lx-depth-card);
+}
+
 /* Painéis de maior hierarquia usam relevo mais marcado. */
 .dashboard-panel,.module-box,.table-panel,.smart-panel,.agent-console,
 .ac-surface,.rule-modal,.service-chat-page,.service-workspace{
@@ -26,6 +36,8 @@
 .app>main>header,.app>aside,.mobile-bottom-nav,.vision-dock{
   box-shadow:0 1px 0 rgba(255,255,255,.025) inset,0 10px 28px rgba(0,0,0,.22);
 }
+.app>aside{background:#1b2028;border-right-color:#3c434e;box-shadow:3px 0 0 #0b0e13,10px 0 28px rgba(0,0,0,.34)}
+.app>main>header{background:linear-gradient(180deg,#2a303a,#20252e);border-color:#414955;box-shadow:0 2px 0 rgba(255,255,255,.07) inset,0 5px 0 #0b0e13,0 12px 28px rgba(0,0,0,.3)}
 
 /* Botões mantêm seus eventos; somente recebem volume e estados táteis. */
 .primary,.legacy-enter,button[type="submit"],.integration-action,
@@ -44,12 +56,90 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,text
   box-shadow:var(--lx-depth-control);
 }
 
+/* Acessibilidade visual: todo local de preenchimento fica claramente marcado. */
+.app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.app select,.app textarea{
+  min-height:48px;
+  background:#171b22;
+  color:#fff;
+  border:2px solid #58616e;
+  border-left:5px solid #b51f43;
+  box-shadow:0 2px 0 rgba(255,255,255,.055) inset,0 4px 0 #0b0e13,0 9px 18px rgba(0,0,0,.3);
+}
+.app input::placeholder,.app textarea::placeholder{color:#c2c7ce;opacity:1}
+.app label{color:#f3f3f4}
+.app label:has(>input),.app label:has(>select),.app label:has(>textarea){font-weight:750}
+.app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):hover,
+.app select:hover,.app textarea:hover{border-color:#8b94a1;border-left-color:#d73c5b}
+.app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+.app select:focus,.app textarea:focus,
+.app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus-visible,
+.app select:focus-visible,.app textarea:focus-visible{
+  outline:3px solid #f0a1b3;
+  outline-offset:3px;
+  border-color:#fff;
+  border-left-color:#d73c5b;
+  box-shadow:0 0 0 2px #8f1837,0 4px 0 #4d091a,0 10px 22px rgba(0,0,0,.42);
+}
+.app input[type="checkbox"],.app input[type="radio"]{width:22px;height:22px;min-width:22px;accent-color:#b51f43;filter:drop-shadow(0 3px 2px rgba(0,0,0,.45))}
+
+/* Elementos clicáveis ganham borda e resposta visual inequívoca. */
+.app button,.app a{transition:background var(--lx-transition),color var(--lx-transition),border-color var(--lx-transition),box-shadow var(--lx-transition),transform var(--lx-transition)}
+.app button:focus-visible,.app a:focus-visible,.app [role="button"]:focus-visible,.app [role="tab"]:focus-visible{
+  outline:3px solid #ffd4de;
+  outline-offset:3px;
+  box-shadow:0 0 0 3px #a41639,0 5px 0 #4d091a,0 10px 22px rgba(0,0,0,.38);
+}
+.app button[aria-pressed="true"],.app button[aria-selected="true"],
+.app [role="tab"][aria-selected="true"],.app [aria-current="page"]{
+  font-weight:800;
+}
+
+/* Títulos e limites das caixas permanecem legíveis com baixa visão. */
+.app :where([class$="-panel"],[class$="-card"],[class$="-surface"],.panel,.card,article)>:where(h2,h3,h4):first-child{color:#fff}
+.app :where([class$="-panel"],[class$="-card"],[class$="-surface"],.panel,.card,article):hover{border-color:#66717f}
+
 /* Seleção bordô com contorno nítido e acessível. */
 .nav-group a.active,.lx-navigation .lx-navigation-item.is-current,
 .lx-navigation .lx-navigation-item[aria-current="page"],.agent-item.selected,
 .permission.allowed,.power.active{
   box-shadow:0 0 0 1px rgba(207,54,88,.2) inset,0 5px 12px rgba(0,0,0,.2);
 }
+
+/* O item escolhido volta a ficar vermelho, como no layout original. */
+.workspace-area-toggle.is-current-area,
+.workspace-submenu .workspace-submenu-link.is-current-page,
+.nav-group a.active,.lex2-favorites a.active{
+  color:#fff;
+  background:linear-gradient(180deg,#c42a4e 0%,#a41639 58%,#8a102f 100%);
+  border:1px solid #dd4a69;
+  box-shadow:0 1px 0 rgba(255,255,255,.2) inset,0 -2px 0 rgba(72,4,24,.75) inset,0 4px 0 #56091e,0 8px 18px rgba(0,0,0,.34);
+}
+.workspace-area-toggle.is-current-area svg,
+.workspace-submenu .workspace-submenu-link.is-current-page svg,
+.nav-group a.active svg,.lex2-favorites a.active svg{color:#fff}
+.workspace-area-toggle:hover,.workspace-submenu .workspace-submenu-link:hover,
+.nav-group a:hover,.lex2-favorites a:hover{background:#3a1b27;color:#fff}
+.workspace-submenu .workspace-submenu-link.is-current-page:before{background:#ffd9e2}
+
+/* Abas internas também usam vermelho ao serem selecionadas. */
+.lx-navigation .lx-navigation-item.is-current,
+.lx-navigation .lx-navigation-item[aria-current="page"],
+.lx-navigation .lx-navigation-item[aria-pressed="true"],
+.lx-navigation .lx-navigation-item.active,
+.lx-navigation .lx-navigation-item[aria-selected="true"]{
+  color:#fff;
+  background:linear-gradient(180deg,#bd284a,#961633);
+  border:1px solid #d84665;
+  border-bottom-color:#d84665;
+  border-radius:8px 8px 5px 5px;
+  box-shadow:0 1px 0 rgba(255,255,255,.16) inset,0 3px 0 #57091d,0 7px 16px rgba(0,0,0,.28);
+}
+
+/* Planejamento é a tela de referência: caixas opacas e nitidamente elevadas. */
+.plan-page .plan-panel{background:linear-gradient(180deg,#2a3039 0%,#222730 55%,#1d222a 100%);border:1px solid #48515d;box-shadow:var(--lx-depth-card)}
+.plan-page .plan-verdict div{background:linear-gradient(180deg,#2d333d,#222730);border-color:#b51f43;box-shadow:0 1px 0 rgba(255,255,255,.07) inset,0 4px 0 #11151b,0 9px 20px rgba(0,0,0,.3)}
+.plan-page input,.plan-page select{background:#171b22;border-color:#414955;box-shadow:0 2px 0 rgba(255,255,255,.035) inset,0 4px 0 #0c0f14,0 8px 14px rgba(0,0,0,.24)}
 
 @media(max-width:760px){
   :root{--lx-depth-card:0 1px 0 rgba(255,255,255,.03) inset,0 5px 0 #09090b,0 10px 20px rgba(0,0,0,.24);--lx-depth-card-soft:0 1px 0 rgba(255,255,255,.025) inset,0 3px 0 #0c0c0e,0 7px 14px rgba(0,0,0,.2)}

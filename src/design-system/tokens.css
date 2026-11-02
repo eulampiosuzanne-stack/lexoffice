@@ -1,20 +1,20 @@
 /* LexOffice 2.0 — semantic theme contract for all application routes. */
 html[data-lex-theme="light"] {
   color-scheme: dark;
-  --lx-canvas: #0b0c0f;
-  --lx-surface: #171719;
-  --lx-surface-raised: #202023;
-  --lx-surface-hover: #29292d;
-  --lx-surface-selected: #2a151d;
+  --lx-canvas: #141820;
+  --lx-surface: #20252e;
+  --lx-surface-raised: #292f3a;
+  --lx-surface-hover: #343b47;
+  --lx-surface-selected: #8f1837;
   --lx-text: #f1eeee;
   --lx-text-muted: #a2a2a7;
-  --lx-border: #2b2b2f;
-  --lx-border-strong: #5d1830;
-  --lx-primary: #a41338;
-  --lx-primary-hover: #bd3151;
+  --lx-border: #3b424d;
+  --lx-border-strong: #6e263b;
+  --lx-primary: #b51f43;
+  --lx-primary-hover: #ce2d53;
   --lx-primary-contrast: #ffffff;
-  --lx-accent: #cf3658;
-  --lx-accent-soft: #2a151d;
+  --lx-accent: #d73c5b;
+  --lx-accent-soft: #3a1b27;
   --lx-focus: #e05272;
   --lx-success: #56b58c;
   --lx-warning: #d7a657;
@@ -25,20 +25,20 @@ html[data-lex-theme="light"] {
 }
 html[data-lex-theme="dark"], html:not([data-lex-theme]) {
   color-scheme: dark;
-  --lx-canvas: #0b0c0f;
-  --lx-surface: #171719;
-  --lx-surface-raised: #202023;
-  --lx-surface-hover: #29292d;
-  --lx-surface-selected: #2a151d;
+  --lx-canvas: #141820;
+  --lx-surface: #20252e;
+  --lx-surface-raised: #292f3a;
+  --lx-surface-hover: #343b47;
+  --lx-surface-selected: #8f1837;
   --lx-text: #f1eeee;
   --lx-text-muted: #a2a2a7;
-  --lx-border: #2b2b2f;
-  --lx-border-strong: #5d1830;
-  --lx-primary: #a41338;
-  --lx-primary-hover: #bd3151;
+  --lx-border: #3b424d;
+  --lx-border-strong: #6e263b;
+  --lx-primary: #b51f43;
+  --lx-primary-hover: #ce2d53;
   --lx-primary-contrast: #ffffff;
-  --lx-accent: #cf3658;
-  --lx-accent-soft: #2a151d;
+  --lx-accent: #d73c5b;
+  --lx-accent-soft: #3a1b27;
   --lx-focus: #e05272;
   --lx-success: #56b58c;
   --lx-warning: #d7a657;
