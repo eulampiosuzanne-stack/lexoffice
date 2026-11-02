@@ -110,6 +110,9 @@ const PROMISE_ACTION=/(avisad|informad|notificad|comunicad|acionad|\bciente\b|en
 // Promessa de retorno feita pela própria Helena (sem citar a Dra.).
 const PROMISE_SELF=/(entrarei em contato|retornaremos|retorno (em breve|o contato)|assim que (houver|tiver) (um |uma )?(retorno|resposta|confirma[cç][aã]o|posi[cç][aã]o)|vou (registrar|encaminhar|repassar|levar)|registrei|encaminhei|repassei|fica registrad|ficou registrad|segue registrad|est[aá] registrad)/i;
 export function promiseDetected(t:string){const x=String(t||'');return PROMISE_SELF.test(x)||x.split(/[.!?\n]+/).some(s=>PROMISE_ACTOR.test(s)&&PROMISE_ACTION.test(s))}
+// Nunca transforme saudação simples em promessa de encaminhamento ou aviso à sócia.
+export function isGreetingOnly(t:string){const x=norm(t).trim();return /^(?:(?:bom dia|boa tarde|boa noite|oi|ola|opa|alo|hey)[!,.?\s]*)?(?:(?:dra\.?|doutora)\s*)?suzanne\s*[?!.,]*$/.test(x)||/^(?:bom dia|boa tarde|boa noite|oi|ola|opa|alo|hey)[!,.?\s]*$/.test(x)}
+
 async function promiseAlert(a:any,url:string,sk:string,orgId:string,agentKey:string,policy:any,conversationId:string,phone:string,reply:string){
   const since=new Date(Date.now()-2*3600000).toISOString();
   const {data:prev}=await a.from('ai_agent_alerts').select('id').eq('org_id',orgId).eq('contact_phone',phone).like('reason','Helena disse que a Dra. seria avisada%').gt('created_at',since).limit(1).maybeSingle();
