@@ -122,6 +122,47 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,text
 .nav-group a:hover,.lex2-favorites a:hover{background:#3a1b27;color:#fff}
 .workspace-submenu .workspace-submenu-link.is-current-page:before{background:#ffd9e2}
 
+/* A barra lateral possui regras próprias posteriores. Esta camada garante que
+   cada área seja localizável como uma caixa física e que a seleção seja
+   inequívoca, inclusive para baixa visão. */
+html body .app.app.app.app .workspace-area-toggle{
+  background:linear-gradient(180deg,#292f38 0%,#20252d 62%,#1b2027 100%);
+  border:1px solid #414a56;
+  border-top-color:#5b6673;
+  border-radius:10px;
+  box-shadow:0 1px 0 rgba(255,255,255,.09) inset,0 4px 0 #090c10,0 9px 18px rgba(0,0,0,.34);
+  margin:0 8px 8px;
+  width:calc(100% - 16px);
+}
+html body .app.app.app.app .workspace-area-toggle:hover{
+  background:linear-gradient(180deg,#3a2930,#2b1b22);
+  border-color:#a62a49;
+  transform:translateY(-1px);
+}
+html body .app.app.app.app .workspace-area-toggle.is-current-area,
+html body .app.app.app.app .workspace-submenu .workspace-submenu-link.is-current-page{
+  color:#fff!important;
+  background:linear-gradient(180deg,#cf3457 0%,#ad193e 56%,#8e102f 100%)!important;
+  border:2px solid #ef6a87!important;
+  border-top-color:#ff9caf!important;
+  box-shadow:0 2px 0 rgba(255,255,255,.22) inset,0 -2px 0 rgba(70,3,22,.72) inset,0 6px 0 #56091e,0 13px 24px rgba(0,0,0,.46)!important;
+  font-weight:800;
+}
+html body .app.app.app.app .workspace-area-toggle.is-current-area svg,
+html body .app.app.app.app .workspace-submenu .workspace-submenu-link.is-current-page svg{
+  color:#fff!important;
+}
+html body .app.app.app.app .workspace-submenu{
+  margin:2px 10px 10px 22px;
+  padding:4px 0 4px 10px;
+  border-left:3px solid #59626e;
+}
+html body .app.app.app.app .workspace-submenu .workspace-submenu-link{
+  min-height:44px;
+  border:1px solid transparent;
+  border-radius:8px;
+}
+
 /* Abas internas também usam vermelho ao serem selecionadas. */
 .lx-navigation .lx-navigation-item.is-current,
 .lx-navigation .lx-navigation-item[aria-current="page"],
@@ -140,6 +181,46 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,text
 .plan-page .plan-panel{background:linear-gradient(180deg,#2a3039 0%,#222730 55%,#1d222a 100%);border:1px solid #48515d;box-shadow:var(--lx-depth-card)}
 .plan-page .plan-verdict div{background:linear-gradient(180deg,#2d333d,#222730);border-color:#b51f43;box-shadow:0 1px 0 rgba(255,255,255,.07) inset,0 4px 0 #11151b,0 9px 20px rgba(0,0,0,.3)}
 .plan-page input,.plan-page select{background:#171b22;border-color:#414955;box-shadow:0 2px 0 rgba(255,255,255,.035) inset,0 4px 0 #0c0f14,0 8px 14px rgba(0,0,0,.24)}
+
+/* Painel inicial: a folha própria usa alta especificidade; o relevo precisa
+   ser declarado no mesmo nível para permanecer visível. */
+html body .app.app.app.app.home-route>main{background:#141820}
+html body .app.app.app.app.home-route .content{background:#141820}
+html body .app.app.app.app .hc-metrics>button{
+  background:linear-gradient(180deg,#303741 0%,#252b34 58%,#20252d 100%);
+  border:2px solid #4e5865;
+  border-top-color:#697481;
+  box-shadow:0 2px 0 rgba(255,255,255,.12) inset,0 -2px 0 rgba(0,0,0,.48) inset,0 8px 0 #090c11,0 17px 32px rgba(0,0,0,.48);
+  margin-bottom:8px;
+}
+html body .app.app.app.app .hc-metrics>button:hover{
+  background:linear-gradient(180deg,#38404b,#292f39);
+  border-color:#7a8593;
+  box-shadow:0 2px 0 rgba(255,255,255,.14) inset,0 9px 0 #090c11,0 19px 34px rgba(0,0,0,.52);
+  transform:translateY(-2px);
+}
+html body .app.app.app.app .hc-panel{
+  background:linear-gradient(180deg,#2b313b 0%,#222831 58%,#1e232b 100%);
+  border:2px solid #4b5561;
+  border-top-color:#697481;
+  box-shadow:0 2px 0 rgba(255,255,255,.1) inset,0 -2px 0 rgba(0,0,0,.5) inset,0 9px 0 #090c11,0 20px 38px rgba(0,0,0,.5);
+  margin-bottom:10px;
+}
+html body .app.app.app.app .hc-panel-title{
+  background:linear-gradient(180deg,#252b34,#1c2129);
+  border-bottom:2px solid #3f4853;
+  box-shadow:0 2px 0 rgba(255,255,255,.045) inset,0 3px 8px rgba(0,0,0,.24);
+}
+html body .app.app.app.app .hc-primary{
+  background:linear-gradient(180deg,#303741,#222831);
+  border:2px solid #505a67;
+  box-shadow:0 2px 0 rgba(255,255,255,.1) inset,0 6px 0 #090c11,0 14px 26px rgba(0,0,0,.42);
+}
+html body .app.app.app.app .hc-finance-grid>div{
+  background:linear-gradient(180deg,#303741,#252b34);
+  border-top:1px solid #4b5561;
+  box-shadow:0 2px 0 rgba(255,255,255,.06) inset;
+}
 
 @media(max-width:760px){
   :root{--lx-depth-card:0 1px 0 rgba(255,255,255,.03) inset,0 5px 0 #09090b,0 10px 20px rgba(0,0,0,.24);--lx-depth-card-soft:0 1px 0 rgba(255,255,255,.025) inset,0 3px 0 #0c0c0e,0 7px 14px rgba(0,0,0,.2)}
