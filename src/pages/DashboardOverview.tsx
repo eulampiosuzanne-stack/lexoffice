@@ -24,6 +24,16 @@ export default function DashboardOverview() {
   const [deadlines, setDeadlines] = useState<Row[]>([]);
   const [unread, setUnread] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const [closingDeadline, setClosingDeadline] = useState<string | null>(null);
+  const [deadlineError, setDeadlineError] = useState("");
+  const closeDeadline = async (id: string, title: string) => {
+    if (!profile.org_id || !window.confirm(`Dar baixa no prazo: ${title}? Confirme somente se a providência foi efetivamente realizada.`)) return;
+    setClosingDeadline(id); setDeadlineError("");
+    const { data, error } = await supabase.from("process_deadlines").update({ status: "completed", completed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", id).eq("org_id", profile.org_id).neq("status", "completed").select("id");
+    if (error || !data?.length) setDeadlineError(error?.message || "Não foi possível confirmar a baixa. Verifique as permissões.");
+    else setDeadlines((previous) => previous.filter((deadline) => deadline.id !== id));
+    setClosingDeadline(null);
+  };
 
   useEffect(() => { (async () => {
     if (!supabase) return;
@@ -54,7 +64,7 @@ export default function DashboardOverview() {
   const greeting = new Date().getHours() < 12 ? "Bom dia" : new Date().getHours() < 18 ? "Boa tarde" : "Boa noite";
   const today = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
   const priorityRows = [
-    ...critical.slice(0, 2).map((x) => ({ icon: Scale, title: x.title || "Prazo processual", meta: `Vence ${shortDate(x.due_at)}`, path: "/processos", tone: "danger" })),
+    ...critical.slice(0, 2).map((x) => ({ id: x.id, icon: Scale, title: x.title || "Prazo processual", meta: `Vence ${shortDate(x.due_at)}`, path: "/processos", tone: "danger" })),
     ...(unread ? [{ icon: MessageCircle, title: `${unread} ${unread === 1 ? "mensagem aguarda" : "mensagens aguardam"} resposta`, meta: "Aplicativo do cliente", path: "/atendimento/aplicativo", tone: "info" }] : []),
     ...(pending.length ? [{ icon: Wallet, title: `${pending.length} ${pending.length === 1 ? "recebimento pendente" : "recebimentos pendentes"}`, meta: brl(pendingAmount), path: "/financeiro", tone: "gold" }] : []),
   ].slice(0, 4);
@@ -74,7 +84,8 @@ export default function DashboardOverview() {
 
     <div className="hc-main-grid">
       <section className="hc-panel hc-attention" id="atencao-agora"><div className="hc-panel-title"><div><span><AlertTriangle size={17}/></span><div><h2>Atenção agora</h2><p>O que não pode esperar</p></div></div><b>{attentionCount}</b></div>
-        {!loaded ? <div className="hc-skeleton"/> : priorityRows.length ? <ul>{priorityRows.map((item, index) => <li key={`${item.title}-${index}`}><button onClick={() => go(item.path)}><span className={item.tone}><item.icon size={18}/></span><div><b>{item.title}</b><small>{item.meta}</small></div><ChevronRight size={18}/></button></li>)}</ul> : <div className="hc-calm"><CheckSquare/><b>Nenhuma urgência agora</b><span>Seu painel está em dia.</span></div>}
+        {deadlineError && <p role="alert" style={{ color: "#ffb4b4", padding: "8px 16px" }}>{deadlineError}</p>}
+        {!loaded ? <div className="hc-skeleton"/> : priorityRows.length ? <ul>{priorityRows.map((item, index) => <li key={`${item.title}-${index}`}><button onClick={() => go(item.path)}><span className={item.tone}><item.icon size={18}/></span><div><b>{item.title}</b><small>{item.meta}</small></div><ChevronRight size={18}/></button>{item.id && <button type="button" disabled={closingDeadline === item.id} onClick={() => closeDeadline(item.id, item.title)} style={{ margin: "6px 12px 10px", padding: "8px 12px", border: "1px solid #bba16a", borderRadius: 6, color: "#f1dfb5", background: "#252932", fontSize: 13, cursor: "pointer" }}><CheckSquare size={15}/> {closingDeadline === item.id ? "Registrando..." : "Dar baixa no prazo"}</button>}</li>)}</ul> : <div className="hc-calm"><CheckSquare/><b>Nenhuma urgência agora</b><span>Seu painel está em dia.</span></div>}
       </section>
       <section className="hc-panel hc-agenda"><div className="hc-panel-title"><div><span><CalendarDays size={17}/></span><div><h2>Agenda de hoje</h2><p>Compromissos confirmados</p></div></div><button onClick={() => go("/agenda")}>Ver agenda <ChevronRight size={15}/></button></div>
         {!loaded ? <div className="hc-skeleton"/> : events.length ? <ul>{events.slice(0, 5).map((event) => <li key={event.id}><time>{hour(event.starts_at)}</time><div><b>{event.title}</b><small>{event.location || event.description || "Compromisso"}</small></div></li>)}</ul> : <div className="hc-calm"><CalendarDays/><b>Agenda livre hoje</b><span>Nenhum compromisso confirmado.</span></div>}
