@@ -25,6 +25,33 @@ export default function RevisaoPeca() {
   const [notice, setNotice] = useState("");
   const [result, setResult] = useState<any>(null);
 
+  const [allResults, setAllResults] = useState<Record<string, any>>({});
+  const [revisedUrl, setRevisedUrl] = useState("");
+  const [revisionDetails, setRevisionDetails] = useState("");
+  const [instructions, setInstructions] = useState("");
+  const [pieceType, setPieceType] = useState("Outros");
+  async function applyCorrections() {
+    if (!file || !supabase || busy) return;
+    if (!file.name.toLowerCase().endsWith(".docx")) { setNotice("Envie DOCX para edição. PDF permite somente análise."); return; }
+    setBusy(true);
+    try {
+      const {data:userData}=await supabase.auth.getUser();
+      const {data:orgId,error:orgError}=await supabase.rpc("current_org_id");
+      if(orgError || !orgId || !userData.user) throw new Error("Sessão inválida");
+      const path = `${orgId}/tipografia-entrada/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,"_")}`;
+      const uploaded=await supabase.storage.from("lexoffice-documents").upload(path,file,{upsert:false});
+      if(uploaded.error) throw uploaded.error;
+      const {data,error}=await supabase.functions.invoke("petition-assistant",{body:{
+        action:"typography_improve",path,file_name:file.name,piece_type:pieceType,
+        instructions:instructions+"\nAnálises anteriores: "+JSON.stringify(allResults).slice(0,16000),highlight:true
+      }});
+      if(error || !data?.ok) throw new Error(data?.error||error?.message||"Falha na aplicação");
+      setRevisedUrl(data.url||"");
+      setRevisionDetails(data.resumo||"");
+      setNotice(data.unchanged?"Nenhuma alteração textual aplicável. Original preservado.":`Correções aplicadas: ${data.alteracoes_aplicadas??0}. Revise antes do protocolo.`);
+    } catch(e:any) {setNotice(e?.message||"Erro ao aplicar correções");}
+    finally {setBusy(false);}
+  }
   async function analyze() {
     if (!file || !supabase)
       return setNotice("Escolha uma petição em DOCX ou PDF.");
@@ -93,6 +120,7 @@ export default function RevisaoPeca() {
       );
     }
     setResult(data.result);
+    setAllResults(old => ({...old,[tab]:data.result}));
     setNotice(`Análise de ${tab.toLowerCase()} concluída com ${data.model}.`);
   }
 
@@ -147,6 +175,8 @@ export default function RevisaoPeca() {
             onChange={(e) => {
               setFile(e.target.files?.[0] || null);
               setResult(null);
+              setAllResults({});
+              setRevisedUrl("");
               setNotice("");
             }}
           />
@@ -166,6 +196,18 @@ export default function RevisaoPeca() {
           </div>
         )}
       </section>
+      {file && <section className="integration-panel" style={{fontSize:"1.1rem",lineHeight:1.7}}>
+        <h2>Aplicar as correções no documento</h2>
+        <p>As análises permanecem associadas à mesma peça. A IA propõe ajustes textuais com base nos modelos internos; a advogada aprova a versão final.</p>
+        <label>Tipo de peça <select value={pieceType} onChange={e=>setPieceType(e.target.value)} style={{display:"block",padding:12,fontSize:17}}>
+          {["Outros","Petição inicial","Contestação","Réplica","Recurso","Embargos","Manifestação"].map(t=><option key={t}>{t}</option>)}
+        </select></label>
+        <label>Orientações adicionais<textarea value={instructions} onChange={e=>setInstructions(e.target.value)} rows={3} style={{display:"block",width:"100%",fontSize:17,padding:12}} /></label>
+        <p>Análises concluídas: {Object.keys(allResults).length} de {tabs.length}.</p>
+        <button className="primary" disabled={busy || !file.name.toLowerCase().endsWith(".docx")} onClick={applyCorrections}><FileCheck2 size={17}/> Aplicar correções e gerar DOCX</button>
+        {revisionDetails && <p>{revisionDetails}</p>}
+        {revisedUrl && <p><a href={revisedUrl} target="_blank" rel="noopener noreferrer">Abrir Word revisado para conferência</a></p>}
+      </section>}
       {result && (
         <section className="integration-panel">
           <h2>Painel-resumo</h2>
