@@ -13,7 +13,7 @@ const VIDEO_PROMPT="Analise o vídeo curto enviado por um cliente ao escritório
 const PDF_PROMPT="Você está lendo um PDF enviado por um cliente pelo WhatsApp a um escritório de advocacia. Diga em 1 linha que tipo de documento é. Depois resuma o conteúdo relevante: partes, datas, valores, prazos, números de processo e o que o documento pede ou decide. Se for comprovante de pagamento, destaque VALOR, DATA, PAGADOR e RECEBEDOR. Não invente nada. Máximo de 15 linhas.";
 async function gemini(key:string,prompt:string,mime:string,data:string){
   let last:any=null;
-  for(const model of ['gemini-3.7-flash','gemini-3.6-flash','gemini-3.5-flash']){
+  for(const model of ['gemini-3.7-flash','gemini-3.6-flash','gemini-3.5-flash','gemini-3.5-flash-lite','gemini-2.5-flash','gemini-2.5-flash-lite']){
     try{
       const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,{method:'POST',headers:{'x-goog-api-key':key,'Content-Type':'application/json'},body:JSON.stringify({contents:[{role:'user',parts:[{text:prompt},{inline_data:{mime_type:mime,data}}]}],generationConfig:{maxOutputTokens:4096,temperature:0.1}})});
       const d=await r.json().catch(()=>null);

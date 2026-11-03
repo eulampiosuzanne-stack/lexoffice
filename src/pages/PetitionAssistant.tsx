@@ -23,6 +23,7 @@ import {
   Plus,
   Trash2,
   Hourglass,
+  Printer,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { fields as calcFields, localOnly } from "./Calculators";
@@ -118,6 +119,35 @@ const brDate = (iso?: string | null) =>
   iso && /^\d{4}-\d{2}-\d{2}/.test(iso)
     ? iso.slice(0, 10).split("-").reverse().join("/")
     : "";
+const pdfEscape = (value: unknown) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+const pdfLabel = (key: string) =>
+  key.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+const pdfContent = (value: any, level = 2): string => {
+  if (value === null || value === undefined || value === "") return "";
+  if (Array.isArray(value)) {
+    const items = value.map((item) =>
+      typeof item === "object"
+        ? `<li>${pdfContent(item, Math.min(level + 1, 5))}</li>`
+        : `<li>${pdfEscape(item)}</li>`,
+    );
+    return items.length ? `<ul>${items.join("")}</ul>` : "";
+  }
+  if (typeof value === "object") {
+    return Object.entries(value).map(([key, item]) => {
+      const content = pdfContent(item, Math.min(level + 1, 5));
+      if (!content) return "";
+      const tag = level <= 3 ? `h${level}` : "h4";
+      return `<section><${tag}>${pdfEscape(pdfLabel(key))}</${tag}>${content}</section>`;
+    }).join("");
+  }
+  if (typeof value === "boolean") return `<p>${value ? "Sim" : "Não"}</p>`;
+  return `<p>${pdfEscape(value)}</p>`;
+};
 const daysTo = (iso?: string | null) =>
   iso && /^\d{4}-\d{2}-\d{2}/.test(iso)
     ? Math.ceil(
@@ -974,6 +1004,32 @@ export default function PetitionAssistant() {
     (f) => !["textarea"].includes(f.type || ""),
   );
 
+  function generateJurimetriaPdf() {
+    if (!dossier) return;
+    const client = clients.find((item) => item.id === clientId);
+    const process = processes.find((item) => item.id === processId);
+    const title = `Jurimetria — ${client?.name || prospectName || "Caso em análise"}`;
+    const report = {
+      identificacao: {
+        cliente: client?.name || prospectName || "Não informado",
+        processo: process?.cnj_number || process?.internal_number || "Caso novo",
+        area: areaLabel(area),
+        data_do_relatorio: new Date().toLocaleString("pt-BR"),
+      },
+      analise: dossier,
+      parecer: opinion || undefined,
+    };
+    const popup = window.open("", "_blank", "noopener,noreferrer");
+    if (!popup) {
+      setNotice({ kind: "error", text: "O navegador bloqueou a janela do PDF. Autorize pop-ups para a LexOffice e tente novamente." });
+      return;
+    }
+    popup.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${pdfEscape(title)}</title><style>
+      @page{size:A4;margin:18mm 16mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#171717;font-size:11pt;line-height:1.55;margin:0}header{border-bottom:3px double #9b741c;padding-bottom:12px;margin-bottom:20px}h1{font-family:Georgia,serif;font-size:22pt;margin:0;color:#231f20}header p{margin:4px 0 0;color:#68521e;font-weight:700}h2{font-family:Georgia,serif;font-size:16pt;border-bottom:1px solid #c9ae68;padding-bottom:5px;margin:22px 0 9px}h3{font-size:12pt;color:#6b1328;margin:16px 0 5px}h4{font-size:11pt;margin:12px 0 4px}p{margin:3px 0 8px;text-align:justify}ul{margin:5px 0 10px;padding-left:22px}li{margin-bottom:4px}section{break-inside:avoid}.notice{margin-top:24px;padding:10px 12px;border:1px solid #c9ae68;background:#faf7ef;font-size:9pt}footer{margin-top:26px;border-top:1px solid #c9ae68;padding-top:8px;font-size:9pt;color:#555}@media print{button{display:none}}
+    </style></head><body><header><h1>${pdfEscape(title)}</h1><p>Suzanne Figueiredo — Advocacia e Soluções Jurídicas</p></header>${pdfContent(report)}<div class="notice"><b>Uso interno do escritório.</b> Análise produzida como apoio técnico e sujeita à conferência jurídica antes de qualquer utilização.</div><footer>LexOffice · Relatório de Jurimetria</footer><script>window.onload=()=>setTimeout(()=>window.print(),250)<\/script></body></html>`);
+    popup.document.close();
+  }
+
   return (
     <div className="documents-v2-page petition-page">
       <header className="documents-v2-header">
@@ -1176,6 +1232,13 @@ export default function PetitionAssistant() {
       {dossier && (
         <section className="doc-library-card">
           <div className="pa-row end">
+            <button
+              className="doc-primary"
+              onClick={generateJurimetriaPdf}
+              title="Abrir o relatório para salvar em PDF"
+            >
+              <Printer size={17} /> Gerar PDF
+            </button>
             <button
               className="doc-refresh"
               onClick={() => saveWork("rascunho")}

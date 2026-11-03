@@ -32,7 +32,7 @@ async function loadAgentPolicy(orgId:string,agentKey:string){
 async function gemini(key:string,sys:string,input:string,model:string,temperature:number,maxTokens:number){
   if(!key)return{ok:false,error:'gemini_key_missing'};
   const preferred=model?.startsWith('gemini-')?model:(Deno.env.get('GEMINI_MODEL')||'gemini-3.7-flash');
-  const candidates=[...new Set([preferred,'gemini-3.7-flash','gemini-3.6-flash','gemini-3.5-flash'])];
+  const candidates=[...new Set([preferred,'gemini-3.7-flash','gemini-3.6-flash','gemini-3.5-flash','gemini-3.5-flash-lite','gemini-2.5-flash','gemini-2.5-flash-lite'])];
   let last:any={ok:false,error:'gemini_unavailable'};
   for(const chosen of candidates){
     try{
