@@ -48,5 +48,29 @@ html body .app.app.app.app .hc-finance-grid b{color:var(--lx-accent);font-size:v
 html body .app.app.app.app .hc-calm{color:var(--lx-text-muted)}
 html body .app.app.app.app .hc-calm b{color:var(--lx-text);font-size:var(--lx-font-sm)}
 html body .app.app.app.app .hc-calm span{color:var(--lx-text-muted);font-size:var(--lx-font-xs)}
+/* Acessibilidade e hierarquia visual da página inicial, preservando a paleta existente. */
+html body .app.app.app.app .home-command{line-height:1.5}
+html body .app.app.app.app .hc-metrics small{font-size:14px;font-weight:700}
+html body .app.app.app.app .hc-metrics em{font-size:13px;white-space:normal}
+html body .app.app.app.app .hc-panel-title h2{font-size:17px;font-weight:750}
+html body .app.app.app.app .hc-panel-title p{font-size:13px;line-height:1.5}
+html body .app.app.app.app .hc-panel-title>button{font-size:14px;min-height:38px}
+html body .app.app.app.app .hc-attention li b,
+html body .app.app.app.app .hc-agenda li b,
+html body .app.app.app.app .hc-tasks li b{font-size:15px;line-height:1.45;white-space:normal;overflow-wrap:anywhere}
+html body .app.app.app.app :is(.hc-attention,.hc-agenda,.hc-tasks) li small{font-size:13px;line-height:1.5;white-space:normal;overflow-wrap:anywhere}
+html body .app.app.app.app .hc-agenda time{font-size:14px}
+html body .app.app.app.app .hc-finance-grid small{font-size:14px}
+html body .app.app.app.app .hc-finance-grid b{font-size:clamp(20px,2vw,27px);overflow-wrap:anywhere}
+html body .app.app.app.app .hc-attention li button:hover{background:var(--lx-accent-soft);color:var(--lx-text)}
+html body .app.app.app.app .hc-attention li button:focus-visible,
+html body .app.app.app.app .hc-metrics>button:focus-visible,
+html body .app.app.app.app .hc-panel-title>button:focus-visible{outline:3px solid var(--lx-accent);outline-offset:2px}
+.hc-deadline-summary{display:flex;align-items:center;gap:12px;padding:15px 16px;border-top:1px solid var(--lx-border);background:var(--lx-surface-raised);color:var(--lx-text)}
+.hc-deadline-summary>svg{flex-shrink:0;color:var(--lx-accent)}
+.hc-deadline-summary span{display:grid;gap:3px;flex:1;min-width:0}
+.hc-deadline-summary b{font-size:14px}
+.hc-deadline-summary small{font-size:13px;line-height:1.4;color:var(--lx-text-muted)}
+.hc-deadline-summary button{min-height:38px;padding:7px 12px;border:1px solid var(--lx-border);border-radius:var(--lx-radius-md);background:transparent;color:var(--lx-text);font-weight:700}
 @media(max-width:1150px){html body .app.app.app.app.home-route .content{padding-inline:24px}}
 @media(max-width:700px){html body .app.app.app.app.home-route .content{padding:16px 12px 96px}html body .app.app.app.app .hc-greeting h1{font-size:var(--lx-page-size)}html body .app.app.app.app .hc-metrics>button{min-height:92px;padding:12px}html body .app.app.app.app .hc-metrics b{font-size:var(--lx-section-size)}}

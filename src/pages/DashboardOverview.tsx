@@ -53,6 +53,8 @@ export default function DashboardOverview() {
     setFinance(f.data || []); setEvents(e.data || []); setTasks(t.data || []); setDeadlines(d.data || []); setUnread(i.count || 0); setLoaded(true);
   })().catch((error) => { console.error("Falha ao carregar painel", error); setLoaded(true); }); }, []);
 
+  const appointments = useMemo(() => events.filter((x) => !/prazo|intimação|intimacao|deadline/i.test(`${x.event_type || ""} ${x.title || ""}`)), [events]);
+  const calendarDeadlines = useMemo(() => events.filter((x) => /prazo|intimação|intimacao|deadline/i.test(`${x.event_type || ""} ${x.title || ""}`)), [events]);
   const pending = useMemo(() => finance.filter((x) => x.status !== "paid" && !x.paid_at), [finance]);
   const pendingAmount = useMemo(() => pending.reduce((sum, x) => sum + (Number(x.amount) || 0), 0), [pending]);
   const critical = useMemo(() => deadlines.filter((x) => {
@@ -77,7 +79,7 @@ export default function DashboardOverview() {
 
     <section className="hc-metrics" aria-label="Resumo do dia">
       <button onClick={() => document.getElementById("atencao-agora")?.scrollIntoView({ behavior: "smooth" })}><span className="danger"><AlertTriangle/></span><div><small>Atenção agora</small><b>{loaded ? attentionCount : "—"}</b><em>{attentionCount ? "itens prioritários" : "Tudo em ordem"}</em></div></button>
-      <button onClick={() => go("/agenda")}><span className="purple"><CalendarDays/></span><div><small>Agenda de hoje</small><b>{loaded ? events.length : "—"}</b><em>{events.length === 1 ? "compromisso" : "compromissos"}</em></div></button>
+      <button onClick={() => go("/agenda")}><span className="purple"><CalendarDays/></span><div><small>Agenda de hoje</small><b>{loaded ? appointments.length : "—"}</b><em>{appointments.length === 1 ? "compromisso" : "compromissos"}</em></div></button>
       <button onClick={() => go("/atendimento/aplicativo")}><span className="blue"><MessageCircle/></span><div><small>Aguardando resposta</small><b>{loaded ? unread : "—"}</b><em>mensagens do app</em></div></button>
       <button onClick={() => go("/financeiro")}><span className="gold"><Wallet/></span><div><small>A receber</small><b className="money">{loaded ? brl(pendingAmount) : "—"}</b><em>{pending.length} pendentes</em></div></button>
     </section>
@@ -87,8 +89,9 @@ export default function DashboardOverview() {
         {deadlineError && <p role="alert" style={{ color: "#ffb4b4", padding: "8px 16px" }}>{deadlineError}</p>}
         {!loaded ? <div className="hc-skeleton"/> : priorityRows.length ? <ul>{priorityRows.map((item, index) => <li key={`${item.title}-${index}`}><button onClick={() => go(item.path)}><span className={item.tone}><item.icon size={18}/></span><div><b>{item.title}</b><small>{item.meta}</small></div><ChevronRight size={18}/></button>{item.id && <button type="button" disabled={closingDeadline === item.id} onClick={() => closeDeadline(item.id, item.title)} style={{ margin: "6px 12px 10px", padding: "8px 12px", border: "1px solid #bba16a", borderRadius: 6, color: "#f1dfb5", background: "#252932", fontSize: 13, cursor: "pointer" }}><CheckSquare size={15}/> {closingDeadline === item.id ? "Registrando..." : "Dar baixa no prazo"}</button>}</li>)}</ul> : <div className="hc-calm"><CheckSquare/><b>Nenhuma urgência agora</b><span>Seu painel está em dia.</span></div>}
       </section>
-      <section className="hc-panel hc-agenda"><div className="hc-panel-title"><div><span><CalendarDays size={17}/></span><div><h2>Agenda de hoje</h2><p>Compromissos confirmados</p></div></div><button onClick={() => go("/agenda")}>Ver agenda <ChevronRight size={15}/></button></div>
-        {!loaded ? <div className="hc-skeleton"/> : events.length ? <ul>{events.slice(0, 5).map((event) => <li key={event.id}><time>{hour(event.starts_at)}</time><div><b>{event.title}</b><small>{event.location || event.description || "Compromisso"}</small></div></li>)}</ul> : <div className="hc-calm"><CalendarDays/><b>Agenda livre hoje</b><span>Nenhum compromisso confirmado.</span></div>}
+      <section className="hc-panel hc-agenda"><div className="hc-panel-title"><div><span><CalendarDays size={17}/></span><div><h2>Agenda de hoje</h2><p>Reuniões e audiências, separadas dos prazos estimados</p></div></div><button onClick={() => go("/agenda")}>Ver agenda <ChevronRight size={15}/></button></div>
+        {!loaded ? <div className="hc-skeleton"/> : appointments.length ? <ul>{appointments.slice(0, 5).map((event) => <li key={event.id}><time>{hour(event.starts_at)}</time><div><b>{event.title}</b><small>{event.location || event.description || "Compromisso"}</small></div></li>)}</ul> : <div className="hc-calm"><CalendarDays/><b>Agenda livre hoje</b><span>Nenhuma reunião ou audiência encontrada.</span></div>}
+        {loaded && calendarDeadlines.length > 0 && <div className="hc-deadline-summary"><Scale size={17}/><span><b>{calendarDeadlines.length} prazo(s) na agenda</b><small>Estimativas não são compromissos confirmados. Confira os autos.</small></span><button type="button" onClick={() => go("/agenda")}>Consultar</button></div>}
       </section>
     </div>
 
