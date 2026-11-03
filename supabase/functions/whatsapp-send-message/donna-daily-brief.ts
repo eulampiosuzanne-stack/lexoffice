@@ -133,14 +133,24 @@ async function makeBrief(a: any, orgId: string, today: string) {
     stalledLines.push(`• ${stalledConfidentialCount} processo(s) sob sigilo sem andamento há mais de 30 dias.`);
   }
 
+  // Briefing executivo: primeiro o que exige ação, depois informação de contexto.
   const sections: string[] = [];
-  if (agenda.length) sections.push(`Audiências e prazos (hoje e próximos 3 dias):\n${agenda.slice(0, 20).join("\n")}`);
-  if (movementLines.length) sections.push(`Andamentos novos (últimas 24 horas):\n${movementLines.slice(0, 15).join("\n")}`);
-  if (uniqueWaiting.length) sections.push(`Clientes aguardando resposta:\n${uniqueWaiting.map((name) => `• ${name}`).join("\n")}${waiting.length > uniqueWaiting.length ? `\n• E mais ${waiting.length - uniqueWaiting.length} cliente(s).` : ""}`);
-  if (stalledLines.length) sections.push(`Processos parados há mais de 30 dias:\n${stalledLines.join("\n")}${stalled.length > stalledVisible.length + stalledConfidentialCount ? `\n• E mais ${stalled.length - stalledVisible.length - stalledConfidentialCount} processo(s).` : ""}`);
+  const todayAgenda = agenda.filter((line) => line.includes(localStamp(`${today}T12:00:00Z`, false)));
+  const tomorrow = addDays(today, 1);
+  const tomorrowAgenda = agenda.filter((line) => line.includes(localStamp(`${tomorrow}T12:00:00Z`, false)));
+  const futureAgenda = agenda.filter((line) => !todayAgenda.includes(line) && !tomorrowAgenda.includes(line));
+  const limitLines = (items: string[], limit: number) =>
+    items.slice(0, limit).join("\n") + (items.length > limit ? `\n• +${items.length - limit} item(ns) no painel LexOffice.` : "");
+  if (todayAgenda.length) sections.push(`🔴 *PRIORIDADES DE HOJE* (${todayAgenda.length})\n${limitLines(todayAgenda, 8)}`);
+  if (uniqueWaiting.length) sections.push(`💬 *CLIENTES AGUARDANDO RETORNO* (${uniqueWaiting.length})\n${limitLines(uniqueWaiting.map((name) => `• ${name}`), 6)}`);
+  if (tomorrowAgenda.length) sections.push(`🟠 *AMANHÃ* (${tomorrowAgenda.length})\n${limitLines(tomorrowAgenda, 6)}`);
+  if (futureAgenda.length) sections.push(`📅 *PRÓXIMOS DIAS* (${futureAgenda.length})\n${limitLines(futureAgenda, 5)}`);
+  if (movementLines.length) sections.push(`⚖️ *NOVOS ANDAMENTOS* (${movements.length})\n${limitLines(movementLines, 5)}`);
+  if (stalledLines.length) sections.push(`⏳ *PROCESSOS SEM MOVIMENTAÇÃO* (${stalled.length})\n${limitLines(stalledLines, 4)}`);
+  const dateLabel = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "long", year: "numeric" }).format(new Date(`${today}T12:00:00Z`));
+  const summary = `📋 *DONNA | BRIEFING DO ESCRITÓRIO*\n${dateLabel}\n\n*Visão geral*\n• ${hearings.length} audiência(s) e ${deadlines.length} prazo(s) nos próximos quatro dias\n• ${movements.length} andamento(s) nas últimas 24h\n• ${uniqueWaiting.length} cliente(s) aguardando resposta\n• ${stalled.length} processo(s) sem movimentação recente`;
+  const message = `${summary}\n\n${sections.length ? sections.join("\n\n") : "✅ Nenhuma pendência identificada nas fontes consultadas."}\n\n_Dados do LexOffice. Confira os autos antes de providências processuais._`;
 
-  if (!sections.length) return { message: "", counts: { hearings: 0, deadlines: 0, movements: 0, waitingClients: 0, stalledProcesses: 0 } };
-  const message = `Bom dia, Dra. Suzanne.\n\nResumo do escritório — ${localStamp(`${today}T12:00:00Z`, false)}\n\n${sections.join("\n\n")}\n\nLEXOFFICE`;
   return {
     message: message.slice(0, 3900),
     counts: {
