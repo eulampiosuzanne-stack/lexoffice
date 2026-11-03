@@ -11,7 +11,7 @@ async function cfg(a:any){const base=(await secret(a,'evolution_api_url')).repla
 type O={id:string,label:string,description?:string,next?:string,agent?:string,reply?:string,ctx?:Record<string,unknown>};type N={message:string,options:O[],image?:string};
 const back:O={id:'menu',label:'↩️ Voltar ao menu',next:'start'};
 export const DEFAULT_NODES:Record<string,N>={
-  start:{message:'Olá! 👋 Seja bem-vindo(a) ao escritório Suzanne Figueiredo Advocacia e Soluções Jurídicas.\n\nEscolha uma opção:',image:'https://lexoffice-ashy.vercel.app/file_000000003d3c820ea01435d641ac6df8.png',options:[
+  start:{message:'Olá! 👋 Seja bem-vindo(a) ao escritório Suzanne Figueiredo Advocacia e Soluções Jurídicas.\n\nEscolha uma opção:',options:[
     {id:'process',label:'⚖️ Meu processo',agent:'client_process_updates'},
     {id:'new',label:'✨ Novo caso',next:'new'},
     {id:'finance',label:'💳 Financeiro',agent:'billing'},

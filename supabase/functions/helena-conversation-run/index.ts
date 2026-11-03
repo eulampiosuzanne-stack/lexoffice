@@ -280,10 +280,24 @@ Deno.serve(async req=>{
 
     if(!dryRun){const why=await blocked(a,orgId,conversationId,q.pause_ai_during_human_takeover===false?0:gp.human_silence_minutes);if(why)return J({ok:true,skipped:why});}
 
-    const {data:conv}=await a.from('whatsapp_conversations').select('chatbot_context,client_id,process_id').eq('id',conversationId).maybeSingle();
+    const {data:conv}=await a.from('whatsapp_conversations').select('chatbot_context,client_id,contact_id,process_id').eq('org_id',orgId).eq('id',conversationId).maybeSingle();
+    // A missing conversation.client_id is not proof that the person is a new lead.
+    let verifiedClientId:string|null=conv?.client_id||null;
+    if(!verifiedClientId&&conv?.contact_id){
+      const {data:contact}=await a.from('whatsapp_contacts').select('client_id').eq('org_id',orgId).eq('id',conv.contact_id).maybeSingle();
+      verifiedClientId=contact?.client_id||null;
+    }
+    if(!verifiedClientId){
+      const normalizedPhone=D(phone);
+      const localPhone=normalizedPhone.startsWith('55')?normalizedPhone.slice(2):normalizedPhone;
+      const {data:matches}=await a.from('clients').select('id,phone,whatsapp').eq('org_id',orgId).limit(1000);
+      const found=(matches||[]).filter((c:any)=>[c.phone,c.whatsapp].some(v=>{const n=D(v);return n.length>=10&&(n===normalizedPhone||n===localPhone||('55'+n)===normalizedPhone)}));
+      if(found.length===1)verifiedClientId=found[0].id;
+    }
+    if(verifiedClientId&&!conv?.client_id&&!dryRun)await a.from('whatsapp_conversations').update({client_id:verifiedClientId}).eq('org_id',orgId).eq('id',conversationId);
     const ctx=conv?.chatbot_context||null;
     const summary=String(ctx?.summary||'').trim();
-    const dossier=await clientDossier(a,orgId,conv?.client_id||null);
+    const dossier=await clientDossier(a,orgId,verifiedClientId);
 
     const detectedHandoff=followup?null:handoffReason(policy,message,ctx);
     // Pedidos comuns de contato humano e reclamações permanecem na triagem assistida.
@@ -326,7 +340,7 @@ Deno.serve(async req=>{
       const {data:cs}=await a.from('collection_settings').select('late_fee_percent,monthly_interest_percent').eq('org_id',orgId).maybeSingle();
       const late=Number(cs?.late_fee_percent??10),rate=Number(cs?.monthly_interest_percent??1);
       if(collection?.financial_entry_id){const {data:f}=await a.from('financial_entries').select('id,amount,due_date,status').eq('id',collection.financial_entry_id).maybeSingle();if(f){const c=await entryBalance(a,f,late,rate);collection={...collection,principal:c.base,updated_amount:c.updated,days_overdue:c.days,late_fee_percent:late,monthly_interest_percent:rate,paid_off:f.status==='paid'}}}
-      if(conv?.client_id){const {data:fs}=await a.from('financial_entries').select('id,amount,due_date,description,status').eq('client_id',conv.client_id).eq('type','income').in('status',['overdue','partial']).order('due_date').limit(10);const lines:string[]=[];let tot=0;for(const f of fs||[]){const c=await entryBalance(a,f,late,rate);if(c.base<=0)continue;tot+=c.updated;lines.push(`${f.description||'parcela'} (venc. ${brDate(f.due_date)}): saldo ${brl(c.base)} + multa ${brl(c.fee)} + juros ${brl(c.interest)} = ${brl(c.updated)} (${c.days} dias de atraso)`)}if(lines.length)openDebts=`DÉBITOS EM ABERTO DO CLIENTE, CALCULADOS PARA HOJE (${brDate(todaySP())}): ${lines.join(' | ')}. TOTAL ATUALIZADO HOJE: ${brl(Math.round(tot*100)/100)}. Multa de ${late}% e juros de ${rate}% ao mês pro rata, conforme contrato. Use exatamente estes valores; o saldo aumenta a cada dia até o pagamento.`}
+      if(verifiedClientId){const {data:fs}=await a.from('financial_entries').select('id,amount,due_date,description,status').eq('client_id',verifiedClientId).eq('type','income').in('status',['overdue','partial']).order('due_date').limit(10);const lines:string[]=[];let tot=0;for(const f of fs||[]){const c=await entryBalance(a,f,late,rate);if(c.base<=0)continue;tot+=c.updated;lines.push(`${f.description||'parcela'} (venc. ${brDate(f.due_date)}): saldo ${brl(c.base)} + multa ${brl(c.fee)} + juros ${brl(c.interest)} = ${brl(c.updated)} (${c.days} dias de atraso)`)}if(lines.length)openDebts=`DÉBITOS EM ABERTO DO CLIENTE, CALCULADOS PARA HOJE (${brDate(todaySP())}): ${lines.join(' | ')}. TOTAL ATUALIZADO HOJE: ${brl(Math.round(tot*100)/100)}. Multa de ${late}% e juros de ${rate}% ao mês pro rata, conforme contrato. Use exatamente estes valores; o saldo aumenta a cada dia até o pagamento.`}
     }
 
     const talksProcess=/^a cliente selecionou:/i.test(message)||PROCESS_TOPIC_RE.test(norm(message));
@@ -335,8 +349,8 @@ Deno.serve(async req=>{
       let selectedProcess:any=null;
       if(conv?.process_id){
         const {data:p}=await a.from('processes').select('id,cnj_number,subject,status').eq('org_id',orgId).eq('id',conv.process_id).maybeSingle();selectedProcess=p;
-      }else if(conv?.client_id){
-        const {data:ps}=await a.from('processes').select('id,cnj_number,subject,status,updated_at').eq('org_id',orgId).eq('client_id',conv.client_id).neq('status','archived').order('updated_at',{ascending:false}).limit(10);
+      }else if(verifiedClientId){
+        const {data:ps}=await a.from('processes').select('id,cnj_number,subject,status,updated_at').eq('org_id',orgId).eq('client_id',verifiedClientId).neq('status','archived').order('updated_at',{ascending:false}).limit(10);
         if((ps||[]).length===1)selectedProcess=ps![0];
         else if((ps||[]).length>1)processUpdateContext='O CLIENTE POSSUI MAIS DE UM PROCESSO. Apresente uma lista curta com número e assunto e peça que escolha um deles antes de informar qualquer andamento: '+(ps||[]).map((p:any)=>String(p.cnj_number||p.id)+' — '+String(p.subject||'Assunto não informado')).join(' | ');
         else processUpdateContext='NENHUM PROCESSO FOI LOCALIZADO PARA ESTE CLIENTE. Informe isso com cuidado e peça o número do processo para conferência.';
@@ -359,7 +373,7 @@ Deno.serve(async req=>{
 
     // v26 — LEAD (não é cliente) no financeiro: a cobrança é da CONSULTA, não de parcelas.
     let leadConsultBlock='';
-    if(agentKey==='billing'&&!conv?.client_id){
+    if(agentKey==='billing'&&!verifiedClientId&&/\b(agendar|marcar|contratar|consulta|consultoria)\b/i.test(norm(message))&&!/\b(chave|pix|transferencia|deposito)\b/i.test(norm(message))){
       const {data:wsc}=await a.from('whatsapp_settings').select('consultation_fee_amount').eq('org_id',orgId).maybeSingle();
       const fee=Number(wsc?.consultation_fee_amount||0)||Number((own?.policy||{}).consultation_price||0)||300;
       leadConsultBlock=`ESTA PESSOA AINDA NÃO É CLIENTE: ela quer a consulta com a Dra. Suzanne. Valor da consulta: ${brl(fee)}. Informe o valor e a chave PIX abaixo e peça para enviar o comprovante aqui mesmo. Só depois do pagamento os horários são liberados: NÃO ofereça nem confirme horários agora. Quando ela disser que pagou ou mandar o comprovante, agradeça e diga que o pagamento será conferido para liberar os horários. NÃO fale de parcelas, juros, multa ou débitos. Não conceda desconto. ${pixInfo}`;
@@ -373,7 +387,7 @@ Deno.serve(async req=>{
     const office=String(q.customer_facing_office||'Suzanne Figueiredo Advocacia').trim();
     const urgentMinor=ctx?.urgent===true&&(ctx?.path||[]).some((x:any)=>x?.choice==='minor');
     const contextBlock=summary?`CONTEXTO JÁ COLETADO PELO MENU (não pergunte de novo, continue daqui): ${summary}.${urgentMinor?' URGÊNCIA ENVOLVENDO CRIANÇA/ADOLESCENTE: pergunte objetivamente qual é o risco atual; não fale de consulta ou honorários.':''}`:'';
-    const billingRules=leadConsultBlock||(agentKey==='billing'?[openDebts||(collection?`DÉBITO CALCULADO PARA HOJE (${brDate(todaySP())}): saldo ${brl(collection.principal)}, multa ${Number(collection.late_fee_percent||0)}%, juros ${Number(collection.monthly_interest_percent||0)}% ao mês, ${Number(collection.days_overdue||0)} dias de atraso, total atualizado ${brl(collection.updated_amount)}.`:''),pixInfo,'Informe que o saldo continua aumentando pelos juros até o pagamento.'].filter(Boolean).join(' '):pixInfo);
+    const billingRules=(verifiedClientId?'CLIENTE IDENTIFICADO NO CADASTRO: jamais cobre consultoria automaticamente. Se pedir chave Pix, esclareça a finalidade do pagamento e forneça somente dados verificados, sem presumir consulta. ':!leadConsultBlock?'VÍNCULO NÃO CONFIRMADO: não cobre consultoria nem presuma que é lead. Primeiro confirme se já é cliente. ':'')+ (leadConsultBlock||(agentKey==='billing'?[openDebts||(collection?`DÉBITO CALCULADO PARA HOJE (${brDate(todaySP())}): saldo ${brl(collection.principal)}, multa ${Number(collection.late_fee_percent||0)}%, juros ${Number(collection.monthly_interest_percent||0)}% ao mês, ${Number(collection.days_overdue||0)} dias de atraso, total atualizado ${brl(collection.updated_amount)}.`:''),pixInfo,'Informe que o saldo continua aumentando pelos juros até o pagamento.'].filter(Boolean).join(' '):pixInfo));
     const hotBlock=hotLead?'A PESSOA DEMONSTROU INTENÇÃO DE CONTRATAR OU PERGUNTOU SOBRE HONORÁRIOS/CONDIÇÕES DA AÇÃO: não informe valores, entrada, parcelamento ou desconto. Acolha com elegância e diga que a proposta é personalizada e que a equipe responsável avaliará a solicitação conforme a disponibilidade. Não diga que houve alerta, transferência ou mudança de setor.':'';
 
     const lexHumanRules='ATENDIMENTO HELENA: converse naturalmente, sem menu numerico, assinatura repetida ou respostas genericas. Uma pergunta por vez, nao repita dados do CRM. Nunca finja ser humana ou diga que consultou ficha sem consultar; seja transparente se perguntarem sobre automacao. Traduza somente movimentacoes judiciais confirmadas em linguagem simples, com linha do tempo compacta quando pertinente; nunca invente fase, decisao ou prazo. Evite risadas em temas sensiveis. Nao prometa retorno pessoal da advogada sem confirmacao. Pedidos para falar com a advogada, reclamações e insistências sem urgência real não autorizam transferência automática: responda com firmeza, registre o pedido e ofereça agendamento conforme as regras. Nunca afirme que avisou a advogada se não houver confirmação. Para interessados ainda não contratados, explique a consulta paga e não confirme horário antes da validação do pagamento. Questões jurídicas de mérito devem seguir para revisão profissional, sem resposta conclusiva.';
