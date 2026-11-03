@@ -116,36 +116,6 @@ async function geminiKey(a: any, orgId: string) {
   return (Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_GEMINI_API_KEY") || "").trim();
 }
 
-async function maritacaKey(a: any, orgId: string) {
-  for (const provider of ["maritaca_api", "maritaca_api_key"]) {
-    try {
-      const { data } = await a.rpc("read_integration_secret", { p_org_id: orgId, p_provider: provider });
-      const key = String(data || "").trim();
-      if (key) return key;
-    } catch { /* tenta o próximo */ }
-  }
-  try {
-    const { data } = await a.from("system_runtime_secrets").select("secret").eq("key", "maritaca_api_key").maybeSingle();
-    const key = String(data?.secret || "").trim();
-    if (key) return key;
-  } catch { /* segue para variável de ambiente */ }
-  return (Deno.env.get("MARITACA_API_KEY") || "").trim();
-}
-
-// Maritaca (Sabiá-4, brasileira, paga em reais): redige e também lê PDF/imagem (com OCR) enviados em base64.
-async function maritaca(key: string, prompt: string | any[], maxTokens: number, json = false, timeoutMs = 100000) {
-  const model = (Deno.env.get("MARITACA_MODEL") || "sabia-4").trim();
-  try {
-    const r = await fetch("https://chat.maritaca.ai/api/chat/completions", { signal: AbortSignal.timeout(timeoutMs), method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify({ model, messages: [{ role: "system", content: "Você é advogado(a) brasileiro(a) sênior. Responda somente em português do Brasil." }, { role: "user", content: prompt }], temperature: json ? 0.1 : 0.3, max_tokens: maxTokens, ...(Array.isArray(prompt) ? { extraction_effort: "medium" } : {}) }) });
-    const out = await r.json().catch(() => null);
-    const text = String(out?.choices?.[0]?.message?.content || "").trim();
-    if (r.ok && text) return { ok: true as const, text, model: `maritaca/${model}`, finishReason: out?.choices?.[0]?.finish_reason || null };
-    return { ok: false as const, status: r.status, detail: `maritaca/${model}: ${out?.error?.message || out?.detail || "sem resposta"}` };
-  } catch (e) {
-    return { ok: false as const, status: 502, detail: `maritaca: ${e instanceof Error ? e.message : String(e)}` };
-  }
-}
-
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 async function gemini(key: string, models: string[], payload: unknown, deadline = Date.now() + 120000) {
   let last: any = null;
@@ -344,13 +314,9 @@ Estrutura: PROPOSTA DE ACORDO (título); partes; síntese do conflito (2 a 4 par
 Regras: nunca mencione o valor mínimo nem o teto (são limites internos de negociação); não mencione percentual de chance, jurimetria nem inteligência artificial; não invente fatos ou valores; texto puro, títulos em MAIÚSCULAS em linha própria, sem markdown.`;
 }
 
-async function ask(mKey: string, gKey: string, models: string[], prompt: string, asJson: boolean, maxTokens: number) {
-  const started = Date.now();
-  let r: any = mKey ? await maritaca(mKey, prompt, maxTokens, asJson, 95000) : { ok: false, status: 503, detail: "Maritaca não configurada" };
-  const first = r;
-  if (!r.ok && gKey) r = await gemini(gKey, models, { contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: asJson ? 0.1 : 0.3, maxOutputTokens: Math.max(maxTokens, 8192), ...(asJson ? { responseMimeType: "application/json" } : {}) } }, started + 135000);
-  if (!r.ok) r = { ...r, detail: `${first.detail || first.status} | ${r.detail || r.status}` };
-  return r;
+async function ask(gKey: string, models: string[], prompt: string, asJson: boolean, maxTokens: number) {
+  if (!gKey) return { ok: false as const, status: 503, detail: "Google Gemini não configurado" };
+  return gemini(gKey, models, { contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: asJson ? 0.1 : 0.3, maxOutputTokens: Math.max(maxTokens, 8192), ...(asJson ? { responseMimeType: "application/json" } : {}) } }, Date.now() + 135000);
 }
 
 const firstName = (n: string) => String(n || "").trim().split(/\s+/)[0] || "";
@@ -391,8 +357,7 @@ Deno.serve(async (req) => {
     const action = String(b.action || "");
     const area = AREAS[String(b.area)] ? String(b.area) : "civel";
     const key = await geminiKey(a, orgId);
-    const mKey = await maritacaKey(a, orgId);
-    if (!key && !mKey) return json({ ok: false, error: "Nenhuma IA configurada em Integrações (Maritaca ou Google Gemini)." }, 503);
+    if (!key) return json({ ok: false, error: "Google Gemini não está configurado em Integrações." }, 503);
     // Modelos em ordem de preferência; o Google aposenta versões com frequência, então há alias e reserva.
     const models = [...new Set([Deno.env.get("PETITION_MODEL"), Deno.env.get("GEMINI_MODEL"), "gemini-flash-latest", "gemini-3.8-flash"].map((m) => String(m || "").trim()).filter(Boolean))];
 
@@ -406,11 +371,7 @@ Deno.serve(async (req) => {
       const caseInfo = { ...(b.case_info || {}), ...(party ? { qualificacao_autor: party } : {}), ...(judge ? { perfil_juizo: judge } : {}) };
       const payload = { contents: [{ role: "user", parts: [{ text: analyzePrompt(area, caseInfo, notes) }, ...files.parts] }], generationConfig: { temperature: 0.1, maxOutputTokens: 8192, responseMimeType: "application/json" } };
       const started = Date.now();
-      // Sabiá-4 (Maritaca) lê os documentos primeiro; o Gemini fica de reserva.
-      let r: any = mKey ? await maritaca(mKey, files.mparts.length ? [...files.mparts, { type: "text", text: analyzePrompt(area, caseInfo, notes) }] : analyzePrompt(area, caseInfo, notes), 8000, true, 110000) : { ok: false, status: 503, detail: "Maritaca não configurada" };
-      const firstTry = r;
-      if (!r.ok && key) r = await gemini(key, models, payload, started + 140000);
-      if (!r.ok) r = { ...r, detail: `${firstTry.detail || firstTry.status} | ${r.detail || r.status}` };
+      const r: any = await gemini(key, models, payload, started + 140000);
       if (!r.ok) {
         const quota = [429, 503].includes(r.status);
         return json({ ok: false, error: quota ? `A IA não conseguiu ler os documentos agora (${String(r.detail || r.status).slice(0, 220)}). Tente de novo em alguns minutos.` : `A IA não conseguiu ler os documentos (${r.status}${r.detail ? ": " + r.detail : ""}).` }, 502);
@@ -457,10 +418,8 @@ Deno.serve(async (req) => {
       const payload = { contents: [{ role: "user", parts: [{ text: draftPrompt(area, dossier, calc, String(b.instructions || "").slice(0, 6000), office, Number(b.part) || 0, String(b.previous || ""), String(b.jurisprudence || "").slice(0, 12000), party) }] }], generationConfig: { temperature: 0.3, maxOutputTokens: Number(b.part) ? 5000 : 12000 } };
       const prompt = payload.contents[0].parts[0].text;
       const started = Date.now();
-      let r: any = mKey ? await maritaca(mKey, prompt, Number(b.part) ? 3500 : 8000, false, 95000) : { ok: false, status: 503, detail: "Maritaca não configurada" };
-      const first = r;
-      if (!r.ok && key) r = await gemini(key, models, payload, started + 135000);
-      if (!r.ok) return json({ ok: false, error: `Não foi possível redigir a petição agora (${String(first.detail || first.status).slice(0, 140)} | ${String(r.detail || r.status).slice(0, 140)}). Tente de novo em alguns minutos.` }, 502);
+      const r: any = await gemini(key, models, payload, started + 135000);
+      if (!r.ok) return json({ ok: false, error: `Não foi possível redigir a petição com o Gemini agora (${String(r.detail || r.status).slice(0, 220)}). Tente de novo em alguns minutos.` }, 502);
       const petition = r.text.replace(/\*\*/g, "").replace(/^#+\s*/gm, "").trim();
       if (b.run_id && (!Number(b.part) || Number(b.part) === 3)) await a.from("petition_assistant_runs").update({ dossier, calculation: calc || null, instructions: b.instructions || null, petition: Number(b.part) === 3 ? `${String(b.previous || "")}\n\n${petition}`.trim() : petition, status: "redigido", model: r.model, updated_at: new Date().toISOString() }).eq("id", b.run_id).eq("org_id", orgId);
       return json({ ok: true, petition, model: r.model });
@@ -479,7 +438,7 @@ Deno.serve(async (req) => {
       // O parecer vai ao cliente: a IA não recebe percentual nem faixas internas de negociação (mínimo/ideal/teto, proposta).
       const jm = dossier.jurimetria || null;
       const forClient = { ...dossier, jurimetria: jm ? { tempo_estimado_meses: jm.tempo_estimado_meses || null, acordo: { recomendado: jm.acordo?.recomendado === true, momento: jm.acordo?.momento || "" } } : null };
-      const r = await ask(mKey, key, models, opinionPrompt(area, forClient, office, String(b.client_name || "")), false, 6000);
+      const r = await ask(key, models, opinionPrompt(area, forClient, office, String(b.client_name || "")), false, 6000);
       if (!r.ok) return json({ ok: false, error: `Não foi possível redigir o parecer agora (${String(r.detail || r.status).slice(0, 200)}). Tente de novo em alguns minutos.` }, 502);
       const opinion = r.text.replace(/\*\*/g, "").replace(/^#+\s*/gm, "").trim();
       if (b.run_id) await a.from("petition_assistant_runs").update({ opinion, dossier, updated_at: new Date().toISOString() }).eq("id", b.run_id).eq("org_id", orgId);
@@ -491,7 +450,7 @@ Deno.serve(async (req) => {
       const dossier = b.dossier;
       if (!dossier || typeof dossier !== "object") return json({ ok: false, error: "Faça a análise do caso primeiro." }, 400);
       const office = await officeInfo(a, orgId, b.office || {});
-      const r = await ask(mKey, key, models, settlementPrompt(area, dossier, office, String(b.client_name || ""), String(b.instructions || "").slice(0, 3000)), false, 3500);
+      const r = await ask(key, models, settlementPrompt(area, dossier, office, String(b.client_name || ""), String(b.instructions || "").slice(0, 3000)), false, 3500);
       if (!r.ok) return json({ ok: false, error: `Não foi possível redigir a proposta de acordo agora (${String(r.detail || r.status).slice(0, 200)}). Tente de novo em alguns minutos.` }, 502);
       const proposal = r.text.replace(/\*\*/g, "").replace(/^#+\s*/gm, "").trim();
       if (b.run_id) {
@@ -543,7 +502,7 @@ Deno.serve(async (req) => {
 Caso: ${JSON.stringify(b.dossier || {}).slice(0, 8000)}
 Não cite números de processo, súmulas ou julgados específicos — apenas termos de busca e teses.
 Responda APENAS com JSON: {"buscas":[""],"teses":[""]}`;
-      const r = await ask(mKey, key, models, prompt, true, 1200);
+      const r = await ask(key, models, prompt, true, 1200);
       let out: any = null;
       try { out = r.ok ? JSON.parse(stripFence(r.text)) : null; } catch { out = null; }
       if (!out) return json({ ok: false, error: "Não foi possível sugerir as buscas agora. Tente de novo." }, 502);
@@ -564,7 +523,7 @@ ${text}
 """
 Responda APENAS com JSON: {"julgados":[{"tribunal":"","processo":"","relator":"","data":"","favoravel":true,"motivo":"","trecho_util":""}]}
 "trecho_util" deve ser cópia literal do trecho mais útil da ementa (até 600 caracteres).`;
-      const r = await ask(mKey, key, models, prompt, true, 5000);
+      const r = await ask(key, models, prompt, true, 5000);
       let out: any = null;
       try { out = r.ok ? JSON.parse(stripFence(r.text)) : null; } catch { out = null; }
       if (!out || !Array.isArray(out.julgados)) return json({ ok: false, error: "Não foi possível analisar as ementas agora. Tente de novo." }, 502);

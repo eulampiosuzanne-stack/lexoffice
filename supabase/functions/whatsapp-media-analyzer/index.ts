@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-// v5 (29/09/2026): Gemini primeiro (OpenAI sem crédito); OpenAI só como reserva.
+// Gemini é o único motor de IA: áudio, imagem, vídeo e PDF.
 // áudio -> transcrição; imagem/PDF -> leitura. Não armazena o arquivo.
 const J=(b:any,s=200)=>new Response(JSON.stringify(b),{status:s,headers:{"content-type":"application/json"}});
 const db=()=>createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,{auth:{persistSession:false}});
@@ -24,16 +24,13 @@ async function gemini(key:string,prompt:string,mime:string,data:string){
   }
   return last||{ok:false,error:'gemini_failed'};
 }
-async function openaiAudio(key:string,buf:ArrayBuffer,mime:string){const fd=new FormData();fd.append("model","gpt-4o-mini-transcribe");fd.append("language","pt");const ext=mime.includes("mpeg")?"mp3":mime.includes("mp4")||mime.includes("m4a")?"m4a":mime.includes("wav")?"wav":"ogg";fd.append("file",new Blob([buf],{type:mime||"audio/ogg"}),`audio.${ext}`);const r=await fetch("https://api.openai.com/v1/audio/transcriptions",{method:"POST",headers:{Authorization:"Bearer "+key},body:fd});const d=await r.json().catch(()=>null);if(!r.ok)return {ok:false,error:d?.error?.message||"transcription_failed"};const text=String(d?.text||"").trim();return {ok:!!text,text}}
-async function openaiRead(key:string,prompt:string,part:any){const r=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{Authorization:"Bearer "+key,"Content-Type":"application/json"},body:JSON.stringify({model:"gpt-5-mini",reasoning:{effort:"low"},max_output_tokens:2500,input:[{role:"user",content:[{type:"input_text",text:prompt},part]}]})});const d=await r.json().catch(()=>null);if(!r.ok)return {ok:false,error:d?.error?.message||"analysis_failed"};const text=String(d?.output_text||d?.output?.flatMap((o:any)=>o.content||[]).map((c:any)=>c.text||"").join("")||"").trim();return {ok:!!text,text}}
 Deno.serve(async req=>{try{
  const svc=(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"").trim();
  if((req.headers.get("authorization")||"").replace(/^Bearer\s+/i,"").trim()!==svc)return J({ok:false,error:"unauthorized"},401);
  const x=await req.json(),url=String(x.url||""),type=String(x.type||"document"),org=String(x.org_id||"");
  if(!url||!org)return J({ok:false,error:"media_missing"},400);
  const gkey=(await vault(org,'gemini_api'))||(Deno.env.get('GEMINI_API_KEY')||'').trim();
- const okey=(await vault(org,'openai_api'))||(Deno.env.get('OPENAI_API_KEY')||'').trim();
- if(!gkey&&!okey)return J({ok:false,error:"ai_key_missing"},503);
+ if(!gkey)return J({ok:false,error:"gemini_key_missing"},503);
  // Never let a WhatsApp media URL reach private networks or follow redirects to them.
  let media:URL;
  try{media=new URL(url)}catch{return J({ok:false,error:"invalid_media_url"},400)}
@@ -63,8 +60,8 @@ Deno.serve(async req=>{try{
  const kind=isAudio?'audio':isImage?'image':isVideo?'video':'pdf';
  const data=b64(buf);
  const prompt=isAudio?AUDIO_PROMPT:isImage?IMG_PROMPT:isVideo?VIDEO_PROMPT:PDF_PROMPT;
- let errors:string[]=[];
- if(gkey){const g:any=await gemini(gkey,prompt,mime,data);await usage(org,'gemini',g.model||'gemini',kind,!!g.ok,String(g.text||'').length);if(g.ok)return J({ok:true,kind,text:g.text,provider:'gemini'});errors.push(String(g.error||'gemini_failed'))}
- if(okey&&!isVideo){const o:any=isAudio?await openaiAudio(okey,buf,mime):await openaiRead(okey,prompt,isImage?{type:"input_image",image_url:`data:${mime};base64,${data}`}:{type:"input_file",filename:String(x.filename||"documento.pdf"),file_data:`data:application/pdf;base64,${data}`});await usage(org,'openai',isAudio?'gpt-4o-mini-transcribe':'gpt-5-mini',kind,!!o.ok,String(o.text||'').length);if(o.ok)return J({ok:true,kind,text:o.text,provider:'openai'});errors.push(String(o.error||'openai_failed'))}
- return J({ok:false,error:errors.join(' | ')},502);
+ const g:any=await gemini(gkey,prompt,mime,data);
+ await usage(org,'gemini',g.model||'gemini',kind,!!g.ok,String(g.text||'').length);
+ if(g.ok)return J({ok:true,kind,text:g.text,provider:'gemini',model:g.model});
+ return J({ok:false,error:String(g.error||'gemini_failed')},502);
 }catch(e){return J({ok:false,error:e instanceof Error?e.message:String(e)},500)}});

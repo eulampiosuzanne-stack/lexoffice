@@ -29,17 +29,6 @@ async function loadAgentPolicy(orgId:string,agentKey:string){
   }catch{return null}
 }
 
-async function openai(key:string,sys:string,input:string,model:string,temperature:number,maxTokens:number){
-  if(!key)return{ok:false,error:'openai_key_missing'};
-  const chosen=model?.startsWith('gpt-')?model:(Deno.env.get('OPENAI_MODEL')||'gpt-5-mini');
-  try{
-    const r=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify({model:chosen,instructions:sys,input,max_output_tokens:maxTokens,temperature})});
-    const d=await r.json().catch(()=>null);
-    if(!r.ok)return{ok:false,error:`openai_${r.status}`,detail:d?.error?.message||null};
-    const text=String(d?.output_text||d?.output?.flatMap((x:any)=>x.content||[]).map((x:any)=>x.text||'').join('')||'').trim();
-    return text?{ok:true,provider:'openai',model:chosen,text}:{ok:false,error:'openai_empty'};
-  }catch(e){return{ok:false,error:'openai_network',detail:e instanceof Error?e.message:String(e)}}
-}
 async function gemini(key:string,sys:string,input:string,model:string,temperature:number,maxTokens:number){
   if(!key)return{ok:false,error:'gemini_key_missing'};
   const chosen=model?.startsWith('gemini-')?model:(Deno.env.get('GEMINI_MODEL')||'gemini-flash-latest');
@@ -51,28 +40,6 @@ async function gemini(key:string,sys:string,input:string,model:string,temperatur
     return text?{ok:true,provider:'gemini',model:chosen,text}:{ok:false,error:'gemini_empty'};
   }catch(e){return{ok:false,error:'gemini_network',detail:e instanceof Error?e.message:String(e)}}
 }
-async function compat(name:string,key:string,url:string,model:string,sys:string,input:string,temperature:number,maxTokens:number){
-  if(!key)return{ok:false,error:`${name}_key_missing`};
-  try{
-    const r=await fetch(url,{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json',...(name==='openrouter'?{'HTTP-Referer':'https://lexoffice-ashy.vercel.app','X-Title':'LEXOFFICE'}:{})},body:JSON.stringify({model,messages:[{role:'system',content:sys},{role:'user',content:input}],temperature,max_tokens:maxTokens})});
-    const d=await r.json().catch(()=>null);
-    if(!r.ok)return{ok:false,error:`${name}_${r.status}`,detail:d?.error?.message||null};
-    const text=String(d?.choices?.[0]?.message?.content||'').trim();
-    return text?{ok:true,provider:name,model,text}:{ok:false,error:`${name}_empty`};
-  }catch(e){return{ok:false,error:`${name}_network`,detail:e instanceof Error?e.message:String(e)}}
-}
-async function ollama(base:string,sys:string,input:string,model:string,temperature:number){
-  if(!base)return{ok:false,error:'ollama_url_missing'};
-  const chosen=model||Deno.env.get('OLLAMA_MODEL')||'llama3.2:3b';
-  try{
-    const r=await fetch(`${base.replace(/\/$/,'')}/api/chat`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:chosen,stream:false,options:{temperature},messages:[{role:'system',content:sys},{role:'user',content:input}]})});
-    const d=await r.json().catch(()=>null);
-    if(!r.ok)return{ok:false,error:`ollama_${r.status}`};
-    const text=String(d?.message?.content||'').trim();
-    return text?{ok:true,provider:'ollama',model:chosen,text}:{ok:false,error:'ollama_empty'};
-  }catch(e){return{ok:false,error:'ollama_network',detail:e instanceof Error?e.message:String(e)}}
-}
-
 Deno.serve(async req=>{
   if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
   if(req.method!=='POST')return json({error:'method_not_allowed'},405);
@@ -81,10 +48,10 @@ Deno.serve(async req=>{
   const orgId=await resolveOrg(String(body.org_id||'').trim());
   const agentKey=String(body.agent_key||'').trim();
   const policyRow=await loadAgentPolicy(orgId,agentKey);
-  if(policyRow&&policyRow.active===false)return json({ok:false,error:'agent_inactive'},403)  const geminiKey=await vaultKey(orgId,'gemini_api')||(Deno.env.get('GEMINI_API_KEY')||Deno.env.get('GOOGLE_GEMINI_API_KEY')||'').trim();
+  if(policyRow&&policyRow.active===false)return json({ok:false,error:'agent_inactive'},403);
+  const geminiKey=await vaultKey(orgId,'gemini_api')||(Deno.env.get('GEMINI_API_KEY')||Deno.env.get('GOOGLE_GEMINI_API_KEY')||'').trim();
   if(body.action==='health')return json({ok:Boolean(geminiKey),mode:'gemini_only',gemini_configured:Boolean(geminiKey),providers_ready:Number(Boolean(geminiKey))});
   const p=policyRow?.policy||{};
-  const provider='gemini';
   const model=String(policyRow?.model||body.model||'');
   const temperature=Math.max(0,Math.min(1,Number(p.temperature ?? body.temperature ?? .25)));
   const maxTokens=Math.max(200,Math.min(4000,Number(p.max_output_tokens ?? body.max_output_tokens ?? 1400)));
