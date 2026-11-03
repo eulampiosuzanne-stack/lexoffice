@@ -48,21 +48,7 @@ export default function RevisaoPeca() {
         "Não foi possível guardar a peça: " + uploaded.error.message,
       );
     }
-    const scanned = ext === "pdf" && /scan|scanner|imagem/i.test(file.name);
-    const evaluation = {
-      file_name: file.name,
-      file_size: file.size,
-      format: ext,
-      scanned,
-      score: null,
-      formatting: scanned
-        ? "⚠️ PDF possivelmente escaneado: extração tipográfica bloqueada."
-        : "⚠️ Fontes e margens aguardam inspeção estrutural do documento.",
-      visual:
-        "⚠️ Tabelas, quadros e imagens precisam de conferência na prévia.",
-      clarity:
-        "⚠️ A clareza jurídica somente será pontuada após extração integral do texto.",
-    };
+    setNotice(`Analisando ${tab.toLowerCase()} com o Gemini...`);
     const saved = await supabase
       .from("legal_document_reviews")
       .insert({
@@ -72,23 +58,42 @@ export default function RevisaoPeca() {
         file_name: file.name,
         mime_type: file.type,
         file_size: file.size,
-        status: scanned ? "needs_ocr" : "uploaded",
-        result: evaluation,
+        status: "processing",
+        result: { tab, file_name: file.name, format: ext },
       })
       .select()
       .single();
-    setBusy(false);
-    if (saved.error)
+    if (saved.error) {
+      setBusy(false);
       return setNotice(
         "Arquivo preservado, mas o histórico não pôde ser salvo: " +
           saved.error.message,
       );
-    setResult(evaluation);
-    setNotice(
-      scanned
-        ? "PDF escaneado identificado. É necessário OCR antes da avaliação tipográfica."
-        : "Arquivo recebido. A LEX não atribuiu notas técnicas que não conseguiu confirmar.",
+    }
+    const { data, error } = await supabase.functions.invoke(
+      "petition-assistant",
+      {
+        body: {
+          action: "legal_review",
+          review_id: saved.data.id,
+          file_path: path,
+          file_name: file.name,
+          tab,
+        },
+      },
     );
+    setBusy(false);
+    if (error || !data?.ok) {
+      await supabase
+        .from("legal_document_reviews")
+        .update({ status: "failed" })
+        .eq("id", saved.data.id);
+      return setNotice(
+        data?.error || error?.message || "A análise não pôde ser concluída.",
+      );
+    }
+    setResult(data.result);
+    setNotice(`Análise de ${tab.toLowerCase()} concluída com ${data.model}.`);
   }
 
   return (
@@ -172,8 +177,8 @@ export default function RevisaoPeca() {
             </div>
             <div className="card">
               <FileCheck2 />
-              <strong>{result.scanned ? "OCR" : "Pendente"}</strong>
-              <span>Tipografia</span>
+              <strong>{result.status === "apto" ? "Apto" : result.status === "nao_apto" ? "Não apto" : "Com ajustes"}</strong>
+              <span>Prontidão</span>
             </div>
             <div className="card">
               <ShieldCheck />
@@ -182,14 +187,80 @@ export default function RevisaoPeca() {
             </div>
           </div>
           <div className="integration-card">
-            <p>{result.formatting}</p>
-            <p>{result.visual}</p>
-            <p>{result.clarity}</p>
+            <h3>Conclusão</h3>
+            <p>{result.summary}</p>
           </div>
+          {!!result.blocking_issues?.length && (
+            <div className="integration-card">
+              <h3>Impedimentos para protocolo</h3>
+              {result.blocking_issues.map((item: any, index: number) => (
+                <div key={`block-${index}`}>
+                  <b>{item.title}</b>
+                  <p>{item.detail}</p>
+                  {item.evidence && <small>Base encontrada: {item.evidence}</small>}
+                </div>
+              ))}
+            </div>
+          )}
+          {!!result.risks?.length && (
+            <div className="integration-card">
+              <h3>Riscos identificados</h3>
+              {result.risks.map((item: any, index: number) => (
+                <div key={`risk-${index}`}>
+                  <b>{item.title}</b>
+                  <p>{item.detail}</p>
+                  {item.evidence && <small>Base encontrada: {item.evidence}</small>}
+                </div>
+              ))}
+            </div>
+          )}
+          {!!result.strengths?.length && (
+            <div className="integration-card">
+              <h3>Pontos fortes</h3>
+              {result.strengths.map((item: any, index: number) => (
+                <p key={`strength-${index}`}><b>{item.title}:</b> {item.detail}</p>
+              ))}
+            </div>
+          )}
+          {!!result.proof_request_matrix?.length && (
+            <div className="integration-card">
+              <h3>Matriz Prova × Pedido</h3>
+              {result.proof_request_matrix.map((item: any, index: number) => (
+                <div key={`matrix-${index}`}>
+                  <b>{item.request}</b>
+                  <p>Fatos: {item.supporting_facts || "não confirmados"}</p>
+                  <p>Provas existentes: {item.existing_evidence || "não confirmadas"}</p>
+                  <p>Provas faltantes: {item.missing_evidence || "nenhuma confirmada"}</p>
+                  <small>Risco: {item.risk || "não confirmado"}</small>
+                </div>
+              ))}
+            </div>
+          )}
+          {!!result.jurisprudence_queries?.length && (
+            <div className="integration-card">
+              <h3>Pesquisa jurisprudencial necessária</h3>
+              {result.jurisprudence_queries.map((item: any, index: number) => (
+                <p key={`juris-${index}`}><b>{item.thesis}</b><br />{item.source}: {item.search_terms}</p>
+              ))}
+            </div>
+          )}
+          {!!result.recommendations?.length && (
+            <div className="integration-card">
+              <h3>Correções recomendadas</h3>
+              {result.recommendations.map((item: any, index: number) => (
+                <p key={`rec-${index}`}><b>{String(item.priority || "").toUpperCase()} — {item.action}</b><br />{item.reason}</p>
+              ))}
+            </div>
+          )}
+          {!!result.limitations?.length && (
+            <div className="integration-card">
+              <h3>Limitações da análise</h3>
+              {result.limitations.map((item: string, index: number) => <p key={`limit-${index}`}>{item}</p>)}
+            </div>
+          )}
           <p>
             <b>Regra aplicada:</b> nenhuma fonte, jurisprudência, fato ou nota
-            foi inventada. A versão corrigida somente poderá ser gerada depois
-            da extração confirmada.
+            foi inventada. Confira as recomendações antes do protocolo.
           </p>
         </section>
       )}

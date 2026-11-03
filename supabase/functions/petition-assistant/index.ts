@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2.57.4";
 import { dossierJsonRepairPrompt, parseModelJson } from "./json-utils.ts";
+import JSZip from "npm:jszip@3.10.1";
 
 // Estratégia Processual — lê a documentação do caso (PDF/imagem), monta o dossiê, avalia a chance de êxito,
 // emite parecer ao cliente, pede os documentos que faltam, indica o cálculo, ajuda na jurisprudência
@@ -46,6 +47,14 @@ Escolha recursos somente quando ajudarem a provar ou esclarecer algo no caso atu
 - Pareceres/planejamentos com índice, pendências, documentos necessários, cenários e recomendação final.
 O recurso visual deve ser textual e compatível com Word: títulos claros, tabelas simples, listas curtas e blocos de síntese. Não use emojis. Se os dados não sustentarem um quadro ou gráfico, não o crie.
 Antes de redigir, decida silenciosamente quais componentes do Banco de Peças Ouro realmente aumentam a compreensão e use somente esses.`;
+
+const LEGAL_REVIEW_FOCUS: Record<string, string> = {
+  "Tipografia": "Avalie legibilidade, hierarquia, parágrafos, tabelas, densidade, consistência formal e padrão visual. Em DOCX, declare o que ainda depende de conferência visual no Word.",
+  "Simulador do Adversário": "Atue como advogado da parte contrária: preliminares, impugnações, versões alternativas, ataques às provas e aos pedidos; depois indique como antecipar cada defesa.",
+  "Jurisprudência": "Extraia teses que precisam de apoio e termos de pesquisa. Nunca invente julgados, números, relatorias, súmulas ou citações.",
+  "Prova × Pedido": "Relacione cada pedido aos fatos, provas existentes, lacunas probatórias e risco de indeferimento.",
+  "Raio-X do Protocolo": "Revise competência, partes, fatos, fundamentos, pedidos, tutela, valor da causa, provas, anexos, coerência, riscos e itens impeditivos do protocolo.",
+};
 
 
 const MARITAL: Record<string, string> = { single: "solteiro(a)", married: "casado(a)", divorced: "divorciado(a)", widowed: "viúvo(a)", separated: "separado(a)" };
@@ -149,6 +158,37 @@ function toBase64(bytes: Uint8Array) {
   const chunk = 0x8000;
   for (let i = 0; i < bytes.length; i += chunk) bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
   return btoa(bin);
+}
+
+const xmlDecode = (s: string) => s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&apos;/g, "'");
+const xmlEncode = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+const paragraphText = (xml: string) => xmlDecode([...xml.matchAll(/<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g)].map((m) => m[1]).join(""));
+
+async function improveDocx(bytes: Uint8Array, changes: any[], highlight: boolean) {
+  const zip = await JSZip.loadAsync(bytes);
+  const entry = zip.file("word/document.xml");
+  if (!entry) throw new Error("O Word enviado não possui conteúdo editável.");
+  let xml = await entry.async("text");
+  const usable = (Array.isArray(changes) ? changes : []).filter((c: any) => String(c?.antes || "").trim() && String(c?.depois || "").trim());
+  let applied = 0;
+  xml = xml.replace(/<w:p(?:\s[^>]*)?>[\s\S]*?<\/w:p>/g, (paragraph) => {
+    let text = paragraphText(paragraph);
+    if (!text) return paragraph;
+    let changed = false;
+    for (const c of usable) {
+      const before = String(c.antes).trim(), after = String(c.depois).trim();
+      if (text.includes(before)) { text = text.replace(before, after); changed = true; applied++; }
+    }
+    if (!changed) return paragraph;
+    const open = paragraph.match(/^<w:p(?:\s[^>]*)?>/)?.[0] || "<w:p>";
+    const pPr = paragraph.match(/<w:pPr>[\s\S]*?<\/w:pPr>/)?.[0] || "";
+    const rPrRaw = paragraph.match(/<w:rPr>[\s\S]*?<\/w:rPr>/)?.[0] || "<w:rPr></w:rPr>";
+    const rPr = highlight ? rPrRaw.replace("</w:rPr>", '<w:highlight w:val="yellow"/></w:rPr>') : rPrRaw;
+    return `${open}${pPr}<w:r>${rPr}<w:t xml:space="preserve">${xmlEncode(text)}</w:t></w:r></w:p>`;
+  });
+  if (!applied) return { bytes, applied: 0 };
+  zip.file("word/document.xml", xml);
+  return { bytes: await zip.generateAsync({ type: "uint8array", compression: "DEFLATE" }), applied };
 }
 
 async function loadFiles(a: any, orgId: string, ids: string[]) {
@@ -360,6 +400,79 @@ Deno.serve(async (req) => {
     if (!key) return json({ ok: false, error: "Google Gemini não está configurado em Integrações." }, 503);
     // Modelos em ordem de preferência; o Google aposenta versões com frequência, então há alias e reserva.
     const models = [...new Set([Deno.env.get("PETITION_MODEL"), Deno.env.get("GEMINI_MODEL"), "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-flash-lite"].map((m) => String(m || "").trim()).filter(Boolean))];
+
+    if (action === "typography_improve") {
+      const path = String(b.path || "");
+      const fileName = String(b.file_name || "peca.docx").slice(0, 240);
+      const pieceType = String(b.piece_type || "Petição").slice(0, 80);
+      const instructions = String(b.instructions || "").trim().slice(0, 6000);
+      if (!path.startsWith(`${orgId}/tipografia-entrada/`) || !/\.docx$/i.test(fileName)) return json({ ok: false, error: "Arquivo Word inválido para este escritório." }, 400);
+      const { data: input, error: inputError } = await a.storage.from(BUCKET).download(path);
+      if (inputError || !input) return json({ ok: false, error: "Não foi possível abrir a peça enviada." }, 404);
+      const original = new Uint8Array(await input.arrayBuffer());
+      if (!original.length || original.length > 20 * 1024 * 1024) return json({ ok: false, error: "A peça está vazia ou excede 20 MB." }, 400);
+      const inputZip = await JSZip.loadAsync(original);
+      const inputXml = await inputZip.file("word/document.xml")?.async("text");
+      const inputText = inputXml ? xmlDecode(inputXml.replace(/<w:tab\/?\s*>/g, "\t").replace(/<w:br\/?\s*>/g, "\n").replace(/<\/w:p>/g, "\n").replace(/<[^>]+>/g, "").replace(/\n{3,}/g, "\n\n")).trim().slice(0, 100000) : "";
+      if (inputText.length < 100) return json({ ok: false, error: "Não foi possível extrair texto suficiente desta peça Word." }, 422);
+
+      const { data: refs } = await a.from("typography_references")
+        .select("name,piece_type,style_profile,rating,is_office_standard")
+        .eq("org_id", orgId).eq("extraction_status", "ready")
+        .order("is_office_standard", { ascending: false }).order("rating", { ascending: false }).limit(20);
+      const references = (refs || []).filter((r: any) => r.piece_type === pieceType || r.piece_type === "Outros").slice(0, 6).map((r: any) => ({
+        nome: r.name,
+        tipo: r.piece_type,
+        texto: String(r.style_profile?.texto_extraido || "").slice(0, 16000),
+      })).filter((r: any) => r.texto.length > 100);
+      if (!references.length) return json({ ok: false, error: `Não há modelos legíveis de ${pieceType} cadastrados na Tipografia. Adicione ao menos uma peça-modelo antes de revisar.` }, 422);
+
+      const prompt = `Você é o agente de revisão de peças da LexOffice. Revise a PEÇA ATUAL comparando-a com os MODELOS APROVADOS do escritório. Os modelos servem somente para aprender estrutura, clareza, técnica, organização e estilo de escrita da Dra. Suzanne; nunca copie nomes, fatos, datas, valores, números processuais ou pedidos de outro caso.\n\nTIPO: ${pieceType}\nORIENTAÇÃO DA ADVOGADA: ${instructions || "melhorar técnica, clareza, objetividade e coerência, sem mudar fatos nem pedidos sem base"}\n\nREGRAS:\n- Preserve integralmente os fatos, nomes, datas, valores e teses da peça atual.\n- Corrija gramática, coesão, redundância, organização, fundamentação já sustentada pelo caso e formulação dos pedidos.\n- Não invente legislação, jurisprudência, fatos, provas, números ou qualificações.\n- Cada campo \"antes\" deve ser uma cópia LITERAL e contínua de um trecho da peça atual para que o Word possa substituí-lo.\n- Cada substituição deve ter contexto suficiente para ser única, preferencialmente um parágrafo completo.\n- Não use markdown. Não reescreva só por preferência; altere quando houver ganho real.\n- Máximo 30 alterações.\n\nPEÇA ATUAL:\n${inputText}\n\nMODELOS APROVADOS (somente estilo):\n${references.map((r: any, i: number) => `MODELO ${i + 1} — ${r.nome}\n${r.texto}`).join("\n\n")}\n\nResponda SOMENTE JSON válido: {"resumo":"","alteracoes":[{"op":"replace","antes":"","depois":"","motivo":""}]}`;
+      const generated: any = await gemini(key, models, { contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: 0.2, maxOutputTokens: 12000, responseMimeType: "application/json" } }, Date.now() + 140000);
+      if (!generated.ok) return json({ ok: false, error: `Não foi possível revisar com o Gemini agora (${String(generated.detail || generated.status).slice(0, 220)}). Tente novamente.` }, 502);
+      let review: any;
+      try { review = parseModelJson(generated.text); } catch { return json({ ok: false, error: "O Gemini concluiu a leitura, mas devolveu as alterações em formato incompleto. Tente novamente." }, 422); }
+      const changes = (Array.isArray(review?.alteracoes) ? review.alteracoes : []).filter((c: any) => c?.op === "replace" && String(c?.antes || "").trim() && String(c?.depois || "").trim()).slice(0, 30);
+      const improved = await improveDocx(original, changes, b.highlight !== false);
+      if (!improved.applied) return json({ ok: true, unchanged: true, resumo: review?.resumo || "Nenhuma alteração aplicável foi encontrada.", alteracoes: [], modelos: references.map((r: any) => r.nome), model: generated.model });
+      const stem = fileName.replace(/\.docx$/i, "").replace(/[^a-zA-Z0-9._-]/g, "_");
+      const outputPath = `${orgId}/tipografia-saida/${crypto.randomUUID()}-${stem}-REVISADA.docx`;
+      const { error: outputError } = await a.storage.from(BUCKET).upload(outputPath, improved.bytes, { contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", upsert: false });
+      if (outputError) throw new Error(`A revisão foi concluída, mas o Word não pôde ser salvo: ${outputError.message}`);
+      const { data: signed } = await a.storage.from(BUCKET).createSignedUrl(outputPath, 900, { download: `${stem}-REVISADA.docx` });
+      return json({ ok: true, unchanged: false, url: signed?.signedUrl || null, resumo: review?.resumo || "Peça revisada conforme os modelos do escritório.", alteracoes: changes.slice(0, improved.applied), alteracoes_aplicadas: improved.applied, modelos: references.map((r: any) => r.nome), model: generated.model });
+    }
+
+    if (action === "legal_review") {
+      const tab = String(b.tab || "");
+      const path = String(b.file_path || "");
+      const reviewId = String(b.review_id || "");
+      const fileName = String(b.file_name || path.split("/").pop() || "peça");
+      if (!LEGAL_REVIEW_FOCUS[tab]) return json({ ok: false, error: "Módulo de revisão inválido." }, 400);
+      if (!path.startsWith(`${orgId}/`)) return json({ ok: false, error: "Arquivo inválido para este escritório." }, 403);
+      const { data: input, error: inputError } = await a.storage.from("legal-review-files").download(path);
+      if (inputError || !input) return json({ ok: false, error: "Não foi possível abrir o arquivo privado para análise." }, 404);
+      const bytes = new Uint8Array(await input.arrayBuffer());
+      if (!bytes.length || bytes.length > 20 * 1024 * 1024) return json({ ok: false, error: "O arquivo está vazio ou excede 20 MB." }, 400);
+      const isPdf = /\.pdf$/i.test(fileName) || input.type === "application/pdf";
+      const prompt = `Você é revisor(a) jurídico(a) sênior brasileiro(a) da LexOffice. Analise a peça no módulo "${tab}".\nFOCO: ${LEGAL_REVIEW_FOCUS[tab]}\nREGRAS: use somente o conteúdo lido; nunca invente fatos, provas, legislação, jurisprudência, notas ou dados processuais; quando algo não puder ser confirmado, diga "não confirmado"; diferencie impedimento, risco e melhoria; a nota de 0 a 100 mede a prontidão neste foco e deve ser justificada.\nResponda SOMENTE JSON válido: {"score":0,"status":"apto|apto_com_ajustes|nao_apto","summary":"","blocking_issues":[{"title":"","detail":"","evidence":""}],"risks":[{"title":"","detail":"","evidence":""}],"strengths":[{"title":"","detail":"","evidence":""}],"recommendations":[{"priority":"alta|media|baixa","action":"","reason":""}],"proof_request_matrix":[{"request":"","supporting_facts":"","existing_evidence":"","missing_evidence":"","risk":""}],"jurisprudence_queries":[{"thesis":"","search_terms":"","source":"TJMG|STJ|STF|outra"}],"limitations":[""]}`;
+      const parts: any[] = [{ text: prompt }];
+      if (isPdf) parts.push({ inline_data: { mime_type: "application/pdf", data: toBase64(bytes) } });
+      else {
+        const zip = await JSZip.loadAsync(bytes);
+        const xml = await zip.file("word/document.xml")?.async("text");
+        const text = xml ? xmlDecode(xml.replace(/<w:tab\/?\s*>/g, "\t").replace(/<w:br\/?\s*>/g, "\n").replace(/<\/w:p>/g, "\n").replace(/<[^>]+>/g, "").replace(/\n{3,}/g, "\n\n")).trim() : "";
+        if (text.length < 40) return json({ ok: false, error: "Não foi possível extrair texto suficiente do DOCX." }, 422);
+        parts.push({ text: `\nCONTEÚDO DA PEÇA:\n${text.slice(0, 120000)}` });
+      }
+      const generated: any = await gemini(key, models, { contents: [{ role: "user", parts }], generationConfig: { temperature: 0.1, maxOutputTokens: 8192, responseMimeType: "application/json" } }, Date.now() + 140000);
+      if (!generated.ok) return json({ ok: false, error: `O Gemini não concluiu a revisão agora (${String(generated.detail || generated.status).slice(0, 220)}). Tente novamente.` }, 502);
+      let result: any;
+      try { result = parseModelJson(generated.text); } catch { return json({ ok: false, error: "A revisão voltou incompleta. Tente novamente." }, 422); }
+      result = { ...result, model: generated.model, tab, file_name: fileName };
+      if (reviewId) await a.from("legal_document_reviews").update({ status: "analyzed", result }).eq("id", reviewId).eq("org_id", orgId);
+      return json({ ok: true, result, model: generated.model });
+    }
 
     if (action === "analyze") {
       const ids = Array.isArray(b.document_ids) ? b.document_ids.map(String) : [];
