@@ -26,6 +26,7 @@ import {
   Printer,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { jsPDF } from "jspdf";
 import { fields as calcFields, localOnly } from "./Calculators";
 import "./integrations.css";
 import "./document-library.css";
@@ -155,6 +156,16 @@ const calculationRows = (text: string) =>
       ? { label: line.slice(0, separator).trim(), value: line.slice(separator + 1).trim() }
       : { label: "Resultado", value: line };
   });
+const pdfPlainLines = (value: any, prefix = ""): string[] => {
+  if (value === null || value === undefined || value === "") return [];
+  if (Array.isArray(value)) return value.flatMap((item) => typeof item === "object" ? pdfPlainLines(item, prefix) : [`• ${String(item)}`]);
+  if (typeof value === "object") return Object.entries(value).flatMap(([key, item]) => {
+    const label = pdfLabel(key);
+    if (item && typeof item === "object") return [`${prefix}${label}`, ...pdfPlainLines(item, `${prefix}  `)];
+    return [`${prefix}${label}: ${typeof item === "boolean" ? (item ? "Sim" : "Não") : String(item ?? "")}`];
+  });
+  return [`${prefix}${String(value)}`];
+};
 const daysTo = (iso?: string | null) =>
   iso && /^\d{4}-\d{2}-\d{2}/.test(iso)
     ? Math.ceil(
@@ -1031,16 +1042,26 @@ export default function PetitionAssistant() {
     if (!memorial.trim()) return;
     const clientName = client?.name || prospectName || "Não informado";
     const processNumber = proc?.cnj_number || proc?.internal_number || "Caso novo";
-    const popup = window.open("", "_blank");
-    if (!popup) {
-      setNotice({ kind: "error", text: "Autorize pop-ups para gerar o PDF da memória de cálculo." });
-      return;
-    }
-    const parameterLines = calcParameters.map((row) => `<tr><td>${pdfEscape(row.label)}</td><td colspan="2">${pdfEscape(row.value)}</td></tr>`).join("");
-    const resultLines = calcResults.map((row) => `<tr class="${/total|valor considerado/i.test(row.label) ? "total" : ""}"><td>${pdfEscape(row.label)}</td><td>${pdfEscape(resultCriterion(row.label))}</td><td>${pdfEscape(row.value)}</td></tr>`).join("");
-    popup.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Memória de cálculo — ${pdfEscape(calcName)}</title><style>@page{size:A4;margin:18mm 16mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#1c1b1b;font-size:10.5pt;line-height:1.5}header{border-bottom:3px double #9b741c;padding-bottom:12px;margin-bottom:22px}h1{font:700 21pt Georgia,serif;margin:0}header p{color:#6b1328;font-weight:700;margin:4px 0}h2{font:700 14pt Georgia,serif;color:#6b1328;margin-top:22px}table{width:100%;border-collapse:collapse;margin-top:9px}th{background:#3b3a3c;color:#fff;text-align:left}th,td{border:1px solid #aaa;padding:8px 9px;vertical-align:top}td:last-child{text-align:right}.total{font-weight:700;background:#eee4e7}.notice{margin-top:22px;border-left:4px solid #6b1328;background:#f5f1f2;padding:10px 12px}.signature{margin-top:38px;text-align:center}.line{width:270px;border-top:1px solid #333;margin:0 auto 5px}</style></head><body><header><h1>Memória discriminada de cálculo</h1><p>Suzanne Figueiredo — Advocacia e Soluções Jurídicas</p></header><table><tr><th>Cliente</th><td>${pdfEscape(clientName)}</td><th>Processo</th><td>${pdfEscape(processNumber)}</td></tr><tr><th>Calculadora</th><td>${pdfEscape(calcName)}</td><th>Emissão</th><td>${new Date().toLocaleDateString("pt-BR")}</td></tr></table><h2>1. Parâmetros informados</h2><table><thead><tr><th>Parâmetro</th><th colspan="2">Valor utilizado</th></tr></thead><tbody>${parameterLines}</tbody></table><h2>2. Demonstrativo do cálculo</h2><table><thead><tr><th>Descrição</th><th>Fórmula ou critério aplicado</th><th>Resultado</th></tr></thead><tbody>${resultLines}</tbody></table><div class="notice"><b>Conferência profissional obrigatória.</b> O demonstrativo foi elaborado com os dados informados na LexOffice e deve ser confrontado com os documentos e o título jurídico antes da utilização processual.</div><div class="signature"><div class="line"></div>Dra. Suzanne Figueiredo</div></body></html>`);
-    popup.document.close();
-    window.setTimeout(() => { popup.focus(); popup.print(); }, 500);
+    const pdf = new jsPDF({ unit: "mm", format: "a4" });
+    let y = 18;
+    const ensure = (height = 10) => { if (y + height > 280) { pdf.addPage(); y = 18; } };
+    const write = (text: string, size = 10, bold = false, width = 178) => {
+      pdf.setFont("helvetica", bold ? "bold" : "normal"); pdf.setFontSize(size);
+      const rows = pdf.splitTextToSize(text, width); ensure(rows.length * 5 + 2); pdf.text(rows, 16, y); y += rows.length * 5 + 2;
+    };
+    pdf.setTextColor(107, 19, 40); write("MEMÓRIA DISCRIMINADA DE CÁLCULO", 17, true);
+    pdf.setTextColor(35, 35, 35); write("Suzanne Figueiredo — Advocacia e Soluções Jurídicas", 10, true);
+    pdf.setDrawColor(155, 116, 28); pdf.line(16, y, 194, y); y += 8;
+    write(`Cliente: ${clientName}`, 10, true); write(`Processo: ${processNumber}`); write(`Calculadora: ${calcName}`); write(`Emissão: ${new Date().toLocaleDateString("pt-BR")}`); y += 3;
+    pdf.setTextColor(107, 19, 40); write("1. PARÂMETROS INFORMADOS", 12, true); pdf.setTextColor(35, 35, 35);
+    calcParameters.forEach((row) => write(`${row.label}: ${row.value}`)); y += 3;
+    pdf.setTextColor(107, 19, 40); write("2. DEMONSTRATIVO DO CÁLCULO", 12, true); pdf.setTextColor(35, 35, 35);
+    calcResults.forEach((row) => { write(row.label, 10, true); write(`Critério: ${resultCriterion(row.label)}`, 9); write(`Resultado: ${row.value}`, 10, true); y += 2; });
+    ensure(28); pdf.setFillColor(245, 241, 242); pdf.rect(16, y, 178, 24, "F"); y += 6;
+    write("Conferência profissional obrigatória. O demonstrativo foi elaborado com os dados informados na LexOffice e deve ser confrontado com os documentos e o título jurídico antes da utilização processual.", 8, false, 168);
+    const filename = safe(`memoria-calculo-${clientName}-${calcName}`).replace(/_+$/g, "") || "memoria-calculo";
+    pdf.save(`${filename}.pdf`);
+    setNotice({ kind: "ok", text: "PDF da memória de cálculo baixado." });
   }
 
   function generateJurimetriaPdf() {
@@ -1058,16 +1079,26 @@ export default function PetitionAssistant() {
       analise: dossier,
       parecer: opinion || undefined,
     };
-    const popup = window.open("", "_blank");
-    if (!popup) {
-      setNotice({ kind: "error", text: "O navegador bloqueou a janela do PDF. Autorize pop-ups para a LexOffice e tente novamente." });
-      return;
-    }
-    popup.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${pdfEscape(title)}</title><style>
-      @page{size:A4;margin:18mm 16mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#171717;font-size:11pt;line-height:1.55;margin:0}header{border-bottom:3px double #9b741c;padding-bottom:12px;margin-bottom:20px}h1{font-family:Georgia,serif;font-size:22pt;margin:0;color:#231f20}header p{margin:4px 0 0;color:#68521e;font-weight:700}h2{font-family:Georgia,serif;font-size:16pt;border-bottom:1px solid #c9ae68;padding-bottom:5px;margin:22px 0 9px}h3{font-size:12pt;color:#6b1328;margin:16px 0 5px}h4{font-size:11pt;margin:12px 0 4px}p{margin:3px 0 8px;text-align:justify}ul{margin:5px 0 10px;padding-left:22px}li{margin-bottom:4px}section{break-inside:avoid}.notice{margin-top:24px;padding:10px 12px;border:1px solid #c9ae68;background:#faf7ef;font-size:9pt}footer{margin-top:26px;border-top:1px solid #c9ae68;padding-top:8px;font-size:9pt;color:#555}@media print{button{display:none}}
-    </style></head><body><header><h1>${pdfEscape(title)}</h1><p>Suzanne Figueiredo — Advocacia e Soluções Jurídicas</p></header>${pdfContent(report)}<div class="notice"><b>Uso interno do escritório.</b> Análise produzida como apoio técnico e sujeita à conferência jurídica antes de qualquer utilização.</div><footer>LexOffice · Relatório de Jurimetria</footer></body></html>`);
-    popup.document.close();
-    window.setTimeout(() => { popup.focus(); popup.print(); }, 500);
+    const pdf = new jsPDF({ unit: "mm", format: "a4" });
+    let y = 18;
+    const ensure = (height = 10) => { if (y + height > 280) { pdf.addPage(); y = 18; } };
+    const write = (text: string, size = 10, bold = false, indent = 0) => {
+      pdf.setFont("helvetica", bold ? "bold" : "normal"); pdf.setFontSize(size);
+      const rows = pdf.splitTextToSize(text, 178 - indent); ensure(rows.length * 5 + 2); pdf.text(rows, 16 + indent, y); y += rows.length * 5 + 2;
+    };
+    pdf.setTextColor(107, 19, 40); write(title.toUpperCase(), 17, true);
+    pdf.setTextColor(35, 35, 35); write("Suzanne Figueiredo — Advocacia e Soluções Jurídicas", 10, true);
+    pdf.setDrawColor(155, 116, 28); pdf.line(16, y, 194, y); y += 8;
+    pdfPlainLines(report).forEach((line) => {
+      const heading = !line.includes(":") && !line.startsWith("•");
+      if (heading) { y += 2; pdf.setTextColor(107, 19, 40); write(line, 11, true); pdf.setTextColor(35, 35, 35); }
+      else write(line, 9.5, /^\s{0,2}[^:]+:/.test(line), line.startsWith("  ") ? 4 : 0);
+    });
+    ensure(26); y += 4; pdf.setFillColor(250, 247, 239); pdf.rect(16, y, 178, 22, "F"); y += 6;
+    write("USO INTERNO DO ESCRITÓRIO. Análise produzida como apoio técnico e sujeita à conferência jurídica antes de qualquer utilização.", 8, true);
+    const filename = safe(`jurimetria-${client?.name || prospectName || "caso"}`).replace(/_+$/g, "") || "jurimetria";
+    pdf.save(`${filename}.pdf`);
+    setNotice({ kind: "ok", text: "PDF da Jurimetria baixado." });
   }
 
   return (
