@@ -199,25 +199,6 @@ export default function LexSignPanel() {
       setReview(null); await loadReqs();
     } catch (e: any) { setNotice(e?.message || 'Falha ao registrar a decisão.'); } finally { setBusy(''); }
   }
-  async function downloadOriginals() {
-    if (!supabase || !docIds.length) return;
-    setBusy('download-originals'); setNotice('');
-    try {
-      const selected = docs.filter(d => docIds.includes(d.id));
-      for (const doc of selected) {
-        const { data, error } = await supabase.storage.from('lexoffice-documents').download(doc.file_path);
-        if (error || !data) throw new Error(`Não foi possível baixar "${doc.name}": ${error?.message || 'arquivo indisponível'}`);
-        const url = URL.createObjectURL(data);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = /\.pdf$/i.test(doc.name) ? doc.name : `${doc.name}.pdf`;
-        document.body.appendChild(a); a.click(); a.remove();
-        window.setTimeout(() => URL.revokeObjectURL(url), 30000);
-      }
-      setNotice(`Download iniciado para ${selected.length} documento(s). O navegador poderá solicitar autorização para múltiplos arquivos.`);
-    } catch (e: any) { setNotice(e?.message || 'Falha ao baixar documentos.'); }
-    finally { setBusy(''); }
-  }
   async function downloadSigned(r: Req) {
     if (!supabase || !r.signed_path) return;
     const { data, error } = await supabase.storage.from('lexoffice-documents').download(r.signed_path);
@@ -287,28 +268,27 @@ export default function LexSignPanel() {
       </div>
       <div style={S.upload}>
         <span style={{ fontSize: "var(--lx-font-sm)", color: "var(--lx-text)" }}>Adicionar PDFs do computador à ficha do cliente:</span>
-        <label style={{ ...S.small, opacity: !clientId || uploading ? 0.5 : 1, cursor: !clientId || uploading ? 'not-allowed' : 'pointer' }}>
+        <label style={{ ...S.small, opacity: !clientId || uploading ? 0.72 : 1, cursor: !clientId || uploading ? 'not-allowed' : 'pointer' }}>
           {uploading ? 'Enviando arquivos...' : 'Escolher PDFs'}
           <input type="file" accept="application/pdf,.pdf" multiple hidden disabled={!clientId || uploading} onChange={(e) => { addUploads(e.target.files); e.target.value = ''; }} />
         </label>
         <small style={{ color: "var(--lx-text)" }}>Pode escolher vários de uma vez; eles entram marcados na lista acima.</small>
       </div>
       <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
-        <button style={{ ...S.btn, opacity: !docIds.length || !phone || busy || uploading ? 0.5 : 1 }} disabled={!docIds.length || !phone || !!busy || uploading} onClick={() => send('whatsapp')}>
+        <button style={{ ...S.btn, opacity: !docIds.length || !phone || busy || uploading ? 0.72 : 1 }} disabled={!docIds.length || !phone || !!busy || uploading} onClick={() => send('whatsapp')}>
           {busy === 'send' ? 'Enviando...' : 'Assinatura LEX: enviar pelo WhatsApp'}
         </button>
-        <button style={{ ...S.btnAlt, opacity: !docIds.length || busy || uploading ? 0.5 : 1 }} disabled={!docIds.length || !!busy || uploading} onClick={() => send('copy')}>
-          {busy === 'send-copy' ? 'Gerando...' : 'Gerar link único para assinatura'}
+        <button style={{ ...S.btnAlt, opacity: !docIds.length || !phone || busy || uploading ? 0.72 : 1 }} disabled={!docIds.length || !phone || !!busy || uploading} onClick={() => send('copy')}>
+          {busy === 'send-copy' ? 'Gerando...' : 'Assinatura LEX: copiar mensagem com link'}
         </button>
-        <button type="button" style={{ ...S.btnAlt, opacity: !docIds.length || busy || uploading ? 0.5 : 1 }} disabled={!docIds.length || !!busy || uploading} onClick={downloadOriginals}>Baixar PDFs selecionados ({docIds.length})</button>
-        <button style={{ ...S.btnAlt, opacity: !docIds.length || !phone || busy || uploading ? 0.5 : 1 }} disabled={!docIds.length || !phone || !!busy || uploading} onClick={sendWhatsAppOnly}>
+        <button style={{ ...S.btnAlt, opacity: !docIds.length || !phone || busy || uploading ? 0.72 : 1 }} disabled={!docIds.length || !phone || !!busy || uploading} onClick={sendWhatsAppOnly}>
           {busy === 'whatsapp-only' ? 'Enviando PDFs...' : 'Enviar PDFs pelo WhatsApp (sem assinatura LEX)'}
         </button>
       </div>
       <small style={{ ...S.p, display: 'block', marginTop: 8 }}>"Enviar pelo WhatsApp" manda a mensagem ao número cadastrado do cliente. "Copiar mensagem" não envia nada: copia o texto pronto (link, código e explicação da assinatura com biometria facial) para você colar onde quiser. A última opção apenas entrega os arquivos no WhatsApp. Ela não cria solicitação, biometria ou assinatura dentro da Lex.</small>
       {notice && <p style={S.notice}>{notice}</p>}
       {link && (
-        <div style={{ ...S.linkBox, flexDirection: 'column', alignItems: 'stretch' }}><strong>Link único de assinatura</strong><input aria-label="Link único de assinatura" readOnly value={link} onFocus={(e) => e.currentTarget.select()} style={{ ...S.input, width: '100%' }} />
+        <div style={{ ...S.linkBox, flexDirection: 'column', alignItems: 'stretch' }}>
           {shareMsg && <textarea readOnly value={shareMsg} rows={8} style={{ ...S.input, width: '100%', resize: 'vertical', fontFamily: 'inherit' }} onFocus={(e) => e.currentTarget.select()} />}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {shareMsg && <button style={S.small} onClick={() => copyText(shareMsg, 'Mensagem copiada (link, código e explicação da biometria facial).')}>Copiar mensagem completa</button>}
@@ -389,13 +369,13 @@ const S: Record<string, React.CSSProperties> = {
   pill: { fontSize: "var(--lx-font-xs)", letterSpacing: '.08em', color: "var(--lx-accent)", fontWeight: 700 },
   h2: { margin: '6px 0 6px', fontSize: "var(--lx-section-size)" },
   h3: { margin: '22px 0 10px', fontSize: "var(--lx-font-lg)", color: "var(--lx-accent)", textTransform: 'uppercase', letterSpacing: '.06em' },
-  p: { margin: 0, color: "var(--lx-text)", fontSize: "var(--lx-font-md)", lineHeight: 1.5 },
+  p: { margin: 0, color: "var(--lx-text)", fontSize: "max(var(--lx-font-md),1rem)", lineHeight: 1.65 },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 14, margin: '10px 0 14px' },
-  label: { display: 'flex', flexDirection: 'column', gap: 6, fontSize: "var(--lx-font-sm)", color: "var(--lx-text)" },
+  label: { display: 'flex', flexDirection: 'column', gap: 7, fontSize: "max(var(--lx-font-sm),.95rem)", fontWeight: 700, color: "var(--lx-text)" },
   input: { background: "var(--lx-surface-raised)", border: "1px solid var(--lx-border)", borderRadius: "var(--lx-radius-md)", padding: '10px 12px', color: 'inherit', fontSize: "var(--lx-font-md)" },
-  btn: { background: "var(--lx-accent-soft)", color: "var(--lx-text)", border: 0, borderRadius: "var(--lx-radius-md)", padding: '12px 18px', fontWeight: 600, fontSize: "var(--lx-font-lg)", cursor: 'pointer' },
-  btnAlt: { background: 'transparent', color: "var(--lx-accent)", border: "1px solid var(--lx-accent)", borderRadius: "var(--lx-radius-md)", padding: '12px 18px', fontWeight: 600, fontSize: "var(--lx-font-lg)", cursor: 'pointer' },
-  small: { background: "var(--lx-surface-raised)", color: 'inherit', border: "1px solid var(--lx-border)", borderRadius: "var(--lx-radius-md)", padding: '6px 10px', fontSize: "var(--lx-font-xs)", cursor: 'pointer', whiteSpace: 'nowrap' },
+  btn: { background: "#6b1328", color: "#fff", border: "1px solid #a54960", borderRadius: "var(--lx-radius-md)", padding: '13px 18px', fontWeight: 800, fontSize: "max(var(--lx-font-md),1rem)", cursor: 'pointer', textShadow: '0 1px 1px #000' },
+  btnAlt: { background: "var(--lx-surface-raised)", color: "var(--lx-text)", border: "2px solid #8f2942", borderRadius: "var(--lx-radius-md)", padding: '12px 18px', fontWeight: 800, fontSize: "max(var(--lx-font-md),1rem)", cursor: 'pointer' },
+  small: { background: "var(--lx-surface-raised)", color: "var(--lx-text)", border: "1px solid var(--lx-border)", borderRadius: "var(--lx-radius-md)", padding: '8px 11px', fontWeight: 700, fontSize: "max(var(--lx-font-xs),.9rem)", cursor: 'pointer', whiteSpace: 'nowrap' },
   notice: { margin: '10px 0 0', color: "var(--lx-text)", fontSize: "var(--lx-font-md)" },
   linkBox: { display: 'flex', gap: 10, alignItems: 'center', marginTop: 10, padding: 10, borderRadius: "var(--lx-radius-md)", background: "var(--lx-surface-raised)", fontSize: "var(--lx-font-xs)" },
   row: { display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', padding: '10px 12px', borderRadius: "var(--lx-radius-md)", background: "var(--lx-surface-raised)", border: "1px solid var(--lx-border)" },
