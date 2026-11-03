@@ -292,7 +292,7 @@ Deno.serve(async req=>{
     const doHandoff=async(h:{reason:string,critical:boolean})=>{
       const office=String(q.customer_facing_office||'o escritório');
       const txt=h.critical
-        ?`Entendi, e sinto muito que esteja passando por isso. Já avisei a Dra. Suzanne com prioridade máxima e ela vai falar com você o quanto antes. Se houver risco imediato, ligue 190.`
+        ?`Sua mensagem indica uma situação urgente e será encaminhada para análise prioritária. Se houver risco imediato à sua segurança, ligue 190. Não aguarde uma resposta por aqui para buscar proteção.`
         :`Entendi. Vou pedir para a Dra. Suzanne, de ${office}, falar com você diretamente.`;
       const sent=await send(txt,`handoff:${conversationId}:${Date.now()}`);
       if(!dryRun){
