@@ -199,6 +199,25 @@ export default function LexSignPanel() {
       setReview(null); await loadReqs();
     } catch (e: any) { setNotice(e?.message || 'Falha ao registrar a decisão.'); } finally { setBusy(''); }
   }
+  async function downloadOriginals() {
+    if (!supabase || !docIds.length) return;
+    setBusy('download-originals'); setNotice('');
+    try {
+      const selected = docs.filter(d => docIds.includes(d.id));
+      for (const doc of selected) {
+        const { data, error } = await supabase.storage.from('lexoffice-documents').download(doc.file_path);
+        if (error || !data) throw new Error(`Não foi possível baixar "${doc.name}": ${error?.message || 'arquivo indisponível'}`);
+        const url = URL.createObjectURL(data);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = /\.pdf$/i.test(doc.name) ? doc.name : `${doc.name}.pdf`;
+        document.body.appendChild(a); a.click(); a.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 30000);
+      }
+      setNotice(`Download iniciado para ${selected.length} documento(s). O navegador poderá solicitar autorização para múltiplos arquivos.`);
+    } catch (e: any) { setNotice(e?.message || 'Falha ao baixar documentos.'); }
+    finally { setBusy(''); }
+  }
   async function downloadSigned(r: Req) {
     if (!supabase || !r.signed_path) return;
     const { data, error } = await supabase.storage.from('lexoffice-documents').download(r.signed_path);
@@ -278,9 +297,10 @@ export default function LexSignPanel() {
         <button style={{ ...S.btn, opacity: !docIds.length || !phone || busy || uploading ? 0.5 : 1 }} disabled={!docIds.length || !phone || !!busy || uploading} onClick={() => send('whatsapp')}>
           {busy === 'send' ? 'Enviando...' : 'Assinatura LEX: enviar pelo WhatsApp'}
         </button>
-        <button style={{ ...S.btnAlt, opacity: !docIds.length || !phone || busy || uploading ? 0.5 : 1 }} disabled={!docIds.length || !phone || !!busy || uploading} onClick={() => send('copy')}>
-          {busy === 'send-copy' ? 'Gerando...' : 'Assinatura LEX: copiar mensagem com link'}
+        <button style={{ ...S.btnAlt, opacity: !docIds.length || busy || uploading ? 0.5 : 1 }} disabled={!docIds.length || !!busy || uploading} onClick={() => send('copy')}>
+          {busy === 'send-copy' ? 'Gerando...' : 'Gerar link único para assinatura'}
         </button>
+        <button type="button" style={{ ...S.btnAlt, opacity: !docIds.length || busy || uploading ? 0.5 : 1 }} disabled={!docIds.length || !!busy || uploading} onClick={downloadOriginals}>Baixar PDFs selecionados ({docIds.length})</button>
         <button style={{ ...S.btnAlt, opacity: !docIds.length || !phone || busy || uploading ? 0.5 : 1 }} disabled={!docIds.length || !phone || !!busy || uploading} onClick={sendWhatsAppOnly}>
           {busy === 'whatsapp-only' ? 'Enviando PDFs...' : 'Enviar PDFs pelo WhatsApp (sem assinatura LEX)'}
         </button>
@@ -288,7 +308,7 @@ export default function LexSignPanel() {
       <small style={{ ...S.p, display: 'block', marginTop: 8 }}>"Enviar pelo WhatsApp" manda a mensagem ao número cadastrado do cliente. "Copiar mensagem" não envia nada: copia o texto pronto (link, código e explicação da assinatura com biometria facial) para você colar onde quiser. A última opção apenas entrega os arquivos no WhatsApp. Ela não cria solicitação, biometria ou assinatura dentro da Lex.</small>
       {notice && <p style={S.notice}>{notice}</p>}
       {link && (
-        <div style={{ ...S.linkBox, flexDirection: 'column', alignItems: 'stretch' }}>
+        <div style={{ ...S.linkBox, flexDirection: 'column', alignItems: 'stretch' }}><strong>Link único de assinatura</strong><input aria-label="Link único de assinatura" readOnly value={link} onFocus={(e) => e.currentTarget.select()} style={{ ...S.input, width: '100%' }} />
           {shareMsg && <textarea readOnly value={shareMsg} rows={8} style={{ ...S.input, width: '100%', resize: 'vertical', fontFamily: 'inherit' }} onFocus={(e) => e.currentTarget.select()} />}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {shareMsg && <button style={S.small} onClick={() => copyText(shareMsg, 'Mensagem copiada (link, código e explicação da biometria facial).')}>Copiar mensagem completa</button>}
