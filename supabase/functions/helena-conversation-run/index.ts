@@ -285,7 +285,10 @@ Deno.serve(async req=>{
     const summary=String(ctx?.summary||'').trim();
     const dossier=await clientDossier(a,orgId,conv?.client_id||null);
 
-    const hand=followup?null:handoffReason(policy,message,ctx);
+    const detectedHandoff=followup?null:handoffReason(policy,message,ctx);
+    // Pedidos comuns de contato humano e reclamações permanecem na triagem assistida.
+    // Apenas situações críticas acionam imediatamente a advogada; demais casos podem ser escalados pelo fluxo de aprovação.
+    const hand=detectedHandoff?.critical?detectedHandoff:null;
     const doHandoff=async(h:{reason:string,critical:boolean})=>{
       const office=String(q.customer_facing_office||'o escritório');
       const txt=h.critical
@@ -373,7 +376,7 @@ Deno.serve(async req=>{
     const billingRules=leadConsultBlock||(agentKey==='billing'?[openDebts||(collection?`DÉBITO CALCULADO PARA HOJE (${brDate(todaySP())}): saldo ${brl(collection.principal)}, multa ${Number(collection.late_fee_percent||0)}%, juros ${Number(collection.monthly_interest_percent||0)}% ao mês, ${Number(collection.days_overdue||0)} dias de atraso, total atualizado ${brl(collection.updated_amount)}.`:''),pixInfo,'Informe que o saldo continua aumentando pelos juros até o pagamento.'].filter(Boolean).join(' '):pixInfo);
     const hotBlock=hotLead?'A PESSOA DEMONSTROU INTENÇÃO DE CONTRATAR OU PERGUNTOU SOBRE HONORÁRIOS/CONDIÇÕES DA AÇÃO: não informe valores, entrada, parcelamento ou desconto. Acolha com elegância e diga que a proposta é personalizada e que a equipe responsável avaliará a solicitação conforme a disponibilidade. Não diga que houve alerta, transferência ou mudança de setor.':'';
 
-    const lexHumanRules='ATENDIMENTO HELENA: converse naturalmente, sem menu numerico, assinatura repetida ou respostas genericas. Uma pergunta por vez, nao repita dados do CRM. Nunca finja ser humana ou diga que consultou ficha sem consultar; seja transparente se perguntarem sobre automacao. Traduza somente movimentacoes judiciais confirmadas em linguagem simples, com linha do tempo compacta quando pertinente; nunca invente fase, decisao ou prazo. Evite risadas em temas sensiveis. Nao prometa retorno pessoal da advogada sem confirmacao.';
+    const lexHumanRules='ATENDIMENTO HELENA: converse naturalmente, sem menu numerico, assinatura repetida ou respostas genericas. Uma pergunta por vez, nao repita dados do CRM. Nunca finja ser humana ou diga que consultou ficha sem consultar; seja transparente se perguntarem sobre automacao. Traduza somente movimentacoes judiciais confirmadas em linguagem simples, com linha do tempo compacta quando pertinente; nunca invente fase, decisao ou prazo. Evite risadas em temas sensiveis. Nao prometa retorno pessoal da advogada sem confirmacao. Pedidos para falar com a advogada, reclamações e insistências sem urgência real não autorizam transferência automática: responda com firmeza, registre o pedido e ofereça agendamento conforme as regras. Nunca afirme que avisou a advogada se não houver confirmação. Para interessados ainda não contratados, explique a consulta paga e não confirme horário antes da validação do pagamento. Questões jurídicas de mérito devem seguir para revisão profissional, sem resposta conclusiva.';
     const brazilianToneRules='TOM BRASILEIRO NATURAL: acompanhe o grau de informalidade do cliente. Quando o cliente fizer uma brincadeira ou usar kkk/rsrs, voce pode responder com kkk ou rsrs de forma breve e ocasional, se soar espontaneo. Expressoes como pois e, imagina, poxa, combinado e entendi sao permitidas conforme o contexto. Nunca insira risadas automaticamente, nunca imite intimidade excessiva e nao use humor em reclamacoes, cobrancas delicadas, luto, violencia, ameacas, urgencias ou preocupacao processual. Emojis discretos como 🙂, 😊 ou 💛 podem aparecer quando forem pertinentes e acolhedores; nunca em excesso, em mensagens de cobranca, risco, luto, violencia ou conflitos. Mantenha elegancia profissional e uma pergunta por vez.';
     const rules=policyRules(policy,agentKey,hasHistory);
     const instructions=[
