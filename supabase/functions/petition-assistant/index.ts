@@ -359,7 +359,7 @@ Deno.serve(async (req) => {
     const key = await geminiKey(a, orgId);
     if (!key) return json({ ok: false, error: "Google Gemini não está configurado em Integrações." }, 503);
     // Modelos em ordem de preferência; o Google aposenta versões com frequência, então há alias e reserva.
-    const models = [...new Set([Deno.env.get("PETITION_MODEL"), Deno.env.get("GEMINI_MODEL"), "gemini-flash-latest", "gemini-3.8-flash"].map((m) => String(m || "").trim()).filter(Boolean))];
+    const models = [...new Set([Deno.env.get("PETITION_MODEL"), Deno.env.get("GEMINI_MODEL"), "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash"].map((m) => String(m || "").trim()).filter(Boolean))];
 
     if (action === "analyze") {
       const ids = Array.isArray(b.document_ids) ? b.document_ids.map(String) : [];

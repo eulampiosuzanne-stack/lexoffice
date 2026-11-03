@@ -31,14 +31,19 @@ async function loadAgentPolicy(orgId:string,agentKey:string){
 
 async function gemini(key:string,sys:string,input:string,model:string,temperature:number,maxTokens:number){
   if(!key)return{ok:false,error:'gemini_key_missing'};
-  const chosen=model?.startsWith('gemini-')?model:(Deno.env.get('GEMINI_MODEL')||'gemini-flash-latest');
-  try{
-    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${chosen}:generateContent?key=${encodeURIComponent(key)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:sys}]},contents:[{role:'user',parts:[{text:input}]}],generationConfig:{temperature,maxOutputTokens:maxTokens}})});
-    const d=await r.json().catch(()=>null);
-    if(!r.ok)return{ok:false,error:`gemini_${r.status}`,detail:d?.error?.message||null};
-    const text=String(d?.candidates?.[0]?.content?.parts?.map((p:any)=>p.text||'').join('')||'').trim();
-    return text?{ok:true,provider:'gemini',model:chosen,text}:{ok:false,error:'gemini_empty'};
-  }catch(e){return{ok:false,error:'gemini_network',detail:e instanceof Error?e.message:String(e)}}
+  const preferred=model?.startsWith('gemini-')?model:(Deno.env.get('GEMINI_MODEL')||'gemini-3.7-flash');
+  const candidates=[...new Set([preferred,'gemini-3.7-flash','gemini-3.6-flash','gemini-3.5-flash'])];
+  let last:any={ok:false,error:'gemini_unavailable'};
+  for(const chosen of candidates){
+    try{
+      const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${chosen}:generateContent?key=${encodeURIComponent(key)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:sys}]},contents:[{role:'user',parts:[{text:input}]}],generationConfig:{temperature,maxOutputTokens:maxTokens}})});
+      const d=await r.json().catch(()=>null);
+      if(r.ok){const text=String(d?.candidates?.[0]?.content?.parts?.map((p:any)=>p.text||'').join('')||'').trim();if(text)return{ok:true,provider:'gemini',model:chosen,text};last={ok:false,error:'gemini_empty',model:chosen};continue}
+      last={ok:false,error:`gemini_${r.status}`,detail:d?.error?.message||null,model:chosen};
+      if(![429,500,502,503,504].includes(r.status))break;
+    }catch(e){last={ok:false,error:'gemini_network',detail:e instanceof Error?e.message:String(e),model:chosen}}
+  }
+  return last;
 }
 Deno.serve(async req=>{
   if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
