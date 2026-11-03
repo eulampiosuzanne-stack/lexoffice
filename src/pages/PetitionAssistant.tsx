@@ -148,6 +148,13 @@ const pdfContent = (value: any, level = 2): string => {
   if (typeof value === "boolean") return `<p>${value ? "Sim" : "Não"}</p>`;
   return `<p>${pdfEscape(value)}</p>`;
 };
+const calculationRows = (text: string) =>
+  text.split("\n").map((line) => line.trim()).filter(Boolean).map((line) => {
+    const separator = line.indexOf(":");
+    return separator > 0
+      ? { label: line.slice(0, separator).trim(), value: line.slice(separator + 1).trim() }
+      : { label: "Resultado", value: line };
+  });
 const daysTo = (iso?: string | null) =>
   iso && /^\d{4}-\d{2}-\d{2}/.test(iso)
     ? Math.ceil(
@@ -1003,6 +1010,37 @@ export default function PetitionAssistant() {
   const calcFieldList = (calcFields[calcName] || []).filter(
     (f) => !["textarea"].includes(f.type || ""),
   );
+  const calcParameters = calcFieldList
+    .filter((field) => calcValues[field.key] !== "" && calcValues[field.key] !== undefined)
+    .map((field) => {
+      const raw = calcValues[field.key];
+      const option = field.options?.find((item) => item.value === raw)?.label;
+      const value = option || (field.type === "number" ? Number(raw).toLocaleString("pt-BR") : String(raw));
+      return { label: field.label, value };
+    });
+  const calcResults = calculationRows(memorial);
+  const resultCriterion = (label: string) => {
+    if (/percentual/i.test(label)) return "Renda informada × percentual informado ÷ 100";
+    if (/valor considerado/i.test(label)) return "Maior referência aplicável entre percentual e valor fixo informado";
+    if (/divisão matemática/i.test(label)) return "Valor considerado ÷ quantidade de alimentandos";
+    if (/total/i.test(label)) return "Soma das parcelas discriminadas";
+    return "Resultado calculado a partir dos parâmetros informados";
+  };
+
+  function generateCalculationPdf() {
+    if (!memorial.trim()) return;
+    const clientName = client?.name || prospectName || "Não informado";
+    const processNumber = proc?.cnj_number || proc?.internal_number || "Caso novo";
+    const popup = window.open("", "_blank", "noopener,noreferrer");
+    if (!popup) {
+      setNotice({ kind: "error", text: "Autorize pop-ups para gerar o PDF da memória de cálculo." });
+      return;
+    }
+    const parameterLines = calcParameters.map((row) => `<tr><td>${pdfEscape(row.label)}</td><td colspan="2">${pdfEscape(row.value)}</td></tr>`).join("");
+    const resultLines = calcResults.map((row) => `<tr class="${/total|valor considerado/i.test(row.label) ? "total" : ""}"><td>${pdfEscape(row.label)}</td><td>${pdfEscape(resultCriterion(row.label))}</td><td>${pdfEscape(row.value)}</td></tr>`).join("");
+    popup.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Memória de cálculo — ${pdfEscape(calcName)}</title><style>@page{size:A4;margin:18mm 16mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#1c1b1b;font-size:10.5pt;line-height:1.5}header{border-bottom:3px double #9b741c;padding-bottom:12px;margin-bottom:22px}h1{font:700 21pt Georgia,serif;margin:0}header p{color:#6b1328;font-weight:700;margin:4px 0}h2{font:700 14pt Georgia,serif;color:#6b1328;margin-top:22px}table{width:100%;border-collapse:collapse;margin-top:9px}th{background:#3b3a3c;color:#fff;text-align:left}th,td{border:1px solid #aaa;padding:8px 9px;vertical-align:top}td:last-child{text-align:right}.total{font-weight:700;background:#eee4e7}.notice{margin-top:22px;border-left:4px solid #6b1328;background:#f5f1f2;padding:10px 12px}.signature{margin-top:38px;text-align:center}.line{width:270px;border-top:1px solid #333;margin:0 auto 5px}</style></head><body><header><h1>Memória discriminada de cálculo</h1><p>Suzanne Figueiredo — Advocacia e Soluções Jurídicas</p></header><table><tr><th>Cliente</th><td>${pdfEscape(clientName)}</td><th>Processo</th><td>${pdfEscape(processNumber)}</td></tr><tr><th>Calculadora</th><td>${pdfEscape(calcName)}</td><th>Emissão</th><td>${new Date().toLocaleDateString("pt-BR")}</td></tr></table><h2>1. Parâmetros informados</h2><table><thead><tr><th>Parâmetro</th><th colspan="2">Valor utilizado</th></tr></thead><tbody>${parameterLines}</tbody></table><h2>2. Demonstrativo do cálculo</h2><table><thead><tr><th>Descrição</th><th>Fórmula ou critério aplicado</th><th>Resultado</th></tr></thead><tbody>${resultLines}</tbody></table><div class="notice"><b>Conferência profissional obrigatória.</b> O demonstrativo foi elaborado com os dados informados na LexOffice e deve ser confrontado com os documentos e o título jurídico antes da utilização processual.</div><div class="signature"><div class="line"></div>Dra. Suzanne Figueiredo</div><script>window.onload=()=>setTimeout(()=>window.print(),250)<\/script></body></html>`);
+    popup.document.close();
+  }
 
   function generateJurimetriaPdf() {
     if (!dossier) return;
@@ -1860,14 +1898,36 @@ export default function PetitionAssistant() {
               </button>
             </div>
           )}
+          {memorial && (
+            <div className="pa-block">
+              <div className="pa-row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <b>Memória discriminada de cálculo</b>
+                  <small style={{ display: "block", marginTop: 4 }}>Parâmetros, fórmula aplicada e resultado que seguirão para a petição.</small>
+                </div>
+                <button className="doc-primary" onClick={generateCalculationPdf}>
+                  <Printer size={17} /> Gerar PDF da memória
+                </button>
+              </div>
+              {calcParameters.length > 0 && (
+                <div style={{ overflowX: "auto", marginTop: 16 }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead><tr><th style={{ padding: 10, textAlign: "left", borderBottom: "1px solid var(--lx-border)" }}>Parâmetro informado</th><th style={{ padding: 10, textAlign: "right", borderBottom: "1px solid var(--lx-border)" }}>Valor utilizado</th></tr></thead>
+                    <tbody>{calcParameters.map((row) => <tr key={row.label}><td style={{ padding: 10, borderBottom: "1px solid var(--lx-border)" }}>{row.label}</td><td style={{ padding: 10, textAlign: "right", borderBottom: "1px solid var(--lx-border)" }}>{row.value}</td></tr>)}</tbody>
+                  </table>
+                </div>
+              )}
+              <div style={{ overflowX: "auto", marginTop: 18 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead><tr><th style={{ padding: 10, textAlign: "left", borderBottom: "1px solid var(--lx-border)" }}>Descrição</th><th style={{ padding: 10, textAlign: "left", borderBottom: "1px solid var(--lx-border)" }}>Fórmula ou critério</th><th style={{ padding: 10, textAlign: "right", borderBottom: "1px solid var(--lx-border)" }}>Resultado</th></tr></thead>
+                  <tbody>{calcResults.map((row, index) => <tr key={`${row.label}-${index}`} style={/total|valor considerado/i.test(row.label) ? { fontWeight: 800, background: "var(--lx-surface)" } : {}}><td style={{ padding: 10, borderBottom: "1px solid var(--lx-border)" }}>{row.label}</td><td style={{ padding: 10, borderBottom: "1px solid var(--lx-border)" }}>{resultCriterion(row.label)}</td><td style={{ padding: 10, textAlign: "right", borderBottom: "1px solid var(--lx-border)" }}>{row.value}</td></tr>)}</tbody>
+                </table>
+              </div>
+            </div>
+          )}
           <label className="pa-block">
-            <span>Memória de cálculo que vai para a petição</span>
-            <textarea
-              rows={6}
-              value={memorial}
-              onChange={(e) => setMemorial(e.target.value)}
-              placeholder="Aparece aqui depois do cálculo. Você também pode colar a sua."
-            />
+            <span>{memorial ? "Texto editável da memória que vai para a petição" : "Memória de cálculo que vai para a petição"}</span>
+            <textarea rows={6} value={memorial} onChange={(e) => setMemorial(e.target.value)} placeholder="Aparece aqui depois do cálculo. Você também pode colar a sua." />
           </label>
         </section>
       )}
