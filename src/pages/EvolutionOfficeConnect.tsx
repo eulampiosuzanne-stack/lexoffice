@@ -1,80 +1,41 @@
-import {useEffect,useState} from 'react';
+﻿import {useState} from 'react';
 import {PlugZap, RefreshCw} from 'lucide-react';
 import {supabase} from '../lib/supabase';
 
-type Result = {ok?:boolean;error?:string;reason?:string;state?:string|null;status?:string;instance_name?:string;pairing_code?:string;qr_code?:string;http_status?:number;instance_status?:string};
+type HubResult = {ok?:boolean;error?:string;status?:string;connection_id?:string;environment?:string;qr?:string|null;http_status?:number;delivery_enabled?:boolean};
 
 export default function EvolutionOfficeConnect(){
  const [busy,setBusy]=useState(false);
  const [state,setState]=useState('');
  const [message,setMessage]=useState('');
- const [code,setCode]=useState('');
- const [created,setCreated]=useState(false);
  const [qr,setQr]=useState('');
- const [instanceName,setInstanceName]=useState('');
- async function copyPairingCode(){
-  if(!code)return;
-  try{
-   await navigator.clipboard.writeText(code);
-   setMessage('Código copiado. Agora cole ou digite no WhatsApp Business antes de expirar.');
-  }catch{
-   setMessage('Não foi possível copiar automaticamente. Toque e segure o código para copiá-lo.');
-  }
- }
- useEffect(()=>{void request('status');const timer=setInterval(()=>{void request('status',true)},10000);return ()=>clearInterval(timer)},[]);
- async function request(action:'status'|'create'|'pair'|'qr',silent=false){
+ async function request(action:'hub_status'|'hub_connect'){
   if(!supabase)return;
-  if(!silent){setBusy(true);setMessage('')}
-  if(action==='pair')setCode('');
-  if(action==='qr')setQr('');
+  setBusy(true);setMessage('');
+  if(action==='hub_connect')setQr('');
   try{
-   const {data,error}=await supabase.functions.invoke<Result>('whatsapp-evolution-connect',{body:{action,...(action==='pair'?{number:'5531992984141'}:{})}});
-   if(error){
-    const response=(error as any).context as Response|undefined;
-    const payload=await response?.json?.().catch(()=>null) as Result|null;
-    const detail=payload?.error||payload?.reason||error.message;
-    if(payload?.error==='create_instance_first'){
-      setMessage('Primeiro clique em "1. Criar instÃ¢ncia exclusiva". A instÃ¢ncia ainda nÃ£o foi criada.');
-      return;
-    }
-    if(payload?.error==='instance_already_registered'){
-      setCreated(true);
-      setMessage('A instÃ¢ncia jÃ¡ estÃ¡ cadastrada. Agora solicite o cÃ³digo de pareamento.');
-      return;
-    }
-    setMessage('Falha na conexÃ£o: '+detail+(response?.status?' (HTTP '+response.status+')':''));
-    return;
-   }
+   const {data,error}=await supabase.functions.invoke<HubResult>('whatsapp-evolution-connect',{body:{action}});
+   if(error)throw error;
    if(!data?.ok){
-    if(data?.error==='instance_already_registered'){setCreated(true);setMessage('A instância já foi criada. Agora solicite o código.');return}
-    setMessage('A operação não foi concluída: '+(data?.error||data?.reason||'sem resposta')+(data?.http_status?' (HTTP '+data.http_status+')':''));
+    setMessage('O Hub n├úo concluiu a opera├º├úo: '+(data?.error||'sem resposta')+(data?.http_status?' (HTTP '+data.http_status+')':''));
     return;
    }
-   if(action==='create'){setCreated(true);setMessage('Instância criada no servidor. Agora solicite o código de pareamento.')}
-   if(action==='status'){setState(data.state||'Sem conexão');setInstanceName(data.instance_name||'');if(data.instance_status&&data.instance_status!=='not_provisioned')setCreated(true);if(data.state==='open'){setQr('');setCode('');setMessage('WhatsApp conectado à Evolution. Os envios pelo LexOffice ainda precisam de teste.')}else if(!silent)setMessage('Estado consultado no servidor.')}
-   if(action==='pair'){setCode(String(data.pairing_code||''));setMessage('Código gerado. Digite-o no WhatsApp Business antes de expirar.')}
-   if(action==='qr'){setQr(String(data.qr_code||''));setMessage('QR Code gerado. Escaneie no WhatsApp Business antes de expirar.')}
-  }catch(e:any){setMessage('Não foi possível executar a operação: '+String(e?.message||'falha de conexão'))}
-  finally{if(!silent)setBusy(false)}
+   setState(String(data.status||'aguardando conex├úo'));
+   if(data.qr)setQr(data.qr);
+   setMessage(data.qr?'QR Code recebido do Hub Univitta. Escaneie pelo WhatsApp Business.':data.status==='connected'?'WhatsApp conectado ao Hub Univitta.':'Hub consultado. '+(action==='hub_connect'?'Ainda n├úo retornou um QR Code.':'Use Conectar pelo Hub para solicitar o QR Code.'));
+  }catch(e:any){setMessage('Falha ao acessar o Hub: '+String(e?.message||'erro de conex├úo'))}
+  finally{setBusy(false)}
  }
  return <div className="meta-partner-box">
-  <div className="meta-config-title"><PlugZap size={17}/><b>Evolution API | WhatsApp do escritório</b></div>
-  <p>Instância do escritório: <strong>{instanceName||'carregando...'}</strong>. Número: <strong>+55 31 99298-4141</strong>. A instância Gláucia não será alterada.</p>
-  {state&&<p role="status">Estado da Evolution: <strong>{state==='open'?'Conectado':state}</strong></p>}
+  <div className="meta-config-title"><PlugZap size={17}/><b>Hub Evolution Univitta | WhatsApp do escrit├│rio</b></div>
+  <p>N├║mero autorizado: <strong>+55 31 99298-4141</strong>. A conex├úo de Gl├íucia n├úo ser├í alterada.</p>
+  {state&&<p>Estado no Hub: <strong>{state}</strong></p>}
   <div className="integration-form">
-   <button type="button" className="secondary" disabled={busy} onClick={()=>request('status')}><RefreshCw size={15}/>Consultar conexão</button>
-   <button type="button" className="secondary" disabled={busy} onClick={()=>request('create')}>1. Criar instância exclusiva</button>
-   <button type="button" className="integration-action" disabled={busy||!created} onClick={()=>request('pair')}>2. Gerar código de pareamento</button>
-   <button type="button" className="integration-action" disabled={busy||!created} onClick={()=>request('qr')}>3. Gerar QR Code</button>
+   <button type="button" className="secondary" disabled={busy} onClick={()=>request('hub_status')}><RefreshCw size={15}/>Consultar conex├úo no Hub</button>
+   <button type="button" className="integration-action" disabled={busy} onClick={()=>request('hub_connect')}>Conectar pelo Hub / Gerar QR Code</button>
   </div>
-  {qr&&<div className="integration-notice"><strong>QR Code da Evolution</strong><p>Escaneie pelo WhatsApp Business em Aparelhos conectados.</p><img src={qr} alt="QR Code da Evolution" style={{width:260,height:260,maxWidth:'100%'}} /></div>}
-  {code&&<div className="integration-notice" aria-live="polite">
-   <strong>Código de pareamento</strong>
-   <p style={{fontSize:'1.5rem',fontWeight:800,letterSpacing:'.16em',userSelect:'all'}}>{code}</p>
-   <button type="button" className="integration-action" onClick={copyPairingCode}>Copiar código</button>
-   <p>No WhatsApp Business do número informado, abra Aparelhos conectados, Conectar aparelho e Conectar com número de telefone. Não envie o código a terceiros.</p>
-  </div>}
+  {qr&&<div className="integration-notice"><strong>QR Code do Hub Evolution</strong><p>No WhatsApp Business, abra Aparelhos conectados e escaneie o c├│digo.</p><img src={qr} alt="QR Code do Hub Evolution Univitta" style={{width:260,height:260,maxWidth:'100%'}} /></div>}
   {message&&<div className="integration-notice" role="status">{message}</div>}
-  <small>Conexão não ativa automaticamente o envio de mensagens do LexOffice. A integração será testada antes da migração.</small>
+  <small>O Hub est├í autorizado para testes. A conex├úo n├úo ativa envios autom├íticos sem homologa├º├úo.</small>
  </div>;
 }
