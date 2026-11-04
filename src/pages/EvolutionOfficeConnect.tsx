@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {CheckCircle2,QrCode,RefreshCw,Smartphone} from 'lucide-react';
 import {supabase} from '../lib/supabase';
+import './office-whatsapp.css';
 
 // WhatsApp do escritório (número 4141). O provedor real é escolhido no backend
 // (system_runtime_secrets.whatsapp_provider); a tela só pede estado, QR Code ou código.
@@ -17,6 +18,7 @@ export default function EvolutionOfficeConnect(){
  const [code,setCode]=useState('');
  const [message,setMessage]=useState('');
  const mounted=useRef(true);
+ const renewals=useRef(0);
 
  async function call(body:Record<string,unknown>):Promise<Result>{
   if(!supabase)throw new Error('Sem conexão com o servidor.');
@@ -33,14 +35,14 @@ export default function EvolutionOfficeConnect(){
    if(!mounted.current)return;
    const s=r.connected?'connected':String(r.state||'disconnected');
    setState(s);
-   if(r.connected){setQr('');setCode('');setMessage('WhatsApp conectado. A LEX já pode enviar e receber mensagens.');}
+   if(r.connected){setQr('');setCode('');setMessage('');}
    else if(r.ok===false&&!silent)setMessage('Não foi possível consultar o estado agora. Tente de novo.');
   }catch(e){if(mounted.current&&!silent)setMessage(e instanceof Error?e.message:'Erro ao consultar.');}
   finally{if(mounted.current&&!silent)setBusy(false);}
  }
 
  async function connectQr(){
-  setBusy(true);setMessage('');setCode('');setQr('');
+  renewals.current=0;setBusy(true);setMessage('');setCode('');setQr('');
   try{const r=await call({action:'qr'});if(!mounted.current)return;if(!r.qr_code)throw new Error(errors.qr_code_unavailable);setQr(asImage(r.qr_code));setState('qr_pending');}
   catch(e){if(mounted.current)setMessage(e instanceof Error?e.message:'Erro ao gerar o QR Code.');}
   finally{if(mounted.current)setBusy(false);}
@@ -56,21 +58,25 @@ export default function EvolutionOfficeConnect(){
  useEffect(()=>{mounted.current=true;void refresh();return()=>{mounted.current=false}},[]);
  // Enquanto o QR Code ou o código estiver na tela, confere sozinho a cada 5 s se já conectou.
  useEffect(()=>{if(!qr&&!code)return;const t=setInterval(()=>void refresh(true),5000);return()=>clearInterval(t)},[qr,code]);
+ // O QR do WhatsApp vence em ~20 s: renova sozinho a cada 18 s (até 6 vezes) para nunca mostrar um código vencido.
+ useEffect(()=>{if(!qr)return;const t=setTimeout(async()=>{if(!mounted.current)return;if(renewals.current>=6){setQr('');setMessage('O QR Code expirou. Clique em “Conectar por QR Code” quando estiver com o celular na mão.');return}renewals.current++;try{const r=await call({action:'qr'});if(mounted.current&&r.qr_code)setQr(asImage(r.qr_code))}catch{}},18000);return()=>clearTimeout(t)},[qr]);
 
  const connected=state==='connected'||state==='open';
- return <section className="meta-partner-box office-whatsapp-card" aria-labelledby="office-whatsapp-heading">
-  <div className="meta-config-title"><Smartphone size={18}/><h3 id="office-whatsapp-heading">WhatsApp do escritório</h3></div>
-  <p>Número: <strong>+55 31 99298-4141</strong></p>
-  <p role="status">Estado: <strong className={connected?'office-wa-ok':'office-wa-off'}>{busy&&!state?'Consultando…':labels[state]||state||'Ainda não consultado'}</strong></p>
-  {connected
-   ?<div className="meta-connected"><CheckCircle2 size={17}/><div><b>Conectado</b><small>Não remova este aparelho em “Aparelhos conectados” no celular.</small></div></div>
-   :<div className="integration-form">
-     <button type="button" className="integration-action" disabled={busy} onClick={()=>void connectQr()}><QrCode size={16}/>Conectar por QR Code</button>
-     <button type="button" className="secondary" disabled={busy} onClick={()=>void connectCode()}>Conectar por código</button>
-    </div>}
-  <div className="integration-form"><button type="button" className="secondary" disabled={busy} onClick={()=>void refresh()}><RefreshCw size={15}/>Atualizar estado</button></div>
-  {qr&&!connected&&<div className="integration-notice"><img src={qr} alt="QR Code para conectar o WhatsApp do escritório" style={{width:260,height:260,maxWidth:'100%',background:'#fff',padding:8,borderRadius:8}}/><p>No celular do 4141: WhatsApp Business → Aparelhos conectados → Conectar aparelho → leia este código. Ele expira em poucos segundos; se expirar, clique de novo em “Conectar por QR Code”.</p></div>}
-  {code&&!connected&&<div className="integration-notice"><p>No celular do 4141: WhatsApp Business → Aparelhos conectados → Conectar aparelho → “Conectar com número de telefone” e digite:</p><strong style={{fontSize:28,letterSpacing:4}}>{code}</strong></div>}
-  {message&&<div className="integration-notice" role="status">{message}</div>}
+ const tone=connected?'ok':state==='qr_pending'||state==='connecting'?'wait':'off';
+ return <section className="owa" aria-labelledby="owa-title">
+  <header className="owa-head">
+   <div className="owa-icon"><Smartphone size={22}/></div>
+   <div className="owa-id"><h3 id="owa-title">WhatsApp do escritório</h3><span>+55 31 99298-4141</span></div>
+   <span className={'owa-badge owa-'+tone} role="status">{connected&&<CheckCircle2 size={15}/>}{busy&&!state?'Consultando…':labels[state]||state||'Não consultado'}</span>
+  </header>
+  <p className="owa-note">{connected?'Tudo certo: a LEX está enviando e recebendo pelo WhatsApp. No celular, não remova este aparelho em “Aparelhos conectados”.':'Para conectar, use o celular do 4141: WhatsApp Business → Aparelhos conectados → Conectar aparelho.'}</p>
+  <div className="owa-actions">
+   {!connected&&<button type="button" className="integration-action" disabled={busy} onClick={()=>void connectQr()}><QrCode size={16}/>Conectar por QR Code</button>}
+   {!connected&&<button type="button" className="secondary" disabled={busy} onClick={()=>void connectCode()}>Conectar por código</button>}
+   <button type="button" className="secondary" disabled={busy} onClick={()=>void refresh()}><RefreshCw size={15}/>Atualizar estado</button>
+  </div>
+  {qr&&!connected&&<div className="owa-box"><img className="owa-qr" src={qr} alt="QR Code para conectar o WhatsApp do escritório"/><p>Aponte a câmera do celular para este código. Ele se renova sozinho; quando conectar, esta tela muda para “Conectado”.</p></div>}
+  {code&&!connected&&<div className="owa-box"><p>No celular, toque em “Conectar com número de telefone” e digite:</p><strong className="owa-code">{code}</strong></div>}
+  {message&&<div className="owa-msg" role="status">{message}</div>}
  </section>;
 }
