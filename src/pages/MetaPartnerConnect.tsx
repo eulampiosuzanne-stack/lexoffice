@@ -26,7 +26,9 @@ export default function MetaPartnerConnect({connectLabel='Conectar como parceiro
    }
   };
   window.addEventListener('message',receive);
-  const finish=()=>{window.removeEventListener('message',receive);setBusy(false)};
+  let watchdog:ReturnType<typeof setTimeout>|undefined;
+  const finish=()=>{if(watchdog)clearTimeout(watchdog);window.removeEventListener('message',receive);setBusy(false)};
+  watchdog=setTimeout(()=>{if(!completed){completed=true;finish();setNotice('A Meta não respondeu em 2 minutos. Verifique se o navegador bloqueou a janela de conexão e tente novamente.')}},120000);
   try{
    await sdk();
    window.FB.login((response:any)=>{void (async()=>{
