@@ -52,30 +52,7 @@ async function runtimeSecret(a: any, key: string) {
     return "";
   }
 }
-async function activeProvider(a: any) {
-  const p = (await runtimeSecret(a, "whatsapp_provider")).toLowerCase();
-  return p === "uazapi" ? "uazapi" : "evolution";
-}
-async function uazapiSend(a:any,orgId:string,phone:string,message:string,delaySeconds=0,image:string|null=null,caption:string|null=null,document:string|null=null,fileName:string|null=null){
- if(orgId!==OFFICE_ORG)throw new Error("Provedor Uazapi não autorizado nesta organização");
- const base=(await runtimeSecret(a,"uazapi_base_url")).replace(/\/+$/,"");
- const token=await runtimeSecret(a,"uazapi_instance_token");
- const p=digits(phone);
- if(!/^https:\/\//.test(base)||!token||!p)throw new Error("Uazapi não configurada ou número inválido");
- const media=document||image;
- const endpoint=media?"/send/media":"/send/text";
- const payload:any=document
-   ?{number:p,type:"document",file:document,docName:fileName||"documento.pdf",text:caption||message||""}
-   :image
-     ?{number:p,type:"image",file:image,text:caption||message||""}
-     :{number:p,text:message};
- const delayMs=Math.max(0,Math.min(15000,Math.round(Number(delaySeconds)||0)*1000));
- if(delayMs>0)payload.delay=delayMs;
- const response=await fetch(base+endpoint,{method:"POST",headers:{token,"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(payload),signal:AbortSignal.timeout(30000)});
- const raw=await response.text();let data:any={};try{data=raw?JSON.parse(raw):{}}catch{data={raw:raw.slice(0,240)}}
- if(!response.ok)throw new Error("Uazapi "+response.status+": "+String(data?.message||data?.error||raw||"falha").slice(0,280));
- return data;
-}
+async function activeProvider(_a: any) { return "evolution"; }
 async function evolutionSend(a:any,orgId:string,phone:string,message:string,delaySeconds=0,typing=false,image:string|null=null,caption:string|null=null,document:string|null=null,fileName:string|null=null){
  const base=(await runtimeSecret(a,"evolution_api_url")).replace(/\/+$/,"");
  const key=await runtimeSecret(a,"evolution_api_key");
@@ -186,96 +163,10 @@ async function trace(a: any, orgId: string, conversationId: string | null, agent
     await a.from("ai_orchestrator_events").insert({ org_id: orgId, conversation_id: conversationId, event_type: "whatsapp_reply_pipeline", agent_key: agentKey, decision, reason: metadata?.reason || null, metadata });
   } catch {}
 }
-// ===== Webhook de entrada da Uazapi (24/10/2026) =====
-// Uazapi -> ?uazapi_webhook=1&token=... -> repassa ao caminho de entrada já usado pela Evolution.
-const J = (x: unknown, s = 200) => json(x, s);
-function safeEqual(a: string, b: string) {
-  if (!a || !b || a.length !== b.length) return false;
-  let d = 0;
-  for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return d === 0;
-}
-function pickPhone(m: any, chat: any): string {
-  const candidates = [m?.chatid, chat?.wa_chatid, chat?.phone, m?.sender_pn && m?.fromMe !== true ? m.sender_pn : null];
-  for (const c of candidates) {
-    const s = String(c ?? "");
-    if (!s || s.includes("@lid") || s.includes("@g.us") || s.includes("@broadcast") || s.includes("@newsletter")) continue;
-    const p = digits(s.replace(/@.*/, ""));
-    if (/^55\d{10,11}$/.test(p)) return p;
-  }
-  return "";
-}
-function pickText(m: any): string {
-  const c = m?.content;
-  const fromContent = typeof c === "string" ? c : (c?.text || c?.caption || c?.selectedDisplayText || c?.title || "");
-  return String(m?.text || fromContent || m?.buttonOrListid || "").trim();
-}
-// v71: tipo de mídia recebido (o texto da Helena recebe o marcador [MIDIA:...]).
-function mediaLabel(m: any): string {
-  const t = String(m?.messageType || "").toLowerCase() + " " + String(m?.mediaType || "").toLowerCase();
-  if (/sticker/.test(t)) return "figurinha";
-  if (/(audio|ptt)/.test(t)) return "áudio";
-  if (/image/.test(t)) return "imagem";
-  if (/document/.test(t)) return "documento";
-  if (/video/.test(t)) return "vídeo";
-  return "";
-}
-async function handleUazapiWebhook(req: Request) {
-  const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
-  const secret = async (k: string) => { const { data } = await db.from("system_runtime_secrets").select("secret").eq("key", k).maybeSingle(); return String(data?.secret || "").trim(); };
-  const expected = await secret("uazapi_webhook_token");
-  const got = String(new URL(req.url).searchParams.get("token") || "");
-  if (!safeEqual(got, expected)) return J({ error: "webhook_forbidden" }, 403);
-  if ((await secret("whatsapp_provider")).toLowerCase() !== "uazapi") return J({ ok: true, ignored: "provider_disabled" });
-  const body = await req.json().catch(() => null);
-  if (!body) return J({ ok: true, ignored: "invalid_json" });
-  const eventType = String(body.EventType || body.event || body.type || "").toLowerCase();
-  const m = body.message || body.data?.message || {};
-  const chat = body.chat || {};
-  console.log("uazapi_event", JSON.stringify({ eventType, keys: Object.keys(body || {}), mkeys: Object.keys(m || {}), fromMe: m?.fromMe, isGroup: m?.isGroup, wasSentByApi: m?.wasSentByApi, type: m?.messageType, mediaType: m?.mediaType, chatid_kind: String(m?.chatid || "").replace(/^[^@]*/, "") }));
-  if (eventType !== "messages") return J({ ok: true, ignored: "event", event: eventType });
-  if (m?.isGroup === true) return J({ ok: true, ignored: "group" });
-  if (m?.wasSentByApi === true) return J({ ok: true, ignored: "sent_by_api" });
-  const phone = pickPhone(m, chat);
-  if (!phone) return J({ ok: true, ignored: "invalid_phone" });
-  const text = pickText(m);
-  const media = mediaLabel(m);
-  const bridgedText = media ? `[MIDIA:${media}]${text ? " " + text : ""}` : text;
-  // Commands change only opted-in conversation controls; never generate a reply.
-  const contactResult = await db.from("whatsapp_contacts").select("id").eq("org_id", OFFICE_ORG).in("phone", [phone, phone.slice(2)]).limit(1).maybeSingle();
-  if (contactResult.error) throw new Error("panel_takeover_contact_unavailable");
-  if (contactResult.data) {
-    const conversationResult = await db.from("whatsapp_conversations").select("id,chatbot_context").eq("org_id", OFFICE_ORG).eq("contact_id", contactResult.data.id).neq("status", "closed").order("updated_at", { ascending: false }).limit(1).maybeSingle();
-    if (conversationResult.error) throw new Error("panel_takeover_conversation_unavailable");
-    if (conversationResult.data) {
-      const panel = await panelTakeover(db, conversationResult.data, "keyword", text);
-      if (panel.managed && panel.keyword_matched) return J({ ok: true, event: "panel_takeover_keyword", resumed: panel.resumed === true, paused: panel.paused, global_ai_enabled: panel.global_ai_enabled });
-    }
-  }
-  const msgId = String(m?.messageid || m?.id || "");
-  const evoInstance = await secret("evolution_instance_name");
-  const evoToken = await secret("evolution_webhook_token");
-  if (!evoInstance || !evoToken) return J({ ok: false, error: "bridge_not_configured" }, 503);
-  const event = {
-    event: "messages.upsert",
-    instance: evoInstance,
-    source: "uazapi",
-    data: {
-      key: { remoteJid: phone + "@s.whatsapp.net", fromMe: m?.fromMe === true, id: msgId },
-      message: bridgedText ? { conversation: bridgedText } : {},
-      pushName: String(m?.senderName || chat?.name || ""),
-    },
-  };
-  const url = Deno.env.get("SUPABASE_URL")! + "/functions/v1/whatsapp-evolution-connect?evolution_webhook=1&token=" + encodeURIComponent(evoToken);
-  const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(event), signal: AbortSignal.timeout(58000) });
-  const result = await r.json().catch(() => ({}));
-  console.log("uazapi_bridge", r.status, JSON.stringify(result).slice(0, 300));
-  return J({ ok: r.ok, bridged: true, result }, r.ok ? 200 : 502);
-}
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ ok: false, error: "Método inválido" }, 405);
   if (new URL(req.url).searchParams.get("uazapi_webhook") === "1") {
-    try { return await handleUazapiWebhook(req); } catch (e) { console.error("uazapi_webhook", e); return json({ ok: false, error: "webhook_error" }, 500); }
+    return json({ ok: false, error: "uazapi_disabled" }, 410);
   }
   try {
     const service = (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "").trim(), auth = (req.headers.get("authorization") || "").trim();
@@ -352,9 +243,7 @@ Deno.serve(async (req) => {
         }
       }
       const delay = automated ? Number(b.delay_seconds || 0) : 0;
-      const provider = providerName === "uazapi"
-        ? await uazapiSend(a, orgId, target, message, delay, image, caption, document, fileName)
-        : await evolutionSend(a, orgId, target, message, delay, b.typing_indicator === true, image, caption, document, fileName);
+      const provider = await evolutionSend(a, orgId, target, message, delay, b.typing_indicator === true, image, caption, document, fileName);
       await log(a, { org_id: orgId, conversation_id: conversationId, agent_key: agentKey, allowed: true, reason: "sent_" + providerName, body_preview: previewForLog(message, 240), idempotency_key: key });
       const externalId = String(provider?.messageid || provider?.key?.id || provider?.zaapId || provider?.messageId || provider?.id || "") || null;
       if (conversationId && automated) {
