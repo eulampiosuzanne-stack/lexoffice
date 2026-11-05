@@ -260,9 +260,8 @@ Deno.serve(async (req) => {
       if (!reply) return J({ ok: false, error: "reply_blocked_by_guard", model_reply: dry ? model.reply : undefined }, 502);
     }
     reply = reply.replace(/^\*?Helena\*?(?:\s*\|[^\n]*)?,?( da equipe da Dra\.? Suzanne\.?)?\s*/i, "").trim() || reply;
-    const title = (await secret(a, "helena_title")) || "Helena | Concierge Jurídica";
-    const photo = first ? (await secret(a, "helena_photo_url")) : "";
-    if (first) reply = `*${title}*\n\n` + reply;
+    // The approved Helena replies in plain text: no photo or concierge banner.
+    const photo = "";
 
     const decision = { intent, agent, urgent, needs_team: needsTeam, team_note: teamNote, identified: !!clientData, test_number: testNumber, first, provider_error: providerError || undefined, wants_human: wantsHuman(message), audio_transcribed: transcript ? true : undefined, transcript: dry && transcript ? transcript : undefined, transcript_error: transcriptError || undefined };
     if (dry) return J({ ok: true, dry_run: true, reply, decision, memory: model?.memory || null });
