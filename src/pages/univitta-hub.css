@@ -4,3 +4,11 @@
 .other-connections[open]>summary{margin-bottom:12px}
 .office-whatsapp-card .office-wa-ok{color:#4ade80}
 .office-whatsapp-card .office-wa-off{color:var(--lx-accent,#c99443)}
+
+/* Acessibilidade: estados e ações legíveis sobre superfícies escuras. */
+.meta-partner-box .integration-form button.integration-action:not(:disabled),
+.meta-partner-box .integration-form button.secondary:not(:disabled){color:#fff;background:#8d163c;border:1px solid #e9b7c8;font-weight:700;min-height:48px}
+.meta-partner-box .integration-form button:disabled{color:#d9dce3!important;background:#424956!important;border:1px solid #737d8d!important;opacity:1!important;cursor:not-allowed}
+.meta-partner-box .integration-notice[role="alert"]{color:#fff!important;background:#68243a!important;border:2px solid #f2c3d1!important;font-size:1rem;line-height:1.5}
+.connection-list .status-dot:not(.ok){color:#fff!important;background:#7d1837!important;border:1px solid #f3bacb!important;font-weight:800;padding:6px 12px;border-radius:999px}
+.other-connections .integration-pill,.other-connections .meta-warning{color:#fff!important;font-weight:800}
