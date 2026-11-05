@@ -7,8 +7,8 @@ import './office-whatsapp.css';
 // (system_runtime_secrets.whatsapp_provider); a tela só pede estado, QR Code ou código.
 type Result={ok?:boolean;error?:string;state?:string|null;connected?:boolean;instance_name?:string;qr_code?:string;pairing_code?:string;http_status?:number};
 const NUMBER='5531992984141';
-const labels:Record<string,string>={connected:'Conectado',open:'Conectado',connecting:'Conectando…',qr_pending:'Aguardando leitura do QR Code',disconnected:'Desconectado',close:'Desconectado'};
-const errors:Record<string,string>={qr_code_unavailable:'O servidor do WhatsApp não devolveu o QR Code. Tente de novo em alguns segundos.',pairing_code_unavailable:'O servidor do WhatsApp não devolveu o código. Tente de novo em alguns segundos.',administrator_required:'Só a administradora do escritório pode conectar o WhatsApp.',office_instance_missing:'A conexão do escritório não está cadastrada.',uazapi_server_configuration_invalid:'O servidor do WhatsApp não está configurado.',evolution_server_configuration_invalid:'O servidor do WhatsApp não está configurado.',uazapi_request_failed:'O servidor do WhatsApp não respondeu.',evolution_request_failed:'O servidor do WhatsApp não respondeu.'};
+const labels:Record<string,string>={connected:'Conectado',open:'Conectado',connecting:'Conectando…',qr_pending:'Aguardando leitura do QR Code',disconnected:'Desconectado',close:'Desconectado',unknown:'Estado não confirmado'};
+const errors:Record<string,string>={qr_code_unavailable:'O servidor do WhatsApp não devolveu o QR Code. Tente de novo em alguns segundos.',pairing_code_unavailable:'O servidor do WhatsApp não devolveu o código. Tente de novo em alguns segundos.',administrator_required:'Só a administradora do escritório pode conectar o WhatsApp.',office_instance_missing:'A conexão do escritório não está cadastrada.',uazapi_server_configuration_invalid:'O servidor do WhatsApp não está configurado.',evolution_server_configuration_invalid:'O servidor do WhatsApp não está configurado.',uazapi_request_failed:'O servidor do WhatsApp não respondeu.',evolution_request_failed:'O servidor Evolution não respondeu.',evolution_status_unavailable:'Não foi possível confirmar a conexão com a Evolution. A conexão não foi desfeita; tente atualizar o estado.'};
 const asImage=(v:string)=>v.startsWith('data:image')?v:'data:image/png;base64,'+v;
 
 export default function EvolutionOfficeConnect(){
@@ -36,8 +36,8 @@ export default function EvolutionOfficeConnect(){
    const s=r.connected?'connected':String(r.state||'disconnected');
    setState(s);
    if(r.connected){setQr('');setCode('');setMessage('');}
-   else if(r.ok===false&&!silent)setMessage('Não foi possível consultar o estado agora. Tente de novo.');
-  }catch(e){if(mounted.current&&!silent)setMessage(e instanceof Error?e.message:'Erro ao consultar.');}
+   else if(r.ok===false&&!silent)setMessage('Não foi possível confirmar o estado da Evolution.');
+  }catch(e){if(mounted.current){setState('unknown');if(!silent)setMessage(e instanceof Error?e.message:'Erro ao consultar a Evolution.');}}
   finally{if(mounted.current&&!silent)setBusy(false);}
  }
 
@@ -69,7 +69,7 @@ export default function EvolutionOfficeConnect(){
    <div className="owa-id"><h3 id="owa-title">WhatsApp do escritório</h3><span>+55 31 99298-4141</span></div>
    <span className={'owa-badge owa-'+tone} role="status">{connected&&<CheckCircle2 size={15}/>}{busy&&!state?'Consultando…':labels[state]||state||'Não consultado'}</span>
   </header>
-  <p className="owa-note">{connected?'Tudo certo: a LEX está enviando e recebendo pelo WhatsApp. No celular, não remova este aparelho em “Aparelhos conectados”.':'Para conectar, use o celular do 4141: WhatsApp Business → Aparelhos conectados → Conectar aparelho.'}</p>
+  <p className="owa-note">{connected?'Evolution conectada segundo o servidor. O envio e recebimento de mensagens precisam de validação separada.':state==='unknown'?'Não foi possível verificar o servidor Evolution. Isso não significa que o WhatsApp esteja desconectado.':'Conexão Evolution não confirmada. Para conectar, use o WhatsApp Business do número 4141 em Aparelhos conectados.'}</p>
   <div className="owa-actions">
    {!connected&&<button type="button" className="integration-action" disabled={busy} onClick={()=>void connectQr()}><QrCode size={16}/>Conectar por QR Code</button>}
    {!connected&&<button type="button" className="secondary" disabled={busy} onClick={()=>void connectCode()}>Conectar por código</button>}
