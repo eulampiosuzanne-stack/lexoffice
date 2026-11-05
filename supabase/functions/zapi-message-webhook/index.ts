@@ -353,6 +353,10 @@ async function resolveAlert(a:any,orgId:string,adminPhone:string,quotedId:string
 async function handleAdminCommand(a:any,p:string,message:string,inboundId:string,quotedId='',quotedText=''){
  const command=String(message||'').trim();
  if(!command)return false;
+ // Safety: a greeting or an unquoted message is never authorization to contact a client.
+ // Admin actions must be tied to the specific alert using WhatsApp's reply/quote feature.
+ if(!quotedId && !quotedText)return false;
+ if(/^(oi|ol[aá]|bom dia|boa tarde|boa noite|opa|teste|ok|sim|n[aã]o|obrigad[oa]|tudo bem)[!?.\s]*$/i.test(command))return false;
  const {data:settings}=await a.from('whatsapp_settings').select('org_id,alert_phone,alerts_enabled').not('alert_phone','is',null).limit(50),ws=(settings||[]).find((x:any)=>samePhone(x.alert_phone,p));if(!ws?.org_id)return false;
  const orgId=String(ws.org_id),adminPhone=D(ws.alert_phone)||D(p),since=new Date(Date.now()-86400000).toISOString();
  if(inboundId){const {data:seen}=await a.from('audit_logs').select('id').eq('org_id',orgId).eq('action','helena_admin_command').eq('metadata->>external_message_id',inboundId).limit(1).maybeSingle();if(seen?.id)return true}
@@ -408,7 +412,7 @@ async function handleAdminCommand(a:any,p:string,message:string,inboundId:string
  if(/^(n[aã]o responda|n[aã]o envie|n[aã]o fa[cç]a nada|deixa|deixe|ignora|ignore|esquece)\b/i.test(cmd)){await markHandled();await audit(alert.id,targetPhone,clientId,'no_reply');await operatorSend(a,orgId,adminPhone,'Certo. Nada será enviado a '+who+'.');return true}
  const alertText=String(alert.context||alert.reason||'');
  const ai=await aiInterpret(a,orgId,cmd,clientName,alertText);
- const acao=ai?.acao||'enviar_mensagem';
+ const acao=ai?.acao||'duvida';
  if(acao==='nao_responder'){await markHandled();await audit(alert.id,targetPhone,clientId,'no_reply');await operatorSend(a,orgId,adminPhone,'Certo. Nada será enviado a '+who+'.');return true}
  if(acao==='duvida'){await audit(alert.id,targetPhone,clientId,'unclear');await operatorSend(a,orgId,adminPhone,'Não entendi a ordem para '+who+', então nada foi feito.'+(ai?.pergunta?'\n\n'+ai.pergunta:'')+'\n\nResponda de novo em cima do aviso.');return true}
  if(acao==='agendar')return await doSchedule(alert);
