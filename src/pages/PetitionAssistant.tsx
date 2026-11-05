@@ -1231,7 +1231,7 @@ export default function PetitionAssistant() {
             ref={fileRef}
             type="file"
             multiple
-            accept="application/pdf,image/*"
+            accept="application/pdf,image/*,audio/mpeg,audio/mp4,audio/ogg,audio/wav,audio/webm,video/mp4,video/webm,video/quicktime,.mp3,.m4a,.ogg,.wav,.mp4,.webm,.mov"
             hidden
             onChange={(e) => upload(e.target.files)}
           />
