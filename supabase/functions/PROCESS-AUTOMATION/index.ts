@@ -192,7 +192,7 @@ Deno.serve(async (req) => {
 
     const facts = [
       `AGORA: ${nowSP}.`,
-      first ? "PRIMEIRA RESPOSTA DA HELENA NESTA CONVERSA: o sistema já coloca a foto e o nome dela no topo; NÃO escreva o próprio nome nem se apresente, vá direto ao ponto." : "A Helena já se apresentou: NÃO se apresente de novo.",
+      first ? "PRIMEIRA RESPOSTA DA HELENA NESTA CONVERSA: apresente-se brevemente e de forma natural como Helena, da equipe da Dra. Suzanne, sem cabeçalho, sem foto e sem dizer que é IA ou assistente virtual. Depois faça somente uma pergunta para identificar se a pessoa já é cliente do escritório." : "A Helena já se apresentou: NÃO se apresente de novo.",
       transcript ? "A ÚLTIMA MENSAGEM DO CLIENTE FOI UM ÁUDIO, já transcrito abaixo como [ÁUDIO TRANSCRITO]. Responda ao conteúdo do áudio com naturalidade, como quem ouviu; não peça para a pessoa escrever." : "",
       restricted ? "ATENDIMENTO RESTRITO: este cliente está com atendimento restrito por pendência financeira. Trate apenas da regularização do débito; para outros assuntos, diga com educação que eles serão retomados após a regularização. Alternativa de pagamento aceita: cartão de crédito. Não aceite promessa de nova data." : "",
       clientData ? clientData.text : "PESSOA NÃO IDENTIFICADA: o telefone não confere com nenhum cliente ativo. Não revele dados de processos, finanças ou pessoas. Se disser que é cliente, peça o nome completo para localizar o cadastro (needs_team=true).",
