@@ -14,7 +14,7 @@ export default function UnivittaHubConnect(){
   try{
    const {data,error:failure}=await supabase.functions.invoke<State>('whatsapp-evolution-connect',{body:{action:'hub_'+action}});
    if(failure){const details=await (failure as {context?:Response}).context?.json().catch(()=>null);throw new Error(details?.error==='administrator_required'||details?.error==='office_not_authorized'?'A conexão deve ser administrada por um responsável autorizado do escritório.':'Não foi possível consultar o Hub. Tente atualizar o estado.');}
-   if(!data?.ok){if(data?.error==='connection_not_created')throw new Error('Crie primeiro a conexão deste escritório.');throw new Error('O Hub não confirmou esta operação.');}
+   if(!data?.ok){if(data?.error==='connection_not_created')throw new Error('Crie primeiro a conexão deste escritório.');if(data?.error==='hub_connection_failed')throw new Error(`O Hub recusou a operação (HTTP ${data.http_status||'indisponível'}). Verifique a autorização do ambiente e a conexão no provedor.`);if(data?.error==='hub_request_failed')throw new Error('Não foi possível comunicar com o Hub. Verifique a disponibilidade do provedor e tente novamente.');if(data?.error==='hub_environment_mismatch')throw new Error('O ambiente retornado pelo Hub não corresponde ao autorizado. A conexão não foi alterada.');if(data?.error==='hub_not_configured')throw new Error('A identidade do Hub ainda não está configurada no servidor.');throw new Error(`O Hub não confirmou a operação (${data?.error||'erro desconhecido'}).`);}
    if(mounted.current)setState(data);
   }catch(reason){if(mounted.current)setError(reason instanceof Error?reason.message:'Não foi possível acessar o Hub.');}
   finally{running.current=false;if(mounted.current)setBusy(false)}
