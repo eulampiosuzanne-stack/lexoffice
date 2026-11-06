@@ -26,7 +26,7 @@ import { D, TXT, MENU, AREA, NODE_MENU, normalizeId, pickByNumber, isAck, isMenu
 
 const j = (x: any, s = 200) => new Response(JSON.stringify(x), { status: s, headers: { "Content-Type": "application/json" } });
 const GV = "v21.0";
-const HUMAN_PAUSE_MIN = 60;
+const HUMAN_PAUSE_MIN = 20;
 const MENU_REPEAT_MIN = 3;
 const DONE_SILENCE_H = 12;
 
