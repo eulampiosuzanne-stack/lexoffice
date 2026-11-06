@@ -134,20 +134,27 @@ const norm = (s: string) =>
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase();
 
-// A fase atual é a mais avançada que aparece nos andamentos (o processo só anda para frente).
-export function detectPhase(
-  movs: { title?: string | null; description?: string | null }[],
-): PhaseKey {
-  let idx = 0;
-  for (const m of movs) {
-    const t = norm(
-      `${m.title || ""} ${String(m.description || "").slice(0, 1500)}`,
-    );
-    PHASES.forEach((p, i) => {
-      if (i > idx && p.re.test(t)) idx = i;
-    });
+// Não classificar por menções históricas ou simples palavras soltas nas descrições.
+// A fase sugerida depende de título de ato recente; a advogada pode ajustar manualmente.
+export function detectPhase(movs: { title?: string | null; description?: string | null }[]): PhaseKey {
+  const ordered = movs.slice(0, 30);
+  for (const m of ordered) {
+    const title = norm(m.title || "").trim();
+    const rules: [RegExp, PhaseKey][] = [
+      [/^(cumprimento de sentenca|inicio do cumprimento|intimacao para pagamento)/, "cumprimento"],
+      [/^(apelacao|contrarrazoes|recurso interposto|acordao|embargos de declaracao)/, "recurso"],
+      [/^(sentenca|julgamento de merito)/, "sentenca"],
+      [/^(alegacoes finais|memoriais)/, "alegacoes"],
+      [/^(audiencia de instrucao|pericia designada|laudo pericial)/, "instrucao"],
+      [/^(decisao saneadora|saneamento do processo)/, "saneamento"],
+      [/^(especificacao de provas|intimacao para especificar provas)/, "provas"],
+      [/^(contestacao|replica|impugnacao a contestacao)/, "replica"],
+      [/^(citacao|mandado de citacao|distribuicao)/, "citacao"],
+    ];
+    const match = rules.find(([re]) => re.test(title));
+    if (match) return match[1];
   }
-  return PHASES[idx].key;
+  return "citacao";
 }
 
 const GUIDE: Record<
@@ -439,6 +446,8 @@ export default function ConducaoProcessual() {
         .order("created_at", { ascending: false })
         .limit(30),
     ]);
+    const loadErrors = [m,d,h,a,c,dr].map((r) => r.error?.message).filter(Boolean);
+    if (loadErrors.length) setNotice({ kind: "error", text: "Falha ao carregar dados do processo: " + loadErrors.join(" | ") });
     setMovs((m.data as any) || []);
     setDeadlines((d.data as any) || []);
     setHearings((h.data as any) || []);
@@ -552,6 +561,7 @@ export default function ConducaoProcessual() {
     }
     setAnalysis(data.result);
     setAnalysisAt(data.created_at || new Date().toISOString());
+    if (!data?.result) { setNotice({ kind: "error", text: "A análise retornou sem perfil do juízo. Nenhum resultado foi validado." }); return; }
     setNotice({ kind: "ok", text: "Perfil do juízo atualizado." });
   }
 
@@ -635,7 +645,8 @@ export default function ConducaoProcessual() {
       })
       .select("id,kind,title,content,created_at")
       .single();
-    if (!ins.error && ins.data) setDrafts((v) => [ins.data as any, ...v]);
+    if (ins.error) { setNotice({ kind: "error", text: "Minuta gerada, mas não foi salva: " + ins.error.message }); return; }
+    if (ins.data) setDrafts((v) => [ins.data as any, ...v]);
     setNotice({
       kind: "ok",
       text: "Minuta pronta. Revise antes de protocolar.",
