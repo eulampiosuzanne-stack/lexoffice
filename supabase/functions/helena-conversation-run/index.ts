@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "jsr:@supabase/supabase-js@2.57.4";
 import { planOfficeModules, guardOfficeExecution } from "./office-modules.ts";
+import { authenticateOfficeCaller } from "./caller-auth.ts";
 // Office modules v1: scoped playbooks and confirmed legal-review receipts.
 const J=(x:any,s=200)=>new Response(JSON.stringify(x),{status:s,headers:{"Content-Type":"application/json"}});
 const A=()=>createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false}});
@@ -253,7 +254,7 @@ Deno.serve(async req=>{
   if(req.method!=='POST')return J({ok:false},405);
   try{
     const svc=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
-    if((req.headers.get('authorization')||'')!==`Bearer ${svc}`)return J({ok:false},401);
+    if(!await authenticateOfficeCaller(req,svc,Deno.env.get('SUPABASE_URL')||''))return J({ok:false},401);
     const b=await req.json().catch(()=>({}));
     const orgId=String(b.org_id||''),conversationId=String(b.conversation_id||''),phone=String(b.phone||''),agentKey=String(b.agent_key||''),interactionMode=String(b.interaction_mode||''),message=String(b.message||'').trim();
     const dryRun=b.dry_run===true;
@@ -458,9 +459,11 @@ Deno.serve(async req=>{
         if(!dryRun)await a.from('whatsapp_conversations').update({chatbot_context:newCollectionContext,updated_at:new Date().toISOString()}).eq('id',conversationId);
       }
     }
-    const gwRes=deterministic?null:await fetch(`${url}/functions/v1/ai-provider-gateway`,{method:'POST',headers:{Authorization:`Bearer ${sk}`,apikey:sk,'Content-Type':'application/json'},body:JSON.stringify({org_id:orgId,conversation_id:conversationId,agent_key:agentKey,purpose:'whatsapp_reply_helena',provider:policy.provider||'auto',model:policy.model||'',instructions,input:followup?`HISTÓRICO DA CONVERSA:\n${recent}\n\nTAREFA (não é mensagem do cliente):\n${message}`:`HISTÓRICO DA CONVERSA:\n${recent}\n\nMENSAGENS NOVAS DO CLIENTE (responda a estas):\n${message}`})});
+    let gwRes:Response|null=null;
+    if(!deterministic)try{gwRes=await fetch(`${url}/functions/v1/ai-provider-gateway`,{method:'POST',headers:{Authorization:`Bearer ${sk}`,apikey:sk,'Content-Type':'application/json'},body:JSON.stringify({org_id:orgId,conversation_id:conversationId,agent_key:agentKey,purpose:'whatsapp_reply_helena',provider:policy.provider||'auto',model:policy.model||'',instructions,input:followup?`HISTÓRICO DA CONVERSA:\n${recent}\n\nTAREFA (não é mensagem do cliente):\n${message}`:`HISTÓRICO DA CONVERSA:\n${recent}\n\nMENSAGENS NOVAS DO CLIENTE (responda a estas):\n${message}`}) ,signal:AbortSignal.timeout(50000)});}catch{console.error('helena_gateway_timeout_or_network');}
     const gwData=gwRes?await gwRes.json().catch(()=>null):null;
-    const candidate=deterministic||cleanReply(gwRes?.ok&&gwData?.ok?String(gwData.text||''):'');
+    if(gwData?.error==='agent_inactive')return J({ok:true,skipped:'agent_disabled'});
+    const candidate=deterministic||cleanReply(gwRes?.ok&&gwData?.ok?String(gwData.text||''):'')||'Não consegui consultar as informações agora. Pode tentar novamente em instantes?';
     const reply=candidate?guardOfficeExecution(candidate,officeReview.status):'';
     if(dryRun)return J({ok:true,dry_run:true,office_modules:officePlan.modules,office_review:officeReview,agent_key:agentKey,policy_used:policy.agent_key,identity,rules,signature_line:gp.signature_line,delay_seconds:gp.delay_seconds,business_hours_open:withinBusinessHours(policy),approval_required:q.approval_required===true,hot_lead:hotLead,instructions,reply,promise_detected:promiseDetected(reply),provider_error:gwData?.error||null});
     if(!reply)return J({ok:true,skipped:'no_reply',hot_lead:hotLead||undefined,provider_error:gwData?.error||null});

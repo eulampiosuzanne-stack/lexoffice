@@ -3,6 +3,7 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
 import vm from 'node:vm';
+import { authenticateOfficeCaller } from '../supabase/functions/helena-conversation-run/caller-auth.ts';
 import { planOfficeModules, guardOfficeExecution, OFFICE_MODULE_RULES } from '../supabase/functions/helena-conversation-run/office-modules.ts';
 
 test('module selection covers the requested office areas without changing public identity', () => {
@@ -37,7 +38,7 @@ test('private management, evidence, execution receipts and legal review have exp
 const source = readFileSync(new URL('../supabase/functions/helena-conversation-run/index.ts', import.meta.url), 'utf8')
   .replace(/^import .*;\r?\n/gm, '');
 const executable = stripTypeScriptTypes(source, { mode: 'transform' }).replace(/^export /gm, '');
-async function invoke({ dry = false, registrationFails = false, existing = false, message = 'Analise a petição e as provas', human = false } = {}) {
+async function invoke({ dry = false, registrationFails = false, existing = false, message = 'Analise a petição e as provas', human = false, gatewayFails = false } = {}) {
   let handler;
   const inserts = [], calls = [];
   const policy = { agent_key: 'client_service_triage', active: true, policy: {}, provider: 'test' };
@@ -67,9 +68,10 @@ async function invoke({ dry = false, registrationFails = false, existing = false
   const context = {
     Deno: { env: { get: key => ({ SUPABASE_URL: 'https://test.invalid', SUPABASE_SERVICE_ROLE_KEY: 'test-key' })[key] }, serve: fn => { handler = fn; } },
     createClient: () => ({ from: query }),
-    planOfficeModules, guardOfficeExecution, Response, Request, console: { error() {} },
+    planOfficeModules, guardOfficeExecution, authenticateOfficeCaller, Response, Request, AbortSignal, console: { error() {} },
     fetch: async (url, options) => {
       calls.push({ url, body: JSON.parse(options.body) });
+      if(gatewayFails && url.endsWith('/ai-provider-gateway'))throw new Error('network timeout');
       return new Response(JSON.stringify(url.endsWith('/ai-provider-gateway') ? { ok: true, text: 'Recebi seu pedido de análise.' } : { ok: true, allowed: true }));
     }
   };
@@ -127,4 +129,11 @@ test('unsupported execution claims are blocked after generation', () => {
   }
   assert.match(guardOfficeExecution('Registrei!', 'registration_failed'), /Não consegui registrar/);
   assert.equal(guardOfficeExecution('Posso organizar os documentos.', 'not_required'), 'Posso organizar os documentos.');
+});
+
+test('provider timeout produces a clear reply instead of silence', async () => {
+  const { result, calls } = await invoke({ message:'Preciso de atendimento', gatewayFails:true });
+  assert.equal(result.sent,true);
+  assert.match(result.reply,/Não consegui consultar/);
+  assert.ok(calls.some(call=>call.url.endsWith('/whatsapp-outbound-gate')));
 });

@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { generateGemini, resolveGatewayPrompt } from "./model-request.ts";
 
 const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};
 const json=(b:any,s=200)=>new Response(JSON.stringify(b),{status:s,headers:{...cors,"content-type":"application/json; charset=utf-8","cache-control":"no-store"}});
@@ -29,22 +30,6 @@ async function loadAgentPolicy(orgId:string,agentKey:string){
   }catch{return null}
 }
 
-async function gemini(key:string,sys:string,input:string,model:string,temperature:number,maxTokens:number){
-  if(!key)return{ok:false,error:'gemini_key_missing'};
-  const preferred=model?.startsWith('gemini-')?model:(Deno.env.get('GEMINI_MODEL')||'gemini-3.7-flash');
-  const candidates=[...new Set([preferred,'gemini-3.7-flash','gemini-3.6-flash','gemini-3.5-flash','gemini-3.5-flash-lite','gemini-2.5-flash','gemini-2.5-flash-lite'])];
-  let last:any={ok:false,error:'gemini_unavailable'};
-  for(const chosen of candidates){
-    try{
-      const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${chosen}:generateContent?key=${encodeURIComponent(key)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:sys}]},contents:[{role:'user',parts:[{text:input}]}],generationConfig:{temperature,maxOutputTokens:maxTokens}})});
-      const d=await r.json().catch(()=>null);
-      if(r.ok){const text=String(d?.candidates?.[0]?.content?.parts?.map((p:any)=>p.text||'').join('')||'').trim();if(text)return{ok:true,provider:'gemini',model:chosen,text};last={ok:false,error:'gemini_empty',model:chosen};continue}
-      last={ok:false,error:`gemini_${r.status}`,detail:d?.error?.message||null,model:chosen};
-      if(![429,500,502,503,504].includes(r.status))break;
-    }catch(e){last={ok:false,error:'gemini_network',detail:e instanceof Error?e.message:String(e),model:chosen}}
-  }
-  return last;
-}
 Deno.serve(async req=>{
   if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
   if(req.method!=='POST')return json({error:'method_not_allowed'},405);
@@ -60,10 +45,12 @@ Deno.serve(async req=>{
   const model=String(policyRow?.model||body.model||'');
   const temperature=Math.max(0,Math.min(1,Number(p.temperature ?? body.temperature ?? .25)));
   const maxTokens=Math.max(200,Math.min(4000,Number(p.max_output_tokens ?? body.max_output_tokens ?? 1400)));
-  const sys=String(policyRow?.system_prompt||body.instructions||'Você é um agente do LEXOFFICE. Responda em português do Brasil, com clareza e sem inventar informações jurídicas.');
+  const serviceKey=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
+  const trustedInternal=!!serviceKey&&((req.headers.get('authorization')||'')==='Bearer '+serviceKey||req.headers.get('apikey')===serviceKey);
+  const sys=resolveGatewayPrompt(policyRow?.system_prompt,body.instructions,trustedInternal);
   const input=String(body.input||'');
   if(!input.trim())return json({error:'input_required'},400);
-  const result=await gemini(geminiKey,sys,input,model,temperature,maxTokens);
-  if(result.ok)return json({ok:true,...result,agent_key:agentKey||null,policy_provider:'gemini',fallback_used:false});
+  const result=await generateGemini(geminiKey,sys,input,model,temperature,maxTokens);
+  if(result.ok)return json({ok:true,...result,agent_key:agentKey||null,policy_provider:'gemini',fallback_used:result.fallback_used===true});
   return json({ok:false,error:'gemini_unavailable',providers:[{error:result.error,detail:result.detail||null}]},503);
 });
