@@ -176,14 +176,15 @@ export async function handleDonnaDailyBrief(req: Request) {
     if (body?.action !== "donna_daily_brief") return json({ ok: false, error: "Ação inválida" }, 400);
     const dryRun = body?.dry_run === true;
     const today = localDate();
-    const settings = await rows(a.from("whatsapp_settings").select("org_id,alert_phone")
-      .eq("alerts_enabled", true).not("alert_phone", "is", null));
+    const settings = await rows(a.from("whatsapp_settings").select("org_id,alert_phone,commercial_alert_phone")
+      .eq("alerts_enabled", true));
     const results = [];
 
     for (const setting of settings) {
       const orgId = String(setting.org_id || "");
-      const phone = digits(setting.alert_phone);
-      if (!orgId || phone.length < 10 || phone.length > 15) continue;
+      const phones = Array.from(new Set([digits(setting.alert_phone), digits(setting.commercial_alert_phone)]))
+        .filter((phone) => phone.length >= 10 && phone.length <= 15);
+      if (!orgId || phones.length === 0) continue;
 
       const brief = await makeBrief(a, orgId, today);
       if (!brief.message) {
@@ -191,11 +192,10 @@ export async function handleDonnaDailyBrief(req: Request) {
         continue;
       }
       if (dryRun) {
-        results.push({ org_id: orgId, dry_run: true, would_send: true, counts: brief.counts });
+        results.push({ org_id: orgId, dry_run: true, would_send: true, recipients: phones.length, counts: brief.counts });
         continue;
       }
 
-      const idempotencyKey = `donna:daily-brief:${orgId}:${today}`;
       const { data: existing, error: existingError } = await a.from("donna_daily_brief_runs")
         .select("status,created_at").eq("org_id", orgId).eq("brief_date", today).maybeSingle();
       if (existingError) throw new Error("Não foi possível conferir o envio diário");
@@ -219,24 +219,29 @@ export async function handleDonnaDailyBrief(req: Request) {
       }
 
       try {
-        const { data: gateResult, error: gateError } = await a.functions.invoke("whatsapp-outbound-gate", {
-          body: {
-            org_id: orgId,
-            phone,
-            agent_key: "system",
-            idempotency_key: idempotencyKey,
-            message: brief.message,
-            format_agent_reply: false,
-          },
-        });
-        if (gateError || !gateResult?.ok || gateResult?.allowed === false) {
-          throw new Error(gateResult?.reason || gateResult?.error || gateError?.message || "Falha no envio do WhatsApp");
+        const deliveries = [];
+        for (const phone of phones) {
+          const idempotencyKey = `donna:daily-brief:${orgId}:${today}:${phone.slice(-6)}`;
+          const { data: gateResult, error: gateError } = await a.functions.invoke("whatsapp-outbound-gate", {
+            body: {
+              org_id: orgId,
+              phone,
+              agent_key: "system",
+              idempotency_key: idempotencyKey,
+              message: brief.message,
+              format_agent_reply: false,
+            },
+          });
+          if (gateError || !gateResult?.ok || gateResult?.allowed === false) {
+            throw new Error(gateResult?.reason || gateResult?.error || gateError?.message || "Falha no envio do WhatsApp");
+          }
+          deliveries.push({ duplicate: gateResult.duplicate === true });
         }
         const { error: updateError } = await a.from("donna_daily_brief_runs")
           .update({ status: "sent", sent_at: new Date().toISOString() })
           .eq("org_id", orgId).eq("brief_date", today);
         if (updateError) throw new Error("Mensagem enviada, mas não foi possível registrar o resultado");
-        results.push({ org_id: orgId, sent: true, duplicate: gateResult.duplicate === true, counts: brief.counts });
+        results.push({ org_id: orgId, sent: true, recipients: deliveries.length, duplicate: deliveries.every((item) => item.duplicate), counts: brief.counts });
       } catch (error) {
         await a.from("donna_daily_brief_runs").update({ status: "failed" })
           .eq("org_id", orgId).eq("brief_date", today);
