@@ -223,20 +223,27 @@ async function entryBalance(a:any,entry:any,late:number,rate:number){
 }
 
 async function alertOwner(a:any,url:string,sk:string,orgId:string,agentKey:string,policy:any,conversationId:string,phone:string,reason:string,context:string,critical=false){
-  const {data:s}=await a.from('whatsapp_settings').select('alert_phone,alerts_enabled,alert_on_handoff').eq('org_id',orgId).maybeSingle();
+  const {data:s}=await a.from('whatsapp_settings').select('alert_phone,commercial_alert_phone,alerts_enabled,alert_on_handoff').eq('org_id',orgId).maybeSingle();
   const pol=policy?.policy||{};
   if(s?.alerts_enabled===false)return false;
   if(critical?pol.alert_on_urgency===false:(pol.alert_on_handoff===false||s?.alert_on_handoff===false))return false;
-  const alertPhone=String(policy?.alert_phone||s?.alert_phone||'').trim();
-  if(!D(alertPhone))return false;
+  const alertTargets=Array.from(new Set([
+    String(policy?.alert_phone||s?.alert_phone||'').trim(),
+    String(s?.commercial_alert_phone||'').trim(),
+  ].filter((value)=>D(value))));
+  if(!alertTargets.length)return false;
   const {data:cv}=await a.from('whatsapp_conversations').select('client_id,process_id').eq('id',conversationId).maybeSingle();
-  const {data:row}=await a.from('ai_agent_alerts').insert({org_id:orgId,agent_key:agentKey,client_id:cv?.client_id||null,process_id:cv?.process_id||null,contact_phone:phone,alert_phone:alertPhone,reason,context,status:'pending'}).select('id').single();
-  if(!row?.id)return false;
+  const {data:rows}=await a.from('ai_agent_alerts').insert(alertTargets.map((alertPhone)=>({org_id:orgId,agent_key:agentKey,client_id:cv?.client_id||null,process_id:cv?.process_id||null,contact_phone:phone,alert_phone:alertPhone,reason,context,status:'pending'}))).select('id');
+  if(!rows?.length)return false;
   const msg=`${critical?'🚨 PRIORIDADE MÁXIMA':'⚠️ SUA INTERVENÇÃO É NECESSÁRIA'} • LEXOFFICE\n\nCliente: ${phone}\nMotivo: ${reason}\nContexto: ${context.slice(0,1400)}`;
-  try{const rr=await fetch(url+'/functions/v1/whatsapp-operator-send',{method:'POST',headers:{Authorization:'Bearer '+sk,'Content-Type':'application/json'},body:JSON.stringify({org_id:orgId,message:msg,targets:[{phone:alertPhone,name:'LEXOFFICE'}]})});const d=await rr.json().catch(()=>null);const ok=rr.ok&&Number(d?.sent||0)>0;await a.from('ai_agent_alerts').update(ok?{status:'sent',sent_at:new Date().toISOString(),updated_at:new Date().toISOString()}:{status:'failed',error_message:String(d?.results?.[0]?.error||d?.error||`operator-send ${rr.status}`).slice(0,500),updated_at:new Date().toISOString()}).eq('id',row.id)}catch(e){console.error('alertOwner',e)}
+  try{
+    const rr=await fetch(url+'/functions/v1/whatsapp-operator-send',{method:'POST',headers:{Authorization:'Bearer '+sk,'Content-Type':'application/json'},body:JSON.stringify({org_id:orgId,message:msg,targets:alertTargets.map((alertPhone,index)=>({phone:alertPhone,name:index===0?'Dra. Suzanne':'Dra. Gláucia'}))})});
+    const result=await rr.json().catch(()=>null);
+    const ok=rr.ok&&Number(result?.sent||0)>0;
+    await a.from('ai_agent_alerts').update(ok?{status:'sent',sent_at:new Date().toISOString(),updated_at:new Date().toISOString()}:{status:'failed',error_message:String(result?.results?.[0]?.error||result?.error||`operator-send ${rr.status}`).slice(0,500),updated_at:new Date().toISOString()}).in('id',rows.map((row:any)=>row.id));
+  }catch(e){console.error('alertOwner',e)}
   return true;
 }
-
 function gateParams(policy:any){
   const q=policy?.policy||{};
   const min=Number(policy?.min_delay_seconds||0),max=Math.max(min,Number(policy?.max_delay_seconds||0));
