@@ -48,6 +48,9 @@ async function ownerOf(s: any, o: string) {
 }
 // v37: Evolution conectada = canal principal; Meta fica só de reserva.
 async function evolutionPrimary(s: any, o: string) {
+  // Quando a configuração oficial é Meta, ela é sempre o canal principal.
+  const provider = (await secret(s, "whatsapp_provider")).toLowerCase();
+  if (provider === "meta" || provider === "meta_whatsapp" || provider === "whatsapp_meta") return false;
   if ((await secret(s, "meta_listen_when_evolution_up")) === "true") return false;
   const { data } = await s.from("whatsapp_evolution_instances").select("status,is_active").eq("org_id", o).eq("instance_name", "suzanne-lexoffice").maybeSingle();
   return data?.status === "connected" && data?.is_active === true;
@@ -77,6 +80,29 @@ async function sendText(s: any, o: string, cv: any, to: string, body: string, so
   const d = await graphSend(s, { to, type: "text", text: { body, preview_url: false } });
   await store(s, o, cv, String(d?.messages?.[0]?.id || "") || null, body, true, source);
 }
+// ---------- Helena orquestrada: uma única voz, especialistas internos em rotação ----------
+function metaIntent(text: string, isClient: boolean) {
+  const t = String(text || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if (/process|andamento|audiencia|sentenca|decisao|juiz|liminar|movimenta|intima|citacao|prazo/.test(t)) return "client_process_updates";
+  if (/pag|parcela|boleto|\bpix\b|cobranca|debito|honorario|atras|comprovante|cartao/.test(t)) return "billing";
+  if (/agend|reuniao|consulta|horario|remarc|atendimento presencial/.test(t)) return "client_schedule_relationship";
+  if (!isClient && /(contrat|proposta|valor da acao|quanto custa|parcelar|entrada|desconto|vou pensar|ta caro|muito caro)/.test(t)) return "sales";
+  return "client_service_triage";
+}
+async function runHelenaMeta(s: any, o: string, cv: any, from: string, text: string) {
+  const isClient = !!cv?.client_id;
+  const agentKey = metaIntent(text, isClient);
+  const svc = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const r = await fetch(Deno.env.get("SUPABASE_URL")! + "/functions/v1/helena-conversation-run", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + svc, apikey: svc, "Content-Type": "application/json" },
+    body: JSON.stringify({ org_id: o, conversation_id: cv.id, phone: D(from), agent_key: agentKey, interaction_mode: "orchestrated", message: text })
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok || data?.ok === false) throw new Error(data?.error || "Falha ao executar Helena");
+  return { agent_key: agentKey, result: data };
+}
+
 async function recentMenu(s: any, cv: any, menu: string) {
   const since = new Date(Date.now() - MENU_REPEAT_MIN * 60000).toISOString();
   const { data } = await s.from("whatsapp_messages").select("id").eq("conversation_id", cv.id).eq("direction", "outbound").eq("metadata->>source", "meta_menu_menu").eq("metadata->>menu", menu).gte("created_at", since).limit(1).maybeSingle();
@@ -273,10 +299,26 @@ async function handle(s: any, o: string, msg: any, value: any, enabled: boolean)
 
   // VIP: sem menu, direto para a Dra.
   const matches = await clientMatches(s, o, fromRaw);
+  if (matches.length === 1 && !cv.client_id) {
+    await s.from("whatsapp_conversations").update({ client_id: matches[0].id, updated_at: new Date().toISOString() }).eq("id", cv.id);
+    cv.client_id = matches[0].id;
+  }
   if (matches.length === 1 && matches[0].is_vip) {
     await alertDra(s, o, fromRaw, "CLIENTE VIP no WhatsApp", `${matches[0].name}: ${text || (media ? "[" + media.label + "]" : "")}`);
     await sendText(s, o, cv, fromRaw, TXT.vip(firstName(matches[0].name)), "meta_menu_vip");
     await pauseForHuman(s, cv, c, "vip_whatsapp_handoff"); return { action: "vip_handoff" };
+  }
+
+  // Texto livre segue para o orquestrador. Menus nativos continuam disponíveis quando escolhidos.
+  if (!media && !interactiveId && text.trim() && !isMenuWord(text)) {
+    try {
+      const routed = await runHelenaMeta(s, o, cv, fromRaw, text.trim());
+      return { action: "helena_orchestrated", agent_key: routed.agent_key };
+    } catch (e) {
+      console.error("meta_helena_orchestrated", e);
+      await notifyLex(s, o, "Falha temporária no atendimento Helena", (profileName || D(fromRaw)) + ": " + text.slice(0, 500));
+      return { action: "helena_failed_registered" };
+    }
   }
 
   let flow = await getFlow(s, cv);
