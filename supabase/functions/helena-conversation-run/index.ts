@@ -1,5 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "jsr:@supabase/supabase-js@2.57.4";
+import { planOfficeModules, guardOfficeExecution } from "./office-modules.ts";
+// Office modules v1: scoped playbooks and confirmed legal-review receipts.
 const J=(x:any,s=200)=>new Response(JSON.stringify(x),{status:s,headers:{"Content-Type":"application/json"}});
 const A=()=>createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false}});
 const D=(v:any)=>String(v??'').replace(/\D/g,'');
@@ -257,6 +259,7 @@ Deno.serve(async req=>{
     const dryRun=b.dry_run===true;
     // v27 — retomada automática de lead parado (conversation-inactivity-worker): a "message" é a TAREFA, não fala do cliente.
     const followup=b.kind==='inactivity_followup';
+    const officePlan=planOfficeModules(message,agentKey);
     if(!orgId||!conversationId||!phone||!agentKey||!message)return J({ok:false,error:'org_id, conversation_id, phone, agent_key e message são obrigatórios'},400);
     if(agentKey==='human')return J({ok:true,skipped:'human_owner'});
     const a=A();
@@ -395,11 +398,36 @@ Deno.serve(async req=>{
     const lexHumanRules='ATENDIMENTO HELENA: converse naturalmente em português brasileiro, sem menu numerico, assinatura repetida, linguagem de chatbot ou respostas genericas. Reaja primeiro ao que a pessoa disse e depois avance. Uma pergunta por vez, nao repita dados do CRM. Não anuncie espontaneamente automação, IA, robô ou assistente virtual; se houver pergunta direta sobre isso, responda com transparência e volte ao atendimento. Nunca diga que consultou ficha sem consultar. Traduza somente movimentacoes judiciais confirmadas em linguagem simples, com linha do tempo compacta quando pertinente; nunca invente fase, decisao ou prazo. Evite risadas em temas sensiveis. Nao prometa retorno pessoal da advogada sem confirmacao. Pedidos para falar com a advogada, reclamações e insistências sem urgência real não autorizam transferência automática: responda com firmeza, registre o pedido e ofereça agendamento conforme as regras. Nunca afirme que avisou a advogada se não houver confirmação. Para interessados ainda não contratados, explique a consulta paga e não confirme horário antes da validação do pagamento. Questões jurídicas de mérito devem seguir para revisão profissional, sem resposta conclusiva.';
     const brazilianToneRules='TOM BRASILEIRO NATURAL: acompanhe o grau de informalidade do cliente. Quando o cliente fizer uma brincadeira ou usar kkk/rsrs, voce pode responder com kkk ou rsrs de forma breve e ocasional, se soar espontaneo. Expressoes como pois e, imagina, poxa, combinado e entendi sao permitidas conforme o contexto. Nunca insira risadas automaticamente, nunca imite intimidade excessiva e nao use humor em reclamacoes, cobrancas delicadas, luto, violencia, ameacas, urgencias ou preocupacao processual. Emojis discretos como 🙂, 😊 ou 💛 podem aparecer quando forem pertinentes e acolhedores; nunca em excesso, em mensagens de cobranca, risco, luto, violencia ou conflitos. Mantenha elegancia profissional e uma pergunta por vez.';
     const rules=policyRules(policy,agentKey,hasHistory);
+    // A module is a plan, never a claim that an external engine has executed.
+    // Record legal work for professional review without messaging the lawyer or another client.
+    let officeReview:{status:string,id?:string}={status:officePlan.review_required?'not_registered':'not_required'};
+    if(officePlan.review_required&&!followup&&!dryRun){
+      try{
+        const title='Helena: revisão ('+officePlan.review_modules.join(', ')+')';
+        const existing=await a.from('human_review_queue').select('id').eq('org_id',orgId).eq('source_type','helena_office_review').eq('source_id',conversationId).eq('title',title).eq('status','pending').gte('created_at',new Date(Date.now()-2*3600000).toISOString()).limit(1).maybeSingle();
+        if(existing.error)throw existing.error;
+        if(existing.data?.id)officeReview={status:'pending_review',id:existing.data.id};
+        else{
+          const inserted=await a.from('human_review_queue').insert({org_id:orgId,client_id:verifiedClientId,process_id:conv?.process_id||null,source_type:'helena_office_review',source_id:conversationId,title,content:message.slice(0,1500),ai_suggestion:null,priority:'normal',status:'pending',metadata:{office_modules:officePlan.review_modules,agent_key:agentKey,requires_professional_review:true}}).select('id').single();
+          if(inserted.error||!inserted.data?.id)throw inserted.error||new Error('missing_review_receipt');
+          officeReview={status:'pending_review',id:inserted.data.id};
+        }
+      }catch(e){console.error('office_review_registration_failed');officeReview={status:'registration_failed'};}
+    }
+    const officeReceipt=officeReview.status==='pending_review'
+      ?'RECIBO DO SERVIDOR: pedido registrado na fila interna para revisão jurídica. Apenas o registro foi confirmado; nenhum documento foi analisado, cálculo executado, investigação realizada, prazo validado ou mensagem enviada à advogada por este registro. Não prometa prazo de retorno.'
+      :officeReview.status==='registration_failed'
+        ?'RECIBO DO SERVIDOR: falhou o registro na fila de revisão. Não afirme que registrou, encaminhou ou avisou a advogada. Informe brevemente que não foi possível registrar o pedido e que é necessária nova tentativa.'
+        :officeReview.status==='not_registered'
+          ?'SIMULAÇÃO: não houve registro de tarefa nem execução de ferramenta.'
+          :'';
     const instructions=[
       `Você é Helena, concierge jurídica do escritório ${office}, e é a única identidade que conversa com o cliente pelo WhatsApp.`,
       base?.active&&base?.system_prompt?`PERSONALIDADE E COMUNICAÇÃO OBRIGATÓRIAS DA HELENA: ${String(base.system_prompt).trim()}`:'',
       policy.agent_key!=='helena_chatbot'&&policy.system_prompt?`CONTRIBUIÇÃO DO ESPECIALISTA INTERNO ${policy.agent_key}: use estas orientações apenas para resolver a necessidade identificada pelo orquestrador. Nunca assuma outra identidade, nunca diga que houve troca de agente e nunca se apresente como setor ou especialista. A resposta final deve conservar integralmente a voz da Helena. ${String(policy.system_prompt).trim()}`:'',
       lexHumanRules,
+      officePlan.instructions,
+      officeReceipt,
       brazilianToneRules,
       rules.length?'REGRAS OBRIGATÓRIAS (configuradas pela Dra. Suzanne):\n- '+rules.join('\n- '):'',
       agentKey==='support_n1'?'SUPORTE N1 PARA RECLAMACOES: mantenha tom firme, institucional e impessoal. Nao discuta, nao ironize e nao ofereca acesso direto a advogada como resposta a pressao. Identifique a reclamacao concreta, consulte o historico autorizado e responda objetivamente com a providencia possivel. Se nao houver fato novo, informe que a demanda ja esta registrada e nao reabra debate repetitivo. Em ofensa, estabeleca limite respeitoso; se persistir, encerre somente a interacao abusiva e preserve canais para urgencias, prazos e deveres profissionais. Nunca dificulte reclamacoes legitimas ou ameace o cliente. Maximo de tres linhas e uma pergunta por vez.':'',
@@ -432,13 +460,14 @@ Deno.serve(async req=>{
     }
     const gwRes=deterministic?null:await fetch(`${url}/functions/v1/ai-provider-gateway`,{method:'POST',headers:{Authorization:`Bearer ${sk}`,apikey:sk,'Content-Type':'application/json'},body:JSON.stringify({org_id:orgId,conversation_id:conversationId,agent_key:agentKey,purpose:'whatsapp_reply_helena',provider:policy.provider||'auto',model:policy.model||'',instructions,input:followup?`HISTÓRICO DA CONVERSA:\n${recent}\n\nTAREFA (não é mensagem do cliente):\n${message}`:`HISTÓRICO DA CONVERSA:\n${recent}\n\nMENSAGENS NOVAS DO CLIENTE (responda a estas):\n${message}`})});
     const gwData=gwRes?await gwRes.json().catch(()=>null):null;
-    const reply=deterministic||cleanReply(gwRes?.ok&&gwData?.ok?String(gwData.text||''):'');
-    if(dryRun)return J({ok:true,dry_run:true,agent_key:agentKey,policy_used:policy.agent_key,identity,rules,signature_line:gp.signature_line,delay_seconds:gp.delay_seconds,business_hours_open:withinBusinessHours(policy),approval_required:q.approval_required===true,hot_lead:hotLead,instructions,reply,promise_detected:promiseDetected(reply),provider_error:gwData?.error||null});
+    const candidate=deterministic||cleanReply(gwRes?.ok&&gwData?.ok?String(gwData.text||''):'');
+    const reply=candidate?guardOfficeExecution(candidate,officeReview.status):'';
+    if(dryRun)return J({ok:true,dry_run:true,office_modules:officePlan.modules,office_review:officeReview,agent_key:agentKey,policy_used:policy.agent_key,identity,rules,signature_line:gp.signature_line,delay_seconds:gp.delay_seconds,business_hours_open:withinBusinessHours(policy),approval_required:q.approval_required===true,hot_lead:hotLead,instructions,reply,promise_detected:promiseDetected(reply),provider_error:gwData?.error||null});
     if(!reply)return J({ok:true,skipped:'no_reply',hot_lead:hotLead||undefined,provider_error:gwData?.error||null});
 
     if(q.approval_required===true){
       await a.from('human_review_queue').insert({org_id:orgId,client_id:conv?.client_id||null,process_id:conv?.process_id||null,source_type:'whatsapp_ai_reply',source_id:conversationId,title:`Resposta de ${identity} aguardando aprovação`,content:message,ai_suggestion:reply,priority:'normal',status:'pending',metadata:{phone,agent_key:agentKey,gate:gp}});
-      return J({ok:true,queued_for_approval:true,agent_key:agentKey,hot_lead:hotLead||undefined});
+      return J({ok:true,queued_for_approval:true,office_modules:officePlan.modules,office_review:officeReview,agent_key:agentKey,hot_lead:hotLead||undefined});
     }
 
     const gate=await send(reply,String(b.idempotency_key||'')||`helena:${conversationId}:${Date.now()}`);
@@ -459,7 +488,7 @@ Deno.serve(async req=>{
         if(afterAi?.ok)await a.from('whatsapp_chatbot_flow_state').upsert({conversation_id:conversationId,org_id:orgId,current_node:'collection_interest_confirmation',path:afterAi.path||st?.path||[],updated_at:new Date().toISOString()});
       }
     }catch(e){console.error('helena-conversation-run followup',e)}
-    return J({ok:true,sent:true,agent_key:agentKey,policy_used:policy.agent_key,identity,reply,promise_alert:promised||undefined,hot_lead:hotLead||undefined});
+    return J({ok:true,sent:true,office_modules:officePlan.modules,office_review:officeReview,agent_key:agentKey,policy_used:policy.agent_key,identity,reply,promise_alert:promised||undefined,hot_lead:hotLead||undefined});
   }catch(e){
     console.error('helena-conversation-run',e);
     return J({ok:false,error:e instanceof Error?e.message:String(e)},500);
