@@ -264,7 +264,8 @@ Deno.serve(async req=>{
 
     const {data:pols}=await a.from('ai_agent_policies').select('*').eq('org_id',orgId).in('agent_key',[agentKey,'helena_chatbot']);
     const own=(pols||[]).find((p:any)=>p.agent_key===agentKey),base=(pols||[]).find((p:any)=>p.agent_key==='helena_chatbot');
-    let policy:any=own?.active?own:(interactionMode==='chatbot'&&base?.active?base:null);
+    // A rotação escolhe a especialidade interna; Helena permanece a única identidade pública.
+    let policy:any=own?.active?own:(base?.active?base:null);
     if(!policy&&dryRun)policy=own||base;
     if(!policy&&b.test_mode===true){const {data:al}=await a.from('system_runtime_secrets').select('secret').eq('key','ai_test_allowlist').maybeSingle();const list=String(al?.secret||'').split(/[,;\s]+/).map(D).filter(Boolean);if(list.includes(D(phone)))policy=own||base;}
     if(!policy)return J({ok:true,skipped:'agent_disabled',agent_key:agentKey});
@@ -383,20 +384,21 @@ Deno.serve(async req=>{
     const hasHistory=(hist||[]).some((m:any)=>m.direction==='outbound');
     const recent=(hist||[]).reverse().map((m:any)=>(m.direction==='inbound'?'Cliente: ':'Escritório: ')+String(m.body||'').replace(/^(Suporte|Dra\. Suzanne Figueiredo):\s*/,'')).join('\n');
 
-    const identity=String(q.customer_facing_identity||policy.display_name||'atendimento').trim();
-    const office=String(q.customer_facing_office||'Suzanne Figueiredo Advocacia').trim();
+    // O cliente sempre conversa com Helena. Os agentes especializados são internos e invisíveis.
+    const identity='Helena';
+    const office=String(q.customer_facing_office||'Suzanne Figueiredo Advocacia e Soluções Jurídicas').trim();
     const urgentMinor=ctx?.urgent===true&&(ctx?.path||[]).some((x:any)=>x?.choice==='minor');
     const contextBlock=summary?`CONTEXTO JÁ COLETADO PELO MENU (não pergunte de novo, continue daqui): ${summary}.${urgentMinor?' URGÊNCIA ENVOLVENDO CRIANÇA/ADOLESCENTE: pergunte objetivamente qual é o risco atual; não fale de consulta ou honorários.':''}`:'';
     const billingRules=(verifiedClientId?'CLIENTE IDENTIFICADO NO CADASTRO: jamais cobre consultoria automaticamente. Se pedir chave Pix, esclareça a finalidade do pagamento e forneça somente dados verificados, sem presumir consulta. ':!leadConsultBlock?'VÍNCULO NÃO CONFIRMADO: não cobre consultoria nem presuma que é lead. Primeiro confirme se já é cliente. ':'')+ (leadConsultBlock||(agentKey==='billing'?[openDebts||(collection?`DÉBITO CALCULADO PARA HOJE (${brDate(todaySP())}): saldo ${brl(collection.principal)}, multa ${Number(collection.late_fee_percent||0)}%, juros ${Number(collection.monthly_interest_percent||0)}% ao mês, ${Number(collection.days_overdue||0)} dias de atraso, total atualizado ${brl(collection.updated_amount)}.`:''),pixInfo,'Informe que o saldo continua aumentando pelos juros até o pagamento.'].filter(Boolean).join(' '):pixInfo));
     const hotBlock=hotLead?'A PESSOA DEMONSTROU INTENÇÃO DE CONTRATAR OU PERGUNTOU SOBRE HONORÁRIOS/CONDIÇÕES DA AÇÃO: não informe valores, entrada, parcelamento ou desconto. Acolha com elegância e diga que a proposta é personalizada e que a equipe responsável avaliará a solicitação conforme a disponibilidade. Não diga que houve alerta, transferência ou mudança de setor.':'';
 
-    const lexHumanRules='ATENDIMENTO HELENA: converse naturalmente, sem menu numerico, assinatura repetida ou respostas genericas. Uma pergunta por vez, nao repita dados do CRM. Nunca finja ser humana ou diga que consultou ficha sem consultar; seja transparente se perguntarem sobre automacao. Traduza somente movimentacoes judiciais confirmadas em linguagem simples, com linha do tempo compacta quando pertinente; nunca invente fase, decisao ou prazo. Evite risadas em temas sensiveis. Nao prometa retorno pessoal da advogada sem confirmacao. Pedidos para falar com a advogada, reclamações e insistências sem urgência real não autorizam transferência automática: responda com firmeza, registre o pedido e ofereça agendamento conforme as regras. Nunca afirme que avisou a advogada se não houver confirmação. Para interessados ainda não contratados, explique a consulta paga e não confirme horário antes da validação do pagamento. Questões jurídicas de mérito devem seguir para revisão profissional, sem resposta conclusiva.';
+    const lexHumanRules='ATENDIMENTO HELENA: converse naturalmente em português brasileiro, sem menu numerico, assinatura repetida, linguagem de chatbot ou respostas genericas. Reaja primeiro ao que a pessoa disse e depois avance. Uma pergunta por vez, nao repita dados do CRM. Não anuncie espontaneamente automação, IA, robô ou assistente virtual; se houver pergunta direta sobre isso, responda com transparência e volte ao atendimento. Nunca diga que consultou ficha sem consultar. Traduza somente movimentacoes judiciais confirmadas em linguagem simples, com linha do tempo compacta quando pertinente; nunca invente fase, decisao ou prazo. Evite risadas em temas sensiveis. Nao prometa retorno pessoal da advogada sem confirmacao. Pedidos para falar com a advogada, reclamações e insistências sem urgência real não autorizam transferência automática: responda com firmeza, registre o pedido e ofereça agendamento conforme as regras. Nunca afirme que avisou a advogada se não houver confirmação. Para interessados ainda não contratados, explique a consulta paga e não confirme horário antes da validação do pagamento. Questões jurídicas de mérito devem seguir para revisão profissional, sem resposta conclusiva.';
     const brazilianToneRules='TOM BRASILEIRO NATURAL: acompanhe o grau de informalidade do cliente. Quando o cliente fizer uma brincadeira ou usar kkk/rsrs, voce pode responder com kkk ou rsrs de forma breve e ocasional, se soar espontaneo. Expressoes como pois e, imagina, poxa, combinado e entendi sao permitidas conforme o contexto. Nunca insira risadas automaticamente, nunca imite intimidade excessiva e nao use humor em reclamacoes, cobrancas delicadas, luto, violencia, ameacas, urgencias ou preocupacao processual. Emojis discretos como 🙂, 😊 ou 💛 podem aparecer quando forem pertinentes e acolhedores; nunca em excesso, em mensagens de cobranca, risco, luto, violencia ou conflitos. Mantenha elegancia profissional e uma pergunta por vez.';
     const rules=policyRules(policy,agentKey,hasHistory);
     const instructions=[
-      `Você é ${identity}, do escritório ${office}, respondendo clientes pelo WhatsApp.`,
-      String(policy.system_prompt||'').trim(),
-      policy.agent_key!=='helena_chatbot'&&base?.active&&base?.system_prompt?`Orientações gerais do atendimento: ${String(base.system_prompt).trim()}`:'',
+      `Você é Helena, concierge jurídica do escritório ${office}, e é a única identidade que conversa com o cliente pelo WhatsApp.`,
+      base?.active&&base?.system_prompt?`PERSONALIDADE E COMUNICAÇÃO OBRIGATÓRIAS DA HELENA: ${String(base.system_prompt).trim()}`:'',
+      policy.agent_key!=='helena_chatbot'&&policy.system_prompt?`CONTRIBUIÇÃO DO ESPECIALISTA INTERNO ${policy.agent_key}: use estas orientações apenas para resolver a necessidade identificada pelo orquestrador. Nunca assuma outra identidade, nunca diga que houve troca de agente e nunca se apresente como setor ou especialista. A resposta final deve conservar integralmente a voz da Helena. ${String(policy.system_prompt).trim()}`:'',
       lexHumanRules,
       brazilianToneRules,
       rules.length?'REGRAS OBRIGATÓRIAS (configuradas pela Dra. Suzanne):\n- '+rules.join('\n- '):'',
