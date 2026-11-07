@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 export type LexTheme = 'dark' | 'light';
 export const THEME_STORAGE_KEY = 'lexoffice-theme';
 export function readLexTheme(): LexTheme {
-  try { return localStorage.getItem(THEME_STORAGE_KEY) === 'light' ? 'light' : 'dark'; } catch { return 'dark'; }
+  try { return localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light'; } catch { return 'light'; }
 }
 export function applyLexTheme(theme: LexTheme) {
   document.documentElement.dataset.lexTheme = theme;

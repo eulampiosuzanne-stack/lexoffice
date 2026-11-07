@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CalendarDays, CheckSquare, ChevronRight, MessageCircle, Plus, Scale, Wallet } from "lucide-react";
+import { AlertTriangle, BarChart3, CalendarDays, CheckSquare, ChevronRight, CircleDollarSign, FilePlus2, FileText, FolderOpen, Megaphone, MessageCircle, Plus, Scale, Search, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import "./dashboard-home.css";
@@ -78,11 +78,13 @@ export default function DashboardOverview() {
     const hearing=appointments.find(x=>/audi[eê]ncia/i.test(`${x.event_type||""} ${x.title||""}`));
     if(hearing) return {label:"Audiência na agenda de hoje",detail:`${hour(hearing.starts_at)} · ${hearing.title||"Verificar compromisso"}`,path:"/agenda",level:"warning"};
     if(unread) return {label:"Cliente aguardando resposta",detail:`${unread} mensagem(ns) não lida(s) no aplicativo.`,path:"/atendimento/aplicativo",level:"info"};
+    if(pending.length) return {label:"Pendência financeira para conferir",detail:`${pending.length} recebimento(s) aguardando conferência.`,path:"/financeiro",level:"finance"};
     return {label:"Guardiã SF de olho na agenda",detail:"Nenhum dos alertas prioritários acima foi identificado neste resumo. Confira os autos e a agenda completa.",path:"/agenda",level:"calm"};
-  },[loaded,loadError,deadlines,appointments,unread]);
+  },[loaded,loadError,deadlines,appointments,unread,pending]);
   const firstName = String(profile.name || "").trim().split(/\\s+/)[0];
-  const greeting = new Date().getHours() < 12 ? "Bom dia" : new Date().getHours() < 18 ? "Boa tarde" : "Boa noite";
-  const today = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
+  const spHour = Number(new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", hourCycle: "h23" }).format(new Date()));
+  const greeting = spHour < 12 ? "Bom dia" : spHour < 18 ? "Boa tarde" : "Boa noite";
+  const today = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "long", day: "numeric", month: "long" }).format(new Date());
   const priorityRows = [
     ...critical.slice(0, 2).map((x) => ({ id: x.id, icon: Scale, title: x.title || "Prazo processual", meta: `Vence ${shortDate(x.due_at)}`, path: "/processos", tone: "danger" })),
     ...(unread ? [{ icon: MessageCircle, title: `${unread} ${unread === 1 ? "mensagem aguarda" : "mensagens aguardam"} resposta`, meta: "Aplicativo do cliente", path: "/atendimento/aplicativo", tone: "info" }] : []),
@@ -90,13 +92,32 @@ export default function DashboardOverview() {
   ].slice(0, 4);
 
   return <div className="home-command">
-    <div className="hc-sf-edition" role="note"><span aria-hidden="true">✦</span><strong>SUPERADVOGADAS SF</strong><span>Central de comando do escritório</span></div>
+    <section className="sf-hero-banner" aria-label="Banner Superadvogadas SF">
+      <img src="/brand/superadvogadas-banner.png" alt="As três Superadvogadas SF voam ao lado da Guardiã SF sobre a cidade e o escritório. Mais que direito, soluções para a sua vida. Organização, Produtividade, Estratégia e Crescimento." decoding="async" fetchPriority="high"/>
+      <div className="sf-hero-caption">
+        <strong>Mais que direito, soluções para a sua vida.</strong>
+        <span>Organização · Produtividade · Estratégia · Crescimento</span>
+      </div>
+    </section>
+    <section className="hc-primary-actions" aria-label="Ações principais do escritório">
+      <div className="hc-primary-actions-grid">
+        {[
+          {name:"Nova Ação",desc:"Petição com IA",path:"/documentos/gerar",icon:FilePlus2,variant:"wine"},
+          {name:"Análise de Caso",desc:"Estratégia e risco",path:"/jurimetria",icon:Search,variant:"gold"},
+          {name:"Honorários",desc:"Tabela OAB",path:"/perfil-cliente/honorarios",icon:CircleDollarSign,variant:"wine"},
+          {name:"Agenda",desc:"Audiências e prazos",path:"/agenda",icon:CalendarDays,variant:"gold"},
+          {name:"Documentos",desc:"Dossiês e anexos",path:"/documentos",icon:FolderOpen,variant:"wine"},
+          {name:"Marketing",desc:"Conteúdo e redes",path:"/marketing",icon:Megaphone,variant:"gold"},
+          {name:"Relatórios",desc:"Gestão do escritório",path:"/relatorios",icon:BarChart3,variant:"wine"},
+        ].map(item=>{const Icon=item.icon;return <button type="button" className={`sf-3d-action sf-3d-${item.variant}`} key={item.name} onClick={()=>go(item.path)}><Icon size={30} strokeWidth={1.8} aria-hidden="true"/><strong>{item.name}</strong><small>{item.desc}</small></button>})}
+      </div>
+    </section>
     <header className="hc-greeting">
       <div><small>{today.charAt(0).toUpperCase() + today.slice(1)}</small><h1>{greeting}{firstName ? `, ${/^suzanne$/i.test(firstName) ? "Dra. Suzanne" : firstName}` : ""}</h1><p>Aqui está o que precisa da sua atenção hoje.</p></div>
       <button className="hc-primary" type="button" onClick={() => go("/whatsapp")}><MessageCircle size={18}/> Abrir conversas</button>
     </header>
 
-    <section className={`hc-guardian-status hc-guardian-${guardianAlert.level}`} aria-label="Aviso da Guardiã SF" data-critical-alert={guardianAlert.level==="critical"?"true":undefined}>
+    <section className={`hc-guardian-status hc-guardian-${guardianAlert.level}`} aria-label="Aviso da Guardiã SF" data-guardian-state={guardianAlert.level} data-critical-alert={guardianAlert.level==="critical"?"true":undefined}>
       <span className="hc-guardian-face" aria-hidden="true"><img className="hc-guardian-img" src="/brand/guardia-sf.webp" alt="" width={64} height={64} decoding="async"/></span>
       <div><strong>Guardiã SF · {guardianAlert.label}</strong><p>{guardianAlert.detail}</p></div>
       <button type="button" onClick={()=>go(guardianAlert.path)}>Conferir <ChevronRight size={18}/></button>
@@ -127,11 +148,11 @@ export default function DashboardOverview() {
 
     <div className="hc-main-grid">
       <section className="hc-panel hc-attention" id="atencao-agora"><div className="hc-panel-title"><div><span><AlertTriangle size={17}/></span><div><h2>Atenção agora</h2><p>O que não pode esperar</p></div></div><b>{attentionCount}</b></div>
-        {deadlineError && <p role="alert" style={{ color: "#ffb4b4", padding: "8px 16px" }}>{deadlineError}</p>}
-        {!loaded ? <div className="hc-skeleton"/> : priorityRows.length ? <ul>{priorityRows.map((item, index) => <li key={`${item.title}-${index}`}><button onClick={() => go(item.path)}><span className={item.tone}><item.icon size={18}/></span><div><b>{item.title}</b><small>{item.meta}</small></div><ChevronRight size={18}/></button>{item.id && <button type="button" disabled={closingDeadline === item.id} onClick={() => closeDeadline(item.id, item.title)} style={{ margin: "6px 12px 10px", padding: "8px 12px", border: "1px solid #bba16a", borderRadius: 6, color: "#f1dfb5", background: "#252932", fontSize: 13, cursor: "pointer" }}><CheckSquare size={15}/> {closingDeadline === item.id ? "Registrando..." : "Dar baixa no prazo"}</button>}</li>)}</ul> : <div className="hc-calm"><CheckSquare/><b>{loadError ? "Não foi possível confirmar os alertas" : "Nenhuma urgência identificada"}</b><span>{loadError ? "Verifique a agenda e os processos diretamente." : "Confira os autos e as demais fontes antes de concluir que não há pendências."}</span></div>}
+        {deadlineError && <p role="alert" className="hc-deadline-error">{deadlineError}</p>}
+        {!loaded ? <div className="hc-skeleton"/> : priorityRows.length ? <ul>{priorityRows.map((item, index) => <li key={`${item.title}-${index}`}><button onClick={() => go(item.path)}><span className={item.tone}><item.icon size={18}/></span><div><b>{item.title}</b><small>{item.meta}</small></div><ChevronRight size={18}/></button>{item.id && <button type="button" className="hc-deadline-complete" disabled={closingDeadline === item.id} onClick={() => closeDeadline(item.id, item.title)}><CheckSquare size={15}/> {closingDeadline === item.id ? "Registrando..." : "Dar baixa no prazo"}</button>}</li>)}</ul> : <div className="hc-calm"><CheckSquare/><b>{loadError ? "Não foi possível confirmar os alertas" : "Nenhuma urgência identificada"}</b><span>{loadError ? "Verifique a agenda e os processos diretamente." : "Confira os autos e as demais fontes antes de concluir que não há pendências."}</span></div>}
       </section>
       <section className="hc-panel hc-agenda"><div className="hc-panel-title"><div><span><CalendarDays size={17}/></span><div><h2>Agenda de hoje</h2><p>Reuniões e audiências, separadas dos prazos estimados</p></div></div><button onClick={() => go("/agenda")}>Ver agenda <ChevronRight size={15}/></button></div>
-        {!loaded ? <div className="hc-skeleton"/> : appointments.length ? <ul>{appointments.slice(0, 5).map((event) => <li key={event.id}><time>{hour(event.starts_at)}</time><div><b>{event.title}</b><small>{event.location || event.description || "Compromisso"}</small></div></li>)}</ul> : <div className="hc-calm"><CalendarDays/><b>Agenda livre hoje</b><span>Nenhuma reunião ou audiência encontrada.</span></div>}
+        {!loaded ? <div className="hc-skeleton"/> : appointments.length ? <ul>{appointments.slice(0, 5).map((event) => <li key={event.id}><button type="button" className="hc-agenda-event" onClick={()=>go("/agenda")}><time>{hour(event.starts_at)}</time><div><b>{event.title}</b><small>{event.location || event.description || "Compromisso"}</small><ChevronRight size={18}/></div></button></li>)}</ul> : <div className="hc-calm"><CalendarDays/><b>Agenda livre hoje</b><span>Nenhuma reunião ou audiência encontrada.</span></div>}
         {loaded && calendarDeadlines.length > 0 && <div className="hc-deadline-summary"><Scale size={17}/><span><b>{calendarDeadlines.length} prazo(s) na agenda</b><small>Estimativas não são compromissos confirmados. Confira os autos.</small></span><button type="button" onClick={() => go("/agenda")}>Consultar</button></div>}
       </section>
     </div>

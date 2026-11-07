@@ -43,12 +43,12 @@ import "./design-system/classic-depth.css";
 applyVisibility(readVisibility());
 // Apply saved preference before React renders to prevent dark-theme flash.
 try {
-    const theme = localStorage.getItem("lexoffice-theme") === "light" ? "light" : "dark";
+    const theme = localStorage.getItem("lexoffice-theme") === "dark" ? "dark" : "light";
     document.documentElement.dataset.lexTheme = theme;
     document.documentElement.style.colorScheme = theme;
 }
 catch {
-    document.documentElement.dataset.lexTheme = "dark";
+    document.documentElement.dataset.lexTheme = "light";
 }
 const intakePrefix = "/formulario-cliente/";
 const path = window.location.pathname.replace(/\/$/, "") || "/";

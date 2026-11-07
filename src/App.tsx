@@ -728,11 +728,14 @@ export default function App() {
           <button className="mobile-menu-btn" type="button" onClick={() => setNavOpen(!navOpen)} aria-label="Abrir menu completo">
             <Menu size={21}/>
           </button>
-          <div className="topbar-context" aria-label="Localização atual">
-            <span>LEXOFFICE</span>
-            {["/donna", "/painel", "/relatorios", "/atendimento/aplicativo"].includes(loc.pathname) && <span className="workspace-breadcrumb-area">{area.label}</span>}
-            <ChevronRight size={13} aria-hidden="true"/>
-            <strong>{areaTabs.find((item) => item.path === loc.pathname)?.label || area.label}</strong>
+          <div className="topbar-context" aria-label="LexOffice SF – Superadvogadas">
+            <span className="topbar-brand-mark" aria-hidden="true">SF</span>
+            <span className="topbar-brand-copy"><strong>LexOffice SF – Superadvogadas</strong><small>Gestão Jurídica · Inteligência · Produtividade</small></span>
+            <span className="topbar-route" aria-label="Localização atual">
+              <span className="workspace-breadcrumb-area">{area.label}</span>
+              <ChevronRight size={13} aria-hidden="true"/>
+              <strong>{areaTabs.find((item) => item.path === loc.pathname)?.label || area.label}</strong>
+            </span>
           </div>
           <div className="tools">
             <button type="button" data-testid="lex-theme-toggle" className="lex-theme-toggle" onClick={changeTheme} aria-label={lexTheme === "dark" ? "Ativar tema claro" : "Ativar tema escuro"} title={lexTheme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}>{lexTheme === "dark" ? <Sun size={16}/> : <Moon size={16}/>}<span>{lexTheme === "dark" ? "Tema claro" : "Tema escuro"}</span></button>

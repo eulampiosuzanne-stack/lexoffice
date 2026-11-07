@@ -273,3 +273,6 @@ html[data-lex-vision="enhanced"][data-lex-theme~="light"] {
   --lx-depth-control:0 1px 0 var(--lx-p-rgb-255-255-255-d025) inset,0 3px 0 var(--lx-p-09090b),0 7px 16px var(--lx-p-rgb-0-0-0-d2);
 }
 @media(max-width:760px){:root{--lx-depth-card:0 1px 0 var(--lx-p-rgb-255-255-255-d03) inset,0 5px 0 var(--lx-p-09090b),0 10px 20px var(--lx-p-rgb-0-0-0-d24);--lx-depth-card-soft:0 1px 0 var(--lx-p-rgb-255-255-255-d025) inset,0 3px 0 var(--lx-p-0c0c0e),0 7px 14px var(--lx-p-rgb-0-0-0-d2)}}
+
+/* Institutional identity tokens: SF wine, champagne and gold. */
+:root { --lx-brand-shell:#65001f; --lx-brand-shell-deep:#410017; --lx-brand-gold:#b28a4a; --lx-brand-wine-lit:#970b42; --lx-brand-gold-light:#f2c66d; --lx-brand-gold-ink:#242321; --lx-brand-gold-soft:#e9dfc9; --lx-brand-line:#b28a4a; --lx-brand-shell-text:#fffaf1; }
