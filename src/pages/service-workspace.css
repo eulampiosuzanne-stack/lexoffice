@@ -89,8 +89,8 @@ html[data-lex-theme] body .service-chat-page .service-shell:not(.has-selection),
 .service-chat-page .service-process-item small,.service-chat-page .service-panel-empty{color:var(--lx-text-muted);font-size:var(--lx-font-xs)}
 .service-chat-page .service-notice{position:fixed;right:20px;bottom:20px;z-index:120;max-width:420px;padding:12px 16px;background:var(--lx-surface);color:var(--lx-text);border:1px solid var(--lx-border);border-radius:var(--lx-radius-md);box-shadow:var(--lx-shadow)}
 /* High-contrast controls for low-vision accessibility: no dark red text on charcoal. */
-.service-chat-page .service-quick,.service-chat-page .service-side-btn,.service-chat-page .service-conv-state{color:#f8f5f2!important;font-size:15px!important;font-weight:650}
-.service-chat-page .service-quick:hover,.service-chat-page .service-side-btn:hover,.service-chat-page .service-action:hover{border-color:#e9b8c8;background:#493040;color:#fff}
+.service-chat-page .service-quick,.service-chat-page .service-side-btn,.service-chat-page .service-conv-state{color:var(--lx-p-f8f5f2);font-size:15px;font-weight:650}
+.service-chat-page .service-quick:hover,.service-chat-page .service-side-btn:hover,.service-chat-page .service-action:hover{border-color:var(--lx-p-e9b8c8);background:var(--lx-p-493040);color:var(--lx-p-fff)}
 .service-chat-page .service-quick:disabled,.service-chat-page .service-action:disabled{opacity:.6}
 .service-chat-page .service-mobile-back{display:none}
 .service-chat-page button:focus-visible,.service-chat-page input:focus-visible,.service-chat-page textarea:focus-visible{outline:2px solid var(--lx-focus);outline-offset:2px}
