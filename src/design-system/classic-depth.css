@@ -253,4 +253,3 @@ html body .app.app.app.app .hc-finance-grid>div{
 
 
 @media(prefers-reduced-motion:reduce){html body .app.app.app.app :is(.primary,.legacy-enter,button[type="submit"],.integration-action,.agent-save button,.ac-savebar button),html body .app.app.app.app :is(.primary,.legacy-enter,button[type="submit"],.integration-action,.agent-save button,.ac-savebar button):is(:hover,:active,:focus-visible){transform:none}}
-}
