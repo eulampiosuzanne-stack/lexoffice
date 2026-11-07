@@ -62,7 +62,22 @@ export default function DashboardOverview() {
     return due.getTime() <= Date.now() + 48 * 60 * 60 * 1000 || String(x.priority || "").toLowerCase() === "high";
   }), [deadlines]);
   const attentionCount = critical.length + (unread ? 1 : 0) + (pending.length ? 1 : 0);
-  const firstName = String(profile.name || "").trim().split(/\s+/)[0];
+  const guardianAlert = useMemo(() => {
+    if (!loaded) return { label: "Conferindo os dados do escritório", detail: "Os alertas serão exibidos após o carregamento.", path: "/agenda", level: "loading" };
+    const urgent = [...deadlines].filter(x => x.due_at && x.status !== "completed").sort((a,b)=>new Date(a.due_at).getTime()-new Date(b.due_at).getTime())[0];
+    if (urgent?.due_at) {
+      const dueDay = new Date(urgent.due_at).toLocaleDateString("en-CA", {timeZone:"America/Sao_Paulo"});
+      const todayDay = new Date().toLocaleDateString("en-CA", {timeZone:"America/Sao_Paulo"});
+      const tomorrowDay = new Date(Date.now()+86400000).toLocaleDateString("en-CA", {timeZone:"America/Sao_Paulo"});
+      if(dueDay <= todayDay) return {label:dueDay < todayDay?"Prazo vencido ou pendente de baixa":"Prazo com vencimento hoje",detail:urgent.title || "Confira o processo e o prazo.",path:"/processos",level:"critical"};
+      if(dueDay===tomorrowDay) return {label:"Prazo previsto para amanhã",detail:urgent.title || "Confira o processo e o prazo.",path:"/processos",level:"warning"};
+    }
+    const hearing=appointments.find(x=>/audi[eê]ncia/i.test(`${x.event_type||""} ${x.title||""}`));
+    if(hearing) return {label:"Audiência na agenda de hoje",detail:`${hour(hearing.starts_at)} · ${hearing.title||"Verificar compromisso"}`,path:"/agenda",level:"warning"};
+    if(unread) return {label:"Cliente aguardando resposta",detail:`${unread} mensagem(ns) não lida(s) no aplicativo.`,path:"/atendimento/aplicativo",level:"info"};
+    return {label:"Guardiã SF de olho na agenda",detail:"Nenhum dos alertas prioritários acima foi identificado neste resumo. Confira os autos e a agenda completa.",path:"/agenda",level:"calm"};
+  },[loaded,deadlines,appointments,unread]);
+  const firstName = String(profile.name || "").trim().split(/\\s+/)[0];
   const greeting = new Date().getHours() < 12 ? "Bom dia" : new Date().getHours() < 18 ? "Boa tarde" : "Boa noite";
   const today = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
   const priorityRows = [
@@ -77,6 +92,11 @@ export default function DashboardOverview() {
       <button className="hc-primary" type="button" onClick={() => go("/whatsapp")}><MessageCircle size={18}/> Abrir conversas</button>
     </header>
 
+    <section className={`hc-guardian-status hc-guardian-${guardianAlert.level}`} aria-label="Aviso da Guardiã SF">
+      <span className="hc-guardian-face" aria-hidden="true">🐶</span>
+      <div><strong>Guardiã SF · {guardianAlert.label}</strong><p>{guardianAlert.detail}</p></div>
+      <button type="button" onClick={()=>go(guardianAlert.path)}>Conferir <ChevronRight size={18}/></button>
+    </section>
     <section className="hc-metrics" aria-label="Resumo do dia">
       <button onClick={() => document.getElementById("atencao-agora")?.scrollIntoView({ behavior: "smooth" })}><span className="danger"><AlertTriangle/></span><div><small>Atenção agora</small><b>{loaded ? attentionCount : "—"}</b><em>{attentionCount ? "itens prioritários" : "Tudo em ordem"}</em></div></button>
       <button onClick={() => go("/agenda")}><span className="purple"><CalendarDays/></span><div><small>Agenda de hoje</small><b>{loaded ? appointments.length : "—"}</b><em>{appointments.length === 1 ? "compromisso" : "compromissos"}</em></div></button>
