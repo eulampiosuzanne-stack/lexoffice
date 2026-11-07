@@ -1,27 +1,29 @@
 /* LexOffice 2.0 — semantic theme contract for all application routes. */
 html[data-lex-theme="light"] {
-  color-scheme: dark;
-  --lx-canvas: #141820;
-  --lx-surface: #20252e;
-  --lx-surface-raised: #292f3a;
-  --lx-surface-hover: #343b47;
-  --lx-surface-selected: #52091f;
-  --lx-text: #f1eeee;
-  --lx-text-muted: #a2a2a7;
-  --lx-border: #3b424d;
-  --lx-border-strong: #6e263b;
-  --lx-primary: #76102e;
-  --lx-primary-hover: #ce2d53;
+  color-scheme: light;
+  --lx-canvas: #f8f6f0;
+  --lx-surface: #ffffff;
+  --lx-surface-raised: #f2eee7;
+  --lx-surface-hover: #e9dfd2;
+  --lx-surface-selected: #f1e2e7;
+  --lx-text: #242321;
+  --lx-text-muted: #55504b;
+  --lx-border: #b5a89b;
+  --lx-border-strong: #765d63;
+  --lx-primary: #681c37;
+  --lx-primary-hover: #501329;
   --lx-primary-contrast: #ffffff;
-  --lx-accent: #8e1837;
-  --lx-accent-soft: #3a1b27;
-  --lx-focus: #e05272;
-  --lx-success: #56b58c;
-  --lx-warning: #d7a657;
-  --lx-danger: #e05272;
-  --lx-shadow: 0 12px 34px rgba(0,0,0,.34);
-  --lx-overlay: rgba(0,0,0,.78);
-  --lx-success-soft: #172c26; --lx-danger-soft: #37101d; --lx-shadow-color: rgba(0,0,0,.38);
+  --lx-accent: #68223c;
+  --lx-accent-soft: #f1e2e7;
+  --lx-focus: #6a2140;
+  --lx-success: #176044;
+  --lx-warning: #855213;
+  --lx-danger: #a1213c;
+  --lx-shadow: 0 12px 34px rgba(45,29,35,.12);
+  --lx-overlay: rgba(26,18,21,.65);
+  --lx-success-soft: #e2f1e9;
+  --lx-danger-soft: #fae7e9;
+  --lx-shadow-color: rgba(45,29,35,.16);
 }
 html[data-lex-theme="dark"], html:not([data-lex-theme]) {
   color-scheme: dark;
@@ -93,11 +95,11 @@ html[data-lex-vision="enhanced"] {
   --lx-font-md: 1rem;
   --lx-control-height: 48px;
 }
-html[data-lex-vision="enhanced"][data-lex-theme~="light"] {
-  --lx-border: #7f555f;
-  --lx-border-strong: #cf7890;
-  --lx-text-muted: #d7d0d2;
-  --lx-focus: #ff8aa5;
-  --lx-shadow: 0 0 0 1px var(--lx-border), 0 6px 16px rgba(0,0,0,.42);
-  --lx-control-shadow: 0 2px 5px rgba(0,0,0,.4);
+html[data-lex-vision="enhanced"][data-lex-theme="light"] {
+  --lx-border: #755c62;
+  --lx-border-strong: #5a2739;
+  --lx-text-muted: #443d39;
+  --lx-focus: #681c37;
+  --lx-shadow: 0 0 0 1px var(--lx-border), 0 6px 16px rgba(45,29,35,.2);
+  --lx-control-shadow: 0 2px 5px rgba(45,29,35,.18);
 }
