@@ -102,3 +102,11 @@ html body .app.app.app.app .hc-panel-title>button:focus-visible{outline:3px soli
 .hc-strategy-grid button:hover{background:#fff0d9;border-color:#aa783b}
 .hc-strategy-grid button:focus-visible{outline:3px solid #761c42;outline-offset:2px}
 @media(max-width:600px){.hc-strategy{padding:15px}.hc-strategy-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hc-strategy-grid button{padding:12px;min-height:138px}.hc-strategy-grid button strong{font-size:15px}}
+
+
+/* Distinct Superadvogadas SF edition marker, legible on mobile and desktop. */
+.hc-sf-edition{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:14px 18px;border-radius:16px;background:linear-gradient(110deg,#59152e,#862b4a);color:#fff8ed;border:2px solid #c79c57}
+.hc-sf-edition>span:first-child{font-size:24px;color:#f5c970}
+.hc-sf-edition strong{font-size:19px;letter-spacing:.05em;line-height:1.3}
+.hc-sf-edition>span:last-child{font-size:15px;line-height:1.4;color:#fff1df}
+@media(max-width:600px){.hc-sf-edition{padding:12px}.hc-sf-edition strong{font-size:17px}.hc-sf-edition>span:last-child{flex-basis:100%;padding-left:34px}}
