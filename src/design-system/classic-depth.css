@@ -2,58 +2,47 @@
 /* Variáveis de profundidade definidas em tokens.css. */
 
 /* Superfícies principais e caixas de trabalho. */
-.card,.dashboard-kpi,.dashboard-panel,.module-box,.table-panel,.smart-panel,
-.smart-card,.agent-item,.agent-console,.ac-surface,.ac-metrics>div,
-.service-panel,.service-card,.settings-card,.integration-panel,.integration-card,
-.finance-card,.document-card,.client-card,.process-card,.report-card,.modal,
-.rule-modal,.lane,.lead-card,.kanban-column,.whatsapp-panel,.signature-card,
-.agenda-card,.calculator-card,.campaign-card{
+html:not([data-lex-theme="light"]) .card,html:not([data-lex-theme="light"]) .dashboard-kpi,html:not([data-lex-theme="light"]) .dashboard-panel,html:not([data-lex-theme="light"]) .module-box,html:not([data-lex-theme="light"]) .table-panel,html:not([data-lex-theme="light"]) .smart-panel,html:not([data-lex-theme="light"]) .smart-card,html:not([data-lex-theme="light"]) .agent-item,html:not([data-lex-theme="light"]) .agent-console,html:not([data-lex-theme="light"]) .ac-surface,html:not([data-lex-theme="light"]) .ac-metrics>div,html:not([data-lex-theme="light"]) .service-panel,html:not([data-lex-theme="light"]) .service-card,html:not([data-lex-theme="light"]) .settings-card,html:not([data-lex-theme="light"]) .integration-panel,html:not([data-lex-theme="light"]) .integration-card,html:not([data-lex-theme="light"]) .finance-card,html:not([data-lex-theme="light"]) .document-card,html:not([data-lex-theme="light"]) .client-card,html:not([data-lex-theme="light"]) .process-card,html:not([data-lex-theme="light"]) .report-card,html:not([data-lex-theme="light"]) .modal,html:not([data-lex-theme="light"]) .rule-modal,html:not([data-lex-theme="light"]) .lane,html:not([data-lex-theme="light"]) .lead-card,html:not([data-lex-theme="light"]) .kanban-column,html:not([data-lex-theme="light"]) .whatsapp-panel,html:not([data-lex-theme="light"]) .signature-card,html:not([data-lex-theme="light"]) .agenda-card,html:not([data-lex-theme="light"]) .calculator-card,html:not([data-lex-theme="light"]) .campaign-card{
   box-shadow:var(--lx-depth-card-soft);
 }
 
 /* Todas as caixas funcionais recebem o grafite opaco e o relevo clássico. */
-.app :where([class$="-panel"],[class$="-card"],[class$="-surface"],.panel,.card,article){
+html:not([data-lex-theme="light"]) .app :where([class$="-panel"],[class$="-card"],[class$="-surface"],.panel,.card,article){
   background:linear-gradient(180deg,var(--lx-p-272d36) 0%,var(--lx-p-20252e) 58%,var(--lx-p-1b2028) 100%);
   border-color:var(--lx-p-414955);
   box-shadow:var(--lx-depth-card-soft);
 }
-.app :where([class$="-panel"],[class$="-surface"],.module-box,.table-panel){
+html:not([data-lex-theme="light"]) .app :where([class$="-panel"],[class$="-surface"],.module-box,.table-panel){
   box-shadow:var(--lx-depth-card);
 }
 
 /* Painéis de maior hierarquia usam relevo mais marcado. */
-.dashboard-panel,.module-box,.table-panel,.smart-panel,.agent-console,
-.ac-surface,.rule-modal,.service-chat-page,.service-workspace{
+html:not([data-lex-theme="light"]) .dashboard-panel,html:not([data-lex-theme="light"]) .module-box,html:not([data-lex-theme="light"]) .table-panel,html:not([data-lex-theme="light"]) .smart-panel,html:not([data-lex-theme="light"]) .agent-console,html:not([data-lex-theme="light"]) .ac-surface,html:not([data-lex-theme="light"]) .rule-modal,html:not([data-lex-theme="light"]) .service-chat-page,html:not([data-lex-theme="light"]) .service-workspace{
   box-shadow:var(--lx-depth-card);
 }
 
 /* Barra superior e navegação preservam a geometria existente. */
-.app>main>header,.app>aside,.mobile-bottom-nav,.vision-dock{
+html:not([data-lex-theme="light"]) .app>main>header,html:not([data-lex-theme="light"]) .app>aside,html:not([data-lex-theme="light"]) .mobile-bottom-nav,html:not([data-lex-theme="light"]) .vision-dock{
   box-shadow:0 1px 0 var(--lx-p-rgb-255-255-255-d025) inset,0 10px 28px var(--lx-p-rgb-0-0-0-d22);
 }
-.app>aside{background:var(--lx-p-1b2028);border-right-color:var(--lx-p-3c434e);box-shadow:3px 0 0 var(--lx-p-0b0e13),10px 0 28px var(--lx-p-rgb-0-0-0-d34)}
-.app>main>header{background:linear-gradient(180deg,var(--lx-p-2a303a),var(--lx-p-20252e));border-color:var(--lx-p-414955);box-shadow:0 2px 0 var(--lx-p-rgb-255-255-255-d07) inset,0 5px 0 var(--lx-p-0b0e13),0 12px 28px var(--lx-p-rgb-0-0-0-d3)}
+html:not([data-lex-theme="light"]) .app>aside{background:var(--lx-p-1b2028);border-right-color:var(--lx-p-3c434e);box-shadow:3px 0 0 var(--lx-p-0b0e13),10px 0 28px var(--lx-p-rgb-0-0-0-d34)}
+html:not([data-lex-theme="light"]) .app>main>header{background:linear-gradient(180deg,var(--lx-p-2a303a),var(--lx-p-20252e));border-color:var(--lx-p-414955);box-shadow:0 2px 0 var(--lx-p-rgb-255-255-255-d07) inset,0 5px 0 var(--lx-p-0b0e13),0 12px 28px var(--lx-p-rgb-0-0-0-d3)}
 
 /* Botões mantêm seus eventos; somente recebem volume e estados táteis. */
-.primary,.legacy-enter,button[type="submit"],.integration-action,
-.agent-save button,.ac-savebar button:not(:disabled){
+html:not([data-lex-theme="light"]) .primary,html:not([data-lex-theme="light"]) .legacy-enter,html:not([data-lex-theme="light"]) button[type="submit"],html:not([data-lex-theme="light"]) .integration-action,html:not([data-lex-theme="light"]) .agent-save button,html:not([data-lex-theme="light"]) .ac-savebar button:not(:disabled){
   box-shadow:var(--lx-depth-button);
   transition:transform var(--lx-transition),box-shadow var(--lx-transition),background var(--lx-transition);
 }
-.primary:hover,.legacy-enter:hover,button[type="submit"]:hover,.integration-action:hover,
-.agent-save button:hover,.ac-savebar button:not(:disabled):hover{transform:translateY(-1px)}
-.primary:active,.legacy-enter:active,button[type="submit"]:active,.integration-action:active,
-.agent-save button:active,.ac-savebar button:not(:disabled):active{transform:translateY(2px);box-shadow:0 1px 0 var(--lx-p-rgb-255-255-255-d08) inset,0 1px 0 var(--lx-p-rgb-55-4-20-d72)}
+html:not([data-lex-theme="light"]) .primary:hover,html:not([data-lex-theme="light"]) .legacy-enter:hover,html:not([data-lex-theme="light"]) button[type="submit"]:hover,html:not([data-lex-theme="light"]) .integration-action:hover,html:not([data-lex-theme="light"]) .agent-save button:hover,html:not([data-lex-theme="light"]) .ac-savebar button:not(:disabled):hover{transform:translateY(-1px)}
+html:not([data-lex-theme="light"]) .primary:active,html:not([data-lex-theme="light"]) .legacy-enter:active,html:not([data-lex-theme="light"]) button[type="submit"]:active,html:not([data-lex-theme="light"]) .integration-action:active,html:not([data-lex-theme="light"]) .agent-save button:active,html:not([data-lex-theme="light"]) .ac-savebar button:not(:disabled):active{transform:translateY(2px);box-shadow:0 1px 0 var(--lx-p-rgb-255-255-255-d08) inset,0 1px 0 var(--lx-p-rgb-55-4-20-d72)}
 
 /* Campos e controles ficam encaixados, como no visual original. */
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,textarea,
-.input-search,.global-search-field,.lx-navigation--segmented .lx-navigation-strip{
+html:not([data-lex-theme="light"]) input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),html:not([data-lex-theme="light"]) select,html:not([data-lex-theme="light"]) textarea,html:not([data-lex-theme="light"]) .input-search,html:not([data-lex-theme="light"]) .global-search-field,html:not([data-lex-theme="light"]) .lx-navigation--segmented .lx-navigation-strip{
   box-shadow:var(--lx-depth-control);
 }
 
 /* Acessibilidade visual: todo local de preenchimento fica claramente marcado. */
-.app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
-.app select,.app textarea{
+html:not([data-lex-theme="light"]) .app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),html:not([data-lex-theme="light"]) .app select,html:not([data-lex-theme="light"]) .app textarea{
   min-height:48px;
   background:var(--lx-p-171b22);
   color:var(--lx-p-fff);
@@ -61,66 +50,54 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,text
   border-left:5px solid var(--lx-p-76102e);
   box-shadow:0 2px 0 var(--lx-p-rgb-255-255-255-d055) inset,0 4px 0 var(--lx-p-0b0e13),0 9px 18px var(--lx-p-rgb-0-0-0-d3);
 }
-.app input::placeholder,.app textarea::placeholder{color:var(--lx-p-c2c7ce);opacity:1}
-.app label{color:var(--lx-p-f3f3f4)}
-.app label:has(>input),.app label:has(>select),.app label:has(>textarea){font-weight:750}
-.app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):hover,
-.app select:hover,.app textarea:hover{border-color:var(--lx-p-8b94a1);border-left-color:var(--lx-p-8e1837)}
-.app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
-.app select:focus,.app textarea:focus,
-.app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus-visible,
-.app select:focus-visible,.app textarea:focus-visible{
+html:not([data-lex-theme="light"]) .app input::placeholder,html:not([data-lex-theme="light"]) .app textarea::placeholder{color:var(--lx-p-c2c7ce);opacity:1}
+html:not([data-lex-theme="light"]) .app label{color:var(--lx-p-f3f3f4)}
+html:not([data-lex-theme="light"]) .app label:has(>input),html:not([data-lex-theme="light"]) .app label:has(>select),html:not([data-lex-theme="light"]) .app label:has(>textarea){font-weight:750}
+html:not([data-lex-theme="light"]) .app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):hover,html:not([data-lex-theme="light"]) .app select:hover,html:not([data-lex-theme="light"]) .app textarea:hover{border-color:var(--lx-p-8b94a1);border-left-color:var(--lx-p-8e1837)}
+html:not([data-lex-theme="light"]) .app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,html:not([data-lex-theme="light"]) .app select:focus,html:not([data-lex-theme="light"]) .app textarea:focus,html:not([data-lex-theme="light"]) .app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus-visible,html:not([data-lex-theme="light"]) .app select:focus-visible,html:not([data-lex-theme="light"]) .app textarea:focus-visible{
   outline:3px solid var(--lx-p-f0a1b3);
   outline-offset:3px;
   border-color:var(--lx-p-fff);
   border-left-color:var(--lx-p-8e1837);
   box-shadow:0 0 0 2px var(--lx-p-620b25),0 4px 0 var(--lx-p-310410),0 10px 22px var(--lx-p-rgb-0-0-0-d42);
 }
-.app input[type="checkbox"],.app input[type="radio"]{width:22px;height:22px;min-width:22px;accent-color:var(--lx-p-76102e);filter:drop-shadow(0 3px 2px var(--lx-p-rgb-0-0-0-d45))}
+html:not([data-lex-theme="light"]) .app input[type="checkbox"],html:not([data-lex-theme="light"]) .app input[type="radio"]{width:22px;height:22px;min-width:22px;accent-color:var(--lx-p-76102e);filter:drop-shadow(0 3px 2px var(--lx-p-rgb-0-0-0-d45))}
 
 /* Elementos clicáveis ganham borda e resposta visual inequívoca. */
-.app button,.app a{transition:background var(--lx-transition),color var(--lx-transition),border-color var(--lx-transition),box-shadow var(--lx-transition),transform var(--lx-transition)}
-.app button:focus-visible,.app a:focus-visible,.app [role="button"]:focus-visible,.app [role="tab"]:focus-visible{
+html:not([data-lex-theme="light"]) .app button,html:not([data-lex-theme="light"]) .app a{transition:background var(--lx-transition),color var(--lx-transition),border-color var(--lx-transition),box-shadow var(--lx-transition),transform var(--lx-transition)}
+html:not([data-lex-theme="light"]) .app button:focus-visible,html:not([data-lex-theme="light"]) .app a:focus-visible,html:not([data-lex-theme="light"]) .app [role="button"]:focus-visible,html:not([data-lex-theme="light"]) .app [role="tab"]:focus-visible{
   outline:3px solid var(--lx-p-ffd4de);
   outline-offset:3px;
   box-shadow:0 0 0 3px var(--lx-p-a41639),0 5px 0 var(--lx-p-4d091a),0 10px 22px var(--lx-p-rgb-0-0-0-d38);
 }
-.app button[aria-pressed="true"],.app button[aria-selected="true"],
-.app [role="tab"][aria-selected="true"],.app [aria-current="page"]{
+html:not([data-lex-theme="light"]) .app button[aria-pressed="true"],html:not([data-lex-theme="light"]) .app button[aria-selected="true"],html:not([data-lex-theme="light"]) .app [role="tab"][aria-selected="true"],html:not([data-lex-theme="light"]) .app [aria-current="page"]{
   font-weight:800;
 }
 
 /* Títulos e limites das caixas permanecem legíveis com baixa visão. */
-.app :where([class$="-panel"],[class$="-card"],[class$="-surface"],.panel,.card,article)>:where(h2,h3,h4):first-child{color:var(--lx-p-fff)}
-.app :where([class$="-panel"],[class$="-card"],[class$="-surface"],.panel,.card,article):hover{border-color:var(--lx-p-66717f)}
+html:not([data-lex-theme="light"]) .app :where([class$="-panel"],[class$="-card"],[class$="-surface"],.panel,.card,article)>:where(h2,h3,h4):first-child{color:var(--lx-p-fff)}
+html:not([data-lex-theme="light"]) .app :where([class$="-panel"],[class$="-card"],[class$="-surface"],.panel,.card,article):hover{border-color:var(--lx-p-66717f)}
 
 /* Seleção bordô com contorno nítido e acessível. */
-.nav-group a.active,.lx-navigation .lx-navigation-item.is-current,
-.lx-navigation .lx-navigation-item[aria-current="page"],.agent-item.selected,
-.permission.allowed,.power.active{
+html:not([data-lex-theme="light"]) .nav-group a.active,html:not([data-lex-theme="light"]) .lx-navigation .lx-navigation-item.is-current,html:not([data-lex-theme="light"]) .lx-navigation .lx-navigation-item[aria-current="page"],html:not([data-lex-theme="light"]) .agent-item.selected,html:not([data-lex-theme="light"]) .permission.allowed,html:not([data-lex-theme="light"]) .power.active{
   box-shadow:0 0 0 1px var(--lx-p-rgb-207-54-88-d2) inset,0 5px 12px var(--lx-p-rgb-0-0-0-d2);
 }
 
 /* O item escolhido volta a ficar vermelho, como no layout original. */
-.workspace-area-toggle.is-current-area,
-.workspace-submenu .workspace-submenu-link.is-current-page,
-.nav-group a.active,.lex2-favorites a.active{
+html:not([data-lex-theme="light"]) .workspace-area-toggle.is-current-area,html:not([data-lex-theme="light"]) .workspace-submenu .workspace-submenu-link.is-current-page,html:not([data-lex-theme="light"]) .nav-group a.active,html:not([data-lex-theme="light"]) .lex2-favorites a.active{
   color:var(--lx-p-fff);
   background:linear-gradient(180deg,var(--lx-p-c42a4e) 0%,var(--lx-p-a41639) 58%,var(--lx-p-8a102f) 100%);
   border:1px solid var(--lx-p-dd4a69);
   box-shadow:0 1px 0 var(--lx-p-rgb-255-255-255-d2) inset,0 -2px 0 var(--lx-p-rgb-72-4-24-d75) inset,0 4px 0 var(--lx-p-56091e),0 8px 18px var(--lx-p-rgb-0-0-0-d34);
 }
-.workspace-area-toggle.is-current-area svg,
-.workspace-submenu .workspace-submenu-link.is-current-page svg,
-.nav-group a.active svg,.lex2-favorites a.active svg{color:var(--lx-p-fff)}
-.workspace-area-toggle:hover,.workspace-submenu .workspace-submenu-link:hover,
-.nav-group a:hover,.lex2-favorites a:hover{background:var(--lx-p-3a1b27);color:var(--lx-p-fff)}
-.workspace-submenu .workspace-submenu-link.is-current-page:before{background:var(--lx-p-ffd9e2)}
+html:not([data-lex-theme="light"]) .workspace-area-toggle.is-current-area svg,html:not([data-lex-theme="light"]) .workspace-submenu .workspace-submenu-link.is-current-page svg,html:not([data-lex-theme="light"]) .nav-group a.active svg,html:not([data-lex-theme="light"]) .lex2-favorites a.active svg{color:var(--lx-p-fff)}
+html:not([data-lex-theme="light"]) .workspace-area-toggle:hover,html:not([data-lex-theme="light"]) .workspace-submenu .workspace-submenu-link:hover,html:not([data-lex-theme="light"]) .nav-group a:hover,html:not([data-lex-theme="light"]) .lex2-favorites a:hover{background:var(--lx-p-3a1b27);color:var(--lx-p-fff)}
+html:not([data-lex-theme="light"]) .workspace-submenu .workspace-submenu-link.is-current-page:before{background:var(--lx-p-ffd9e2)}
 
 /* A barra lateral possui regras próprias posteriores. Esta camada garante que
    cada área seja localizável como uma caixa física e que a seleção seja
    inequívoca, inclusive para baixa visão. */
-html body .app.app.app.app .workspace-area-toggle{
+html:not([data-lex-theme="light"]) body .app.app.app.app .workspace-area-toggle{
   background:linear-gradient(180deg,var(--lx-p-292f38) 0%,var(--lx-p-20252d) 62%,var(--lx-p-1b2027) 100%);
   border:1px solid var(--lx-p-414a56);
   border-top-color:var(--lx-p-5b6673);
@@ -129,13 +106,12 @@ html body .app.app.app.app .workspace-area-toggle{
   margin:0 8px 8px;
   width:calc(100% - 16px);
 }
-html body .app.app.app.app .workspace-area-toggle:hover{
+html:not([data-lex-theme="light"]) body .app.app.app.app .workspace-area-toggle:hover{
   background:linear-gradient(180deg,var(--lx-p-3a2930),var(--lx-p-2b1b22));
   border-color:var(--lx-p-a62a49);
   transform:translateY(-1px);
 }
-html body .app.app.app.app .workspace-area-toggle.is-current-area,
-html body .app.app.app.app .workspace-area-toggle.is-current-area{
+html:not([data-lex-theme="light"]) body .app.app.app.app .workspace-area-toggle.is-current-area,html:not([data-lex-theme="light"]) body .app.app.app.app .workspace-area-toggle.is-current-area{
   color:var(--lx-p-fff);
   background:linear-gradient(180deg,var(--lx-p-620b25) 0%,var(--lx-p-4b071a) 56%,var(--lx-p-350412) 100%);
   border:2px solid var(--lx-p-7d1733);
@@ -143,16 +119,15 @@ html body .app.app.app.app .workspace-area-toggle.is-current-area{
   box-shadow:0 2px 0 var(--lx-p-rgb-255-255-255-d11) inset,0 -2px 0 var(--lx-p-rgb-28-0-8-d88) inset,0 6px 0 var(--lx-p-21020b),0 13px 24px var(--lx-p-rgb-0-0-0-d56);
   font-weight:800;
 }
-html body .app.app.app.app .workspace-area-toggle.is-current-area svg,
-html body .app.app.app.app .workspace-area-toggle.is-current-area svg{
+html:not([data-lex-theme="light"]) body .app.app.app.app .workspace-area-toggle.is-current-area svg,html:not([data-lex-theme="light"]) body .app.app.app.app .workspace-area-toggle.is-current-area svg{
   color:var(--lx-p-fff);
 }
-html body .app.app.app.app .workspace-submenu{
+html:not([data-lex-theme="light"]) body .app.app.app.app .workspace-submenu{
   margin:2px 10px 10px 22px;
   padding:4px 0 4px 10px;
   border-left:3px solid var(--lx-p-59626e);
 }
-html body .app.app.app.app .workspace-submenu .workspace-submenu-link{
+html:not([data-lex-theme="light"]) body .app.app.app.app .workspace-submenu .workspace-submenu-link{
   min-height:44px;
   color:var(--lx-p-d5d8dd);
   background:linear-gradient(180deg,var(--lx-p-292f38),var(--lx-p-20252d));
@@ -161,7 +136,7 @@ html body .app.app.app.app .workspace-submenu .workspace-submenu-link{
   box-shadow:0 1px 0 var(--lx-p-rgb-255-255-255-d06) inset,0 3px 0 var(--lx-p-0a0d11),0 7px 14px var(--lx-p-rgb-0-0-0-d26);
   margin-bottom:7px;
 }
-html body .app.app.app.app .workspace-submenu .workspace-submenu-link.is-current-page{
+html:not([data-lex-theme="light"]) body .app.app.app.app .workspace-submenu .workspace-submenu-link.is-current-page{
   color:var(--lx-p-fff);
   background:linear-gradient(180deg,var(--lx-p-343b45),var(--lx-p-282e37));
   border:1px solid var(--lx-p-687381);
@@ -171,11 +146,7 @@ html body .app.app.app.app .workspace-submenu .workspace-submenu-link.is-current
 }
 
 /* Abas internas também usam vermelho ao serem selecionadas. */
-.lx-navigation .lx-navigation-item.is-current,
-.lx-navigation .lx-navigation-item[aria-current="page"],
-.lx-navigation .lx-navigation-item[aria-pressed="true"],
-.lx-navigation .lx-navigation-item.active,
-.lx-navigation .lx-navigation-item[aria-selected="true"]{
+html:not([data-lex-theme="light"]) .lx-navigation .lx-navigation-item.is-current,html:not([data-lex-theme="light"]) .lx-navigation .lx-navigation-item[aria-current="page"],html:not([data-lex-theme="light"]) .lx-navigation .lx-navigation-item[aria-pressed="true"],html:not([data-lex-theme="light"]) .lx-navigation .lx-navigation-item.active,html:not([data-lex-theme="light"]) .lx-navigation .lx-navigation-item[aria-selected="true"]{
   color:var(--lx-p-fff);
   background:linear-gradient(180deg,var(--lx-p-620b25),var(--lx-p-3f0616));
   border:2px solid var(--lx-p-7d1733);
@@ -187,10 +158,7 @@ html body .app.app.app.app .workspace-submenu .workspace-submenu-link.is-current
 }
 
 /* Abas de módulos que usam role/aria diretamente recebem a mesma caixa bordô. */
-html body .app.app.app.app [role="tab"][aria-selected="true"],
-html body .app.app.app.app [role="tab"][aria-current="page"],
-html body .app.app.app.app .lx-tab[aria-selected="true"],
-html body .app.app.app.app .lx-tab[aria-current="page"]{
+html:not([data-lex-theme="light"]) body .app.app.app.app [role="tab"][aria-selected="true"],html:not([data-lex-theme="light"]) body .app.app.app.app [role="tab"][aria-current="page"],html:not([data-lex-theme="light"]) body .app.app.app.app .lx-tab[aria-selected="true"],html:not([data-lex-theme="light"]) body .app.app.app.app .lx-tab[aria-current="page"]{
   color:var(--lx-p-fff);
   background:linear-gradient(180deg,var(--lx-p-620b25) 0%,var(--lx-p-4b071a) 58%,var(--lx-p-350412) 100%);
   border:2px solid var(--lx-p-7d1733);
@@ -202,15 +170,15 @@ html body .app.app.app.app .lx-tab[aria-current="page"]{
 }
 
 /* Planejamento é a tela de referência: caixas opacas e nitidamente elevadas. */
-.plan-page .plan-panel{background:linear-gradient(180deg,var(--lx-p-2a3039) 0%,var(--lx-p-222730) 55%,var(--lx-p-1d222a) 100%);border:1px solid var(--lx-p-48515d);box-shadow:var(--lx-depth-card)}
-.plan-page .plan-verdict div{background:linear-gradient(180deg,var(--lx-p-2d333d),var(--lx-p-222730));border-color:var(--lx-p-76102e);box-shadow:0 1px 0 var(--lx-p-rgb-255-255-255-d07) inset,0 4px 0 var(--lx-p-11151b),0 9px 20px var(--lx-p-rgb-0-0-0-d3)}
-.plan-page input,.plan-page select{background:var(--lx-p-171b22);border-color:var(--lx-p-414955);box-shadow:0 2px 0 var(--lx-p-rgb-255-255-255-d035) inset,0 4px 0 var(--lx-p-0c0f14),0 8px 14px var(--lx-p-rgb-0-0-0-d24)}
+html:not([data-lex-theme="light"]) .plan-page .plan-panel{background:linear-gradient(180deg,var(--lx-p-2a3039) 0%,var(--lx-p-222730) 55%,var(--lx-p-1d222a) 100%);border:1px solid var(--lx-p-48515d);box-shadow:var(--lx-depth-card)}
+html:not([data-lex-theme="light"]) .plan-page .plan-verdict div{background:linear-gradient(180deg,var(--lx-p-2d333d),var(--lx-p-222730));border-color:var(--lx-p-76102e);box-shadow:0 1px 0 var(--lx-p-rgb-255-255-255-d07) inset,0 4px 0 var(--lx-p-11151b),0 9px 20px var(--lx-p-rgb-0-0-0-d3)}
+html:not([data-lex-theme="light"]) .plan-page input,html:not([data-lex-theme="light"]) .plan-page select{background:var(--lx-p-171b22);border-color:var(--lx-p-414955);box-shadow:0 2px 0 var(--lx-p-rgb-255-255-255-d035) inset,0 4px 0 var(--lx-p-0c0f14),0 8px 14px var(--lx-p-rgb-0-0-0-d24)}
 
 /* Painel inicial: a folha própria usa alta especificidade; o relevo precisa
    ser declarado no mesmo nível para permanecer visível. */
-html body .app.app.app.app.home-route>main{background:var(--lx-p-141820)}
-html body .app.app.app.app.home-route .content{background:var(--lx-p-141820)}
-html body .app.app.app.app .hc-metrics>button{
+html:not([data-lex-theme="light"]) body .app.app.app.app.home-route>main{background:var(--lx-p-141820)}
+html:not([data-lex-theme="light"]) body .app.app.app.app.home-route .content{background:var(--lx-p-141820)}
+html:not([data-lex-theme="light"]) body .app.app.app.app .hc-metrics>button{
   background:linear-gradient(180deg,var(--lx-p-303741) 0%,var(--lx-p-252b34) 58%,var(--lx-p-20252d) 100%);
   border:2px solid var(--lx-p-4e5865);
   border-top-color:var(--lx-p-697481);
@@ -219,13 +187,13 @@ html body .app.app.app.app .hc-metrics>button{
   margin-bottom:12px;
   transform:translateY(-3px);
 }
-html body .app.app.app.app .hc-metrics>button:hover{
+html:not([data-lex-theme="light"]) body .app.app.app.app .hc-metrics>button:hover{
   background:linear-gradient(180deg,var(--lx-p-38404b),var(--lx-p-292f39));
   border-color:var(--lx-p-7a8593);
   box-shadow:0 2px 0 var(--lx-p-rgb-255-255-255-d14) inset,0 9px 0 var(--lx-p-090c11),0 19px 34px var(--lx-p-rgb-0-0-0-d52);
   transform:translateY(-2px);
 }
-html body .app.app.app.app .hc-panel{
+html:not([data-lex-theme="light"]) body .app.app.app.app .hc-panel{
   background:linear-gradient(180deg,var(--lx-p-2b313b) 0%,var(--lx-p-222831) 58%,var(--lx-p-1e232b) 100%);
   border:2px solid var(--lx-p-4b5561);
   border-top-color:var(--lx-p-697481);
@@ -234,17 +202,17 @@ html body .app.app.app.app .hc-panel{
   margin-bottom:16px;
   transform:translateY(-3px);
 }
-html body .app.app.app.app .hc-panel-title{
+html:not([data-lex-theme="light"]) body .app.app.app.app .hc-panel-title{
   background:linear-gradient(180deg,var(--lx-p-252b34),var(--lx-p-1c2129));
   border-bottom:2px solid var(--lx-p-3f4853);
   box-shadow:0 2px 0 var(--lx-p-rgb-255-255-255-d045) inset,0 3px 8px var(--lx-p-rgb-0-0-0-d24);
 }
-html body .app.app.app.app .hc-primary{
+html:not([data-lex-theme="light"]) body .app.app.app.app .hc-primary{
   background:linear-gradient(180deg,var(--lx-p-303741),var(--lx-p-222831));
   border:2px solid var(--lx-p-505a67);
   box-shadow:0 2px 0 var(--lx-p-rgb-255-255-255-d1) inset,0 6px 0 var(--lx-p-090c11),0 14px 26px var(--lx-p-rgb-0-0-0-d42);
 }
-html body .app.app.app.app .hc-finance-grid>div{
+html:not([data-lex-theme="light"]) body .app.app.app.app .hc-finance-grid>div{
   background:linear-gradient(180deg,var(--lx-p-303741),var(--lx-p-252b34));
   border-top:1px solid var(--lx-p-4b5561);
   box-shadow:0 2px 0 var(--lx-p-rgb-255-255-255-d06) inset;
@@ -252,4 +220,4 @@ html body .app.app.app.app .hc-finance-grid>div{
 
 
 
-@media(prefers-reduced-motion:reduce){html body .app.app.app.app :is(.primary,.legacy-enter,button[type="submit"],.integration-action,.agent-save button,.ac-savebar button),html body .app.app.app.app :is(.primary,.legacy-enter,button[type="submit"],.integration-action,.agent-save button,.ac-savebar button):is(:hover,:active,:focus-visible){transform:none}}
+@media(prefers-reduced-motion:reduce){html:not([data-lex-theme="light"]) body .app.app.app.app :is(.primary,.legacy-enter,button[type="submit"],.integration-action,.agent-save button,.ac-savebar button),html:not([data-lex-theme="light"]) body .app.app.app.app :is(.primary,.legacy-enter,button[type="submit"],.integration-action,.agent-save button,.ac-savebar button):is(:hover,:active,:focus-visible){transform:none}}
