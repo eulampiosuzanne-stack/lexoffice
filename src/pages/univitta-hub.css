@@ -1,6 +1,6 @@
 .univitta-hub-qr{display:block;width:260px;max-width:100%;height:auto;margin:var(--lx-space-4) auto;padding:var(--lx-space-3);background:var(--lx-primary-contrast);border-radius:var(--lx-radius-sm)}
-.other-connections{margin-top:20px;border-top:1px solid var(--lx-border,#333);padding-top:12px}
-.other-connections>summary{cursor:pointer;font-weight:700;padding:8px 0;color:var(--lx-text-muted,#bdb4a6)}
+.other-connections{margin-top:20px;border-top:1px solid var(--lx-border,var(--lx-p-333));padding-top:12px}
+.other-connections>summary{cursor:pointer;font-weight:700;padding:8px 0;color:var(--lx-text-muted,var(--lx-p-bdb4a6))}
 .other-connections[open]>summary{margin-bottom:12px}
-.office-whatsapp-card .office-wa-ok{color:#4ade80}
-.office-whatsapp-card .office-wa-off{color:var(--lx-accent,#c99443)}
+.office-whatsapp-card .office-wa-ok{color:var(--lx-p-4ade80)}
+.office-whatsapp-card .office-wa-off{color:var(--lx-accent,var(--lx-p-c99443))}
