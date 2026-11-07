@@ -24,6 +24,7 @@ export default function DashboardOverview() {
   const [deadlines, setDeadlines] = useState<Row[]>([]);
   const [unread, setUnread] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [closingDeadline, setClosingDeadline] = useState<string | null>(null);
   const [deadlineError, setDeadlineError] = useState("");
   const closeDeadline = async (id: string, title: string) => {
@@ -36,12 +37,12 @@ export default function DashboardOverview() {
   };
 
   useEffect(() => { (async () => {
-    if (!supabase) return;
+    if (!supabase) { setLoadError(true); setLoaded(true); return; }
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) { setLoadError(true); setLoaded(true); return; }
     const { data: p } = await supabase.from("profiles").select("org_id,name").eq("id", user.id).maybeSingle();
     setProfile(p || {});
-    if (!p?.org_id) return;
+    if (!p?.org_id) { setLoadError(true); setLoaded(true); return; }
     const { start, end } = saopauloDay();
     const [f, e, t, d, i] = await Promise.all([
       supabase.from("financial_entries").select("id,amount,status,paid_at,due_date,description").eq("org_id", p.org_id).eq("type", "income").limit(1000),
@@ -50,8 +51,9 @@ export default function DashboardOverview() {
       supabase.from("process_deadlines").select("id,title,due_at,status,priority").eq("org_id", p.org_id).neq("status", "completed").order("due_at").limit(12),
       supabase.from("client_app_inbox").select("id", { count: "exact", head: true }).eq("org_id", p.org_id).is("read_at", null),
     ]);
+    if ([f,e,t,d,i].some(result => result.error)) setLoadError(true);
     setFinance(f.data || []); setEvents(e.data || []); setTasks(t.data || []); setDeadlines(d.data || []); setUnread(i.count || 0); setLoaded(true);
-  })().catch((error) => { console.error("Falha ao carregar painel", error); setLoaded(true); }); }, []);
+  })().catch((error) => { console.error("Falha ao carregar painel", error); setLoadError(true); setLoaded(true); }); }, []);
 
   const appointments = useMemo(() => events.filter((x) => !/prazo|intimação|intimacao|deadline/i.test(`${x.event_type || ""} ${x.title || ""}`)), [events]);
   const calendarDeadlines = useMemo(() => events.filter((x) => /prazo|intimação|intimacao|deadline/i.test(`${x.event_type || ""} ${x.title || ""}`)), [events]);
@@ -63,12 +65,13 @@ export default function DashboardOverview() {
   }), [deadlines]);
   const attentionCount = critical.length + (unread ? 1 : 0) + (pending.length ? 1 : 0);
   const guardianAlert = useMemo(() => {
+    if (loadError) return { label: "Dados incompletos ou indisponíveis", detail: "Não foi possível confirmar todos os alertas. Consulte diretamente a agenda e os processos.", path: "/agenda", level: "critical" };
     if (!loaded) return { label: "Conferindo os dados do escritório", detail: "Os alertas serão exibidos após o carregamento.", path: "/agenda", level: "loading" };
     const urgent = [...deadlines].filter(x => x.due_at && x.status !== "completed").sort((a,b)=>new Date(a.due_at).getTime()-new Date(b.due_at).getTime())[0];
     if (urgent?.due_at) {
-      const dueDay = new Date(urgent.due_at).toLocaleDateString("en-CA", {timeZone:"America/Sao_Paulo"});
-      const todayDay = new Date().toLocaleDateString("en-CA", {timeZone:"America/Sao_Paulo"});
-      const tomorrowDay = new Date(Date.now()+86400000).toLocaleDateString("en-CA", {timeZone:"America/Sao_Paulo"});
+      const dueDay = new Intl.DateTimeFormat("sv-SE", {timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(urgent.due_at));
+      const todayDay = new Intl.DateTimeFormat("sv-SE", {timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+      const tomorrowDay = new Intl.DateTimeFormat("sv-SE", {timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(Date.now()+86400000));
       if(dueDay <= todayDay) return {label:dueDay < todayDay?"Prazo vencido ou pendente de baixa":"Prazo com vencimento hoje",detail:urgent.title || "Confira o processo e o prazo.",path:"/processos",level:"critical"};
       if(dueDay===tomorrowDay) return {label:"Prazo previsto para amanhã",detail:urgent.title || "Confira o processo e o prazo.",path:"/processos",level:"warning"};
     }
@@ -76,7 +79,7 @@ export default function DashboardOverview() {
     if(hearing) return {label:"Audiência na agenda de hoje",detail:`${hour(hearing.starts_at)} · ${hearing.title||"Verificar compromisso"}`,path:"/agenda",level:"warning"};
     if(unread) return {label:"Cliente aguardando resposta",detail:`${unread} mensagem(ns) não lida(s) no aplicativo.`,path:"/atendimento/aplicativo",level:"info"};
     return {label:"Guardiã SF de olho na agenda",detail:"Nenhum dos alertas prioritários acima foi identificado neste resumo. Confira os autos e a agenda completa.",path:"/agenda",level:"calm"};
-  },[loaded,deadlines,appointments,unread]);
+  },[loaded,loadError,deadlines,appointments,unread]);
   const firstName = String(profile.name || "").trim().split(/\\s+/)[0];
   const greeting = new Date().getHours() < 12 ? "Bom dia" : new Date().getHours() < 18 ? "Boa tarde" : "Boa noite";
   const today = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
@@ -92,7 +95,7 @@ export default function DashboardOverview() {
       <button className="hc-primary" type="button" onClick={() => go("/whatsapp")}><MessageCircle size={18}/> Abrir conversas</button>
     </header>
 
-    <section className={`hc-guardian-status hc-guardian-${guardianAlert.level}`} aria-label="Aviso da Guardiã SF">
+    <section className={`hc-guardian-status hc-guardian-${guardianAlert.level}`} aria-label="Aviso da Guardiã SF" data-critical-alert={guardianAlert.level==="critical"?"true":undefined}>
       <span className="hc-guardian-face" aria-hidden="true">🐶</span>
       <div><strong>Guardiã SF · {guardianAlert.label}</strong><p>{guardianAlert.detail}</p></div>
       <button type="button" onClick={()=>go(guardianAlert.path)}>Conferir <ChevronRight size={18}/></button>
