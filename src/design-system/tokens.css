@@ -49,12 +49,12 @@ html[data-lex-theme="dark"], html:not([data-lex-theme]) {
 }
 :root {
   --lx-font: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --lx-font-xs: .75rem;
-  --lx-font-sm: .8125rem;
-  --lx-font-md: .875rem;
-  --lx-font-lg: 1rem;
-  --lx-font-xl: 1.75rem;
-  --lx-page-size: 28px; --lx-section-size: 20px; --lx-control-height: 44px;
+  --lx-font-xs: .875rem;
+  --lx-font-sm: 1rem;
+  --lx-font-md: 1.0625rem;
+  --lx-font-lg: 1.125rem;
+  --lx-font-xl: 1.875rem;
+  --lx-page-size: 30px; --lx-section-size: 22px; --lx-control-height: 48px;
   --lx-radius-sm: 8px;
   --lx-radius-md: 12px;
   --lx-radius-lg: 16px;
