@@ -97,7 +97,7 @@ export default function DashboardOverview() {
     </header>
 
     <section className={`hc-guardian-status hc-guardian-${guardianAlert.level}`} aria-label="Aviso da Guardiã SF" data-critical-alert={guardianAlert.level==="critical"?"true":undefined}>
-      <span className="hc-guardian-face" aria-hidden="true">🐶</span>
+      <span className="hc-guardian-face" aria-hidden="true"><img className="hc-guardian-img" src="/brand/guardia-sf.webp" alt="" width={64} height={64} decoding="async"/></span>
       <div><strong>Guardiã SF · {guardianAlert.label}</strong><p>{guardianAlert.detail}</p></div>
       <button type="button" onClick={()=>go(guardianAlert.path)}>Conferir <ChevronRight size={18}/></button>
     </section>
