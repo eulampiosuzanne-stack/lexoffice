@@ -38,3 +38,5 @@
 @keyframes sf-wag{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}
 @keyframes sf-run{0%,100%{transform:translate(0,0)}25%{transform:translate(8px,-5px)}75%{transform:translate(-6px,-3px)}}
 @media(prefers-reduced-motion:reduce){.sf-guardian-dog.sf-play-ball,.sf-guardian-dog.sf-play-peek,.sf-guardian-dog.sf-play-nap,.sf-guardian-dog.sf-play-wag,.sf-guardian-dog.sf-play-run{animation:none}}
+
+.sf-guardian-dog.sf-play-paused{animation:none!important}
