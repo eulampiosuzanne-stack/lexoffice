@@ -74,3 +74,16 @@ html body .app.app.app.app .hc-panel-title>button:focus-visible{outline:3px soli
 .hc-deadline-summary button{min-height:38px;padding:7px 12px;border:1px solid var(--lx-border);border-radius:var(--lx-radius-md);background:transparent;color:var(--lx-text);font-weight:700}
 @media(max-width:1150px){html body .app.app.app.app.home-route .content{padding-inline:24px}}
 @media(max-width:700px){html body .app.app.app.app.home-route .content{padding:16px 12px 96px}html body .app.app.app.app .hc-greeting h1{font-size:var(--lx-page-size)}html body .app.app.app.app .hc-metrics>button{min-height:92px;padding:12px}html body .app.app.app.app .hc-metrics b{font-size:var(--lx-section-size)}}
+
+
+/* Superadvogadas SF: guardian status uses actual dashboard records. */
+.hc-guardian-status{display:flex;align-items:center;gap:16px;padding:16px 20px;margin:12px 0 20px;border:2px solid #c59b54;border-radius:18px;background:#fff7e9;color:#4e1830;box-shadow:0 4px 18px rgba(70,20,38,.08)}
+.hc-guardian-status.hc-guardian-critical{background:#fff0eb;border-color:#a83e3e}
+.hc-guardian-status.hc-guardian-warning{background:#fff4d9;border-color:#ab7525}
+.hc-guardian-face{font-size:42px;line-height:1;flex-shrink:0}
+.hc-guardian-status>div{flex:1;min-width:0}
+.hc-guardian-status strong{font-size:18px;line-height:1.35}
+.hc-guardian-status p{font-size:15px;line-height:1.5;margin:5px 0 0;color:#503e3e}
+.hc-guardian-status button{display:flex;align-items:center;justify-content:center;gap:5px;min-height:44px;padding:9px 15px;background:#671c3c;color:#fff;border:0;border-radius:11px;font-size:15px;font-weight:700;cursor:pointer}
+.hc-guardian-status button:focus-visible{outline:3px solid #b47d22;outline-offset:3px}
+@media(max-width:700px){.hc-guardian-status{flex-wrap:wrap;padding:14px}.hc-guardian-status button{width:100%}.hc-guardian-status strong{font-size:17px}}
