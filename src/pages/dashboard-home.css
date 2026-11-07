@@ -77,36 +77,36 @@ html body .app.app.app.app .hc-panel-title>button:focus-visible{outline:3px soli
 
 
 /* Superadvogadas SF: guardian status uses actual dashboard records. */
-.hc-guardian-status{display:flex;align-items:center;gap:16px;padding:16px 20px;margin:12px 0 20px;border:2px solid #c59b54;border-radius:18px;background:#fff7e9;color:#4e1830;box-shadow:0 4px 18px rgba(70,20,38,.08)}
-.hc-guardian-status.hc-guardian-critical{background:#fff0eb;border-color:#a83e3e}
-.hc-guardian-status.hc-guardian-warning{background:#fff4d9;border-color:#ab7525}
+.hc-guardian-status{display:flex;align-items:center;gap:16px;padding:16px 20px;margin:12px 0 20px;border:2px solid var(--lx-p-c59b54);border-radius:18px;background:var(--lx-p-fff7e9);color:var(--lx-p-4e1830);box-shadow:0 4px 18px var(--lx-p-rgb-70-20-38-d08)}
+.hc-guardian-status.hc-guardian-critical{background:var(--lx-p-fff0eb);border-color:var(--lx-p-a83e3e)}
+.hc-guardian-status.hc-guardian-warning{background:var(--lx-p-fff4d9);border-color:var(--lx-p-ab7525)}
 .hc-guardian-face{font-size:42px;line-height:1;flex-shrink:0}
 .hc-guardian-status>div{flex:1;min-width:0}
 .hc-guardian-status strong{font-size:18px;line-height:1.35}
-.hc-guardian-status p{font-size:15px;line-height:1.5;margin:5px 0 0;color:#503e3e}
-.hc-guardian-status button{display:flex;align-items:center;justify-content:center;gap:5px;min-height:44px;padding:9px 15px;background:#671c3c;color:#fff;border:0;border-radius:11px;font-size:15px;font-weight:700;cursor:pointer}
-.hc-guardian-status button:focus-visible{outline:3px solid #b47d22;outline-offset:3px}
+.hc-guardian-status p{font-size:15px;line-height:1.5;margin:5px 0 0;color:var(--lx-p-503e3e)}
+.hc-guardian-status button{display:flex;align-items:center;justify-content:center;gap:5px;min-height:44px;padding:9px 15px;background:var(--lx-p-671c3c);color:var(--lx-p-fff);border:0;border-radius:11px;font-size:15px;font-weight:700;cursor:pointer}
+.hc-guardian-status button:focus-visible{outline:3px solid var(--lx-p-b47d22);outline-offset:3px}
 @media(max-width:700px){.hc-guardian-status{flex-wrap:wrap;padding:14px}.hc-guardian-status button{width:100%}.hc-guardian-status strong{font-size:17px}}
 
 
 /* SF strategic hub: existing links, no invented KPIs. */
-.hc-strategy{margin:24px 0;padding:22px;border:1px solid #d7b986;border-radius:20px;background:#fffaf1;color:#461b30}
-.hc-strategy-heading h2{margin:0;font-size:24px;line-height:1.3;color:#5c1836}
-.hc-strategy-heading p{margin:8px 0 18px;font-size:15px;line-height:1.5;color:#534443}
+.hc-strategy{margin:24px 0;padding:22px;border:1px solid var(--lx-p-d7b986);border-radius:20px;background:var(--lx-p-fffaf1);color:var(--lx-p-461b30)}
+.hc-strategy-heading h2{margin:0;font-size:24px;line-height:1.3;color:var(--lx-p-5c1836)}
+.hc-strategy-heading p{margin:8px 0 18px;font-size:15px;line-height:1.5;color:var(--lx-p-534443)}
 .hc-strategy-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:12px}
-.hc-strategy-grid button{display:grid;grid-template-columns:1fr auto;align-content:start;gap:6px;text-align:left;min-height:130px;padding:16px;border:1px solid #dfc9a3;border-radius:14px;background:#fff;color:#4c2136;cursor:pointer}
+.hc-strategy-grid button{display:grid;grid-template-columns:1fr auto;align-content:start;gap:6px;text-align:left;min-height:130px;padding:16px;border:1px solid var(--lx-p-dfc9a3);border-radius:14px;background:var(--lx-p-fff);color:var(--lx-p-4c2136);cursor:pointer}
 .hc-strategy-grid button>span{grid-column:1/-1;font-size:27px}
 .hc-strategy-grid button strong{font-size:17px;line-height:1.3}
-.hc-strategy-grid button small{grid-column:1;grid-row:3;font-size:14px;line-height:1.4;color:#574744}
+.hc-strategy-grid button small{grid-column:1;grid-row:3;font-size:14px;line-height:1.4;color:var(--lx-p-574744)}
 .hc-strategy-grid button>svg{grid-column:2;grid-row:2;align-self:center}
-.hc-strategy-grid button:hover{background:#fff0d9;border-color:#aa783b}
-.hc-strategy-grid button:focus-visible{outline:3px solid #761c42;outline-offset:2px}
+.hc-strategy-grid button:hover{background:var(--lx-p-fff0d9);border-color:var(--lx-p-aa783b)}
+.hc-strategy-grid button:focus-visible{outline:3px solid var(--lx-p-761c42);outline-offset:2px}
 @media(max-width:600px){.hc-strategy{padding:15px}.hc-strategy-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hc-strategy-grid button{padding:12px;min-height:138px}.hc-strategy-grid button strong{font-size:15px}}
 
 
 /* Distinct Superadvogadas SF edition marker, legible on mobile and desktop. */
-.hc-sf-edition{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:14px 18px;border-radius:16px;background:linear-gradient(110deg,#59152e,#862b4a);color:#fff8ed;border:2px solid #c79c57}
-.hc-sf-edition>span:first-child{font-size:24px;color:#f5c970}
+.hc-sf-edition{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:14px 18px;border-radius:16px;background:linear-gradient(110deg,var(--lx-p-59152e),var(--lx-p-862b4a));color:var(--lx-p-fff8ed);border:2px solid var(--lx-p-c79c57)}
+.hc-sf-edition>span:first-child{font-size:24px;color:var(--lx-p-f5c970)}
 .hc-sf-edition strong{font-size:19px;letter-spacing:.05em;line-height:1.3}
-.hc-sf-edition>span:last-child{font-size:15px;line-height:1.4;color:#fff1df}
+.hc-sf-edition>span:last-child{font-size:15px;line-height:1.4;color:var(--lx-p-fff1df)}
 @media(max-width:600px){.hc-sf-edition{padding:12px}.hc-sf-edition strong{font-size:17px}.hc-sf-edition>span:last-child{flex-basis:100%;padding-left:34px}}
