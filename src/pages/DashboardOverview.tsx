@@ -100,6 +100,23 @@ export default function DashboardOverview() {
       <div><strong>Guardiã SF · {guardianAlert.label}</strong><p>{guardianAlert.detail}</p></div>
       <button type="button" onClick={()=>go(guardianAlert.path)}>Conferir <ChevronRight size={18}/></button>
     </section>
+    <section className="hc-strategy" aria-label="Central estratégica Superadvogadas SF">
+      <div className="hc-strategy-heading"><div><h2>Central estratégica SF</h2><p>Acesso rápido às ferramentas existentes do escritório. Os módulos continuam sujeitos às permissões e à disponibilidade real de cada serviço.</p></div></div>
+      <div className="hc-strategy-grid">
+        {[
+          {name:"Painel da Sócia",desc:"Resultados e gestão",path:"/painel",symbol:"👑"},
+          {name:"Análise de Casos",desc:"Documentos e argumentos",path:"/jurimetria",symbol:"📚"},
+          {name:"Donna e Helena",desc:"Atendimento e briefing",path:"/donna",symbol:"💬"},
+          {name:"Análise do Juízo",desc:"Estratégia processual",path:"/conducao-processual",symbol:"⚖️"},
+          {name:"Sherlock",desc:"Consultas e investigação",path:"/consultas",symbol:"🔎"},
+          {name:"Planejamento",desc:"Cenários e providências",path:"/planejamento",symbol:"📈"},
+          {name:"Escritório móvel",desc:"Documentos e assinaturas",path:"/assinaturas",symbol:"✍️"},
+          {name:"Andamentos",desc:"Acompanhar processos",path:"/andamentos",symbol:"📄"},
+          {name:"Campanhas",desc:"Marketing e captação",path:"/marketing",symbol:"📣"},
+          {name:"Alertas e tarefas",desc:"Agenda e prioridades",path:"/afazeres",symbol:"🛡️"},
+        ].map(item=><button type="button" key={item.name} onClick={()=>go(item.path)}><span aria-hidden="true">{item.symbol}</span><strong>{item.name}</strong><small>{item.desc}</small><ChevronRight size={17} aria-hidden="true"/></button>)}
+      </div>
+    </section>
     <section className="hc-metrics" aria-label="Resumo do dia">
       <button onClick={() => document.getElementById("atencao-agora")?.scrollIntoView({ behavior: "smooth" })}><span className="danger"><AlertTriangle/></span><div><small>Atenção agora</small><b>{loaded ? attentionCount : "—"}</b><em>{attentionCount ? "itens prioritários" : "Tudo em ordem"}</em></div></button>
       <button onClick={() => go("/agenda")}><span className="purple"><CalendarDays/></span><div><small>Agenda de hoje</small><b>{loaded ? appointments.length : "—"}</b><em>{appointments.length === 1 ? "compromisso" : "compromissos"}</em></div></button>
@@ -124,23 +141,6 @@ export default function DashboardOverview() {
       </section>
       <section className="hc-panel"><div className="hc-panel-title"><div><span><Wallet size={17}/></span><div><h2>Resumo financeiro</h2><p>Recebimentos em aberto</p></div></div><button onClick={() => go("/financeiro")}>Detalhes <ChevronRight size={15}/></button></div><div className="hc-finance-grid"><div><small>Total pendente</small><b>{brl(pendingAmount)}</b></div><div><small>Lançamentos</small><b>{pending.length}</b></div></div></section>
     </div>
-    <section className="hc-strategy" aria-label="Central estratégica Superadvogadas SF">
-      <div className="hc-strategy-heading"><div><h2>Central estratégica SF</h2><p>Acesso rápido às ferramentas existentes do escritório. Os módulos continuam sujeitos às permissões e à disponibilidade real de cada serviço.</p></div></div>
-      <div className="hc-strategy-grid">
-        {[
-          {name:"Painel da Sócia",desc:"Resultados e gestão",path:"/painel",symbol:"👑"},
-          {name:"Análise de Casos",desc:"Documentos e argumentos",path:"/jurimetria",symbol:"📚"},
-          {name:"Donna e Helena",desc:"Atendimento e briefing",path:"/donna",symbol:"💬"},
-          {name:"Análise do Juízo",desc:"Estratégia processual",path:"/conducao-processual",symbol:"⚖️"},
-          {name:"Sherlock",desc:"Consultas e investigação",path:"/consultas",symbol:"🔎"},
-          {name:"Planejamento",desc:"Cenários e providências",path:"/planejamento",symbol:"📈"},
-          {name:"Escritório móvel",desc:"Documentos e assinaturas",path:"/assinaturas",symbol:"✍️"},
-          {name:"Andamentos",desc:"Acompanhar processos",path:"/andamentos",symbol:"📄"},
-          {name:"Campanhas",desc:"Marketing e captação",path:"/marketing",symbol:"📣"},
-          {name:"Alertas e tarefas",desc:"Agenda e prioridades",path:"/afazeres",symbol:"🛡️"},
-        ].map(item=><button type="button" key={item.name} onClick={()=>go(item.path)}><span aria-hidden="true">{item.symbol}</span><strong>{item.name}</strong><small>{item.desc}</small><ChevronRight size={17} aria-hidden="true"/></button>)}
-      </div>
-    </section>
     <button className="hc-mobile-add" type="button" onClick={() => go("/atendimento")} aria-label="Novo atendimento"><Plus/></button>
   </div>;
 }
