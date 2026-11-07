@@ -19,3 +19,13 @@ html[data-lex-vision="enhanced"] #root :is(button:disabled,input:disabled,select
 .vision-dock .vision-visibility[aria-pressed=true] {background:var(--lx-surface-selected);color:var(--lx-text);border:2px solid var(--lx-border-strong)}
 @media(max-width:760px) {.vision-dock{max-width:calc(100vw - 16px);flex-wrap:wrap}.vision-dock .vision-visibility{font-size:14px;min-height:44px}.vision-dock .vision-theme{font-size:14px}}
 @media(forced-colors:active) {html[data-lex-vision="enhanced"] #root :is(button,input,select,textarea,[role=button]){box-shadow:none;border:2px solid ButtonText}}
+
+
+/* Shared accessible interaction baseline for all authenticated workspaces. */
+.app :is(button,[role="button"],input:not([type="hidden"]),select,textarea){min-height:var(--lx-control-height)}
+.app :is(button,a,input,select,textarea,summary,[tabindex]):focus-visible{outline:3px solid var(--lx-focus);outline-offset:3px}
+.app :is(input,select,textarea){max-width:100%}
+.app :is(input,textarea)::placeholder{opacity:1;color:var(--lx-text-muted)}
+.app :is(button,a){touch-action:manipulation}
+@media(max-width:760px){.app :is(button,[role="button"],select,input:not([type="hidden"]),textarea){font-size:max(16px,1rem)}.app :is(table){max-width:100%}}
+@media(prefers-reduced-motion:reduce){.app :is(*, *::before, *::after){scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
