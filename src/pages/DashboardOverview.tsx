@@ -90,6 +90,7 @@ export default function DashboardOverview() {
   ].slice(0, 4);
 
   return <div className="home-command">
+    <div className="hc-sf-edition" role="note"><span aria-hidden="true">✦</span><strong>SUPERADVOGADAS SF</strong><span>Central de comando do escritório</span></div>
     <header className="hc-greeting">
       <div><small>{today.charAt(0).toUpperCase() + today.slice(1)}</small><h1>{greeting}{firstName ? `, ${/^suzanne$/i.test(firstName) ? "Dra. Suzanne" : firstName}` : ""}</h1><p>Aqui está o que precisa da sua atenção hoje.</p></div>
       <button className="hc-primary" type="button" onClick={() => go("/whatsapp")}><MessageCircle size={18}/> Abrir conversas</button>
