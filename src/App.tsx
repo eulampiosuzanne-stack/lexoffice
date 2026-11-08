@@ -788,7 +788,7 @@ export default function App() {
                 </div>
               </div>}>
           <Routes>
-            <Route path="/" element={<Dashboard />}/>
+            <Route path="/" element={<Dashboard financeBlocked={financeBlocked} />}/>
             <Route path="/painel" element={<PartnerPanel />}/>
             <Route path="/donna" element={<Donna />}/>
             <Route path="/crm" element={<CRM />}/>

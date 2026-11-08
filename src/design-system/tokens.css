@@ -1,5 +1,5 @@
 /* LexOffice 2.0 — semantic theme contract for all application routes. */
-html[data-lex-theme="light"] {
+html[data-lex-theme="light"], html:not([data-lex-theme]) {
   color-scheme: light;
   --lx-canvas: #f8f6f0;
   --lx-surface: #ffffff;
@@ -25,7 +25,7 @@ html[data-lex-theme="light"] {
   --lx-danger-soft: #fae7e9;
   --lx-shadow-color: rgba(45,29,35,.16);
 }
-html[data-lex-theme="dark"], html:not([data-lex-theme]) {
+html[data-lex-theme="dark"] {
   color-scheme: dark;
   --lx-canvas: #141820;
   --lx-surface: #20252e;
@@ -50,6 +50,99 @@ html[data-lex-theme="dark"], html:not([data-lex-theme]) {
   --lx-success-soft: #172c26; --lx-danger-soft: #37101d; --lx-shadow-color: rgba(0,0,0,.38);
 }
 :root {
+  --lx-sf-palette-001: #176044;
+  --lx-sf-palette-002: #21864D;
+  --lx-sf-palette-003: #242321;
+  --lx-sf-palette-004: #39342F;
+  --lx-sf-palette-005: #410017;
+  --lx-sf-palette-006: #4A0019;
+  --lx-sf-palette-007: #4D7EA8;
+  --lx-sf-palette-008: #514B45;
+  --lx-sf-palette-009: #65001F;
+  --lx-sf-palette-010: #790026;
+  --lx-sf-palette-011: #855213;
+  --lx-sf-palette-012: #8D1534;
+  --lx-sf-palette-013: #970B42;
+  --lx-sf-palette-014: #9A6B21;
+  --lx-sf-palette-015: #9B948B;
+  --lx-sf-palette-016: #A1213C;
+  --lx-sf-palette-017: #A17A3E;
+  --lx-sf-palette-018: #A8752A;
+  --lx-sf-palette-019: #B28A4A;
+  --lx-sf-palette-020: #B4233D;
+  --lx-sf-palette-021: #D6A329;
+  --lx-sf-palette-022: #D6A445;
+  --lx-sf-palette-023: #D7C29A;
+  --lx-sf-palette-024: #E1D1B3;
+  --lx-sf-palette-025: #E9DFC9;
+  --lx-sf-palette-026: #F2C66D;
+  --lx-sf-palette-027: #F2E7D1;
+  --lx-sf-palette-028: #F4E9DB;
+  --lx-sf-palette-029: #F6F1E7;
+  --lx-sf-palette-030: #F7EBD7;
+  --lx-sf-palette-031: #F7EFDF;
+  --lx-sf-palette-032: #F8F2E8;
+  --lx-sf-palette-033: #F8F6F0;
+  --lx-sf-palette-034: #FBF7EF;
+  --lx-sf-palette-035: #FFE8A3;
+  --lx-sf-palette-036: #FFF;
+  --lx-sf-palette-037: #FFF1DF;
+  --lx-sf-palette-038: #FFF8ED;
+  --lx-sf-palette-039: #FFF9EA;
+  --lx-sf-palette-040: #FFFDF8;
+  --lx-sf-palette-041: #FFFDF9;
+  --lx-sf-palette-042: #FFFFFF;
+  --lx-sf-palette-043: rgba(142,91,23,.38);
+  --lx-sf-palette-044: rgba(142,91,23,.4);
+  --lx-sf-palette-045: rgba(142,91,23,.42);
+  --lx-sf-palette-046: rgba(151,11,66,.55);
+  --lx-sf-palette-047: rgba(178, 138, 74, .12);
+  --lx-sf-palette-048: rgba(178,138,74,.23);
+  --lx-sf-palette-049: rgba(178,138,74,.24);
+  --lx-sf-palette-050: rgba(178,138,74,.32);
+  --lx-sf-palette-051: rgba(178,138,74,.45);
+  --lx-sf-palette-052: rgba(178,138,74,.52);
+  --lx-sf-palette-053: rgba(178,138,74,.55);
+  --lx-sf-palette-054: rgba(20,0,7,.2);
+  --lx-sf-palette-055: rgba(20,0,7,.24);
+  --lx-sf-palette-056: rgba(224, 198, 136, .21);
+  --lx-sf-palette-057: rgba(233,223,201,.8);
+  --lx-sf-palette-058: rgba(239, 196, 174, .24);
+  --lx-sf-palette-059: rgba(242, 198, 109, .4);
+  --lx-sf-palette-060: rgba(242, 198, 109, .48);
+  --lx-sf-palette-061: rgba(242, 198, 109, .55);
+  --lx-sf-palette-062: rgba(242, 213, 197, .24);
+  --lx-sf-palette-063: rgba(242,198,109,.42);
+  --lx-sf-palette-064: rgba(242,198,109,.48);
+  --lx-sf-palette-065: rgba(242,198,109,.72);
+  --lx-sf-palette-066: rgba(242,198,109,.75);
+  --lx-sf-palette-067: rgba(242,198,109,.76);
+  --lx-sf-palette-068: rgba(249,244,235,.8);
+  --lx-sf-palette-069: rgba(255, 255, 255, .08);
+  --lx-sf-palette-070: rgba(255,255,255,.05);
+  --lx-sf-palette-071: rgba(255,255,255,.4);
+  --lx-sf-palette-072: rgba(255,255,255,.5);
+  --lx-sf-palette-073: rgba(255,255,255,.74);
+  --lx-sf-palette-074: rgba(255,255,255,.8);
+  --lx-sf-palette-075: rgba(255,255,255,.82);
+  --lx-sf-palette-076: rgba(255,255,255,.85);
+  --lx-sf-palette-077: rgba(255,255,255,.9);
+  --lx-sf-palette-078: rgba(255,255,255,.95);
+  --lx-sf-palette-079: rgba(45, 14, 25, .16);
+  --lx-sf-palette-080: rgba(45, 29, 35, .19);
+  --lx-sf-palette-081: rgba(57, 31, 27, .14);
+  --lx-sf-palette-082: rgba(57,31,27,.09);
+  --lx-sf-palette-083: rgba(57,31,27,.1);
+  --lx-sf-palette-084: rgba(57,31,27,.12);
+  --lx-sf-palette-085: rgba(57,31,27,.13);
+  --lx-sf-palette-086: rgba(57,31,27,.15);
+  --lx-sf-palette-087: rgba(57,31,27,.17);
+  --lx-sf-palette-088: rgba(57,31,27,.2);
+  --lx-sf-palette-089: rgba(65,0,23,.48);
+  --lx-sf-palette-090: rgba(65,0,23,.5);
+  --lx-sf-palette-091: rgba(65,0,23,.62);
+
+
   --lx-font: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --lx-font-xs: .875rem;
   --lx-font-sm: 1rem;

@@ -66,3 +66,74 @@
 @keyframes sf-guardian-welcome{0%{transform:translateX(-8px) rotate(-4deg);opacity:.72}55%{transform:translateX(2px) rotate(2deg);opacity:1}100%{transform:translateX(0) rotate(0)}}
 @media(max-width:760px){.sf-guardian{margin:0 4px 12px}.sf-guardian-menu{max-height:min(70dvh,420px);overflow:auto}}
 @media(prefers-reduced-motion:reduce){.sf-guardian .sf-guardian-dog{animation:none;transition:none;scroll-behavior:auto}}
+
+/* SF navigation: one continuous burgundy surface; only the current destination is raised in gold. */
+.app > aside nav .workspace-sidebar {
+  display:flex; flex:1 1 auto; flex-direction:column; gap:5px; min-width:0;
+  color:var(--lx-sf-palette-038); background:transparent;
+}
+.app > aside nav .workspace-sidebar-label {
+  flex:0 0 auto; padding:0 12px 10px; color:var(--lx-sf-palette-026); font-size:11px; font-weight:800; letter-spacing:.1em;
+}
+.app > aside nav .workspace-nav-group { flex:0 0 auto; }
+.app > aside nav .workspace-area-toggle {
+  display:flex; align-items:center; gap:12px; min-height:48px; width:100%; padding:10px 12px;
+  border:0; border-radius:12px; background:transparent; color:var(--lx-sf-palette-038); font-size:16px; font-weight:650;
+  text-decoration:none; box-shadow:none; transition:color 180ms ease,transform 180ms ease,box-shadow 180ms ease;
+}
+.app > aside nav .workspace-area-toggle>svg { flex:0 0 auto; width:21px; height:21px; color:var(--lx-sf-palette-026); }
+.app > aside nav .workspace-area-toggle:hover { background:transparent; color:var(--lx-sf-palette-026); transform:translateX(2px); }
+.app > aside nav .workspace-area-toggle.is-current-area {
+  border:1px solid var(--lx-sf-palette-026);
+  color:var(--lx-sf-palette-003);
+  background:linear-gradient(160deg,var(--lx-sf-palette-035) 0%,var(--lx-sf-palette-026) 55%,var(--lx-sf-palette-022) 100%);
+  box-shadow:0 2px 0 var(--lx-sf-palette-075) inset,0 -3px 0 var(--lx-sf-palette-045) inset,0 3px 0 var(--lx-sf-palette-018),0 6px 12px var(--lx-sf-palette-055);
+  font-weight:850;
+}
+.app > aside nav .workspace-area-toggle.is-current-area>svg { color:var(--lx-sf-palette-006); }
+.app > aside nav .workspace-nav-group:has(.workspace-submenu)>.workspace-area-toggle.is-current-area {
+  border-color:transparent; background:transparent; color:var(--lx-sf-palette-026); box-shadow:none; transform:none;
+}
+.app > aside nav .workspace-nav-group:has(.workspace-submenu)>.workspace-area-toggle.is-current-area>svg { color:var(--lx-sf-palette-026); }
+.app > aside nav .workspace-submenu { display:grid; gap:2px; margin:1px 0 5px 17px; padding:2px 0 2px 12px; border-left:1px solid var(--lx-sf-palette-063); }
+.app > aside nav .workspace-submenu[hidden] { display:none; }
+.app > aside nav .workspace-submenu .workspace-submenu-link {
+  min-height:39px; padding:7px 10px; border:0; border-radius:10px; background:transparent;
+  color:var(--lx-sf-palette-037); font-size:14px; line-height:1.35; text-decoration:none;
+}
+.app > aside nav .workspace-submenu .workspace-submenu-link:hover { background:transparent; color:var(--lx-sf-palette-026); }
+.app > aside nav .workspace-submenu .workspace-submenu-link.is-current-page {
+  color:var(--lx-sf-palette-003); font-weight:850;
+  background:linear-gradient(160deg,var(--lx-sf-palette-035),var(--lx-sf-palette-026) 58%,var(--lx-sf-palette-022));
+  box-shadow:0 1px 0 var(--lx-sf-palette-074) inset,0 -2px 0 var(--lx-sf-palette-044) inset,0 3px 0 var(--lx-sf-palette-018);
+}
+.app > aside nav .workspace-submenu .workspace-submenu-link.is-current-page:before { display:none; }
+.app > aside nav .workspace-nav-count { background:var(--lx-sf-palette-026); color:var(--lx-sf-palette-006); border-radius:999px; font-weight:850; }
+.app > aside nav .workspace-sidebar .sf-guardian {
+  position:relative; display:grid; flex:0 0 auto; gap:7px; margin:auto 0 5px; padding:10px 9px 9px;
+  border:1px solid var(--lx-sf-palette-065); border-radius:15px; background:linear-gradient(135deg,var(--lx-sf-palette-046),var(--lx-sf-palette-089));
+  color:var(--lx-sf-palette-038); box-shadow:0 5px 14px var(--lx-sf-palette-054);
+}
+.app > aside nav .sf-guardian-trigger { display:grid; grid-template-columns:72px minmax(0,1fr) 16px; align-items:center; gap:9px; width:100%; min-height:76px; padding:3px; border:0; border-radius:10px; background:transparent; color:var(--lx-sf-palette-038); text-align:left; }
+.app > aside nav .sf-guardian-trigger:hover { background:var(--lx-sf-palette-070); }
+.app > aside nav .sf-guardian-portrait { position:relative; display:grid; place-items:center; width:70px; height:72px; }
+.app > aside nav .sf-guardian-dog { display:block; width:68px; height:70px; border:0; border-radius:0; object-fit:contain; }
+.app > aside nav .sf-guardian-portrait>svg { position:absolute; right:0; bottom:2px; color:var(--lx-sf-palette-026); }
+.app > aside nav .sf-guardian-copy strong { color:var(--lx-sf-palette-026); font-size:16px; line-height:1.3; }
+.app > aside nav .sf-guardian-copy small { color:var(--lx-sf-palette-038); font-size:12px; line-height:1.4; white-space:normal; }
+.app > aside nav .sf-guardian-chevron { color:var(--lx-sf-palette-026); }
+.app > aside nav .sf-guardian-paws { position:absolute; top:-14px; right:8px; display:flex; align-items:center; gap:4px; color:var(--lx-sf-palette-026); transform:rotate(-12deg); }
+.app > aside nav .sf-guardian-greeting { color:var(--lx-sf-palette-003); border-color:var(--lx-sf-palette-019); background:var(--lx-sf-palette-033); }
+.app > aside nav .sf-guardian-menu { background:var(--lx-sf-palette-040); color:var(--lx-sf-palette-003); border-color:var(--lx-sf-palette-019); }
+.app > aside nav .sf-guardian-menu button { background:transparent; color:var(--lx-sf-palette-003); }
+.app > aside nav .sf-guardian-menu button:hover { background:var(--lx-sf-palette-028); color:var(--lx-sf-palette-009); }
+.app > aside nav .lex2-favorites { flex:0 0 auto; border-color:var(--lx-sf-palette-064); background:transparent; color:var(--lx-sf-palette-038); }
+.app > aside nav .lex2-favorites summary,.app > aside nav .lex2-favorites a { color:var(--lx-sf-palette-038); }
+@media(max-width:760px) {
+  .app > aside { background:linear-gradient(180deg,var(--lx-sf-palette-009) 0%,var(--lx-sf-palette-010) 48%,var(--lx-sf-palette-006) 100%); }
+  .app > aside nav .workspace-area-toggle { min-height:50px; font-size:16px; }
+  .app > aside nav .workspace-sidebar .sf-guardian { margin-top:24px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .app > aside nav .workspace-area-toggle,.app > aside nav .sf-guardian-dog { animation:none; transition:none; transform:none; }
+}

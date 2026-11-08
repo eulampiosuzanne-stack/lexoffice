@@ -13,7 +13,7 @@ import ClientFormShareAction from "./components/ClientFormShareAction";
 import ClientMessageActionBridge from "./components/ClientMessageActionBridge";
 import BulkClientMessageBridge from "./components/BulkClientMessageBridge";
 import OfficeBrandBridge from "./OfficeBrandBridge";
-import ThemeController from "./ThemeController";
+import ThemeController, { readLexTheme } from "./ThemeController";
 import { applyVisibility, readVisibility } from "./lib/visualPreferences";
 import "./pwa-install";
 import "./design-system/tokens.css";
@@ -40,15 +40,17 @@ import "./design-system/workspaces.css";
 import "./design-system/navigation.css";
 import "./design-system/accessibility.css";
 import "./design-system/classic-depth.css";
+import "./design-system/superadvogadas-dashboard.css";
 applyVisibility(readVisibility());
-// Apply saved preference before React renders to prevent dark-theme flash.
+// Migrate existing installations to the requested light institutional theme.
 try {
-    const theme = localStorage.getItem("lexoffice-theme") === "dark" ? "dark" : "light";
+    const theme = readLexTheme();
     document.documentElement.dataset.lexTheme = theme;
     document.documentElement.style.colorScheme = theme;
 }
 catch {
     document.documentElement.dataset.lexTheme = "light";
+    document.documentElement.style.colorScheme = "light";
 }
 const intakePrefix = "/formulario-cliente/";
 const path = window.location.pathname.replace(/\/$/, "") || "/";
