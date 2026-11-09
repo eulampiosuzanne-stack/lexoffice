@@ -1,5 +1,6 @@
 import InternalNavigation from '../components/InternalNavigation';
 import { useState } from "react";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import {
   FileCheck2,
   Scale,
@@ -88,8 +89,21 @@ export default function RevisaoPeca() {
         .from("legal_document_reviews")
         .update({ status: "failed" })
         .eq("id", saved.data.id);
+      if (error instanceof FunctionsHttpError) {
+        const response = error.context as Response;
+        const body = await response.json().catch(() => null);
+        if (response.status === 503 && body?.error === "Google Gemini não está configurado em Integrações.") {
+          return setNotice("O Gemini não está configurado neste espaço de trabalho. Abra Integrações e configure o Google Gemini para concluir a revisão.");
+        }
+        if (response.status === 401) return setNotice("Sua sessão expirou. Entre novamente na LexOffice.");
+        if (response.status === 403) return setNotice("A revisão não está disponível para esta conta ou espaço de trabalho.");
+        if ([400, 404, 422].includes(response.status) && typeof body?.error === "string") {
+          return setNotice(body.error);
+        }
+        return setNotice(`A revisão não pôde ser concluída agora (HTTP ${response.status}). A peça foi guardada de forma privada.`);
+      }
       return setNotice(
-        data?.error || error?.message || "A análise não pôde ser concluída.",
+        data?.error || "A análise não pôde ser concluída. A peça foi guardada de forma privada.",
       );
     }
     setResult(data.result);
