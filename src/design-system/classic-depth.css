@@ -311,9 +311,9 @@ html[data-lex-theme="light"] body .app>main>header.lex2-topbar .global-search-fi
 html[data-lex-theme="light"] body .app>main>header.lex2-topbar .global-search-field input{color:var(--lx-text)}
 html[data-lex-theme="light"] body .app>main>header.lex2-topbar .mobile-menu-btn{color:var(--lx-brand-shell-text);background:transparent}
 
-/* Real workspaces use clean ivory surfaces with readable dark text. */
+/* Matte reading surfaces and raised controls in the authenticated light theme. */
 html[data-lex-theme="light"] body .app :where([class$="-panel"],[class$="-card"],[class$="-surface"],.panel,.card,article,.modal,.rule-modal,.lane,.kanban-column){
-  background:var(--lx-surface);color:var(--lx-text);border-color:var(--lx-border);box-shadow:var(--lx-shadow)
+  background:var(--lx-surface);color:var(--lx-text);border-color:var(--lx-border);box-shadow:inset 0 1px 0 var(--lx-surface),0 3px 0 var(--lx-border),0 7px 14px var(--lx-shadow-color)
 }
 html[data-lex-theme="light"] body .app :where(h1,h2,h3,h4,p,label,small,td,th,summary,legend,dt,dd){color:var(--lx-text)}
 html[data-lex-theme="light"] body .app :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,textarea){
@@ -330,6 +330,43 @@ html[data-lex-theme="light"] body .app :where(.primary,.legacy-enter,button[type
 }
 html[data-lex-theme="light"] body .app :where(.primary,.legacy-enter,button[type="submit"],.integration-action,.hc-primary,.hc-guardian-status button):hover{
   background:var(--lx-brand-gold-soft);color:var(--lx-brand-gold-ink)
+}
+
+html[data-lex-theme="light"] body .app > main .content :where(.module-box,.table-panel,.report-surface,.management-card,.lx-panel,.integration-panel,.integration-card,.workspace-panel,.process-panel) {
+  box-shadow: inset 0 1px 0 var(--lx-surface), 0 3px 0 var(--lx-border), 0 7px 14px var(--lx-shadow-color);
+}
+html[data-lex-theme="light"] body .app > main .content {
+  --lx-control-wine-face: linear-gradient(155deg,var(--lx-brand-wine-lit),var(--lx-brand-shell) 74%,var(--lx-brand-shell-deep));
+  --lx-control-champagne-face: linear-gradient(155deg,var(--lx-brand-gold-light),var(--lx-brand-gold-soft) 58%,var(--lx-brand-gold));
+  --lx-control-relief: inset 0 0 0 2px var(--lx-brand-gold-soft), inset 0 0 0 3px var(--lx-brand-line),
+    0 4px 0 var(--lx-brand-shell-deep), 0 7px 12px var(--lx-shadow-color);
+}
+html[data-lex-theme="light"] body .app > main .content :where(button,a):where(.primary,.btn-primary,.lx-button--primary,.integration-action,.secondary,.lx-button--secondary,.workspace-hub-card,.management-metric,.report-kpi,.process-metrics > button,.hearing-metrics > button):not(:where(.danger,.ux-danger,.work-danger,.destructive,.lx-button--danger,[data-variant="danger"])) {
+  --lx-control-face: var(--lx-control-wine-face);
+  --lx-control-ink: var(--lx-brand-shell-text);
+  background: var(--lx-control-face);
+  color: var(--lx-control-ink);
+  border: 1px solid var(--lx-brand-line);
+  box-shadow: var(--lx-control-relief);
+}
+html[data-lex-theme="light"] body .app > main .content :where(button,a):where(.secondary,.lx-button--secondary,.workspace-hub-card:nth-child(even),.management-metric:nth-child(even),.report-kpi:nth-child(even),.process-metrics > button:nth-child(even),.hearing-metrics > button:nth-child(even)) {
+  --lx-control-face: var(--lx-control-champagne-face);
+  --lx-control-ink: var(--lx-brand-gold-ink);
+}
+html[data-lex-theme="light"] body .app > main .content :where(a,button):where(.workspace-hub-card,.management-metric,.report-kpi,.process-metrics > button,.hearing-metrics > button) :where(h2,h3,h4,p,strong,small) {
+  color: var(--lx-control-ink, var(--lx-text));
+}
+html[data-lex-theme="light"] body .app > main .content :where(button,a):where(.primary,.btn-primary,.lx-button--primary,.integration-action,.secondary,.lx-button--secondary,.workspace-hub-card,.management-metric,.report-kpi,.process-metrics > button,.hearing-metrics > button):hover:not(:where(:disabled,.danger,.ux-danger,.work-danger,.destructive,.lx-button--danger,[data-variant="danger"])) {
+  background: var(--lx-control-face);
+  color: var(--lx-control-ink);
+  border-color: var(--lx-brand-shell);
+}
+html[data-lex-theme="light"] body .app > main .content :where(button,a):where(.primary,.btn-primary,.lx-button--primary,.integration-action,.secondary,.lx-button--secondary,.workspace-hub-card,.management-metric,.report-kpi,.process-metrics > button,.hearing-metrics > button):active:not(:where(:disabled,.danger,.ux-danger,.work-danger,.destructive,.lx-button--danger,[data-variant="danger"])) {
+  box-shadow: inset 0 2px 6px var(--lx-shadow-color), inset 0 0 0 2px var(--lx-brand-gold-soft),0 2px 0 var(--lx-brand-shell-deep);
+}
+html[data-lex-theme="light"] body .app > main .content :where(button.workspace-hub-card.active,button.workspace-hub-card[aria-pressed="true"]) {
+  outline: 3px solid var(--lx-focus);
+  outline-offset: 3px;
 }
 html[data-lex-theme="light"] body .app .hc-deadline-complete{
   display:inline-flex;align-items:center;gap:7px;min-height:42px;margin:6px 12px 10px;
