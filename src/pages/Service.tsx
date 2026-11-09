@@ -18,13 +18,40 @@ const validBulkPhone=(v?:string)=>{const d=phoneDigits(v);return d.length>=10&&d
 
 export default function Service(){
  const db:any=supabase;
- const[orgId,setOrgId]=useState('');const[userId,setUserId]=useState('');const[conversations,setConversations]=useState<Conversation[]>([]);const[selected,setSelected]=useState<Conversation|null>(null);const[messages,setMessages]=useState<WaMessage[]>([]);const[chatText,setChatText]=useState('');const[mode,setMode]=useState<Mode>('human');const[busy,setBusy]=useState(false);const[suggestBusy,setSuggestBusy]=useState(false);const[notice,setNotice]=useState('');const[filter,setFilter]=useState('');const endRef=useRef<HTMLDivElement|null>(null);const msgLast=useRef('');const msgConv=useRef('');
+ const[orgId,setOrgId]=useState('');const[userId,setUserId]=useState('');const[conversations,setConversations]=useState<Conversation[]>([]);const[selected,setSelected]=useState<Conversation|null>(null);const[messages,setMessages]=useState<WaMessage[]>([]);const[chatText,setChatText]=useState('');const[mode,setMode]=useState<Mode>('human');const[busy,setBusy]=useState(false);const[suggestBusy,setSuggestBusy]=useState(false);const[notice,setNotice]=useState('');const[filter,setFilter]=useState('');const endRef=useRef<HTMLDivElement|null>(null);const messageView=useRef<{id:string;cursor:string;loading:boolean;pending:boolean}|null>(null);
  const[detailsVisible,setDetailsVisible]=useState(true);
  const[detailTab,setDetailTab]=useState<'cliente'|'processos'|'documentos'|'financeiro'>('cliente');const[clientInfo,setClientInfo]=useState<any>(null);const[clientProcesses,setClientProcesses]=useState<any[]>([]);const[clientDocs,setClientDocs]=useState<number|null>(null);const[viewFilter,setViewFilter]=useState<'all'|'unread'|'urgent'|'ai'>('all');
  const[bulkOpen,setBulkOpen]=useState(false);const[bulkText,setBulkText]=useState('');const[bulkSearch,setBulkSearch]=useState('');const[bulkSelected,setBulkSelected]=useState<string[]>([]);const[bulkBusy,setBulkBusy]=useState(false);
  async function loadConversations(){const{data}=await db.from('whatsapp_conversations').select('id,last_message_at,last_message_preview,unread_count,bot_ativo,priority,tags,contact:whatsapp_contacts(id,name,phone,client_id)').order('last_message_at',{ascending:false,nullsFirst:false}).limit(150);const raw=(data||[])as any[];const ids=[...new Set(raw.map(c=>c.contact?.client_id).filter(Boolean))];let vipIds=new Set<string>();if(ids.length){const{data:vips}=await db.from('clients').select('id,is_vip').in('id',ids);vipIds=new Set((vips||[]).filter((x:any)=>x.is_vip).map((x:any)=>x.id))}const list=raw.map(c=>({...c,is_vip:Boolean(c.contact?.client_id&&vipIds.has(c.contact.client_id))})).sort((a,b)=>Number(b.is_vip)-Number(a.is_vip)||Number(b.priority==='urgent')-Number(a.priority==='urgent')||new Date(b.last_message_at||0).getTime()-new Date(a.last_message_at||0).getTime());setConversations(list);return list as Conversation[]}
- async function loadMessages(id:string,incremental=false){const cols='id,direction,body,status,created_at,sender_type:metadata->>sender_type,source:metadata->>source';const last=incremental&&msgConv.current===id?msgLast.current:'';let q=db.from('whatsapp_messages').select(cols).eq('conversation_id',id);q=last?q.gt('created_at',last).order('created_at',{ascending:true}).limit(100):q.order('created_at',{ascending:false}).limit(150);const{data,error}=await q;if(error)return;const rows=((data||[])as any[]).map(m=>({id:m.id,direction:m.direction,body:m.body,status:m.status,created_at:m.created_at,metadata:{sender_type:m.sender_type,source:m.source}}));const ordered=last?rows:rows.reverse();if(last){if(!ordered.length)return;setMessages(v=>{const seen=new Set(v.map(x=>x.id));return[...v,...ordered.filter(x=>!seen.has(x.id))]})}else{msgConv.current=id;setMessages(ordered)}if(ordered.length)msgLast.current=ordered[ordered.length-1].created_at}
- async function syncMode(c:Conversation){if(!c.contact?.phone)return;const[{data:cv},{data:ctl}]=await Promise.all([db.from('whatsapp_conversations').select('bot_ativo').eq('id',c.id).maybeSingle(),db.from('ai_conversation_controls').select('ai_enabled,human_takeover').eq('org_id',orgId).eq('contact_key',c.contact.phone).maybeSingle()]);setMode(cv?.bot_ativo===true&&ctl?.ai_enabled!==false&&ctl?.human_takeover!==true?'ai':'human')}
+ async function loadMessages(id:string,incremental=false){
+  const view=messageView.current;
+  if(!view||view.id!==id)return;
+  if(view.loading){view.pending=true;return}
+  view.loading=true;
+  try{
+   const cols='id,direction,body,status,created_at,sender_type:metadata->>sender_type,source:metadata->>source';
+   const last=incremental?view.cursor:'';
+   const query=db.from('whatsapp_messages').select(cols).eq('conversation_id',id);
+   const {data,error}=await (last?query.gt('created_at',last).order('created_at',{ascending:true}).limit(100):query.order('created_at',{ascending:false}).limit(150));
+   if(error||messageView.current!==view)return;
+   const rows=((data||[])as any[]).map(m=>({id:m.id,direction:m.direction,body:m.body,status:m.status,created_at:m.created_at,metadata:{sender_type:m.sender_type,source:m.source}}));
+   const ordered=last?rows:rows.reverse();
+   if(ordered.length)view.cursor=ordered[ordered.length-1].created_at;
+   if(!last){setMessages(ordered);return}
+   if(!ordered.length)return;
+   setMessages(previous=>{
+    const seen=new Set(previous.map(message=>message.id));
+    return [...previous,...ordered.filter(message=>!seen.has(message.id))];
+   });
+  }finally{
+   view.loading=false;
+   if(view.pending&&messageView.current===view){
+    view.pending=false;
+    void loadMessages(id,true);
+   }
+  }
+ }
+ async function syncMode(c:Conversation){const view=messageView.current;if(view?.id!==c.id||!c.contact?.phone)return;const[{data:cv},{data:ctl}]=await Promise.all([db.from('whatsapp_conversations').select('bot_ativo').eq('id',c.id).maybeSingle(),db.from('ai_conversation_controls').select('ai_enabled,human_takeover').eq('org_id',orgId).eq('contact_key',c.contact.phone).maybeSingle()]);if(messageView.current!==view)return;setMode(cv?.bot_ativo===true&&ctl?.ai_enabled!==false&&ctl?.human_takeover!==true?'ai':'human')}
  useEffect(()=>{(async()=>{const{data:{user}}=await db.auth.getUser();if(!user)return;setUserId(user.id);const{data:p}=await db.from('profiles').select('org_id').eq('id',user.id).maybeSingle();if(p?.org_id)setOrgId(p.org_id);const list=await loadConversations();const phone=new URLSearchParams(window.location.search).get('phone')?.replace(/\D/g,'');if(phone){const match=list.find(c=>phoneDigits(c.contact?.phone)===phone);if(match)await openConversation(match);else setNotice('Este cliente ainda não possui conversa no Atendimento.')}})()},[]);
  useEffect(()=>{const t=setInterval(()=>{if(document.visibilityState==='visible')void loadConversations()},30000);return()=>clearInterval(t)},[]);
  useEffect(()=>{if(!selected?.id)return;const id=selected.id;let ticks=0;const ch=db.channel(`service-msgs-${id}`).on('postgres_changes',{event:'INSERT',schema:'public',table:'whatsapp_messages',filter:`conversation_id=eq.${id}`},()=>{void loadMessages(id,true)}).subscribe();const t=setInterval(()=>{if(document.visibilityState!=='visible')return;ticks++;void loadMessages(id,true);if(ticks%4===0)void syncMode(selected)},15000);return()=>{clearInterval(t);void db.removeChannel(ch)}},[selected?.id,orgId]);
@@ -36,8 +63,31 @@ export default function Service(){
  const bulkEligible=useMemo(()=>conversations.filter(c=>Boolean(c.contact?.name?.trim())&&validBulkPhone(c.contact?.phone)),[conversations]);
  const bulkVisible=useMemo(()=>{const q=bulkSearch.trim().toLowerCase();return bulkEligible.filter(c=>!q||`${c.contact?.name||''} ${c.contact?.phone||''}`.toLowerCase().includes(q))},[bulkEligible,bulkSearch]);
  const hiddenBulkCount=Math.max(0,conversations.length-bulkEligible.length);
- async function openConversation(c:Conversation){setSelected(c);setDetailTab('cliente');setClientInfo(null);setClientProcesses([]);setClientDocs(null);if(c.contact?.client_id){void db.from('processes').select('id,subject,status,cnj_number').eq('client_id',c.contact.client_id).limit(10).then(({data}:any)=>setClientProcesses(data||[]));void db.from('documents').select('id',{count:'exact',head:true}).eq('client_id',c.contact.client_id).then(({count,error}:any)=>setClientDocs(error?null:count||0));void db.from('clients').select('id,name,email,phone,whatsapp,status,relationship_tier,notes').eq('id',c.contact.client_id).maybeSingle().then(({data}:any)=>setClientInfo(data||null));}await loadMessages(c.id);await db.from('whatsapp_conversations').update({unread_count:0}).eq('id',c.id);await syncMode(c)}
- async function setHandler(next:Mode){if(!selected?.contact?.phone||!orgId)return;setBusy(true);setNotice('');const now=new Date().toISOString(),ai=next==='ai',phone=phoneDigits(selected.contact.phone);try{const{data:existing,error:readError}=await db.from('ai_conversation_controls').select('id').eq('org_id',orgId).eq('contact_key',phone).maybeSingle();if(readError)throw readError;const patch={ai_enabled:ai,human_takeover:!ai,resume_at:null,updated_at:now};const control=existing?.id?await db.from('ai_conversation_controls').update(patch).eq('id',existing.id):await db.from('ai_conversation_controls').insert({org_id:orgId,contact_key:phone,...patch});if(control.error)throw control.error;const{error}=await db.from('whatsapp_conversations').update(ai?{bot_ativo:true,responsible_id:null,human_takeover_at:null,human_takeover_reason:null,conversation_owner:'CLARA',updated_at:now}:{bot_ativo:false,responsible_id:userId||null,human_takeover_at:now,human_takeover_reason:'operator_takeover',conversation_owner:'HUMAN',updated_at:now}).eq('id',selected.id);if(error)throw error;setMode(next);setSelected({...selected,bot_ativo:ai});setConversations(v=>v.map(c=>c.id===selected.id?{...c,bot_ativo:ai}:c));setNotice(ai?'Helena autorizada a responder este contato.':'Helena desativada para este contato até você reativar.');}catch(e:any){setNotice(e?.message||'Não foi possível salvar a preferência.');}finally{setBusy(false)}}
+ async function openConversation(c:Conversation){
+  const view={id:c.id,cursor:'',loading:false,pending:false};
+  messageView.current=view;
+  setSelected(c);
+  setMessages([]);
+  setDetailTab('cliente');
+  setClientInfo(null);
+  setClientProcesses([]);
+  setClientDocs(null);
+  if(c.contact?.client_id){
+   void db.from('processes').select('id,subject,status,cnj_number').eq('client_id',c.contact.client_id).limit(10).then(({data}:any)=>{
+    if(messageView.current===view)setClientProcesses(data||[]);
+   });
+   void db.from('documents').select('id',{count:'exact',head:true}).eq('client_id',c.contact.client_id).then(({count,error}:any)=>{
+    if(messageView.current===view)setClientDocs(error?null:count||0);
+   });
+   void db.from('clients').select('id,name,email,phone,whatsapp,status,relationship_tier,notes').eq('id',c.contact.client_id).maybeSingle().then(({data}:any)=>{
+    if(messageView.current===view)setClientInfo(data||null);
+   });
+  }
+  await loadMessages(c.id);
+  await db.from('whatsapp_conversations').update({unread_count:0}).eq('id',c.id);
+  if(messageView.current===view)await syncMode(c);
+ }
+ async function setHandler(next:Mode){if(!selected?.contact?.phone||!orgId)return;setBusy(true);setNotice('');const now=new Date().toISOString(),ai=next==='ai',phone=phoneDigits(selected.contact.phone);try{const{data:existing,error:readError}=await db.from('ai_conversation_controls').select('id').eq('org_id',orgId).eq('contact_key',phone).maybeSingle();if(readError)throw readError;const patch={ai_enabled:ai,human_takeover:!ai,resume_at:null,updated_at:now};const control=existing?.id?await db.from('ai_conversation_controls').update(patch).eq('id',existing.id):await db.from('ai_conversation_controls').insert({org_id:orgId,contact_key:phone,...patch});if(control.error)throw control.error;const{error}=await db.from('whatsapp_conversations').update(ai?{bot_ativo:true,responsible_id:null,human_takeover_at:null,human_takeover_reason:null,conversation_owner:'CLARA',updated_at:now}:{bot_ativo:false,responsible_id:userId||null,human_takeover_at:now,human_takeover_reason:'operator_takeover',conversation_owner:'HUMAN',updated_at:now}).eq('id',selected.id);if(error)throw error;if(messageView.current?.id===selected.id)setMode(next);setSelected(current=>current?.id===selected.id?{...current,bot_ativo:ai}:current);setConversations(v=>v.map(c=>c.id===selected.id?{...c,bot_ativo:ai}:c));setNotice(ai?'Helena autorizada a responder este contato.':'Helena desativada para este contato até você reativar.');}catch(e:any){setNotice(e?.message||'Não foi possível salvar a preferência.');}finally{setBusy(false)}}
  async function markFollowup(){if(!selected||busy)return;setBusy(true);setNotice('');try{const tags=Array.from(new Set([...(selected.tags||[]),'follow_up']));const{error}=await db.from('whatsapp_conversations').update({tags,updated_at:new Date().toISOString()}).eq('id',selected.id);if(error)throw error;setSelected({...selected,tags});setConversations(v=>v.map(c=>c.id===selected.id?{...c,tags}:c));setNotice('Contato marcado para follow-up. Nenhuma mensagem foi enviada; cada mensagem deverá ser aprovada antes do envio.');}catch(e:any){setNotice(e?.message||'Falha ao marcar follow-up.')}finally{setBusy(false)}}
  async function suggest(){if(!selected)return;setSuggestBusy(true);const hist=messages.slice(-18).map(m=>`${m.direction==='inbound'?'Cliente':'Escritório'}: ${m.body||''}`).join('\n');const{data,error}=await db.functions.invoke('ai-provider-gateway',{body:{org_id:orgId,provider:'auto',instructions:'Escreva apenas uma resposta curta de WhatsApp, humana, profissional, objetiva e natural, com no máximo 3 linhas, sem emojis. Não invente fatos, prazos ou movimentações processuais.',input:`Histórico:\n${hist}\n\nSugira a próxima resposta.`}});setSuggestBusy(false);if(error)return setNotice(error.message);setChatText(String(data?.text||''))}
  async function sendChat(){if(!selected?.contact?.phone||!chatText.trim())return;setBusy(true);const r=await db.functions.invoke('whatsapp-operator-send',{body:{message:chatText.trim(),targets:[{phone:selected.contact.phone,conversation_id:selected.id,name:selected.contact.name||''}]}});setBusy(false);if(r.error||!r.data?.sent)return setNotice(r.data?.results?.[0]?.error||r.data?.error||r.error?.message||'Falha ao enviar.');setChatText('');setNotice('Mensagem enviada pelo WhatsApp Oficial.');await loadMessages(selected.id,true);await loadConversations()}
