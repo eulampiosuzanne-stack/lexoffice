@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, useLocation } from "react-router-dom";
 import App from "./App";
+const Contingency = React.lazy(() => import("./pages/Contingency"));
 import PlatformAdminEntry from "./pages/PlatformAdminEntry";
 import PublicClientForm from "./pages/PublicClientForm";
 import Landing from "./pages/Landing";
@@ -76,7 +77,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(<React.StrictMode>
     {false}
     <BrowserRouter>
       <ThemeController />
-      {isPublicIntake ? (<PublicClientForm token={intakeToken}/>) : isOfficeLanding ? (<OfficeLanding />) : isPublicLanding ? (<Landing />) : isPublicPlans ? (<Planos />) : isPublicCheckout ? (<Checkout />) : isClientPortal ? (<ClientPortal />) : (<>
+      {path === "/contingencia" ? (<React.Suspense fallback={<p role="status">Carregando acesso de contingência…</p>}><Contingency /></React.Suspense>) : isPublicIntake ? (<PublicClientForm token={intakeToken}/>) : isOfficeLanding ? (<OfficeLanding />) : isPublicLanding ? (<Landing />) : isPublicPlans ? (<Planos />) : isPublicCheckout ? (<Checkout />) : isClientPortal ? (<ClientPortal />) : (<>
           <>
             <RootApp />
             <ClientToolsGate />

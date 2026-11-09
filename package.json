@@ -36,8 +36,10 @@
     "test:proposal-repository": "node scripts/test-proposal-repository.mjs"
   },
   "dependencies": {
+    "@neon/auth": "0.8.2",
     "@supabase/supabase-js": "^2.57.4",
     "ask-sdk-express-adapter": "^2.14.0",
+    "jose": "6.2.16",
     "jspdf": "^3.0.4",
     "lucide-react": "^0.468.0",
     "pg": "8.16.3",

@@ -415,6 +415,7 @@ function Login() {
           <button className="legacy-google" type="button" onClick={google} disabled={loading}>
             <span className="google-g">G</span>Continuar com Google
           </button>
+            {import.meta.env.VITE_LEX_CONTINGENCY_AUTH_URL && <p><a href="/contingencia">Acesso de contingência</a></p>}
           <div className="legacy-create">
             {creating ? "Já tem uma conta? " : "Ainda não tem conta? "}
             <button type="button" onClick={() => {

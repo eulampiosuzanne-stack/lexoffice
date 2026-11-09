@@ -1,4 +1,5 @@
 import { Pool } from 'pg';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 const authUrl = 'https://dcpwcuototomxoiszukt.supabase.co/auth/v1/user';
@@ -10,7 +11,35 @@ const queries = {
   finance: 'SELECT id, client_id, process_id, type, description, amount, due_date, paid_at, status FROM lex_recovery_preview.financial_entries ORDER BY created_at DESC, id',
 } as const;
 
-let pool: Pool | undefined;
+const neonAuth = process.env.VITE_LEX_CONTINGENCY_AUTH_URL;
+const neonOrigin = neonAuth ? new URL(neonAuth).origin : undefined;
+const jwks = neonAuth ? createRemoteJWKSet(new URL(neonAuth + '/.well-known/jwks.json'), { timeoutDuration: 5000 }) : undefined;
+let previewPool: Pool | undefined;
+let contingencyPool: Pool | undefined;
+
+async function identify(authorization: string, contingency: boolean, authKey: string | undefined) {
+  if (contingency) {
+    if (!jwks || !neonOrigin) throw new Error('Contingency identity unavailable');
+    try {
+      const { payload } = await jwtVerify(authorization.slice(7), jwks, {
+        algorithms: ['EdDSA'], issuer: neonOrigin, audience: neonOrigin, requiredClaims: ['sub', 'exp'],
+      });
+      return payload.sub && uuid.test(payload.sub) ? payload.sub : null;
+    } catch {
+      return null;
+    }
+  }
+
+  if (!authKey) throw new Error('Preview identity unavailable');
+  const identity = await fetch(authUrl, {
+    headers: { authorization, apikey: authKey },
+    signal: AbortSignal.timeout(5000),
+  });
+  if ([400, 401, 403].includes(identity.status)) return null;
+  if (!identity.ok) throw new Error('Preview identity unavailable');
+  const user = await identity.json() as { id?: string; role?: string; is_anonymous?: boolean };
+  return user.id && uuid.test(user.id) && user.role === 'authenticated' && !user.is_anonymous ? user.id : null;
+}
 
 function respond(res: ServerResponse, status: number, body: object) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -19,7 +48,9 @@ function respond(res: ServerResponse, status: number, body: object) {
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
   res.setHeader('Cache-Control', 'private, no-store');
-  if (process.env.VERCEL_ENV !== 'preview' || process.env.VERCEL_GIT_COMMIT_REF !== 'migration/neon-lexoffice') {
+  const preview = process.env.VERCEL_ENV === 'preview' && process.env.VERCEL_GIT_COMMIT_REF === 'migration/neon-lexoffice';
+  const production = process.env.VERCEL_ENV === 'production' && req.headers.host === 'lex.suzannefigueiredoadvocacia.com.br';
+  if (!preview && !production) {
     return respond(res, 404, { error: 'Rota indisponível.' });
   }
   if (req.method !== 'GET') {
@@ -33,6 +64,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   }
 
   const params = new URL(req.url || '/', 'http://localhost').searchParams;
+  const contingency = production || params.get('auth') === 'contingency';
   const resource = params.get('resource') || '';
   const limit = Number(params.get('limit') ?? 50);
   const offset = Number(params.get('offset') ?? 0);
@@ -42,28 +74,18 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   }
 
   const authKey = process.env.VITE_SUPABASE_ANON_KEY;
-  const connectionString = process.env.LEX_CONTINGENCY_DATABASE_URL;
-  if (!authKey || !connectionString) {
+  const connectionString = contingency ? process.env.LEX_CONTINGENCY_READ_DATABASE_URL : process.env.LEX_CONTINGENCY_DATABASE_URL;
+  if (!connectionString) {
     return respond(res, 503, { error: 'Homologação indisponível.' });
   }
 
   try {
-    const identity = await fetch(authUrl, {
-      headers: { authorization, apikey: authKey },
-      signal: AbortSignal.timeout(5000),
-    });
-    if ([400, 401, 403].includes(identity.status)) {
-      return respond(res, 401, { error: 'Sessão inválida ou expirada.' });
-    }
-    if (!identity.ok) {
-      return respond(res, 503, { error: 'O serviço de autenticação está indisponível.' });
-    }
-    const user = await identity.json() as { id?: string; role?: string; is_anonymous?: boolean };
-    if (!user.id || !uuid.test(user.id) || user.role !== 'authenticated' || user.is_anonymous) {
-      return respond(res, 401, { error: 'Sessão inválida.' });
-    }
+    const principal = await identify(authorization, contingency, authKey);
+    if (!principal) return respond(res, 401, { error: 'Sessão inválida ou expirada.' });
 
-    pool ??= new Pool({ connectionString, max: 2, connectionTimeoutMillis: 5000 });
+    const pool = contingency
+      ? (contingencyPool ??= new Pool({ connectionString, max: 2, connectionTimeoutMillis: 5000 }))
+      : (previewPool ??= new Pool({ connectionString, max: 2, connectionTimeoutMillis: 5000 }));
     const db = await pool.connect();
     let discardConnection = false;
     try {
@@ -74,17 +96,23 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       }
       await db.query('SET LOCAL ROLE lex_recovery_preview_reader');
       await db.query("SET LOCAL statement_timeout = '5s'");
-      await db.query("SELECT set_config('lex_recovery.user_id', $1, true)", [user.id]);
-      const profile = await db.query(
-        "SELECT org_id FROM lex_recovery_preview.profiles WHERE id = $1 AND status = 'active' AND role_key IN ('owner', 'admin')",
-        [user.id],
-      );
+      if (!contingency) {
+        await db.query("SELECT set_config('lex_recovery.user_id', $1, true)", [principal]);
+      }
+      const profile = contingency
+        ? await db.query('SELECT user_id, org_id FROM lex_contingency_identity.resolve_profile($1::uuid)', [principal])
+        : await db.query(
+          "SELECT id AS user_id, org_id FROM lex_recovery_preview.profiles WHERE id = $1 AND status = 'active' AND role_key IN ('owner', 'admin')",
+          [principal],
+        );
       const orgId = profile.rows[0]?.org_id;
-      if (!orgId) {
+      const userId = profile.rows[0]?.user_id;
+      if (!orgId || !userId) {
         await db.query('ROLLBACK');
         return respond(res, 403, { error: 'Seu perfil não tem acesso à homologação.' });
       }
 
+      await db.query("SELECT set_config('lex_recovery.user_id', $1, true)", [userId]);
       await db.query("SELECT set_config('lex_recovery.org_id', $1, true)", [orgId]);
       const query = queries[resource as keyof typeof queries];
       const result = await db.query(query + ' LIMIT $1 OFFSET $2', [limit + 1, offset]);
