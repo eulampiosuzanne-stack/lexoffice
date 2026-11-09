@@ -18,9 +18,8 @@
 
 /* SF guardian: decorative only; never blocks legal workflows. */
 .sf-guardian{display:flex;align-items:center;gap:12px;margin:0 6px 16px;padding:13px 12px;background:linear-gradient(120deg,var(--lx-surface),var(--lx-accent-soft));border:1px solid var(--lx-border-strong);border-radius:16px;color:var(--lx-primary)}
-.sf-guardian-dog{display:inline-grid;place-items:center;flex-shrink:0;width:48px;height:48px;font-size:34px;transform-origin:50% 85%;animation:sf-guardian-greet 3.6s ease-in-out infinite}
+.sf-guardian-dog{display:inline-grid;place-items:center;flex-shrink:0;width:48px;height:48px;font-size:34px;transform-origin:50% 85%}
 .sf-guardian>div{display:grid;gap:3px;min-width:0;flex:1}.sf-guardian strong{font-size:16px}.sf-guardian small{font-size:12px;line-height:1.3;color:var(--lx-text-muted)}.sf-guardian>svg{flex-shrink:0}
-@keyframes sf-guardian-greet{0%,80%,100%{transform:rotate(0) translateY(0)}84%{transform:rotate(-8deg) translateY(-2px)}89%{transform:rotate(7deg) translateY(-2px)}94%{transform:rotate(0) translateY(0)}}
 .sf-guardian-img{display:block;width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid var(--lx-accent,currentColor)}
 @media(prefers-reduced-motion:reduce){.sf-guardian-dog{animation:none}}
 
@@ -62,7 +61,19 @@
 .sf-guardian-menu button:first-of-type:not(.sf-guardian-close){padding-right:44px}
 .sf-guardian-animated .sf-guardian-dog{animation:sf-guardian-idle 8s ease-in-out infinite}
 .sf-guardian-welcome .sf-guardian-dog{animation:sf-guardian-welcome 900ms ease-out 1}
-@keyframes sf-guardian-idle{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-1px) scale(1.015)}}
+.sf-guardian-animated .sf-guardian-trigger[aria-expanded="true"] .sf-guardian-dog {
+  animation:sf-guardian-wave 1s ease-in-out 1;
+}
+@keyframes sf-guardian-idle {
+  0%, 60%, 100% { transform: none; }
+  72% { transform: translateY(-4px) rotate(-5deg); }
+  84% { transform: translateY(-2px) rotate(4deg); }
+}
+@keyframes sf-guardian-wave {
+  0%, 100% { transform: none; }
+  28%, 72% { transform: translateY(-5px) rotate(-9deg); }
+  50% { transform: translateY(-3px) rotate(8deg); }
+}
 @keyframes sf-guardian-welcome{0%{transform:translateX(-8px) rotate(-4deg);opacity:.72}55%{transform:translateX(2px) rotate(2deg);opacity:1}100%{transform:translateX(0) rotate(0)}}
 @media(max-width:760px){.sf-guardian{margin:0 4px 12px}.sf-guardian-menu{max-height:min(70dvh,420px);overflow:auto}}
 @media(prefers-reduced-motion:reduce){.sf-guardian .sf-guardian-dog{animation:none;transition:none;scroll-behavior:auto}}
@@ -134,5 +145,6 @@
   .app > aside nav .workspace-sidebar .sf-guardian { margin-top:24px; }
 }
 @media(prefers-reduced-motion:reduce) {
-  .app > aside nav .workspace-area-toggle,.app > aside nav .sf-guardian-dog { animation:none; transition:none; transform:none; }
+  .app > aside nav .workspace-area-toggle,
+  .app > aside nav .sf-guardian-trigger[aria-expanded] .sf-guardian-dog { animation:none; transition:none; transform:none; }
 }
