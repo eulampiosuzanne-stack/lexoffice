@@ -112,7 +112,7 @@ export default function CRM() {
   }
   useEffect(() => {
     load();
-    const id = setInterval(load, 15000);
+    const id = setInterval(() => { if (document.visibilityState === "visible") load(); }, 60000);
     return () => clearInterval(id);
   }, []);
   const totalValue = useMemo(
