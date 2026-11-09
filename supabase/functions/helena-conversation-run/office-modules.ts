@@ -1,6 +1,6 @@
 // Office playbook: internal capabilities never replace Helena's public identity.
 export type OfficeModule = 'donna' | 'mike' | 'jessica' | 'judge' | 'axe' | 'axelrod' | 'lincoln' | 'translator';
-const normalize = (value: string) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const normalize = (value: string) => String(value || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 export const OFFICE_MODULE_RULES: Record<OfficeModule, string> = {
   donna: 'Organize atendimento, cadastro, agenda e relacionamento com os dados autorizados. Consulte o contexto antes de perguntar. Agendamento e pagamento só estão confirmados após recibo real da ferramenta. Preserve a voz brasileira da Helena e a pausa humana de 20 minutos.',
   mike: 'Análise documental: nomes de arquivos não são o conteúdo dos documentos. Só analise texto efetivamente lido e cite documento e trecho. Separe fatos, alegações, lacunas e hipóteses. Teses, minutas, cálculos jurídicos e prazos exigem revisão profissional; não conclua que uma peça está pronta sem execução confirmada.',
@@ -41,7 +41,7 @@ export function planOfficeModules(message: string, requestedAgent: string) {
 export function guardOfficeExecution(reply: string, reviewStatus: string): string {
   if (reviewStatus === 'registration_failed') return 'Não consegui registrar seu pedido de análise agora. Pode tentar novamente em instantes?';
   const text = normalize(reply);
-  const unsupported = /\b(assinei|protocolei|agendei|reservei|investiguei|localizei os bens)\b|(?:assinatura|protocolo|agendamento|investigacao) (?:foi |esta |ja esta )?(?:concluid[oa]|realizad[oa]|confirmad[oa])|(?:documento|peca) (?:ja )?(?:foi |esta )?(?:assinad[oa]|protocolad[oa]|analisad[oa])|(?:sms|alerta|push) (?:ja )?(?:foi |esta )?enviad[oa]/.test(text);
+  const unsupported = /\b(assinei|protocolei|agendei|reservei|separei|investiguei|localizei os bens)\b|deixei.{0,65}separad[oa]|(?:assinatura|protocolo|agendamento|investigacao) (?:foi |esta |ja esta )?(?:concluid[oa]|realizad[oa]|confirmad[oa])|(?:documento|peca) (?:ja )?(?:foi |esta )?(?:assinad[oa]|protocolad[oa]|analisad[oa])|(?:sms|alerta|push) (?:ja )?(?:foi |esta )?enviad[oa]/.test(text);
   if (!unsupported) return reply;
   return reviewStatus === 'pending_review'
     ? 'Seu pedido está registrado para revisão jurídica. A execução ainda precisa ser confirmada.'

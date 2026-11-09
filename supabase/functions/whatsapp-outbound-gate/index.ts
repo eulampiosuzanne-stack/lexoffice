@@ -5,6 +5,8 @@ import {
   formatWhatsAppAgentReply,
   previewForLog,
 } from "./_shared/whatsapp-reply-format.mjs";
+// v77 (06/11/2026) — provedor META (API oficial, whatsapp_provider=meta) com reserva automática na Uazapi se a Meta recusar
+//        (ex.: fora da janela de 24 h sem modelo aprovado). force_provider (só chamada interna) permite teste.
 // v76 (05/11/2026) — restaura o caminho Uazapi (= v73): envio e webhook de entrada da instância painelsf-escritorio (número 4141).
 //        A v75 havia desligado a Uazapi por engano (a intenção era desligar só a Z-API); Z-API continua desligada.
 // v71 — (02/11/2026) mídia recebida pela Uazapi chega à Helena como "[MIDIA:áudio|imagem|documento|vídeo|figurinha] legenda";
@@ -56,7 +58,47 @@ async function runtimeSecret(a: any, key: string) {
 }
 async function activeProvider(a: any) {
   const p = (await runtimeSecret(a, "whatsapp_provider")).toLowerCase();
-  return p === "uazapi" ? "uazapi" : "evolution";
+  return p === "meta" ? "meta" : p === "uazapi" ? "uazapi" : "evolution";
+}
+// v77 — API OFICIAL DA META (Cloud API, número 4141 em coexistência com o app).
+// Envia texto, imagem e documento. Fora da janela de 24 h a Meta só aceita modelo aprovado (erro 131047);
+// nesse caso (ou em qualquer falha da Meta) o envio cai para a Uazapi, se configurada (meta_fallback_uazapi != 'false').
+const GRAPH = "https://graph.facebook.com/v21.0";
+function dataUriParts(v: string) {
+  const m = String(v || "").match(/^data:([^;,]+)(?:;[^,]*)?;base64,(.*)$/s);
+  return m ? { mime: m[1], b64: m[2] } : null;
+}
+async function metaUpload(token: string, phoneId: string, mime: string, b64: string, name: string) {
+  const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  const fd = new FormData();
+  fd.append("messaging_product", "whatsapp");
+  fd.append("type", mime);
+  fd.append("file", new Blob([bin], { type: mime }), name);
+  const r = await fetch(`${GRAPH}/${phoneId}/media`, { method: "POST", headers: { Authorization: "Bearer " + token }, body: fd, signal: AbortSignal.timeout(30000) });
+  const d: any = await r.json().catch(() => ({}));
+  if (!r.ok || !d?.id) throw new Error("Meta upload " + r.status + ": " + String(d?.error?.message || "falha").slice(0, 200));
+  return String(d.id);
+}
+async function metaSend(a:any,orgId:string,phone:string,message:string,image:string|null=null,caption:string|null=null,document:string|null=null,fileName:string|null=null){
+  if(orgId!==OFFICE_ORG)throw new Error("Provedor Meta não autorizado nesta organização");
+  const token=await runtimeSecret(a,"meta_system_user_token"),phoneId=await runtimeSecret(a,"meta_whatsapp_phone_number_id"),p=digits(phone);
+  if(!token||!phoneId||!/^\d{10,15}$/.test(p))throw new Error("Meta não configurada ou número inválido");
+  let payload:any;
+  const media=document||image;
+  if(media){
+    const kind=document?"document":"image";
+    const du=dataUriParts(media);
+    const ref:any=du?{id:await metaUpload(token,phoneId,du.mime,du.b64,fileName||(document?"documento.pdf":"imagem.jpg"))}:/^https:\/\//.test(media)?{link:media}:null;
+    if(!ref)throw new Error("Mídia inválida para a Meta");
+    const cap=String(caption||message||"").slice(0,1024);
+    if(cap)ref.caption=cap;
+    if(document)ref.filename=fileName||"documento.pdf";
+    payload={to:p,type:kind,[kind]:ref};
+  } else payload={to:p,type:"text",text:{body:String(message).slice(0,4096),preview_url:/https?:\/\//.test(message)}};
+  const r=await fetch(`${GRAPH}/${phoneId}/messages`,{method:"POST",headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({messaging_product:"whatsapp",recipient_type:"individual",...payload}),signal:AbortSignal.timeout(30000)});
+  const d:any=await r.json().catch(()=>({}));
+  if(!r.ok){const e:any=new Error("Meta "+r.status+" ("+String(d?.error?.code||"")+"): "+String(d?.error?.error_data?.details||d?.error?.message||"falha").slice(0,240));e.metaCode=Number(d?.error?.code||0);throw e;}
+  return {...d,messageid:String(d?.messages?.[0]?.id||"")};
 }
 async function uazapiSend(a:any,orgId:string,phone:string,message:string,delaySeconds=0,image:string|null=null,caption:string|null=null,document:string|null=null,fileName:string|null=null){
  if(orgId!==OFFICE_ORG)throw new Error("Provedor Uazapi não autorizado nesta organização");
@@ -337,7 +379,7 @@ Deno.serve(async (req) => {
       await log(a, { org_id: orgId, conversation_id: conversationId, agent_key: agentKey, allowed: false, reason: hb.reason, body_preview: previewForLog(message, 240), idempotency_key: key });
       return json({ ok: true, allowed: false, reason: hb.reason, resume_at: hb.state.cooldown_until });
     }
-    const providerName = await activeProvider(a);
+    const providerName = ["meta","uazapi"].includes(String(b.force_provider||"")) ? String(b.force_provider) : await activeProvider(a);
     await trace(a, orgId, conversationId, agentKey, "ready_to_send", { provider: providerName });
     try {
       // Recheck immediately before provider submission: an operator may have taken over while the reply was prepared.
@@ -354,18 +396,30 @@ Deno.serve(async (req) => {
         }
       }
       const delay = automated ? Number(b.delay_seconds || 0) : 0;
-      const provider = providerName === "uazapi"
+      let usedProvider = providerName, metaError = "";
+      let provider: any;
+      if (providerName === "meta") {
+        try { provider = await metaSend(a, orgId, target, message, image, caption, document, fileName); }
+        catch (me) {
+          metaError = me instanceof Error ? me.message : String(me);
+          const fallbackOn = b.allow_provider_fallback !== false && (await runtimeSecret(a, "meta_fallback_uazapi")).toLowerCase() !== "false";
+          if (!fallbackOn) throw me;
+          await trace(a, orgId, conversationId, agentKey, "meta_failed_fallback_uazapi", { reason: "meta_failed", error: metaError });
+          provider = await uazapiSend(a, orgId, target, message, 0, image, caption, document, fileName);
+          usedProvider = "uazapi_fallback";
+        }
+      } else provider = providerName === "uazapi"
         ? await uazapiSend(a, orgId, target, message, delay, image, caption, document, fileName)
         : await evolutionSend(a, orgId, target, message, delay, b.typing_indicator === true, image, caption, document, fileName);
-      await log(a, { org_id: orgId, conversation_id: conversationId, agent_key: agentKey, allowed: true, reason: "sent_" + providerName, body_preview: previewForLog(message, 240), idempotency_key: key });
+      await log(a, { org_id: orgId, conversation_id: conversationId, agent_key: agentKey, allowed: true, reason: "sent_" + usedProvider + (metaError ? " | meta:" + metaError.slice(0, 120) : ""), body_preview: previewForLog(message, 240), idempotency_key: key });
       const externalId = String(provider?.messageid || provider?.key?.id || provider?.zaapId || provider?.messageId || provider?.id || "") || null;
       if (conversationId && automated) {
         try {
-          await a.from("whatsapp_messages").insert({ org_id: orgId, conversation_id: conversationId, direction: "outbound", message_type: document ? "document" : image ? "image" : "text", body: formatted.parsedReply, status: "sent", sent_at: new Date().toISOString(), external_message_id: externalId, metadata: { source: "ai_agent", agent_key: agentKey, file_name: fileName, provider: providerName } });
+          await a.from("whatsapp_messages").insert({ org_id: orgId, conversation_id: conversationId, direction: "outbound", message_type: document ? "document" : image ? "image" : "text", body: formatted.parsedReply, status: "sent", sent_at: new Date().toISOString(), external_message_id: externalId, metadata: { source: "ai_agent", agent_key: agentKey, file_name: fileName, provider: usedProvider } });
           await a.from("whatsapp_conversations").update({ last_message_at: new Date().toISOString(), last_message_preview: previewForLog(formatted.parsedReply, 120), updated_at: new Date().toISOString() }).eq("id", conversationId);
         } catch (e) { console.error("history_insert", e); }
       }
-      return json({ ok: true, allowed: true, provider: providerName, phone: digits(target), external_message_id: externalId, provider_response: provider, parsed_reply: formatted.parsedReply, formatted_reply: message });
+      return json({ ok: true, allowed: true, provider: usedProvider, meta_error: metaError || undefined, phone: digits(target), external_message_id: externalId, provider_response: provider, parsed_reply: formatted.parsedReply, formatted_reply: message });
     } catch (e) {
       const err = e instanceof Error ? e.message : String(e);
       await log(a, { org_id: orgId, conversation_id: conversationId, agent_key: agentKey, allowed: false, reason: providerName + "_send_failed:" + err.slice(0, 180), body_preview: previewForLog(message, 240), idempotency_key: key });
