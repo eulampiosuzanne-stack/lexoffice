@@ -93,7 +93,7 @@ export default function RevisaoPeca() {
         const response = error.context as Response;
         const body = await response.json().catch(() => null);
         if (response.status === 503 && body?.error === "Google Gemini não está configurado em Integrações.") {
-          return setNotice("O Gemini não está configurado neste espaço de trabalho. Abra Integrações e configure o Google Gemini para concluir a revisão.");
+          return setNotice("O Gemini não está configurado neste espaço de trabalho. Em Agentes de IA, abra Infraestrutura para configurar o Google Gemini.");
         }
         if (response.status === 401) return setNotice("Sua sessão expirou. Entre novamente na LexOffice.");
         if (response.status === 403) return setNotice("A revisão não está disponível para esta conta ou espaço de trabalho.");
