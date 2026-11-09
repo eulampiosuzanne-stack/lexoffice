@@ -1,7 +1,7 @@
 /* LexOffice 2.0 — semantic theme contract for all application routes. */
 html[data-lex-theme="light"], html:not([data-lex-theme]) {
   color-scheme: light;
-  --lx-canvas: #f8f6f0;
+  --lx-canvas: #efeae1;
   --lx-surface: #ffffff;
   --lx-surface-raised: #f2eee7;
   --lx-surface-hover: #e9dfd2;
