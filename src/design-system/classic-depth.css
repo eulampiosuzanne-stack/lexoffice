@@ -547,3 +547,36 @@ html[data-lex-theme="light"] body .app.app.app.app .hc-guardian-finance .hc-guar
 .legacy-lang{right:12px}
 .vision-dock{left:8px;right:8px;bottom:80px;width:auto;max-width:none;flex-wrap:wrap;justify-content:space-around}
 }
+
+/* Wine and champagne relief for the light-theme task filters and petition actions. */
+html[data-lex-theme="light"] :is(.tasks-approved .work-metrics > button,.petition-page :is(.doc-refresh,.doc-primary)) {
+  --lx-action-face: linear-gradient(155deg,var(--lx-brand-wine-lit),var(--lx-brand-shell) 74%,var(--lx-brand-shell-deep));
+  --lx-action-ink: var(--lx-brand-shell-text);
+  background: var(--lx-action-face);
+  color: var(--lx-action-ink);
+  border: 1px solid var(--lx-brand-line);
+  box-shadow: inset 0 0 0 2px var(--lx-brand-gold-soft), inset 0 0 0 3px var(--lx-brand-line),
+    0 4px 0 var(--lx-brand-shell-deep), 0 7px 12px var(--lx-shadow-color);
+}
+html[data-lex-theme="light"] :is(.tasks-approved .work-metrics > button:nth-child(even),.petition-page .doc-refresh) {
+  --lx-action-face: linear-gradient(155deg,var(--lx-brand-gold-light),var(--lx-brand-gold-soft) 58%,var(--lx-brand-gold));
+  --lx-action-ink: var(--lx-brand-gold-ink);
+}
+html[data-lex-theme="light"] .tasks-approved .work-metrics > button :is(span,strong) {
+  color: inherit;
+}
+html[data-lex-theme="light"] :is(.tasks-approved .work-metrics > button,.petition-page :is(.doc-refresh,.doc-primary)):hover:not(:disabled) {
+  background: var(--lx-action-face);
+  color: var(--lx-action-ink);
+  border-color: var(--lx-brand-shell);
+}
+html[data-lex-theme="light"] .tasks-approved .work-metrics > button[aria-pressed="true"] {
+  background: var(--lx-action-face);
+  border-color: var(--lx-brand-shell);
+  outline: 3px solid var(--lx-focus);
+  outline-offset: 3px;
+}
+html[data-lex-theme="light"] :is(.tasks-approved .work-metrics > button,.petition-page :is(.doc-refresh,.doc-primary)):active:not(:disabled) {
+  box-shadow: inset 0 2px 6px var(--lx-shadow-color), inset 0 0 0 2px var(--lx-brand-gold-soft),
+    0 2px 0 var(--lx-brand-shell-deep);
+}
