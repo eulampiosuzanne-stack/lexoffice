@@ -50,13 +50,35 @@
 .sf-guardian-menu button:hover { background: var(--lx-surface-hover); }
 .sf-guardian-menu button.sf-guardian-close { position: absolute; top: 4px; right: 4px; width: 44px; justify-content: center; }
 .sf-guardian-greeting { background: var(--lx-surface-raised); font-size: .875rem; }
-.app > .sf-guardian-animated { animation: sf-guardian-walk 14s ease-in-out infinite; }
+.sf-guardian-motion { position: relative; }
+.sf-guardian-animated .sf-guardian-motion { animation: sf-guardian-walk 14s ease-in-out infinite; }
+.sf-guardian-trail {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  color: var(--lx-brand-gold, var(--lx-accent));
+}
+.sf-guardian-trail > svg {
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  opacity: 0;
+  animation: sf-guardian-paw 14s linear infinite;
+}
+.sf-guardian-trail > svg:nth-child(1) { top: calc(50% - 2dvh); left: 20px; animation-delay: 3s; transform: rotate(-16deg); }
+.sf-guardian-trail > svg:nth-child(2) { top: calc(50% - 5dvh); left: 33px; animation-delay: 3.7s; transform: rotate(14deg); }
+.sf-guardian-trail > svg:nth-child(3) { top: calc(50% - 8dvh); left: 20px; animation-delay: 4.4s; transform: rotate(-12deg); }
+@keyframes sf-guardian-paw {
+  0%, 45%, 100% { opacity: 0; }
+  4%, 14% { opacity: .8; }
+}
 .sf-guardian-animated .sf-guardian-dog { animation: sf-guardian-wave 7s ease-in-out infinite; }
 .sf-guardian-welcome .sf-guardian-dog,
 .sf-guardian-animated .sf-guardian-trigger[aria-expanded="true"] .sf-guardian-dog {
   animation: sf-guardian-wave 1s ease-in-out 1;
 }
-.app > .sf-guardian-animated:is(:hover, :focus-within, :has(.sf-guardian-menu)) { animation-play-state: paused; }
+.sf-guardian-animated:is(:hover, :focus-within, :has(.sf-guardian-menu)) :is(.sf-guardian-motion,.sf-guardian-trail > svg) { animation-play-state: paused; }
+.sf-guardian-animated:is(:hover, :focus-within, :has(.sf-guardian-menu)) .sf-guardian-trail { visibility: hidden; }
 @keyframes sf-guardian-walk {
   0%, 12%, 100% { transform: none; }
   40%, 66% { transform: translateY(-10dvh); }
@@ -72,9 +94,11 @@
   .app.nav-open > .sf-guardian { visibility: hidden; }
 }
 @media (max-height: 480px) {
-  .app > .sf-guardian-animated { animation: none; }
+  .sf-guardian-animated .sf-guardian-motion { animation: none; }
+  .sf-guardian-trail { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .app > .sf-guardian-animated,
+  .sf-guardian-animated .sf-guardian-motion,
+  .sf-guardian-trail > svg,
   .app > .sf-guardian .sf-guardian-trigger[aria-expanded] .sf-guardian-dog { animation: none; }
 }
