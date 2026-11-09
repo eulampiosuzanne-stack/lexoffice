@@ -69,19 +69,19 @@
 
 /* SF navigation: one continuous burgundy surface; only the current destination is raised in gold. */
 .app > aside nav .workspace-sidebar {
-  display:flex; flex:1 1 auto; flex-direction:column; gap:5px; min-width:0;
+  display:flex; flex:1 1 auto; flex-direction:column; gap:2px; min-width:0;
   color:var(--lx-sf-palette-038); background:transparent;
 }
 .app > aside nav .workspace-sidebar-label {
-  flex:0 0 auto; padding:0 12px 10px; color:var(--lx-sf-palette-026); font-size:11px; font-weight:800; letter-spacing:.1em;
+  flex:0 0 auto; padding:0 10px 5px; color:var(--lx-sf-palette-026); font-size:11px; font-weight:800; letter-spacing:.1em;
 }
 .app > aside nav .workspace-nav-group { flex:0 0 auto; }
 .app > aside nav .workspace-area-toggle {
-  display:flex; align-items:center; gap:12px; min-height:48px; width:100%; padding:10px 12px;
-  border:0; border-radius:12px; background:transparent; color:var(--lx-sf-palette-038); font-size:16px; font-weight:650;
+  display:flex; align-items:center; gap:8px; min-height:44px; width:100%; padding:6px 10px;
+  border:0; border-radius:12px; background:transparent; color:var(--lx-sf-palette-038); font-size:1rem; line-height:1.25; font-weight:650;
   text-decoration:none; box-shadow:none; transition:color 180ms ease,transform 180ms ease,box-shadow 180ms ease;
 }
-.app > aside nav .workspace-area-toggle>svg { flex:0 0 auto; width:21px; height:21px; color:var(--lx-sf-palette-026); }
+.app > aside nav .workspace-area-toggle>svg { flex:0 0 auto; width:19px; height:19px; color:var(--lx-sf-palette-026); }
 .app > aside nav .workspace-area-toggle:hover { background:transparent; color:var(--lx-sf-palette-026); transform:translateX(2px); }
 .app > aside nav .workspace-area-toggle.is-current-area {
   border:1px solid var(--lx-sf-palette-026);
@@ -131,7 +131,6 @@
 .app > aside nav .lex2-favorites summary,.app > aside nav .lex2-favorites a { color:var(--lx-sf-palette-038); }
 @media(max-width:760px) {
   .app > aside { background:linear-gradient(180deg,var(--lx-sf-palette-009) 0%,var(--lx-sf-palette-010) 48%,var(--lx-sf-palette-006) 100%); }
-  .app > aside nav .workspace-area-toggle { min-height:50px; font-size:16px; }
   .app > aside nav .workspace-sidebar .sf-guardian { margin-top:24px; }
 }
 @media(prefers-reduced-motion:reduce) {
