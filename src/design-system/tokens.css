@@ -2,8 +2,8 @@
 html[data-lex-theme="light"], html:not([data-lex-theme]) {
   color-scheme: light;
   --lx-canvas: #efeae1;
-  --lx-surface: #ffffff;
-  --lx-surface-raised: #f2eee7;
+  --lx-surface: #f4ede3;
+  --lx-surface-raised: #ece3d6;
   --lx-surface-hover: #e9dfd2;
   --lx-surface-selected: #f1e2e7;
   --lx-text: #242321;

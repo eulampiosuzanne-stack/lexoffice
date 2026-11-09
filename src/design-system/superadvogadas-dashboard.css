@@ -101,6 +101,16 @@ html[data-lex-vision="enhanced"] body .app.home-route {
 .app > main > .lex2-topbar .tools > :is(button, a) { color: var(--lx-sf-palette-038); }
 .app > main > .lex2-topbar .tools > :is(button, a):hover { color: var(--lx-sf-palette-026); background: var(--lx-sf-palette-069); }
 
+html[data-lex-theme="light"] body .app > main > header.lex2-topbar .tools > .lex-theme-toggle {
+  background: var(--lx-surface-raised);
+  color: var(--lx-primary);
+  border-color: var(--lx-border-strong);
+}
+html[data-lex-theme="light"] body .app > main > header.lex2-topbar .tools > .lex-theme-toggle:hover {
+  background: var(--lx-surface-hover);
+  color: var(--lx-primary-hover);
+}
+
 .home-command { display: grid; gap: 12px; max-width: 100%; color: var(--lx-sf-palette-003); }
 .sf-hero-banner {
   position: relative;
