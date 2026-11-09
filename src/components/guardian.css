@@ -1,0 +1,80 @@
+.app > .sf-guardian {
+  position: fixed;
+  z-index: 95;
+  right: 16px;
+  bottom: 80px;
+  width: 64px;
+  color: var(--lx-text);
+}
+.sf-guardian-trigger {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  padding: 3px;
+  border: 2px solid var(--lx-brand-line, var(--lx-border-strong));
+  border-radius: 50%;
+  background: var(--lx-brand-shell, var(--lx-surface-raised));
+  box-shadow: 0 3px 0 var(--lx-border-strong), 0 6px 12px var(--lx-shadow-color);
+  cursor: pointer;
+}
+.sf-guardian-portrait { position: relative; display: grid; place-items: center; }
+.sf-guardian-dog { display: block; width: 52px; height: 52px; object-fit: contain; transform-origin: 50% 75%; }
+.sf-guardian-portrait > svg { position: absolute; right: -2px; bottom: 1px; color: var(--lx-brand-gold, var(--lx-accent)); }
+.sf-guardian-menu, .sf-guardian-greeting {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  width: min(17rem, calc(100vw - 32px));
+  padding: 10px;
+  border: 1px solid var(--lx-border-strong);
+  border-radius: 14px;
+  background: var(--lx-surface);
+  box-shadow: var(--lx-shadow);
+}
+.sf-guardian-menu { display: grid; gap: 4px; max-height: min(50dvh, 360px); overflow: auto; }
+.sf-guardian-menu > strong { align-self: center; padding: 8px 44px 8px 8px; }
+.sf-guardian-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--lx-text);
+  text-align: left;
+  cursor: pointer;
+}
+.sf-guardian-menu button:hover { background: var(--lx-surface-hover); }
+.sf-guardian-menu button.sf-guardian-close { position: absolute; top: 4px; right: 4px; width: 44px; justify-content: center; }
+.sf-guardian-greeting { background: var(--lx-surface-raised); font-size: .875rem; }
+.app > .sf-guardian-animated { animation: sf-guardian-walk 14s ease-in-out infinite; }
+.sf-guardian-animated .sf-guardian-dog { animation: sf-guardian-wave 7s ease-in-out infinite; }
+.sf-guardian-welcome .sf-guardian-dog,
+.sf-guardian-animated .sf-guardian-trigger[aria-expanded="true"] .sf-guardian-dog {
+  animation: sf-guardian-wave 1s ease-in-out 1;
+}
+.app > .sf-guardian-animated:is(:hover, :focus-within, :has(.sf-guardian-menu)) { animation-play-state: paused; }
+@keyframes sf-guardian-walk {
+  0%, 12%, 100% { transform: none; }
+  40%, 66% { transform: translateY(-10dvh); }
+  84% { transform: translateY(-3dvh); }
+}
+@keyframes sf-guardian-wave {
+  0%, 100% { transform: none; }
+  28%, 72% { transform: translateY(-4px) rotate(-8deg); }
+  50% { transform: translateY(-2px) rotate(8deg); }
+}
+@media (max-width: 760px) {
+  .app > .sf-guardian { bottom: calc(158px + env(safe-area-inset-bottom, 0px)); }
+  .app.nav-open > .sf-guardian { visibility: hidden; }
+}
+@media (max-height: 480px) {
+  .app > .sf-guardian-animated { animation: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app > .sf-guardian-animated,
+  .app > .sf-guardian .sf-guardian-trigger[aria-expanded] .sf-guardian-dog { animation: none; }
+}

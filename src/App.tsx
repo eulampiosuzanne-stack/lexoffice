@@ -1,4 +1,5 @@
 import WorkspaceSidebar from './components/WorkspaceSidebar';
+import Guardian from './components/Guardian';
 import InternalNavigation from './components/InternalNavigation';
 import { areas, areaOf, type NavItem } from './navigation/areas';
 import { lazy, Suspense, useEffect, useState } from "react";
@@ -862,6 +863,7 @@ export default function App() {
             </div>)}
         </div>
       </main>
+      <Guardian />
       <nav className="mobile-bottom-nav" aria-label="Navegação rápida">
         <NavLink to="/" end className={({ isActive }) => (isActive ? "active" : "")}>
           <LayoutDashboard />
