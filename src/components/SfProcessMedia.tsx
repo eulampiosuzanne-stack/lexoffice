@@ -13,6 +13,7 @@ type Props = {
 /** Accessible client-facing explanation. Never claims an audit without verifiedAt. */
 export default function SfProcessMedia({ clientName, processStatus, explanation, nextStep, verifiedAt, videoUrl }: Props) {
   const [speaking, setSpeaking] = useState(false);
+  const [voiceNotice, setVoiceNotice] = useState("");
   useEffect(() => () => { if (typeof window !== "undefined") window.speechSynthesis?.cancel(); }, []);
   const safeText = [clientName ? `Olá, ${clientName.split(" ")[0]}.` : "Olá.",
     `Situação atual: ${processStatus}.`, explanation,
@@ -26,6 +27,11 @@ export default function SfProcessMedia({ clientName, processStatus, explanation,
     const utterance = new SpeechSynthesisUtterance(safeText);
     utterance.lang = "pt-BR";
     utterance.rate = 0.94;
+    const voices = window.speechSynthesis.getVoices();
+    const francisca = voices.find(v => /francisca/i.test(v.name) && /pt[-_]BR/i.test(v.lang));
+    const fallback = voices.find(v => /pt[-_]BR/i.test(v.lang));
+    if (francisca || fallback) utterance.voice = francisca || fallback || null;
+    setVoiceNotice(francisca ? "Voz Francisca disponível neste dispositivo." : fallback ? "Voz brasileira disponível. Francisca não está instalada neste dispositivo." : "O dispositivo escolherá a voz disponível. Francisca não foi confirmada.");
     utterance.onend = () => setSpeaking(false);
     utterance.onerror = () => setSpeaking(false);
     setSpeaking(true);
@@ -40,6 +46,7 @@ export default function SfProcessMedia({ clientName, processStatus, explanation,
         {speaking ? <Square aria-hidden="true"/> : <Volume2 aria-hidden="true"/>}
         {speaking ? "Parar áudio" : "Ouvir minha atualização"}
       </button>
+      {voiceNotice && <p role="status" style={{fontSize:14,marginTop:8}}>{voiceNotice}</p>}
       {videoUrl ? (
         <div style={{marginTop:16}}>
           <p style={{display:"flex",alignItems:"center",gap:8,fontWeight:700}}><PlayCircle aria-hidden="true"/> Assista à explicação desta fase</p>
