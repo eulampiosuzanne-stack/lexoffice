@@ -10,6 +10,7 @@ import "./guardian.css";
 const PLAY_STORAGE = "sf-guardian-play-enabled-v1";
 const FED_STORAGE = "sf-guardian-fed-at-v1";
 const TREATS_STORAGE = "sf-guardian-treats-v1";
+const FORCE_STORAGE = "sf-guardian-force-motion-v1";
 const HUNGRY_AFTER_MS = 4 * 60 * 60 * 1000; // fica com fominha 4 horas depois do último petisco
 const WALK_SPEED = 70; // px por segundo
 const PAW_STEP = 30; // distância entre as patinhas
@@ -37,6 +38,9 @@ export default function Guardian() {
   const trigger = useRef<HTMLButtonElement>(null);
   const root = useRef<HTMLElement>(null);
   const [playEnabled, setPlayEnabled] = useState(() => { try { return localStorage.getItem(PLAY_STORAGE) !== "false"; } catch { return true; } });
+  // Quando a Dra. liga as animações pelo menu da Guardiã, vale a escolha dela mesmo que o Windows/celular
+  // esteja configurado para "reduzir movimento".
+  const [forceMotion, setForceMotion] = useState(() => { try { return localStorage.getItem(FORCE_STORAGE) === "true"; } catch { return false; } });
   const [reduceMotion, setReduceMotion] = useState(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   const [menuOpen, setMenuOpen] = useState(false);
   const [bubble, setBubble] = useState<string | null>(null);
@@ -56,7 +60,7 @@ export default function Guardian() {
   const menuOpenRef = useRef(menuOpen);
   useEffect(() => { menuOpenRef.current = menuOpen; }, [menuOpen]);
 
-  const animated = playEnabled && !reduceMotion;
+  const animated = playEnabled && (!reduceMotion || forceMotion);
   const hungry = now - fedAt > HUNGRY_AFTER_MS;
   const fullness = Math.max(0, Math.min(1, 1 - (now - fedAt) / (HUNGRY_AFTER_MS * 1.5)));
 
@@ -70,6 +74,7 @@ export default function Guardian() {
     return () => media.removeEventListener("change", update);
   }, []);
   useEffect(() => { save(PLAY_STORAGE, String(playEnabled)); }, [playEnabled]);
+  useEffect(() => { save(FORCE_STORAGE, String(forceMotion)); }, [forceMotion]);
   useEffect(() => { const t = window.setInterval(() => setNow(Date.now()), 60000); return () => window.clearInterval(t); }, []);
   useEffect(() => () => { timers.current.forEach((t) => window.clearTimeout(t)); if (frame.current) cancelAnimationFrame(frame.current); }, []);
   useEffect(() => {
@@ -170,6 +175,10 @@ export default function Guardian() {
   const panelLeft = Math.max(16, Math.min(dogLeft + 32 - panelWidth / 2, vw - 16 - panelWidth));
   const panelStyle = offset ? { left: panelLeft - dogLeft, right: "auto", width: panelWidth } : undefined;
 
+  const toggleMotion = () => {
+    if (animated) { setPlayEnabled(false); setForceMotion(false); }
+    else { setPlayEnabled(true); if (reduceMotion) setForceMotion(true); }
+  };
   const go = (path: string) => { setMenuOpen(false); navigate(path); };
   const closeMenu = () => { setMenuOpen(false); trigger.current?.focus(); };
   const onDogClick = () => {
@@ -180,7 +189,7 @@ export default function Guardian() {
   return (
     <>
       {paws.length > 0 && (
-        <div className="sf-guardian-paws" aria-hidden="true">
+        <div className={"sf-guardian-paws" + (animated && forceMotion ? " sf-guardian-force-motion" : "")} aria-hidden="true">
           {paws.map((p) => (
             <PawPrint key={p.id} className="sf-guardian-paw" style={{ left: p.x, top: p.y, transform: `translate(-50%, -50%) rotate(${p.angle + (p.flip ? 12 : -12)}deg)` }} />
           ))}
@@ -188,7 +197,7 @@ export default function Guardian() {
       )}
       <section
         ref={root}
-        className={["sf-guardian", animated ? "sf-guardian-animated" : "", `sf-guardian-${mood}`, facingLeft ? "sf-guardian-left" : "sf-guardian-right"].filter(Boolean).join(" ")}
+        className={["sf-guardian", animated ? "sf-guardian-animated" : "", animated && forceMotion ? "sf-guardian-force-motion" : "", `sf-guardian-${mood}`, facingLeft ? "sf-guardian-left" : "sf-guardian-right"].filter(Boolean).join(" ")}
         style={offset ? { transform: `translateX(${offset}px)` } : undefined}
         aria-label="Guardiã SF"
         onKeyDown={(event) => { if (event.key === "Escape" && menuOpen) { event.stopPropagation(); closeMenu(); } }}
@@ -225,7 +234,7 @@ export default function Guardian() {
               <button type="button" onClick={() => go("/processos")}><FileText size={17} />Consultar prazos</button>
               <button type="button" onClick={() => go("/agenda")}><CalendarDays size={17} />Ver audiências</button>
               <button type="button" onClick={() => go("/donna")}><MessageCircle size={17} />Abrir briefing da Donna</button>
-              <button type="button" aria-pressed={!playEnabled} onClick={() => setPlayEnabled((value) => !value)}>{playEnabled ? <VolumeX size={17} /> : <Volume2 size={17} />}{playEnabled ? "Silenciar animações" : "Ativar animações"}</button>
+              <button type="button" aria-pressed={!animated} onClick={toggleMotion}>{animated ? <VolumeX size={17} /> : <Volume2 size={17} />}{animated ? "Silenciar animações" : "Ativar animações"}</button>
             </div>
           )}
         </div>

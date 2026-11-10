@@ -71,10 +71,10 @@
   .sf-guardian-paws { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .app > .sf-guardian .sf-guardian-dog,
-  .sf-guardian-hearts > svg,
-  .sf-guardian-bowl,
-  .sf-guardian-paw { animation: none !important; }
+  .app > .sf-guardian:not(.sf-guardian-force-motion) .sf-guardian-dog,
+  .app > .sf-guardian:not(.sf-guardian-force-motion) .sf-guardian-hearts > svg,
+  .app > .sf-guardian:not(.sf-guardian-force-motion) .sf-guardian-bowl,
+  .sf-guardian-paws:not(.sf-guardian-force-motion) .sf-guardian-paw { animation: none !important; }
 }
 
 /* ===== Guardiã viva (10/11/2026): passeio, patinhas, pedir atenção, comer ===== */
