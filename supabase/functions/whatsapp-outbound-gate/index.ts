@@ -402,7 +402,7 @@ Deno.serve(async (req) => {
         try { provider = await metaSend(a, orgId, target, message, image, caption, document, fileName); }
         catch (me) {
           metaError = me instanceof Error ? me.message : String(me);
-          const fallbackOn = b.allow_provider_fallback !== false && (await runtimeSecret(a, "meta_fallback_uazapi")).toLowerCase() !== "false";
+          const fallbackOn = false; // Política SF: Meta exclusivamente; nunca transferir envios para Uazapi.
           if (!fallbackOn) throw me;
           await trace(a, orgId, conversationId, agentKey, "meta_failed_fallback_uazapi", { reason: "meta_failed", error: metaError });
           provider = await uazapiSend(a, orgId, target, message, 0, image, caption, document, fileName);
