@@ -53,38 +53,10 @@
 .sf-guardian-menu button.sf-guardian-close { position: absolute; top: 4px; right: 4px; width: 44px; justify-content: center; }
 .sf-guardian-greeting { background: var(--lx-surface-raised); font-size: .875rem; }
 .sf-guardian-motion { position: relative; }
-.sf-guardian-animated .sf-guardian-motion { animation: sf-guardian-walk 14s ease-in-out infinite; }
-.sf-guardian-trail {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  color: var(--lx-brand-gold, var(--lx-accent));
-}
-.sf-guardian-trail > svg {
-  position: absolute;
-  width: 15px;
-  height: 15px;
-  opacity: 0;
-  animation: sf-guardian-paw 14s linear infinite;
-}
-.sf-guardian-trail > svg:nth-child(1) { top: calc(50% - 2dvh); left: 20px; animation-delay: 3s; transform: rotate(-16deg); }
-.sf-guardian-trail > svg:nth-child(2) { top: calc(50% - 5dvh); left: 33px; animation-delay: 3.7s; transform: rotate(14deg); }
-.sf-guardian-trail > svg:nth-child(3) { top: calc(50% - 8dvh); left: 20px; animation-delay: 4.4s; transform: rotate(-12deg); }
-@keyframes sf-guardian-paw {
-  0%, 45%, 100% { opacity: 0; }
-  4%, 14% { opacity: .8; }
-}
 .sf-guardian-animated .sf-guardian-dog { animation: sf-guardian-wave 7s ease-in-out infinite; }
 .sf-guardian-welcome .sf-guardian-dog,
 .sf-guardian-animated .sf-guardian-trigger[aria-expanded="true"] .sf-guardian-dog {
   animation: sf-guardian-wave 1s ease-in-out 1;
-}
-.sf-guardian-animated:is(:hover, :focus-within, :has(.sf-guardian-menu)) :is(.sf-guardian-motion,.sf-guardian-trail > svg) { animation-play-state: paused; }
-.sf-guardian-animated:is(:hover, :focus-within, :has(.sf-guardian-menu)) .sf-guardian-trail { visibility: hidden; }
-@keyframes sf-guardian-walk {
-  0%, 12%, 100% { transform: none; }
-  40%, 66% { transform: translateY(-10dvh); }
-  84% { transform: translateY(-3dvh); }
 }
 @keyframes sf-guardian-wave {
   0%, 100% { transform: none; }
@@ -96,11 +68,76 @@
   .app.nav-open > .sf-guardian { visibility: hidden; }
 }
 @media (max-height: 480px) {
-  .sf-guardian-animated .sf-guardian-motion { animation: none; }
-  .sf-guardian-trail { display: none; }
+  .sf-guardian-paws { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .sf-guardian-animated .sf-guardian-motion,
-  .sf-guardian-trail > svg,
-  .app > .sf-guardian .sf-guardian-trigger[aria-expanded] .sf-guardian-dog { animation: none; }
+  .app > .sf-guardian .sf-guardian-dog,
+  .sf-guardian-hearts > svg,
+  .sf-guardian-bowl,
+  .sf-guardian-paw { animation: none !important; }
 }
+
+/* ===== Guardiã viva (10/11/2026): passeio, patinhas, pedir atenção, comer ===== */
+.app > .sf-guardian { will-change: transform; }
+.sf-guardian-paws { position: fixed; inset: 0; pointer-events: none; z-index: 94; }
+.sf-guardian-paw {
+  position: fixed;
+  width: 16px;
+  height: 16px;
+  color: var(--lx-brand-gold, var(--lx-accent));
+  opacity: 0;
+  animation: sf-guardian-paw-fade 7s ease-out forwards;
+}
+@keyframes sf-guardian-paw-fade {
+  0% { opacity: 0; }
+  6% { opacity: .85; }
+  60% { opacity: .55; }
+  100% { opacity: 0; }
+}
+/* Trote enquanto anda (sobe e desce e inclina para o lado em que vai). */
+.sf-guardian-walking.sf-guardian-left .sf-guardian-dog { animation: sf-guardian-trot-left .42s ease-in-out infinite; }
+.sf-guardian-walking.sf-guardian-right .sf-guardian-dog { animation: sf-guardian-trot-right .42s ease-in-out infinite; }
+@keyframes sf-guardian-trot-left { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-5px) rotate(-9deg); } }
+@keyframes sf-guardian-trot-right { 0%, 100% { transform: translateY(0) rotate(4deg); } 50% { transform: translateY(-5px) rotate(9deg); } }
+/* Pedindo atenção: pulinhos e abana. */
+.sf-guardian-asking .sf-guardian-dog, .sf-guardian-hungry.sf-guardian-animated .sf-guardian-dog { animation: sf-guardian-beg 1.1s ease-in-out infinite; }
+@keyframes sf-guardian-beg { 0%, 100% { transform: none; } 30% { transform: translateY(-7px) rotate(-6deg); } 60% { transform: translateY(-2px) rotate(6deg); } }
+.sf-guardian-asking .sf-guardian-trigger, .sf-guardian-hungry .sf-guardian-trigger { box-shadow: 0 0 0 4px color-mix(in srgb, var(--lx-brand-gold, #D4AF37) 35%, transparent), 0 6px 12px var(--lx-shadow-color); }
+/* Comendo e feliz. */
+.sf-guardian-eating .sf-guardian-dog { animation: sf-guardian-munch .3s ease-in-out infinite; }
+@keyframes sf-guardian-munch { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px) scale(.98); } }
+.sf-guardian-happy .sf-guardian-dog { animation: sf-guardian-wave .8s ease-in-out 3; }
+.sf-guardian-bowl {
+  position: absolute; left: -26px; bottom: 2px; display: grid; place-items: center;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--lx-surface-raised); border: 1px solid var(--lx-border-strong);
+  color: var(--lx-brand-gold, var(--lx-accent));
+  animation: sf-guardian-bowl 2.6s ease-in forwards;
+}
+.sf-guardian-bowl > svg { width: 18px; height: 18px; }
+@keyframes sf-guardian-bowl { 0% { transform: scale(.6); opacity: 0; } 12% { transform: scale(1); opacity: 1; } 85% { opacity: 1; } 100% { transform: scale(.4); opacity: 0; } }
+.sf-guardian-hearts { position: absolute; left: 50%; bottom: 60px; width: 0; height: 0; pointer-events: none; }
+.sf-guardian-hearts > svg {
+  position: absolute; width: 18px; height: 18px; fill: #b0274a; color: #b0274a;
+  animation: sf-guardian-heart 1.8s ease-out forwards;
+}
+.sf-guardian-hearts > svg:nth-child(1) { left: -22px; }
+.sf-guardian-hearts > svg:nth-child(2) { left: -8px; animation-delay: .2s; }
+.sf-guardian-hearts > svg:nth-child(3) { left: 8px; animation-delay: .4s; }
+@keyframes sf-guardian-heart { 0% { transform: translateY(0) scale(.6); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-46px) scale(1.1); opacity: 0; } }
+.sf-guardian-hunger-badge { color: #b0274a !important; }
+/* Balão: texto + botão de ação. */
+.sf-guardian-greeting { display: grid; gap: 8px; }
+.sf-guardian-menu, .sf-guardian-greeting { box-sizing: border-box; }
+.sf-guardian-bubble-action {
+  pointer-events: auto; justify-self: start; display: inline-flex; align-items: center; gap: 6px;
+  min-height: 40px; padding: 6px 12px; border-radius: 999px;
+  border: 1px solid var(--lx-brand-line, var(--lx-border-strong));
+  background: var(--lx-brand-shell, var(--lx-surface)); color: var(--lx-text); font-weight: 600; cursor: pointer;
+}
+/* Medidor da barriguinha no menu. */
+.sf-guardian-meter { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; padding: 4px 8px 8px; font-size: .85rem; }
+.sf-guardian-meter-bar { height: 8px; border-radius: 999px; background: var(--lx-surface-hover); overflow: hidden; }
+.sf-guardian-meter-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--lx-brand-gold, var(--lx-accent)); }
+.sf-guardian-meter small { color: var(--lx-text-muted, var(--lx-text)); }
+.sf-guardian-menu button.sf-guardian-feed { font-weight: 600; }
