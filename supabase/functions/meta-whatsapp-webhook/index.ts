@@ -267,6 +267,24 @@ async function freeText(s: any, o: string, cv: any, c: any, from: string, text: 
   return "";
 }
 
+// Juridiq IA: coleta passiva e isolada. Nunca aciona o chatbot ou dispara mensagens.
+async function collectJuridiq(s: any, o: string, msg: any, value: any) {
+  const from = D(String(msg?.from || ""));
+  const configured = D(await secret(s, "juridiq_sender_phone"));
+  // Identidade verificada pelo número configurado, nunca apenas pelo nome exibido.
+  if (!configured || !from || !samePhone(from, configured)) return null;
+  const name = String(value?.contacts?.[0]?.profile?.name || "Juridiq IA");
+  const { cv } = await context(s, o, String(msg.from), name);
+  const document = msg?.type === "document" ? msg.document : null;
+  const text = String(msg?.text?.body || document?.caption || "").trim();
+  const cnj = [...new Set((text.match(/\\b\\d{7}-?\\d{2}\\.?\\d{4}\\.?\\d\\.?\\d{2}\\.?\\d{4}\\b/g) || []).map((x: string) => x.replace(/\\D/g, "")))];
+  const media = document ? { type: "document", id: document.id || null, mime: document.mime_type || null, filename: document.filename || null, sha256: document.sha256 || null } : null;
+  const eid = typeof msg?.id === "string" ? msg.id : null;
+  const saved = await store(s, o, cv, eid, text || (media ? "[Publicação Juridiq IA: documento recebido]" : "[Aviso Juridiq IA]"), false, "juridiq_ia", { juridiq: true, cnj_numbers: cnj, media, needs_pdf_extraction: !!media, requires_validation: true }, document ? "document" : "text");
+  if (saved) await notifyLex(s, o, "Publicação recebida da Juridiq IA", (cnj.length ? "Processo: " + cnj.join(", ") + ". " : "Processo a identificar. ") + (media ? "PDF recebido; leitura e conferência pendentes." : "Conferir conteúdo antes de importar."));
+  return { action: saved ? "juridiq_collected" : "juridiq_duplicate", cnj_count: cnj.length, pdf_pending: !!media };
+}
+
 async function handle(s: any, o: string, msg: any, value: any, enabled: boolean) {
   const fromRaw = String(msg?.from || "").trim(); if (!fromRaw) return { ignored: "no_from" };
   const eid = typeof msg?.id === "string" ? msg.id : null, profileName = (value.contacts || [])[0]?.profile?.name || null;
@@ -400,7 +418,7 @@ Deno.serve(async (req) => {
       if (await uazapiTestNumber(s, value)) return j({ ok: true, ignored: "uazapi_test_number", dry_run: dry });
       if (change?.field === "smb_message_echoes" || value?.message_echoes?.length) { const n = await handleEchoes(s, o, value); return j({ ok: true, action: "human_echo_pause", count: n, dry_run: dry }); }
       if (!value.messages?.length) return j({ ok: true, ignored: "status_or_no_message" });
-      const enabled = dry || (await secret(s, "meta_chatbot_enabled")) === "true";
+      const juridiq = await collectJuridiq(s, o, value.messages[0], value);\n      if (juridiq) return j({ ok: true, ...juridiq, dry_run: dry });\n      const enabled = dry || (await secret(s, "meta_chatbot_enabled")) === "true";
       const result = await handle(s, o, value.messages[0], value, enabled);
       return j({ ok: true, ...result, dry_run: dry, outbound: dry ? run().out : undefined });
     } catch (x) { console.error(x); return j({ ok: false, error: x instanceof Error ? x.message : String(x) }, 500); }
