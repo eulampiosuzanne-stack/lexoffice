@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import "./client-portal.css";
 import InstallAppBanner from "../components/InstallAppBanner";
+import SfProcessMedia from "../components/SfProcessMedia";
 import { onboardingCards } from "../lib/onboardingCards";
 import {
   FileText,
@@ -704,6 +705,14 @@ export default function ClientPortal() {
                       </option>
                     ))}
                   </select>
+                  <SfProcessMedia
+                    clientName={ctx?.client_name}
+                    processStatus={String(timeline.find((t: any) => t.status === "current")?.phase_label || current.status || "Em acompanhamento")}
+                    explanation={String(timeline.find((t: any) => t.status === "current")?.summary || movements.find((m: any) => m.client_message)?.client_message || "Seu processo está em acompanhamento. Ainda não há uma explicação personalizada disponível para esta fase.")}
+                    nextStep={String(timeline.find((t: any) => t.status === "pending")?.phase_label || "")}
+                    verifiedAt={null}
+                    videoUrl={null}
+                  />
                   <p className="cp-ok">● Em andamento</p>
                   <h4>Linha do tempo</h4>
                   {timeline.length ? (
