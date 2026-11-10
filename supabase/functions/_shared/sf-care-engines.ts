@@ -67,3 +67,16 @@ export function planejarMotoresSF(ctx:ContextoSF):PropostaSF[]{
 // Regras obrigatórias no executor: aprovação humana individual; envio Meta somente com
 // janela de atendimento válida ou template aprovado; idempotência persistida em banco;
 // opt-out verificado novamente no instante do envio; nunca fallback para outros provedores.
+
+// Decisão operacional sem revisão manual para comunicações rotineiras verificadas.
+// Não executa envios: a camada de transporte ainda deve revalidar consentimento,
+// autorização Meta, opt-out, idempotência, limite diário e horário permitido.
+export function elegivelParaEnvioAutomatico(proposta:PropostaSF, ctx:ContextoSF):boolean{
+  const rotina=new Set(["hearing_preparation","document_checklist","care_checkin"]);
+  if(!rotina.has(proposta.kind)||proposta.media!=="text"||proposta.channel!=="whatsapp")return false;
+  if(!ctx.cliente.opt_in||ctx.cliente.opt_out||ctx.humanoAtivo||ctx.urgente||ctx.bloqueioFinanceiro)return false;
+  if(ctx.ultimaMensagemHumana&&validDate(ctx.ultimaMensagemHumana)&&elapsedMinutes(ctx.ultimaMensagemHumana,ctx.agora)<20)return false;
+  if(!ctx.janelaMetaAberta&&!ctx.modeloMetaAprovado)return false;
+  if(ctx.chavesEnviadas.has(proposta.dedupe_key)||ctx.chavesPendentes.has(proposta.dedupe_key))return false;
+  return proposta.client_id===ctx.cliente.id&&(!proposta.process_id||ctx.processos.some(p=>p.id===proposta.process_id));
+}
