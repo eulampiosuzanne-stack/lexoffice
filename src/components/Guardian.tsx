@@ -2,22 +2,25 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ShieldCheck, CalendarDays, ClipboardList, VolumeX, Volume2, FileText, MessageCircle, X, PawPrint, Bone, Heart } from "lucide-react";
 import "./guardian.css";
+import GuardianWalker, { STRIDE_PX } from "./GuardianWalker";
 
 // Guardiã SF (10/11/2026): de vez em quando ela caminha de verdade pela tela, deixa marquinhas de patinha,
 // pede atenção da Dra. e pode ser alimentada (pedido de uma criança, filha de uma amiga da Dra.).
-// Tudo respeita "Silenciar animações" e a preferência do sistema por menos movimento.
+// 11/11/2026: passeia como cachorrinha de corpo inteiro (patas, rabo e orelhas se mexendo de verdade).
+// Só o botão "Silenciar animações" do menu dela desliga; a opção "reduzir movimento" do Windows/celular
+// não desliga mais a Guardiã (era isso que a deixava parada para a Dra.).
 
-const PLAY_STORAGE = "sf-guardian-play-enabled-v1";
+const PLAY_STORAGE = "sf-guardian-play-enabled-v2";
 const FED_STORAGE = "sf-guardian-fed-at-v1";
 const TREATS_STORAGE = "sf-guardian-treats-v1";
-const FORCE_STORAGE = "sf-guardian-force-motion-v1";
 const HUNGRY_AFTER_MS = 4 * 60 * 60 * 1000; // fica com fominha 4 horas depois do último petisco
 const WALK_SPEED = 70; // px por segundo
-const PAW_STEP = 30; // distância entre as patinhas
 const PAW_LIFE_MS = 7000;
 
 type Mood = "idle" | "walking" | "asking" | "hungry" | "eating" | "happy";
-type Paw = { id: number; x: number; y: number; flip: boolean; angle: number };
+type Paw = { id: number; born: number; x: number; y: number; angle: number };
+// Onde ficam os pezinhos no desenho (124x92) quando a pata encosta no chão: [x, y] da dianteira e da traseira.
+const FEET = { near: { front: [31, 88], back: [73, 88] }, far: { front: [33, 84], back: [75, 84] } } as const;
 
 const readNumber = (key: string, fallback: number) => { try { const v = Number(localStorage.getItem(key)); return Number.isFinite(v) && v > 0 ? v : fallback; } catch { return fallback; } };
 const save = (key: string, value: string) => { try { localStorage.setItem(key, value); } catch { /* sem armazenamento */ } };
@@ -38,16 +41,15 @@ export default function Guardian() {
   const trigger = useRef<HTMLButtonElement>(null);
   const root = useRef<HTMLElement>(null);
   const [playEnabled, setPlayEnabled] = useState(() => { try { return localStorage.getItem(PLAY_STORAGE) !== "false"; } catch { return true; } });
-  // Quando a Dra. liga as animações pelo menu da Guardiã, vale a escolha dela mesmo que o Windows/celular
-  // esteja configurado para "reduzir movimento".
-  const [forceMotion, setForceMotion] = useState(() => { try { return localStorage.getItem(FORCE_STORAGE) === "true"; } catch { return false; } });
-  const [reduceMotion, setReduceMotion] = useState(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   const [menuOpen, setMenuOpen] = useState(false);
   const [bubble, setBubble] = useState<string | null>(null);
   const [mood, setMood] = useState<Mood>("idle");
   const [offset, setOffset] = useState(0); // deslocamento horizontal (px, negativo = para a esquerda)
   const [facingLeft, setFacingLeft] = useState(true);
   const [paws, setPaws] = useState<Paw[]>([]);
+  const [phase, setPhase] = useState(0); // fase da passada (patas)
+  const [clock, setClock] = useState(0); // relógio (s) para rabo, orelhas e respiração
+  const phaseRef = useRef(0);
   const [hearts, setHearts] = useState<number[]>([]);
   const [fedAt, setFedAt] = useState(() => readNumber(FED_STORAGE, Date.now()));
   const [treats, setTreats] = useState(() => readNumber(TREATS_STORAGE, 0));
@@ -60,21 +62,15 @@ export default function Guardian() {
   const menuOpenRef = useRef(menuOpen);
   useEffect(() => { menuOpenRef.current = menuOpen; }, [menuOpen]);
 
-  const animated = playEnabled && (!reduceMotion || forceMotion);
+  const animated = playEnabled;
+  const out = offset !== 0 || mood === "walking"; // fora do cantinho: aparece de corpo inteiro
   const hungry = now - fedAt > HUNGRY_AFTER_MS;
   const fullness = Math.max(0, Math.min(1, 1 - (now - fedAt) / (HUNGRY_AFTER_MS * 1.5)));
 
   const later = useCallback((ms: number, fn: () => void) => { const t = window.setTimeout(fn, ms); timers.current.push(t); return t; }, []);
   const say = useCallback((text: string | null, ms = 6000) => { setBubble(text); if (text) later(ms, () => setBubble((b) => (b === text ? null : b))); }, [later]);
 
-  useEffect(() => {
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const update = () => setReduceMotion(media.matches);
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
-  }, []);
   useEffect(() => { save(PLAY_STORAGE, String(playEnabled)); }, [playEnabled]);
-  useEffect(() => { save(FORCE_STORAGE, String(forceMotion)); }, [forceMotion]);
   useEffect(() => { const t = window.setInterval(() => setNow(Date.now()), 60000); return () => window.clearInterval(t); }, []);
   useEffect(() => () => { timers.current.forEach((t) => window.clearTimeout(t)); if (frame.current) cancelAnimationFrame(frame.current); }, []);
   useEffect(() => {
@@ -85,34 +81,54 @@ export default function Guardian() {
       }
     } catch { /* sem armazenamento */ }
   }, [say]);
-  // Patinhas somem sozinhas.
+  // Relógio da cachorrinha enquanto ela está fora do cantinho ou há patinhas sumindo (feito em JS para
+  // funcionar mesmo quando o sistema pede "reduzir movimento" e o CSS geral corta as animações).
+  const ticking = animated && (out || paws.length > 0);
   useEffect(() => {
-    if (!paws.length) return;
-    const t = window.setTimeout(() => setPaws((list) => list.filter((p) => Date.now() - p.id < PAW_LIFE_MS)), 1000);
-    return () => window.clearTimeout(t);
-  }, [paws]);
+    if (!ticking) return;
+    let raf = 0;
+    const loop = (t: number) => {
+      setClock(t / 1000);
+      setPaws((list) => (list.some((p) => Date.now() - p.born > PAW_LIFE_MS) ? list.filter((p) => Date.now() - p.born <= PAW_LIFE_MS) : list));
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [ticking]);
 
   // Caminhada de verdade: anda até um ponto da tela deixando patinhas, para, pede atenção e volta para o cantinho.
   const walkTo = useCallback((target: number) => new Promise<void>((resolve) => {
     const start = offsetRef.current;
     const distance = target - start;
     if (Math.abs(distance) < 4) { resolve(); return; }
-    setFacingLeft(distance < 0);
+    const left = distance < 0;
+    setFacingLeft(left);
     const duration = (Math.abs(distance) / WALK_SPEED) * 1000;
     const t0 = performance.now();
-    let lastPaw = start;
-    let flip = false;
+    let last = start;
+    let step = Math.floor((phaseRef.current - Math.PI / 2) / Math.PI);
     const tick = (t: number) => {
       const k = Math.min(1, (t - t0) / duration);
       const x = start + distance * k;
+      // A passada avança conforme a distância andada: a pata no chão acompanha o chão, sem escorregar.
+      const ph = phaseRef.current + (Math.abs(x - last) * 2 * Math.PI) / STRIDE_PX;
+      last = x;
+      phaseRef.current = ph;
       offsetRef.current = x;
+      setPhase(ph);
       setOffset(x);
-      if (Math.abs(x - lastPaw) >= PAW_STEP && root.current) {
-        lastPaw = x;
-        flip = !flip;
+      // Cada vez que um par de patas (em diagonal) encosta no chão, ficam duas marquinhas.
+      const nowStep = Math.floor((ph - Math.PI / 2) / Math.PI);
+      if (nowStep !== step && root.current) {
+        step = nowStep;
         const box = root.current.getBoundingClientRect();
-        const id = Date.now() + pawId.current++ / 1000;
-        setPaws((list) => [...list.slice(-24), { id, x: box.left + box.width / 2 + (distance < 0 ? 14 : -14), y: box.bottom - 6 + (flip ? -9 : 0), flip, angle: distance < 0 ? -90 : 90 }]);
+        const svgLeft = box.right - 114;
+        const svgTop = box.bottom + 14 - 92;
+        const pairA = nowStep % 2 === 0;
+        const feet = pairA ? [FEET.near.front, FEET.far.back] : [FEET.far.front, FEET.near.back];
+        const born = Date.now();
+        const fresh = feet.map(([fx, fy]) => ({ id: born + pawId.current++ / 1000, born, x: svgLeft + (left ? fx : 124 - fx), y: svgTop + fy, angle: left ? -90 : 90 }));
+        setPaws((list) => [...list.slice(-30), ...fresh]);
       }
       if (k < 1) frame.current = requestAnimationFrame(tick);
       else { frame.current = null; resolve(); }
@@ -140,12 +156,12 @@ export default function Guardian() {
     busy.current = false;
   }, [later, say, walkTo]);
 
-  // De vez em quando (a cada 2 a 5 minutos) ela sai para passear, se a Dra. não estiver mexendo nela.
+  // De vez em quando (a primeira logo depois de abrir, depois a cada 1,5 a 4 minutos) ela sai para passear, se a Dra. não estiver mexendo nela.
   useEffect(() => {
     if (!animated) { if (frame.current) cancelAnimationFrame(frame.current); frame.current = null; busy.current = false; offsetRef.current = 0; setOffset(0); setMood("idle"); return; }
     let cancelled = false;
     const schedule = (first = false) => {
-      const wait = first ? 25000 + Math.random() * 20000 : 120000 + Math.random() * 180000;
+      const wait = first ? 10000 + Math.random() * 8000 : 90000 + Math.random() * 150000;
       later(wait, () => {
         if (cancelled) return;
         if (document.visibilityState === "visible" && !menuOpenRef.current && window.innerWidth >= 360) void stroll();
@@ -176,8 +192,7 @@ export default function Guardian() {
   const panelStyle = offset ? { left: panelLeft - dogLeft, right: "auto", width: panelWidth } : undefined;
 
   const toggleMotion = () => {
-    if (animated) { setPlayEnabled(false); setForceMotion(false); }
-    else { setPlayEnabled(true); if (reduceMotion) setForceMotion(true); }
+    setPlayEnabled(!animated);
   };
   const go = (path: string) => { setMenuOpen(false); navigate(path); };
   const closeMenu = () => { setMenuOpen(false); trigger.current?.focus(); };
@@ -189,15 +204,17 @@ export default function Guardian() {
   return (
     <>
       {paws.length > 0 && (
-        <div className={"sf-guardian-paws" + (animated && forceMotion ? " sf-guardian-force-motion" : "")} aria-hidden="true">
-          {paws.map((p) => (
-            <PawPrint key={p.id} className="sf-guardian-paw" style={{ left: p.x, top: p.y, transform: `translate(-50%, -50%) rotate(${p.angle + (p.flip ? 12 : -12)}deg)` }} />
-          ))}
+        <div className="sf-guardian-paws" aria-hidden="true">
+          {paws.map((p) => {
+            const age = (Date.now() - p.born) / PAW_LIFE_MS;
+            const opacity = age < 0.05 ? age * 17 : age < 0.6 ? 0.85 - (age - 0.05) * 0.55 : Math.max(0, 0.55 * (1 - (age - 0.6) / 0.4));
+            return <PawPrint key={p.id} className="sf-guardian-paw" style={{ left: p.x, top: p.y, opacity, transform: `translate(-50%, -50%) rotate(${p.angle}deg)` }} />;
+          })}
         </div>
       )}
       <section
         ref={root}
-        className={["sf-guardian", animated ? "sf-guardian-animated" : "", animated && forceMotion ? "sf-guardian-force-motion" : "", `sf-guardian-${mood}`, facingLeft ? "sf-guardian-left" : "sf-guardian-right"].filter(Boolean).join(" ")}
+        className={["sf-guardian", animated ? "sf-guardian-animated" : "", animated ? "sf-guardian-force-motion" : "", out ? "sf-guardian-out" : "", `sf-guardian-${mood}`, facingLeft ? "sf-guardian-left" : "sf-guardian-right"].filter(Boolean).join(" ")}
         style={offset ? { transform: `translateX(${offset}px)` } : undefined}
         aria-label="Guardiã SF"
         onKeyDown={(event) => { if (event.key === "Escape" && menuOpen) { event.stopPropagation(); closeMenu(); } }}
@@ -212,11 +229,15 @@ export default function Guardian() {
           )}
           {hearts.length > 0 && <div className="sf-guardian-hearts" aria-hidden="true">{hearts.map((h) => <Heart key={h} />)}</div>}
           {mood === "eating" && <span className="sf-guardian-bowl" aria-hidden="true"><Bone /></span>}
-          <button type="button" ref={trigger} className="sf-guardian-trigger" aria-expanded={menuOpen} aria-controls="sf-guardian-actions" onClick={onDogClick} aria-label={hungry ? "Guardiã SF está com fome. Abrir opções" : "Abrir opções da Guardiã SF"}>
-            <span className="sf-guardian-portrait">
-              <img className="sf-guardian-dog" src="/brand/guardia-sf.webp" alt="" aria-hidden="true" />
-              {hungry && mood !== "eating" ? <Bone size={18} className="sf-guardian-hunger-badge" aria-hidden="true" /> : <ShieldCheck size={18} aria-hidden="true" />}
-            </span>
+          <button type="button" ref={trigger} className={"sf-guardian-trigger" + (out ? " sf-guardian-walker-btn" : "")} aria-expanded={menuOpen} aria-controls="sf-guardian-actions" onClick={onDogClick} aria-label={hungry ? "Guardiã SF está com fome. Abrir opções" : "Abrir opções da Guardiã SF"}>
+            {out ? (
+              <GuardianWalker phase={phase} time={clock} moving={mood === "walking"} mood={mood} facingLeft={facingLeft} />
+            ) : (
+              <span className="sf-guardian-portrait">
+                <img className="sf-guardian-dog" src="/brand/guardia-sf.webp" alt="" aria-hidden="true" />
+                {hungry && mood !== "eating" ? <Bone size={18} className="sf-guardian-hunger-badge" aria-hidden="true" /> : <ShieldCheck size={18} aria-hidden="true" />}
+              </span>
+            )}
           </button>
           {menuOpen && (
             <div className="sf-guardian-menu" id="sf-guardian-actions" aria-label="Ações da Guardiã SF" style={panelStyle}>
