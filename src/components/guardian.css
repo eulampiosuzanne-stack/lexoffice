@@ -144,10 +144,10 @@
 /* ===== Guardiã de corpo inteiro (11/11/2026): anda com as patinhas, rabo e orelhas ===== */
 .app > .sf-guardian .sf-guardian-trigger.sf-guardian-walker-btn {
   display: block;
-  width: 124px;
-  height: 92px;
+  width: 140px;
+  height: 100px;
   min-height: 0;
-  margin: -14px -10px -14px -50px;
+  margin: -22px -8px -14px -68px;
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -155,7 +155,7 @@
   box-shadow: none;
   overflow: visible;
 }
-.sf-guardian-walker { display: block; width: 124px; height: 92px; overflow: visible; filter: drop-shadow(0 2px 1px rgba(0, 0, 0, .12)); }
+.sf-guardian-walker { display: block; width: 140px; height: 100px; overflow: visible; filter: drop-shadow(0 2px 1px rgba(0, 0, 0, .12)); }
 .sf-guardian-out .sf-guardian-trigger.sf-guardian-walker-btn:focus-visible { outline: 2px solid var(--lx-brand-gold, #D4AF37); outline-offset: 2px; border-radius: 12px; }
 /* O CSS geral do sistema corta animações quando o Windows/celular pede "reduzir movimento".
    A Guardiã segue a escolha do menu dela ("Silenciar animações"), então as animações dela voltam aqui. */
@@ -169,3 +169,5 @@
   .app > .sf-guardian.sf-guardian-force-motion .sf-guardian-hearts > svg:nth-child(2) { animation-delay: .2s !important; }
   .app > .sf-guardian.sf-guardian-force-motion .sf-guardian-hearts > svg:nth-child(3) { animation-delay: .4s !important; }
 }
+.sf-guardian-menu > strong.sf-guardian-menu-title { display: flex; align-items: center; gap: 8px; }
+.sf-guardian-menu-title > img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--lx-brand-line, var(--lx-border-strong)); }

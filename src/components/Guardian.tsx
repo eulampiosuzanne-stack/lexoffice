@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ShieldCheck, CalendarDays, ClipboardList, VolumeX, Volume2, FileText, MessageCircle, X, PawPrint, Bone, Heart } from "lucide-react";
 import "./guardian.css";
-import GuardianWalker, { STRIDE_PX } from "./GuardianWalker";
+import GuardianWalker, { FEET, STRIDE_PX, WALKER_H, WALKER_W } from "./GuardianWalker";
 
 // Guardiã SF (10/11/2026): de vez em quando ela caminha de verdade pela tela, deixa marquinhas de patinha,
 // pede atenção da Dra. e pode ser alimentada (pedido de uma criança, filha de uma amiga da Dra.).
@@ -14,13 +14,11 @@ const PLAY_STORAGE = "sf-guardian-play-enabled-v2";
 const FED_STORAGE = "sf-guardian-fed-at-v1";
 const TREATS_STORAGE = "sf-guardian-treats-v1";
 const HUNGRY_AFTER_MS = 4 * 60 * 60 * 1000; // fica com fominha 4 horas depois do último petisco
-const WALK_SPEED = 70; // px por segundo
+const WALK_SPEED = 85; // px por segundo
 const PAW_LIFE_MS = 7000;
 
 type Mood = "idle" | "walking" | "asking" | "hungry" | "eating" | "happy";
 type Paw = { id: number; born: number; x: number; y: number; angle: number };
-// Onde ficam os pezinhos no desenho (124x92) quando a pata encosta no chão: [x, y] da dianteira e da traseira.
-const FEET = { near: { front: [31, 88], back: [73, 88] }, far: { front: [33, 84], back: [75, 84] } } as const;
 
 const readNumber = (key: string, fallback: number) => { try { const v = Number(localStorage.getItem(key)); return Number.isFinite(v) && v > 0 ? v : fallback; } catch { return fallback; } };
 const save = (key: string, value: string) => { try { localStorage.setItem(key, value); } catch { /* sem armazenamento */ } };
@@ -63,7 +61,7 @@ export default function Guardian() {
   useEffect(() => { menuOpenRef.current = menuOpen; }, [menuOpen]);
 
   const animated = playEnabled;
-  const out = offset !== 0 || mood === "walking"; // fora do cantinho: aparece de corpo inteiro
+  const out = animated; // com animações ligadas ela fica sempre de corpo inteiro, nas 4 patas (sem a bolinha)
   const hungry = now - fedAt > HUNGRY_AFTER_MS;
   const fullness = Math.max(0, Math.min(1, 1 - (now - fedAt) / (HUNGRY_AFTER_MS * 1.5)));
 
@@ -83,7 +81,7 @@ export default function Guardian() {
   }, [say]);
   // Relógio da cachorrinha enquanto ela está fora do cantinho ou há patinhas sumindo (feito em JS para
   // funcionar mesmo quando o sistema pede "reduzir movimento" e o CSS geral corta as animações).
-  const ticking = animated && (out || paws.length > 0);
+  const ticking = animated;
   useEffect(() => {
     if (!ticking) return;
     let raf = 0;
@@ -122,12 +120,12 @@ export default function Guardian() {
       if (nowStep !== step && root.current) {
         step = nowStep;
         const box = root.current.getBoundingClientRect();
-        const svgLeft = box.right - 114;
-        const svgTop = box.bottom + 14 - 92;
+        const svgLeft = box.right + 8 - WALKER_W;
+        const svgTop = box.bottom + 14 - WALKER_H;
         const pairA = nowStep % 2 === 0;
         const feet = pairA ? [FEET.near.front, FEET.far.back] : [FEET.far.front, FEET.near.back];
         const born = Date.now();
-        const fresh = feet.map(([fx, fy]) => ({ id: born + pawId.current++ / 1000, born, x: svgLeft + (left ? fx : 124 - fx), y: svgTop + fy, angle: left ? -90 : 90 }));
+        const fresh = feet.map(([fx, fy]) => ({ id: born + pawId.current++ / 1000, born, x: svgLeft + (left ? fx : WALKER_W - fx), y: svgTop + fy, angle: left ? -90 : 90 }));
         setPaws((list) => [...list.slice(-30), ...fresh]);
       }
       if (k < 1) frame.current = requestAnimationFrame(tick);
@@ -152,16 +150,17 @@ export default function Guardian() {
     setBubble(null);
     setMood("walking");
     await walkTo(0);
+    setFacingLeft(true); // de volta ao cantinho, olhando para a tela
     setMood(isHungry ? "hungry" : "idle");
     busy.current = false;
   }, [later, say, walkTo]);
 
-  // De vez em quando (a primeira logo depois de abrir, depois a cada 1,5 a 4 minutos) ela sai para passear, se a Dra. não estiver mexendo nela.
+  // Passeia com frequência (a primeira logo depois de abrir, depois a cada 25 a 60 segundos) ela sai para passear, se a Dra. não estiver mexendo nela.
   useEffect(() => {
     if (!animated) { if (frame.current) cancelAnimationFrame(frame.current); frame.current = null; busy.current = false; offsetRef.current = 0; setOffset(0); setMood("idle"); return; }
     let cancelled = false;
     const schedule = (first = false) => {
-      const wait = first ? 10000 + Math.random() * 8000 : 90000 + Math.random() * 150000;
+      const wait = first ? 5000 + Math.random() * 4000 : 25000 + Math.random() * 35000;
       later(wait, () => {
         if (cancelled) return;
         if (document.visibilityState === "visible" && !menuOpenRef.current && window.innerWidth >= 360) void stroll();
@@ -241,7 +240,7 @@ export default function Guardian() {
           </button>
           {menuOpen && (
             <div className="sf-guardian-menu" id="sf-guardian-actions" aria-label="Ações da Guardiã SF" style={panelStyle}>
-              <strong>Guardiã SF</strong>
+              <strong className="sf-guardian-menu-title"><img src="/brand/guardia-sf.webp" alt="" aria-hidden="true" />Guardiã SF</strong>
               <button type="button" className="sf-guardian-close" onClick={closeMenu} aria-label="Fechar opções da Guardiã"><X size={16} /></button>
               <div className="sf-guardian-meter" aria-label={`Barriguinha ${Math.round(fullness * 100)}% cheia`}>
                 <span>Barriguinha</span>
