@@ -468,25 +468,40 @@ export default function ConducaoProcessual() {
   const phaseIdx = PHASES.findIndex((p) => p.key === phase);
   // A orientação genérica não pode contradizer uma decisão já registrada.
   // Detecção textual é um alerta preliminar, não substitui leitura do inteiro teor.
+  const poloReu = /^(r[eé]u|requerido|demandado|executado|polo passivo|passivo)$/i.test(String(proc?.pole || "").trim());
   const tutelaIndeferida = useMemo(() => movs.some((m) => {
     const t = norm(`${m.title || ""} ${m.description || ""}`);
     return /(indeferid|nao concedid|negad|rejeitad)/.test(t)
-      && /(tutela|liminar|antecipac[aã]o)/.test(t);
+      && /(tutela|liminar|antecipac[aã]o|medida liminar)/.test(t);
   }), [movs]);
   const guide = useMemo(() => {
     const base = GUIDE[phase];
-    if (!tutelaIndeferida) return base;
+    if (!tutelaIndeferida && !poloReu) return base;
+    if (poloReu && !tutelaIndeferida) return {
+      ...base,
+      foco: "Atuação pela parte ré: verificar as decisões e intimações efetivas, a defesa apresentada e os prazos aplicáveis antes de definir providências.",
+      passos: [
+        "Ler o inteiro teor das decisões e intimações mais recentes.",
+        "Conferir se houve citação válida, contestação e qual manifestação está efetivamente pendente.",
+        "Identificar os pedidos da parte autora e as provas necessárias à defesa.",
+      ],
+    };
     return {
       ...base,
-      foco: "Há registro de possível indeferimento de tutela. Conferir o inteiro teor, a intimação e as medidas cabíveis antes de definir a estratégia.",
-      passos: [
+      foco: poloReu ? "Atuação pela ré: há registro de liminar não concedida. Identificar a parte requerente e os fundamentos da decisão antes de definir a defesa." : "Há registro de possível indeferimento de tutela. Conferir o inteiro teor, a intimação e as medidas cabíveis antes de definir a estratégia.",
+      passos: poloReu ? [
+        "Ler integralmente a decisão e identificar quem requereu a liminar indeferida.",
+        "Conferir o conteúdo da intimação da ré e a natureza exata do prazo, sem presumir contestação ou recurso.",
+        "Examinar se a decisão beneficia a defesa e quais pedidos da parte autora ainda estão pendentes.",
+        "Analisar a estratégia defensiva e eventuais provas necessárias, sem recomendar recurso da ré contra decisão potencialmente favorável.",
+      ] : [
         "Ler a decisão que indeferiu a tutela e identificar seus fundamentos e alcance.",
         "Conferir intimação, prazo aplicável e eventual cabimento de agravo de instrumento (CPC, art. 1.015, I), conforme o caso.",
         "Avaliar novos elementos e eventual pedido de reconsideração, sem presumir suspensão ou interrupção do prazo recursal.",
         ...base.passos.filter((p) => !/tutela pendente|preparar a r[eé]plica antes/i.test(p)),
       ],
     };
-  }, [phase, tutelaIndeferida]);
+  }, [phase, tutelaIndeferida, poloReu]);
 
   const suggestedChecks = useMemo(() => {
     const fromJudge = (
@@ -497,8 +512,8 @@ export default function ConducaoProcessual() {
       .map((p: any) => `Prova: ${p?.prova || p?.item || p}`)
       .filter((s: string) => !/undefined|\[object/.test(s))
       .slice(0, 6);
-    return [...PHASE_CHECK[phase], ...fromJudge];
-  }, [phase, analysis]);
+    return poloReu ? [...fromJudge, "Conferir decisão e intimação integral antes de definir atos da defesa"] : [...PHASE_CHECK[phase], ...fromJudge];
+  }, [phase, analysis, poloReu]);
 
   async function saveState(next: typeof state) {
     setState(next);
