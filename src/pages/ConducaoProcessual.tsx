@@ -522,7 +522,7 @@ export default function ConducaoProcessual() {
   const suggestedChecks = useMemo(() => {
     const fromJudge = (analysis?.analise?.provas_que_pede || analysis?.provas || [])
       .map((p: any) => `Prova: ${p?.prova || p?.item || p}`)
-      .filter((s: string) => !/undefined|\\[object/.test(s))
+      .filter((s: string) => !s.includes("undefined") && !s.includes("[object"))
       .slice(0, 6);
     return [...fromJudge, "Confirmar polo, inteiro teor das decisões e prazos antes de executar providências"];
   }, [analysis]);
