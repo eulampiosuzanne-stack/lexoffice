@@ -16,11 +16,9 @@ type Props = {
 };
 
 // Cores tiradas da imagem original dela.
-const FUR = "#E29A55";
-const FUR_LIGHT = "#F4BE7C";
-const FUR_DARK = "#B8682A";
-const FUR_FAR = "#B4652A";
-const INK = "#3A1F0C";
+const FUR = "#D08445";
+const FUR_LIGHT = "#E8A865";
+const FUR_DARK = "#A85A1E";
 
 export const WALKER_W = 140;
 export const WALKER_H = 100;
@@ -37,32 +35,37 @@ export function legPose(phase: number, offset: number, moving: boolean) {
   return { upper: LEG_SWING * Math.sin(p), lower: -48 * lift };
 }
 
-function Leg({ x, y, pose, fill, hind }: { x: number; y: number; pose: { upper: number; lower: number }; fill: string; hind?: boolean }) {
-  const upperW = hind ? 14 : 11;
-  return (
-    <g transform={`translate(${x} ${y}) rotate(${pose.upper.toFixed(2)})`}>
-      <rect x={-upperW / 2} y={-5} width={upperW} height={21} rx={upperW / 2} fill={fill} />
-      <circle cx={-upperW / 2 + 2} cy={6} r={3.2} fill={fill} />
-      <circle cx={upperW / 2 - 2} cy={10} r={3} fill={fill} />
-      <g transform={`translate(0 15) rotate(${pose.lower.toFixed(2)})`}>
-        <rect x={-5} y={-2} width={10} height={16} rx={5} fill={fill} />
-        <ellipse cx={-2.5} cy={14.5} rx={6.8} ry={3.8} fill={fill} />
-        <path d="M-7.5 15.6 q1.7 -1.7 3.2 0 M-3.8 15.9 q1.7 -1.7 3.2 0" stroke={INK} strokeOpacity={0.3} strokeWidth={0.8} fill="none" />
-      </g>
-    </g>
-  );
+// Silhueta com tufinhos de pelo na borda (em vez de bolinhas), para parecer pelo de verdade.
+function furPath(cx: number, cy: number, rx: number, ry: number, tufts: number, amp: number, belly = 0) {
+  let d = "";
+  for (let i = 0; i <= tufts; i++) {
+    const a0 = (i / tufts) * Math.PI * 2;
+    const am = ((i + 0.5) / tufts) * Math.PI * 2;
+    const extra = 1 + amp + (Math.sin(am) > 0.3 ? belly : 0); // franja maior embaixo
+    const x0 = cx + rx * Math.cos(a0);
+    const y0 = cy + ry * Math.sin(a0);
+    if (i === 0) { d += `M${x0.toFixed(1)} ${y0.toFixed(1)}`; continue; }
+    const cxm = cx + rx * extra * Math.cos(am - 0.08);
+    const cym = cy + ry * extra * Math.sin(am - 0.08);
+    d += ` Q${cxm.toFixed(1)} ${cym.toFixed(1)} ${x0.toFixed(1)} ${y0.toFixed(1)}`;
+  }
+  return d + "Z";
 }
+const BODY = furPath(82, 58, 33, 16, 30, 0.16, 0.18);
+const CHEST = furPath(50, 63, 15, 15, 16, 0.2, 0.15);
 
-// Tufinhos cacheados (pelo encaracolado como o dela).
-function Curls({ points, fill, stroke }: { points: [number, number, number][]; fill: string; stroke: string }) {
+function Leg({ x, y, pose, far, hind }: { x: number; y: number; pose: { upper: number; lower: number }; far?: boolean; hind?: boolean }) {
+  const upperW = hind ? 15 : 12;
   return (
-    <g>
-      {points.map(([cx, cy, r], i) => (
-        <g key={i}>
-          <circle cx={cx} cy={cy} r={r} fill={fill} />
-          <path d={`M${cx - r * 0.55} ${cy + r * 0.1} q${r * 0.55} ${-r * 0.7} ${r * 1.1} 0`} stroke={stroke} strokeWidth={1.1} strokeLinecap="round" fill="none" opacity={0.55} />
-        </g>
-      ))}
+    <g transform={`translate(${x} ${y}) rotate(${pose.upper.toFixed(2)})`} style={far ? { filter: "brightness(0.74)" } : undefined}>
+      <g>
+        <path d={`M${-upperW / 2} -5 h${upperW} l1.5 4 -1.5 3 1.5 4 -1.5 3 1 4 -2 4 h${-(upperW - 2)} l-2 -4 1 -4 -1.5 -3 1.5 -4 -1.5 -3 Z`} fill="url(#sfGuardianFur)" />
+      </g>
+      <g transform={`translate(0 15) rotate(${pose.lower.toFixed(2)})`}>
+        <rect x={-5.5} y={-2} width={11} height={16} rx={5} fill="url(#sfGuardianFur)" />
+        <path d="M-9.5 15 q1 -5 4 -5 h8 q3 0 4 5 q-8 4 -16 0 Z" fill="url(#sfGuardianFur)" />
+        <path d="M-9.5 15 q8 4 16 0" stroke={FUR_DARK} strokeWidth={1} fill="none" opacity={0.6} />
+      </g>
     </g>
   );
 }
@@ -95,27 +98,42 @@ export default function GuardianWalker({ phase, time, moving, mood, facingLeft }
 
   return (
     <svg className="sf-guardian-walker" viewBox={`0 0 ${WALKER_W} ${WALKER_H}`} width={WALKER_W} height={WALKER_H} aria-hidden="true" focusable="false">
+      <defs>
+        {/* Textura do pelo tirada da imagem original dela. */}
+        <pattern id="sfGuardianFur" patternUnits="userSpaceOnUse" width="64" height="48">
+          <rect width="64" height="48" fill={FUR} />
+          <image href="/brand/guardia-sf-pelo.webp" width="64" height="48" preserveAspectRatio="none" />
+        </pattern>
+        <linearGradient id="sfGuardianShade" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#FFE2B0" stopOpacity="0.25" />
+          <stop offset="0.5" stopColor="#FFE2B0" stopOpacity="0" />
+          <stop offset="1" stopColor="#5A2A08" stopOpacity="0.38" />
+        </linearGradient>
+      </defs>
       <ellipse cx="72" cy="96" rx="42" ry="3.2" fill="#000" opacity="0.14" />
       <g transform={facingLeft ? undefined : `translate(${WALKER_W} 0) scale(-1 1)`}>
         <g transform={`translate(0 ${bob.toFixed(2)})`}>
           {/* Patas do lado de lá (mais escuras, atrás do corpo). */}
-          <Leg x={104} y={62} pose={farBack} fill={FUR_FAR} hind />
-          <Leg x={60} y={63} pose={farFront} fill={FUR_FAR} />
+          <Leg x={104} y={62} pose={farBack} far hind />
+          <Leg x={60} y={63} pose={farFront} far />
 
           {/* Rabo peludo em pluma. */}
           <g transform={`translate(110 50) rotate(${tail.toFixed(2)})`}>
-            <path d="M0 0 C 10 -6, 17 -19, 13 -32 C 22 -24, 24 -8, 10 5 Z" fill={FUR} />
-            <circle cx="13" cy="-28" r="5" fill={FUR} /><circle cx="15" cy="-18" r="4.6" fill={FUR} /><circle cx="11" cy="-8" r="4.4" fill={FUR} />
-            <path d="M3 -2 C 10 -9, 15 -18, 13 -27" stroke={FUR_LIGHT} strokeWidth="2.4" strokeLinecap="round" fill="none" />
+            <path d="M0 2 C 6 -4, 10 -12, 8 -22 C 7 -30, 12 -36, 18 -34 C 14 -30, 22 -28, 20 -22 C 24 -18, 20 -12, 22 -8 C 18 -6, 18 0, 12 4 C 10 8, 4 8, 0 2 Z" fill="url(#sfGuardianFur)" />
+            <path d="M3 0 C 9 -8, 12 -18, 12 -28" stroke={FUR_LIGHT} strokeWidth="1.6" strokeLinecap="round" fill="none" opacity="0.7" />
           </g>
 
-          {/* Corpo peludinho e cacheado. */}
-          <ellipse cx="82" cy="57" rx="32" ry="16" fill={FUR} />
-          <Curls fill={FUR} stroke={FUR_DARK} points={[[60, 45, 7.5], [72, 42, 7.5], [85, 42, 7.5], [98, 44, 7.5], [109, 51, 6.5], [66, 70, 6.5], [80, 72, 6.5], [95, 70, 6.5], [108, 63, 6]]} />
+          {/* Corpo com a textura do pelo dela e franjinha embaixo. */}
+          <path d={BODY} fill="url(#sfGuardianFur)" />
+          <path d={BODY} fill="url(#sfGuardianShade)" />
 
           {/* Patas do lado de cá. */}
-          <Leg x={102} y={64} pose={nearBack} fill={FUR} hind />
-          <Leg x={58} y={65} pose={nearFront} fill={FUR} />
+          <Leg x={102} y={64} pose={nearBack} hind />
+          <Leg x={58} y={65} pose={nearFront} />
+
+          {/* Peitinho/pescoço que liga a cabeça ao corpo. */}
+          <path d={CHEST} fill="url(#sfGuardianFur)" />
+          <path d={CHEST} fill="url(#sfGuardianShade)" />
 
           {head}
         </g>

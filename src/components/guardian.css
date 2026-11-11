@@ -178,3 +178,12 @@
   25% { transform: rotate(-4deg) translateY(-3px); }
   75% { transform: rotate(4deg) translateY(-1px); }
 }
+/* Botão do balão sempre legível (o tema geral pintava o fundo de vinho com texto escuro). */
+.app > .sf-guardian .sf-guardian-greeting .sf-guardian-bubble-action {
+  background: var(--lx-brand-gold, #D4AF37) !important;
+  border: 1px solid #9C7A1C !important;
+  color: #2A1A0C !important;
+  box-shadow: 0 2px 0 #9C7A1C !important;
+}
+.app > .sf-guardian .sf-guardian-greeting .sf-guardian-bubble-action svg { color: #2A1A0C !important; stroke: currentColor; }
+.app > .sf-guardian .sf-guardian-greeting > span { color: var(--lx-text, #2A1A0C); font-size: 1rem; }
