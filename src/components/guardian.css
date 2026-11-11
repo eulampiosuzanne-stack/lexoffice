@@ -171,3 +171,10 @@
 }
 .sf-guardian-menu > strong.sf-guardian-menu-title { display: flex; align-items: center; gap: 8px; }
 .sf-guardian-menu-title > img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--lx-brand-line, var(--lx-border-strong)); }
+/* Caixinha 3D com que a Guardiã está brincando: balança e pula um pouquinho. */
+.app .sf-guardian-toy { animation: sf-guardian-toy-wiggle .45s ease-in-out infinite !important; transform-origin: 50% 100%; }
+@keyframes sf-guardian-toy-wiggle {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  25% { transform: rotate(-4deg) translateY(-3px); }
+  75% { transform: rotate(4deg) translateY(-1px); }
+}

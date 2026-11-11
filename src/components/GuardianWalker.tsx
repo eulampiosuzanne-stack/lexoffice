@@ -5,7 +5,7 @@
 // subindo e descendo a cada passada, rabo abanando e cabecinha balançando.
 // Componente puro (sem hooks): quem anima é o Guardian.tsx, que passa a fase da passada e o relógio.
 
-export type WalkerMood = "walking" | "asking" | "hungry" | "idle" | "happy" | "eating";
+export type WalkerMood = "walking" | "asking" | "hungry" | "idle" | "happy" | "eating" | "playing";
 
 type Props = {
   phase: number; // fase da passada (radianos); avança conforme a distância andada, então a pata não "escorrega"
@@ -16,10 +16,10 @@ type Props = {
 };
 
 // Cores tiradas da imagem original dela.
-const FUR = "#D98A45";
-const FUR_LIGHT = "#EDAE63";
+const FUR = "#E29A55";
+const FUR_LIGHT = "#F4BE7C";
 const FUR_DARK = "#B8682A";
-const FUR_FAR = "#A65A20";
+const FUR_FAR = "#B4652A";
 const INK = "#3A1F0C";
 
 export const WALKER_W = 140;
@@ -68,17 +68,18 @@ function Curls({ points, fill, stroke }: { points: [number, number, number][]; f
 }
 
 export default function GuardianWalker({ phase, time, moving, mood, facingLeft }: Props) {
-  const begging = !moving && (mood === "asking" || mood === "hungry");
+  const playing = !moving && mood === "playing";
+  const begging = !moving && (mood === "asking" || mood === "hungry" || playing);
   const happy = mood === "happy";
   const eating = mood === "eating";
   const bob = moving ? -1.8 * Math.abs(Math.sin(phase)) : begging ? -1.4 * Math.abs(Math.sin(time * 5)) : 0.7 * Math.sin(time * 2.4);
-  const tailSpeed = moving ? 9 : begging || happy ? 16 : 4;
+  const tailSpeed = moving ? 11 : playing ? 22 : begging || happy ? 16 : 4;
   const tailAmp = moving ? 14 : begging || happy ? 26 : 9;
   const tail = -10 + tailAmp * Math.sin(time * tailSpeed);
   const headTilt = begging ? -8 + 3 * Math.sin(time * 2.5) : eating ? 8 + 3 * Math.sin(time * 18) : moving ? 2.5 * Math.sin(phase * 2) : 1.5 * Math.sin(time * 1.3);
   const headBob = moving ? -1.2 * Math.abs(Math.sin(phase)) : 0;
 
-  const nearFront = begging ? { upper: 62 + 8 * Math.sin(time * 6), lower: -70 } : legPose(phase, 0, moving);
+  const nearFront = playing ? { upper: 70 + 22 * Math.sin(time * 14), lower: -60 } : begging ? { upper: 62 + 8 * Math.sin(time * 6), lower: -70 } : legPose(phase, 0, moving);
   const farBack = legPose(phase, 0, moving);
   const farFront = legPose(phase, Math.PI, moving);
   const nearBack = legPose(phase, Math.PI, moving);
@@ -87,7 +88,7 @@ export default function GuardianWalker({ phase, time, moving, mood, facingLeft }
   const head = (
     <g transform={`translate(40 54) rotate(${headTilt.toFixed(2)}) translate(0 ${headBob.toFixed(2)})`}>
       <g transform={facingLeft ? undefined : "scale(-1 1)"}>
-        <image href="/brand/guardia-sf-cabeca.webp" x={-33} y={-54} width={66} height={68} preserveAspectRatio="xMidYMid meet" />
+        <image href="/brand/guardia-sf-cabeca.webp" x={-35} y={-54} width={70} height={68} preserveAspectRatio="xMidYMid meet" />
       </g>
     </g>
   );
@@ -111,7 +112,6 @@ export default function GuardianWalker({ phase, time, moving, mood, facingLeft }
           {/* Corpo peludinho e cacheado. */}
           <ellipse cx="82" cy="57" rx="32" ry="16" fill={FUR} />
           <Curls fill={FUR} stroke={FUR_DARK} points={[[60, 45, 7.5], [72, 42, 7.5], [85, 42, 7.5], [98, 44, 7.5], [109, 51, 6.5], [66, 70, 6.5], [80, 72, 6.5], [95, 70, 6.5], [108, 63, 6]]} />
-          <g opacity="0.45"><Curls fill={FUR_LIGHT} stroke="none" points={[[70, 54, 5.5], [84, 55, 5.5], [97, 56, 5]]} /></g>
 
           {/* Patas do lado de cá. */}
           <Leg x={102} y={64} pose={nearBack} fill={FUR} hind />
