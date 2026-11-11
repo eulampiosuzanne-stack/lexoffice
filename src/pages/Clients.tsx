@@ -658,18 +658,21 @@ function sendAppInvite() {
         address:
           form.address && typeof form.address === "object" ? form.address : {},
       };
+      const { data: u, error: authError } = await supabase.auth.getUser();
+      if (authError || !u.user)
+        throw new Error("Não foi possível validar sua sessão. Confira a conexão ou entre novamente no LexOffice.");
+
       let r: any;
-      if (selected)
+      if (selected) {
         r = await supabase
           .from("clients")
           .update(payload)
           .eq("id", selected.id)
           .select()
-          .single();
-      else {
-        const { data: u, error: authError } = await supabase.auth.getUser();
-        if (authError || !u.user)
-          throw new Error("Sua sessão expirou. Entre novamente no LEXOFFICE.");
+          .maybeSingle();
+        if (!r.error && !r.data)
+          throw new Error("O LexOffice não confirmou o salvamento. Confira se sua conta tem permissão para editar este cadastro. Suas alterações continuam no formulário.");
+      } else {
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
           .select("org_id")
