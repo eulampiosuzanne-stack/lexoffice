@@ -466,7 +466,27 @@ export default function ConducaoProcessual() {
   const autoPhase = useMemo(() => detectPhase(movs), [movs]);
   const phase = (state.phase_override as PhaseKey) || autoPhase;
   const phaseIdx = PHASES.findIndex((p) => p.key === phase);
-  const guide = GUIDE[phase];
+  // A orientação genérica não pode contradizer uma decisão já registrada.
+  // Detecção textual é um alerta preliminar, não substitui leitura do inteiro teor.
+  const tutelaIndeferida = useMemo(() => movs.some((m) => {
+    const t = norm(`${m.title || ""} ${m.description || ""}`);
+    return /(indeferid|nao concedid|negad|rejeitad)/.test(t)
+      && /(tutela|liminar|antecipac[aã]o)/.test(t);
+  }), [movs]);
+  const guide = useMemo(() => {
+    const base = GUIDE[phase];
+    if (!tutelaIndeferida) return base;
+    return {
+      ...base,
+      foco: "Há registro de possível indeferimento de tutela. Conferir o inteiro teor, a intimação e as medidas cabíveis antes de definir a estratégia.",
+      passos: [
+        "Ler a decisão que indeferiu a tutela e identificar seus fundamentos e alcance.",
+        "Conferir intimação, prazo aplicável e eventual cabimento de agravo de instrumento (CPC, art. 1.015, I), conforme o caso.",
+        "Avaliar novos elementos e eventual pedido de reconsideração, sem presumir suspensão ou interrupção do prazo recursal.",
+        ...base.passos.filter((p) => !/tutela pendente|preparar a r[eé]plica antes/i.test(p)),
+      ],
+    };
+  }, [phase, tutelaIndeferida]);
 
   const suggestedChecks = useMemo(() => {
     const fromJudge = (
