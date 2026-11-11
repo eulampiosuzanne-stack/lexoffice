@@ -468,52 +468,64 @@ export default function ConducaoProcessual() {
   const phaseIdx = PHASES.findIndex((p) => p.key === phase);
   // A orientação genérica não pode contradizer uma decisão já registrada.
   // Detecção textual é um alerta preliminar, não substitui leitura do inteiro teor.
-  const poloReu = /^(r[eé]u|requerido|demandado|executado|polo passivo|passivo)$/i.test(String(proc?.pole || "").trim());
+  // Diretrizes universais: nenhuma estratégia sem polo confirmado e fonte verificável.
+  const polo = norm(String(proc?.pole || "").trim());
+  const poloReu = /^(reu|requerido|demandado|executado|polo passivo|passivo)$/.test(polo);
+  const poloAutor = /^(autor|autora|requerente|demandante|exequente|polo ativo|ativo)$/.test(polo);
+  const decisoes = useMemo(() => movs.filter((m) =>
+    /decisao|despacho|sentenca|liminar|tutela|intimacao/.test(norm(`${m.title || ""} ${m.description || ""}`))
+  ), [movs]);
   const tutelaIndeferida = useMemo(() => movs.some((m) => {
     const t = norm(`${m.title || ""} ${m.description || ""}`);
     return /(indeferid|nao concedid|negad|rejeitad)/.test(t)
-      && /(tutela|liminar|antecipac[aã]o|medida liminar)/.test(t);
+      && /(tutela|liminar|antecipacao|medida liminar)/.test(t);
   }), [movs]);
   const guide = useMemo(() => {
     const base = GUIDE[phase];
-    if (!tutelaIndeferida && !poloReu) return base;
-    if (poloReu && !tutelaIndeferida) return {
+    const fontes = decisoes.slice(0, 3).map((m) => `Movimentação de ${m.movement_date}: ${m.title || "decisão/intimação"}`);
+    const verificar = [
+      "Confirmar a parte representada, o tipo de ação e os pedidos antes de recomendar atos.",
+      "Conferir o inteiro teor das decisões e intimações, seus destinatários e fundamentos.",
+      "Identificar o prazo e sua natureza a partir da intimação oficial, sem presumir contagem.",
+      ...fontes.map((f) => `Fonte para conferência: ${f}`),
+    ];
+    if (!poloAutor && !poloReu) return {
       ...base,
-      foco: "Atuação pela parte ré: verificar as decisões e intimações efetivas, a defesa apresentada e os prazos aplicáveis antes de definir providências.",
+      foco: "Polo processual não confirmado. Não é seguro recomendar estratégia até identificar quem o escritório representa.",
+      passos: verificar,
+    };
+    if (tutelaIndeferida) return {
+      ...base,
+      foco: poloReu
+        ? "Atuação pela parte ré: há registro de liminar não concedida. Confirmar quem a requereu e o alcance da decisão."
+        : "Atuação pela parte autora: há registro de liminar não concedida. Examinar fundamentos e medidas cabíveis.",
       passos: [
-        "Ler o inteiro teor das decisões e intimações mais recentes.",
-        "Conferir se houve citação válida, contestação e qual manifestação está efetivamente pendente.",
-        "Identificar os pedidos da parte autora e as provas necessárias à defesa.",
+        ...verificar,
+        poloReu
+          ? "Verificar se o indeferimento beneficia a defesa; não recomendar recurso da ré sem identificar sucumbência ou interesse recursal."
+          : "Avaliar eventual agravo de instrumento (CPC, art. 1.015, I) e prazo após leitura integral da decisão.",
+        "Distinguir fatos comprovados, hipóteses e providências que dependem de validação jurídica.",
       ],
     };
+    if (poloReu) return {
+      ...base,
+      foco: "Atuação pela parte ré: verificar o estado real da defesa e as decisões antes de recomendar providências.",
+      passos: [...verificar, "Confirmar citação, contestação, provas e manifestações efetivamente pendentes."],
+    };
+    // Mesmo para o autor, não tratar um roteiro estático como decisão judicial ou prazo confirmado.
     return {
       ...base,
-      foco: poloReu ? "Atuação pela ré: há registro de liminar não concedida. Identificar a parte requerente e os fundamentos da decisão antes de definir a defesa." : "Há registro de possível indeferimento de tutela. Conferir o inteiro teor, a intimação e as medidas cabíveis antes de definir a estratégia.",
-      passos: poloReu ? [
-        "Ler integralmente a decisão e identificar quem requereu a liminar indeferida.",
-        "Conferir o conteúdo da intimação da ré e a natureza exata do prazo, sem presumir contestação ou recurso.",
-        "Examinar se a decisão beneficia a defesa e quais pedidos da parte autora ainda estão pendentes.",
-        "Analisar a estratégia defensiva e eventuais provas necessárias, sem recomendar recurso da ré contra decisão potencialmente favorável.",
-      ] : [
-        "Ler a decisão que indeferiu a tutela e identificar seus fundamentos e alcance.",
-        "Conferir intimação, prazo aplicável e eventual cabimento de agravo de instrumento (CPC, art. 1.015, I), conforme o caso.",
-        "Avaliar novos elementos e eventual pedido de reconsideração, sem presumir suspensão ou interrupção do prazo recursal.",
-        ...base.passos.filter((p) => !/tutela pendente|preparar a r[eé]plica antes/i.test(p)),
-      ],
+      foco: `Roteiro preliminar para a parte autora: ${base.foco} Confirmar nos autos antes de executar.`,
+      passos: [...verificar, ...base.passos.map((p) => `Se aplicável após conferência: ${p}`)],
     };
-  }, [phase, tutelaIndeferida, poloReu]);
-
+  }, [phase, tutelaIndeferida, poloReu, poloAutor, decisoes]);
   const suggestedChecks = useMemo(() => {
-    const fromJudge = (
-      analysis?.analise?.provas_que_pede ||
-      analysis?.provas ||
-      []
-    )
+    const fromJudge = (analysis?.analise?.provas_que_pede || analysis?.provas || [])
       .map((p: any) => `Prova: ${p?.prova || p?.item || p}`)
-      .filter((s: string) => !/undefined|\[object/.test(s))
+      .filter((s: string) => !/undefined|\\[object/.test(s))
       .slice(0, 6);
-    return poloReu ? [...fromJudge, "Conferir decisão e intimação integral antes de definir atos da defesa"] : [...PHASE_CHECK[phase], ...fromJudge];
-  }, [phase, analysis, poloReu]);
+    return [...fromJudge, "Confirmar polo, inteiro teor das decisões e prazos antes de executar providências"];
+  }, [analysis]);
 
   async function saveState(next: typeof state) {
     setState(next);
