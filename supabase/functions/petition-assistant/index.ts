@@ -487,7 +487,11 @@ Deno.serve(async (req) => {
       const r: any = await gemini(key, models, payload, started + 140000);
       if (!r.ok) {
         const quota = [429, 503].includes(r.status);
-        return json({ ok: false, error: quota ? `A IA não conseguiu ler os documentos agora (${String(r.detail || r.status).slice(0, 220)}). Tente de novo em alguns minutos.` : `A IA não conseguiu ler os documentos (${r.status}${r.detail ? ": " + r.detail : ""}).` }, 502);
+        // Nunca expor mensagens brutas do provedor, detalhes de faturamento ou nomes internos de modelos ao cliente.
+        const safeMessage = quota
+          ? "O serviço de análise atingiu temporariamente o limite de utilização. Seus documentos permanecem preservados. Aguarde a liberação da capacidade ou solicite ao administrador a revisão da cota do provedor."
+          : "Não foi possível concluir a leitura dos documentos. Nenhuma análise jurídica foi gerada. Tente novamente ou solicite suporte técnico.";
+        return json({ ok: false, error: safeMessage, code: quota ? "AI_PROVIDER_QUOTA" : "AI_DOCUMENT_ANALYSIS_FAILED" }, 503);
       }
       let dossier: any;
       try { dossier = parseModelJson(r.text); }
