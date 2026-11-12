@@ -24,6 +24,16 @@ import {
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import "./integrations.css";
+
+function queryClientInbox(db: NonNullable<typeof supabase>, orgId: string) {
+  return db
+    .from("client_app_inbox")
+    .select("id,client_id,kind,subject,body,created_at,read_at,document_id,clients(name)")
+    .eq("org_id", orgId)
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(100);
+}
 type Client = {
   id: string;
   name: string;
@@ -47,6 +57,7 @@ export default function ClientArea() {
   const [loadBusy,setLoadBusy]=useState(true),[loadError,setLoadError]=useState(''),[failedSections,setFailedSections]=useState<string[]>([]);
   const [drafts,setDrafts]=useState<Record<string,string>>({});
   const loadRequest=useRef(0);
+  const latestInboxId = useRef<string | null | undefined>(undefined);
   const [clients, setClients] = useState<Client[]>([]),
     [messages, setMessages] = useState<any[]>([]),
     [inbox, setInbox] = useState<any[]>([]),
@@ -122,18 +133,11 @@ export default function ClientArea() {
           .eq("org_id", p.org_id)
           .order("sent_at", { ascending: false })
           .limit(100),
-        supabase
-          .from("client_app_inbox")
-          .select(
-            "id,client_id,kind,subject,body,created_at,read_at,document_id,clients(name)",
-          )
-          .eq("org_id", p.org_id)
-          .order("created_at", { ascending: false })
-          .limit(100),
+        queryClientInbox(supabase, p.org_id),
         supabase
           .from("client_extraordinary_requests")
           .select(
-            "id,client_id,fee,fee_rule,message,status,receipt_path,requested_at,clients(name)",
+            "id,client_id,fee,fee_rule,message,status,receipt_path,requested_at",
           )
           .eq("org_id", p.org_id)
           .order("requested_at", { ascending: false })
@@ -151,6 +155,7 @@ export default function ClientArea() {
     const failed=[ce&&'clients',me&&'messages',ie&&'inbox',xe&&'extra',de&&'documents'].filter(Boolean) as string[];
     setClients(c || []);
     setMessages(m || []);
+    latestInboxId.current = ie ? undefined : i?.[0]?.id ?? null;
     setInbox(i || []);
     setExtra(x || []);
     setDocReq(d || []);
@@ -198,6 +203,52 @@ export default function ClientArea() {
     void load();
     return()=>{loadRequest.current++;};
   }, []);
+  useEffect(() => {
+    const db = supabase;
+    if (!db || !orgId || sec !== "recebidos" || loadBusy || busy) return;
+
+    let disposed = false;
+    let refreshing = false;
+    const refreshInbox = async (force = false) => {
+      if (disposed || refreshing || document.visibilityState !== "visible") return;
+      refreshing = true;
+      const currentLoad = loadRequest.current;
+      try {
+        if (!force && latestInboxId.current !== undefined) {
+          const latest = await db.from("client_app_inbox").select("id")
+            .eq("org_id", orgId)
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (disposed || currentLoad !== loadRequest.current || latest.error) return;
+          if ((latest.data?.id ?? null) === latestInboxId.current) return;
+        }
+        const { data, error } = await queryClientInbox(db, orgId);
+        if (disposed || currentLoad !== loadRequest.current || error || !data) return;
+        latestInboxId.current = data[0]?.id ?? null;
+        setInbox(previous => {
+          const previousRead = new Map(previous.map(item => [item.id, item.read_at]));
+          return data.map(item => ({
+            ...item,
+            read_at: item.read_at ?? previousRead.get(item.id) ?? null,
+          }));
+        });
+        setFailedSections(previous => previous.filter(key => key !== "inbox"));
+      } finally {
+        refreshing = false;
+      }
+    };
+
+    const interval = window.setInterval(() => void refreshInbox(), 30000);
+    const onVisible = () => void refreshInbox(true);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      disposed = true;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [orgId, sec, loadBusy, busy]);
   const updateReply=(value:string)=>{setReply(value);if(activeInbox)setDrafts(previous=>({...previous,[activeInbox.id]:value}));};
   useConfirmNavigation(!!title.trim()||!!body.trim()||!!docTitle.trim()||!!docFile||Object.values(drafts).some(value=>value.trim()));
   async function openInboxMessage(item:any){
@@ -435,10 +486,10 @@ export default function ClientArea() {
     setBusy(true);
     setNotice("Publicando recado...");
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const { error } = await supabase
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) throw new Error("Sessão inválida. Entre novamente.");
+      if (!orgId) throw new Error("Escritório não identificado. Atualize a página.");
+      const { data, error } = await supabase
         .from("client_office_messages")
         .insert({
           org_id: orgId,
@@ -448,11 +499,11 @@ export default function ClientArea() {
           category,
           priority,
           requires_ack: ack,
-          sent_by: user?.id,
+          sent_by: user.id,
           source_channel: "manual_app",
-          metadata: { author: user?.id, manual: true },
-        });
-      if (error) throw error;
+          metadata: { author: user.id, manual: true },
+        }).select("id").single();
+      if (error || !data?.id) throw new Error(error?.message || "A publicação não foi confirmada.");
       const c = clients.find((x) => x.id === clientId);
       setTitle("");
       setBody("");
@@ -999,7 +1050,7 @@ export default function ClientArea() {
             {extra.map((x) => (
               <div className="integration-card" key={x.id}>
                 <b>
-                  {x.clients?.name || "Cliente"} ·{" "}
+                  {clients.find(client => client.id === x.client_id)?.name || "Cliente"} ·{" "}
                   {Number(x.fee).toLocaleString("pt-BR", {
                     style: "currency",
                     currency: "BRL",
