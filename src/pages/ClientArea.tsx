@@ -67,6 +67,8 @@ export default function ClientArea() {
   const [loadBusy,setLoadBusy]=useState(true),[loadError,setLoadError]=useState(''),[failedSections,setFailedSections]=useState<string[]>([]);
   const [drafts,setDrafts]=useState<Record<string,string>>({});
   const loadRequest=useRef(0);
+  const documentNoticeInProgress = useRef(false);
+  const [sendingDocumentNotice, setSendingDocumentNotice] = useState<string | null>(null);
   const latestInboxId = useRef<string | null | undefined>(undefined);
   const [clients, setClients] = useState<Client[]>([]),
     [messages, setMessages] = useState<any[]>([]),
@@ -155,7 +157,7 @@ export default function ClientArea() {
         supabase
           .from("client_document_requests")
           .select(
-            "id,client_id,title,status,requires_authorization,authorization_status,reminder_enabled,created_at,clients(name),client_document_notice_status(status,reason)",
+            "id,client_id,title,status,requires_authorization,authorization_status,reminder_enabled,created_at,clients(name),document_id,client_document_notice_status(status,reason)",
           )
           .eq("org_id", p.org_id)
           .order("created_at", { ascending: false })
@@ -275,6 +277,7 @@ export default function ClientArea() {
     }
   }
   async function publishDocument() {
+    if (documentNoticeInProgress.current) return;
     if (!supabase || !clientId || !docTitle.trim() || !docFile) {
       setNotice("Selecione o cliente, informe o título e escolha o documento.");
       return;
@@ -343,6 +346,7 @@ export default function ClientArea() {
         throw new Error("Falha ao disponibilizar no App: " + req.error.message);
       const client = clients.find(row => row.id === clientId);
       setPublishOpen(false);
+      setSec("documentos");
       setDocTitle("");
       setDocFile(null);
       setDocAuth(false);
@@ -362,6 +366,23 @@ export default function ClientArea() {
       setBusy(false);
     }
   }
+  async function resendDocumentNotice(request: { id: string; client_id: string }) {
+    if (documentNoticeInProgress.current || busy) return;
+    documentNoticeInProgress.current = true;
+    setSendingDocumentNotice(request.id);
+    setNotice("Enviando aviso de texto pelo WhatsApp…");
+    try {
+      const result = await notifyPublishedDocument(request.id, clients.find(client => client.id === request.client_id));
+      setNotice("WhatsApp: " + result + ".");
+      await load();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Não foi possível confirmar o aviso.");
+    } finally {
+      documentNoticeInProgress.current = false;
+      setSendingDocumentNotice(null);
+    }
+  }
+
   async function notifyPublishedDocument(requestId: string, client?: Client) {
     const db = supabase;
     if (!db) throw new Error("O serviço de avisos está indisponível.");
@@ -717,7 +738,20 @@ export default function ClientArea() {
                       ? "Não autorizado"
                       : "Aguardando autorização"}
                 </p>
-                <p>WhatsApp: {documentNoticeLabel(d.client_document_notice_status?.status, d.client_document_notice_status?.reason)}</p>
+                {d.document_id && <>
+                  <p>WhatsApp: {documentNoticeLabel(d.client_document_notice_status?.status, d.client_document_notice_status?.reason)}</p>
+                  {!["sent", "sending"].includes(d.client_document_notice_status?.status) && (
+                    <button type="button" className="app-message-button"
+                      disabled={busy || sendingDocumentNotice !== null}
+                      onClick={() => void resendDocumentNotice(d)}>
+                      <Send size={16}/>
+                      {sendingDocumentNotice === d.id ? "Enviando aviso…" : "Enviar aviso por WhatsApp"}
+                    </button>
+                  )}
+                  <Link className="app-message-button" to={`/clientes/${encodeURIComponent(d.client_id)}`}>
+                    Ver cadastro e acesso ao app
+                  </Link>
+                </>}
                 {d.authorization_status === "pending" && (
                   <button
                     className="btn-secondary"
