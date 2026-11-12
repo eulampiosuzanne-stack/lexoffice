@@ -34,6 +34,16 @@ function queryClientInbox(db: NonNullable<typeof supabase>, orgId: string) {
     .order("id", { ascending: false })
     .limit(100);
 }
+type DocumentNoticeStatus = "sending" | "sent" | "failed" | "not_sent";
+
+function documentNoticeLabel(status?: DocumentNoticeStatus, reason?: string) {
+  if (status === "sent") return "Aviso de texto enviado";
+  if (status === "sending") return "Envio iniciado · aguardando confirmação";
+  if (status === "failed") return "Envio não confirmado · " + reason;
+  if (status === "not_sent") return "Aviso não enviado · " + reason;
+  return "Sem registro de envio";
+}
+
 type Client = {
   id: string;
   name: string;
@@ -145,7 +155,7 @@ export default function ClientArea() {
         supabase
           .from("client_document_requests")
           .select(
-            "id,client_id,title,status,requires_authorization,authorization_status,reminder_enabled,created_at,clients(name)",
+            "id,client_id,title,status,requires_authorization,authorization_status,reminder_enabled,created_at,clients(name),client_document_notice_status(status,reason)",
           )
           .eq("org_id", p.org_id)
           .order("created_at", { ascending: false })
@@ -331,46 +341,20 @@ export default function ClientArea() {
         .single();
       if (req.error)
         throw new Error("Falha ao disponibilizar no App: " + req.error.message);
-      const c = clients.find((x) => x.id === clientId);
-      const phone = (c?.whatsapp || c?.phone || "").replace(/\D/g, "");
-      let aviso = "";
-      if (phone) {
-        const number = phone.startsWith("55") ? phone : "55" + phone;
-        const sent = await supabase.functions.invoke("whatsapp-operator-send", {
-          body: {
-            message: `Olá, ${String(c?.name || "cliente").split(/\s+/)[0]}. Você recebeu um novo documento no App do Cliente: “${docTitle.trim()}”. Acesse pelo link oficial: https://lexoffice.univittagroup.com.br/cliente\n\nO documento também segue anexado nesta mensagem.`,
-            document_ids: [ins.data.id],
-            targets: [{ phone: number, name: c?.name }],
-            agent_key: "client_schedule_relationship",
-            next_agent_key: "client_schedule_relationship",
-            keep_ai_active: true,
-            mirror_to_app: false,
-          },
-        });
-        if (
-          sent.error ||
-          !sent.data?.ok ||
-          Number(sent.data?.failed || 0) > 0
-        ) {
-          const reason =
-            sent.data?.results?.[0]?.error ||
-            sent.data?.error ||
-            sent.error?.message ||
-            "o provedor não confirmou o envio";
-          aviso = ` O documento foi publicado no App, mas o arquivo não foi enviado pelo WhatsApp: ${reason}.`;
-        }
-      } else
-        aviso =
-          " O documento foi publicado no App, mas o cliente não possui WhatsApp cadastrado.";
+      const client = clients.find(row => row.id === clientId);
       setPublishOpen(false);
       setDocTitle("");
       setDocFile(null);
       setDocAuth(false);
       setDocReminder(false);
-      setNotice(
-        aviso ||
-          "Documento disponibilizado no App e enviado como arquivo pelo WhatsApp.",
-      );
+      setNotice("Documento publicado no App. Verificando o aviso por WhatsApp…");
+      try {
+        const result = await notifyPublishedDocument(req.data.id, client);
+        setNotice("Documento publicado no App. WhatsApp: " + result + ".");
+      } catch (error) {
+        setNotice("Documento publicado no App. " +
+          (error instanceof Error ? error.message : "Não foi possível registrar o resultado do aviso."));
+      }
       await load();
     } catch (e: any) {
       setNotice(e?.message || "Não foi possível disponibilizar o documento.");
@@ -378,6 +362,56 @@ export default function ClientArea() {
       setBusy(false);
     }
   }
+  async function notifyPublishedDocument(requestId: string, client?: Client) {
+    const db = supabase;
+    if (!db) throw new Error("O serviço de avisos está indisponível.");
+    const saveStatus = async (status: DocumentNoticeStatus, reason: string | null = null) => {
+      const { error } = await db.from("client_document_notice_status").upsert({
+        request_id: requestId,
+        status,
+        reason,
+        updated_at: new Date().toISOString(),
+      });
+      return error;
+    };
+    const phone = (client?.whatsapp || client?.phone || "").replace(/\D/g, "");
+    if (!phone) {
+      const reason = "cliente sem telefone cadastrado";
+      const error = await saveStatus("not_sent", reason);
+      return documentNoticeLabel("not_sent", reason) + (error ? " · histórico indisponível" : "");
+    }
+
+    await saveStatus("sending");
+    let status: DocumentNoticeStatus = "failed";
+    let reason: string | null = "o serviço não confirmou o envio";
+    try {
+      const number = phone.startsWith("55") ? phone : "55" + phone;
+      const { data, error } = await db.functions.invoke("whatsapp-operator-send", {
+        body: {
+          message: "Há um novo documento do escritório disponível no App do Cliente. Abra ou instale o app por aqui: https://lexoffice.univittagroup.com.br/cliente",
+          targets: [{ phone: number, name: client?.name }],
+          agent_key: "client_schedule_relationship",
+          next_agent_key: "client_schedule_relationship",
+          keep_ai_active: true,
+          mirror_to_app: false,
+        },
+      });
+      const errorBody = error?.context instanceof Response
+        ? await error.context.clone().json().catch(() => null)
+        : null;
+      if (!error && data?.ok && data.results?.[0]?.ok && Number(data.sent) === 1) {
+        status = "sent";
+        reason = null;
+      } else {
+        reason = data?.results?.[0]?.error || data?.error || errorBody?.error || error?.message || reason;
+      }
+    } catch (error) {
+      if (error instanceof Error) reason = error.message;
+    }
+    const statusError = await saveStatus(status, reason);
+    return documentNoticeLabel(status, reason ?? undefined) + (statusError ? " · histórico indisponível" : "");
+  }
+
   async function sendWhatsappNotice(payload: {
     phone: string;
     name: string;
@@ -683,6 +717,7 @@ export default function ClientArea() {
                       ? "Não autorizado"
                       : "Aguardando autorização"}
                 </p>
+                <p>WhatsApp: {documentNoticeLabel(d.client_document_notice_status?.status, d.client_document_notice_status?.reason)}</p>
                 {d.authorization_status === "pending" && (
                   <button
                     className="btn-secondary"
