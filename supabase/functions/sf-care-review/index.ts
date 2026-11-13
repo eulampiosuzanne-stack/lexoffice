@@ -16,6 +16,14 @@ Deno.serve(async req=>{
   const {data:profile}=await a.from("profiles").select("org_id,role_key,status").eq("id",user.id).maybeSingle();
   if(!profile||!["owner","lawyer"].includes(profile.role_key)||!["active","ativo"].includes(String(profile.status||"").toLowerCase()))return json({ok:false,error:"not_authorized_to_review"},403);
   const body=await req.json();
+  if(body.action==="metrics"){
+   const days=Number(body.days??7);
+   if(![1,7,30].includes(days))return json({ok:false,error:"invalid_period"},422);
+   const since=new Date(Date.now()-days*86400000).toISOString();
+   const {data,error}=await a.rpc("communication_metrics",{p_org:profile.org_id,p_since:since});
+   if(error)throw error;
+   return json({ok:true,metrics:data});
+  }
   if(body.action==="list"){
    const [queue,audit]=await Promise.all([
     a.from("sf_care_outbox").select("id,event_kind,status,message,source_verified,created_at,process_id,client_id").eq("org_id",profile.org_id).eq("status","pending_review").order("created_at").limit(50),
