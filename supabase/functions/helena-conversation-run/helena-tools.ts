@@ -105,7 +105,12 @@ export async function exceptionalContext(a: any, orgId: string): Promise<string>
 }
 
 // A seleção é comparada com a oferta efetivamente enviada ao cliente.
-export type AgendaReply = { reply: string; idempotencyKey?: string };
+export type AgendaReply = { reply: string; idempotencyKey?: string; slots?: Slot[] };
+// v75 (12/11/2026): título curto do botão de horário (limite da Meta: 24 caracteres na lista). Ex.: "Sex 13/11 às 14h".
+const DOW_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+// v76: emoji de calendário na frente (pedido da Dra.: botões com desenhos). Emoji ocupa 2 posições; o total continua ≤ 24.
+export const SLOT_ICON = '\u{1F4C6}';
+export function slotButtonTitle(s: Slot): string { return (SLOT_ICON + ' ' + `${DOW_SHORT[s.dow] || ''} ${s.date.slice(8, 10)}/${s.date.slice(5, 7)} às ${s.hour}h`.trim()).slice(0, 24); }
 
 export async function agendaTool(a: any, o: { orgId: string; conversationId: string; message: string; ctx: any; clientId: string | null; leadId: string | null; name: string; phone: string; policyId: string; dryRun: boolean; lastOutbound?: string }): Promise<string | AgendaReply> {
   const unavailable = { reply: 'Não consegui consultar a agenda agora. O horário ainda não foi confirmado.' };
@@ -164,6 +169,20 @@ export async function agendaTool(a: any, o: { orgId: string; conversationId: str
     }
     const person = who === 'dra' ? 'Dra. Suzanne' : 'assessora Gláucia';
     const intro = choice ? 'O horário escolhido não está mais disponível.\n\n' : '';
-    return { reply: `${intro}Horários para reunião online com a ${person} (horário de Brasília):\n\n${slots.map((slot, n) => `${n + 1}) ${slot.label}`).join('\n')}\n\nQual opção você prefere?` };
+    return { reply: `${intro}Horários para reunião online com a ${person} (horário de Brasília):\n\n${slots.map((slot, n) => `${n + 1}) ${slot.label}`).join('\n')}\n\nQual opção você prefere?`, slots };
   } catch (error) { console.error('agenda_tool_failed', error instanceof Error ? error.name : 'unknown'); return unavailable; }
 }
+
+// v77 (12/11/2026): cliente pede para falar com a Dra. -> Helena diz que ela está em atendimento e mostra dois botões
+// (deixar mensagem pelo aplicativo / agendar reunião). Pedido da Dra. Suzanne.
+export const CLIENT_APP_URL = 'https://lexoffice.univittagroup.com.br/cliente';
+const LAWYER_TALK_RE = /(falar com (a |o )?(dra|doutora|dr|doutor|advogad[ao]|suzanne|humano|atendente|pessoa|alguem|equipe)|quero (um |uma )?(humano|atendente|pessoa)|atendimento humano|me liga|me ligue|liga (pra|para) mim|ligar (pra|para) mim|pode me ligar|me telefona|(chama|chamar|passa|passar) (a |pra |para a? ?)?(dra|doutora|suzanne|advogada))/;
+export function lawyerTalkRequest(message: string): boolean {
+  const t = norm(message).trim();
+  if (!t || /^a cliente selecionou:/.test(t) || /^\[o cliente enviou/.test(t)) return false;
+  return LAWYER_TALK_RE.test(t);
+}
+export const LAWYER_BUTTONS = [{ id: 'falar_app', title: '\u{1F4F1} Mensagem pelo app' }, { id: 'falar_reuniao', title: '\u{1F4C6} Agendar reunião' }];
+const plainText = (s: string) => norm(s).replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+export const isAppChoice = (message: string) => plainText(message) === 'mensagem pelo app';
+export const LAWYER_BUSY_FALLBACK = 'A Dra. Suzanne está em atendimento neste momento.\n\nVocê pode deixar sua mensagem para ela pelo aplicativo ou agendar uma reunião online.';
