@@ -477,15 +477,30 @@ export default function ClientPortal() {
           body: JSON.stringify({ cpf: digits, access_code: code.trim() }),
         },
       );
-      const d = await r.json();
-      if (!r.ok || !d?.email || !d?.password) throw 0;
+      const d = await r.json().catch(() => null);
+      // Mensagens por motivo (antes toda falha aparecia como "código inválido").
+      if (r.status === 429) {
+        setErr(d?.message || "Muitas tentativas. Aguarde 15 minutos e tente novamente.");
+        return;
+      }
+      if (r.status === 401) {
+        setErr("CPF ou código de acesso inválido. Confira os dados enviados pelo escritório.");
+        return;
+      }
+      if (!r.ok || !d?.email || !d?.password) {
+        setErr("Não conseguimos entrar agora. Tente novamente em alguns minutos ou fale com o escritório.");
+        return;
+      }
       const a = await supabase.auth.signInWithPassword({
         email: d.email,
         password: d.password,
       });
-      if (a.error) throw 0;
+      if (a.error) {
+        setErr("Não conseguimos abrir sua sessão. Tente novamente em alguns minutos ou fale com o escritório.");
+        return;
+      }
     } catch {
-      setErr("CPF ou código de acesso inválido.");
+      setErr("Sem conexão com o escritório. Verifique sua internet e tente novamente.");
     } finally {
       setBusy(false);
     }
