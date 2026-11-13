@@ -1,3 +1,4 @@
+import { receptionReply } from './reception-reply.mjs';
 import { receptionMessages } from './reception-messages.mjs';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "jsr:@supabase/supabase-js@2.57.4";
@@ -499,6 +500,9 @@ Deno.serve(async req=>{
         showCollectionConfirmation=true;newCollectionContext={...ctx,negotiation_stage:'offered',proposed_text:message,projected_amount:projected,projected_extra_days:extraDays};
         if(!dryRun)await a.from('whatsapp_conversations').update({chatbot_context:newCollectionContext,updated_at:new Date().toISOString()}).eq('id',conversationId);
       }
+    }
+    if (!followup && !deterministic && !agendaReply && !wantsLawyer && !askIdentity && !showClientMenu && !showLeadMenu) {
+      deterministic = receptionReply(message, CLIENT_APP_URL);
     }
     if (!followup && !deterministic && !agendaReply) {
       const thanks=norm(message).trim();
