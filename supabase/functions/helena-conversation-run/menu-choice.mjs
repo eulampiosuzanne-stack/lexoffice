@@ -3,6 +3,6 @@ export function resolveMenuChoice(message, menu) {
   const match = message.trim().match(/^(?:op[cç][aã]o\s+)?(10|[1-9])[.!)]?$/i);
   const choice = match ? menu[Number(match[1]) - 1] : menu.find(item => item.id === message.trim());
   if (!choice || typeof choice.title !== 'string') return message;
-  if (String(choice.id).startsWith('slot:')) return message;
+  if (/^(slot|proc):/.test(String(choice.id))) return match ? match[1] : String(menu.indexOf(choice) + 1);
   return choice.title.replace(/^\p{Extended_Pictographic}\s*/u, '').trim();
 }

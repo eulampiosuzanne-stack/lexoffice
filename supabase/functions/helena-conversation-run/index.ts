@@ -1,3 +1,4 @@
+import { WELCOME, AWAY, LAWYER_BUSY, INITIAL, CLIENT, OTHER, isGreeting, routeMenuIntent } from './attendimento-menu.mjs';
 import { resolveMenuChoice } from './menu-choice.mjs';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "jsr:@supabase/supabase-js@2.57.4";
@@ -84,14 +85,6 @@ function withinBusinessHours(p:any):boolean{
   const now=toM(hm),a=toM(s),b=toM(e);
   return a<b?(now>=a&&now<b):(now>=a||now<b);
 }
-const SECTOR:Record<string,string>={billing:'Nosso setor financeiro',client_process_updates:'Nosso setor de acompanhamento processual',client_schedule_relationship:'Nosso setor de agendamento',client_service_triage:'Nosso atendimento',sales:'Nosso atendimento comercial',helena_chatbot:'Nosso atendimento'};
-function outOfHoursText(p:any,agentKey:string){
-  const bh=p?.business_hours||{};
-  const s=String(bh.start||'08:00').slice(0,5).replace(':00','h').replace(':','h'),e=String(bh.end||'18:00').slice(0,5).replace(':00','h').replace(':','h');
-  const wk=Array.isArray(bh.weekdays)&&bh.weekdays.map(Number).sort().join(',')==='1,2,3,4,5'?'de segunda a sexta-feira, ':'';
-  return `${SECTOR[agentKey]||'Nosso atendimento'} funciona ${wk}das ${s} às ${e}. Sua mensagem ficou registrada e retornaremos no próximo horário de atendimento.\n\nEm caso de urgência (risco à vida ou à integridade física, prisão ou prazo que vence hoje), descreva a situação aqui que a Dra. Suzanne será avisada.`;
-}
-
 const CRITICAL_RE=/(violencia|medida protetiva|agress|apanh|me bateu|bateu em|prisao|\bpres[oa]\b|delegacia|flagrante|ameac|risco de vida|suicid|sequestr|abuso|estupr|despejo hoje|audiencia hoje|prazo vence hoje)/;
 const HUMAN_REQ_RE=/(falar com (a |o )?(dra|doutora|dr|doutor|advogad[ao]|suzanne|humano|atendente|pessoa|alguem|equipe)|quero (um |uma )?(humano|atendente|pessoa)|atendimento humano|me liga|me ligue|liga (pra|para) mim|ligar (pra|para) mim|pode me ligar|me telefona|outro numero)/;
 const COMPLAINT_RE=/(procon|reclame aqui|denunciar|vou processar|processar voces|reclamacao formal|\boab\b)/;
@@ -270,8 +263,9 @@ Deno.serve(async req=>{
     const svc=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
     if(!await authenticateOfficeCaller(req,svc,Deno.env.get('SUPABASE_URL')||''))return J({ok:false},401);
     const b=await req.json().catch(()=>({}));
-    const orgId=String(b.org_id||''),conversationId=String(b.conversation_id||''),phone=String(b.phone||''),agentKey=String(b.agent_key||''),interactionMode=String(b.interaction_mode||'');
+    const orgId=String(b.org_id||''),conversationId=String(b.conversation_id||''),phone=String(b.phone||''),interactionMode=String(b.interaction_mode||'');
     let message=String(b.message||'').trim();
+    let agentKey=String(b.agent_key||'');
     const dryRun=b.dry_run===true;
     // v27 — retomada automática de lead parado (conversation-inactivity-worker): a "message" é a TAREFA, não fala do cliente.
     const followup=b.kind==='inactivity_followup';
@@ -288,6 +282,7 @@ Deno.serve(async req=>{
         message = resolveMenuChoice(message, lastReply.metadata?.decision_menu);
       }
     }
+    if (!followup) agentKey=routeMenuIntent(norm(message),agentKey);
     const officePlan=planOfficeModules(message,agentKey);
 
     const {data:pols}=await a.from('ai_agent_policies').select('*').eq('org_id',orgId).in('agent_key',[agentKey,'helena_chatbot']);
@@ -352,7 +347,7 @@ Deno.serve(async req=>{
     const leadConsult=agentKey==='billing'&&!conv?.client_id;
     if(!dryRun&&!followup&&!leadConsult&&!withinBusinessHours(policy)){
       const day=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo'}).format(new Date());
-      const r=await send(outOfHoursText(policy,agentKey),`ooh:${conversationId}:${agentKey}:${day}`);
+      const r=await send(AWAY,`ooh:${conversationId}:${day}`);
       return J({ok:true,skipped:'outside_business_hours',notice_sent:!!r.ok});
     }
     if(hand)return await doHandoff(hand);
@@ -385,8 +380,8 @@ Deno.serve(async req=>{
       let selectedProcess:any=null;
       if(pickedProc&&verifiedClientId){
         const {data:p}=await a.from('processes').select('id,cnj_number,subject,status').eq('org_id',orgId).eq('id',pickedProc.id).eq('client_id',verifiedClientId).maybeSingle();selectedProcess=p;
-      }else if(conv?.process_id){
-        const {data:p}=await a.from('processes').select('id,cnj_number,subject,status').eq('org_id',orgId).eq('id',conv.process_id).maybeSingle();selectedProcess=p;
+      }else if(conv?.process_id&&verifiedClientId){
+        const {data:p}=await a.from('processes').select('id,cnj_number,subject,status').eq('org_id',orgId).eq('id',conv.process_id).eq('client_id',verifiedClientId).maybeSingle();selectedProcess=p;
       }else if(verifiedClientId){
         const {data:ps}=await a.from('processes').select('id,cnj_number,subject,status,updated_at').eq('org_id',orgId).eq('client_id',verifiedClientId).neq('status','archived').order('updated_at',{ascending:false}).limit(10);
         if((ps||[]).length===1)selectedProcess=ps![0];
@@ -432,9 +427,9 @@ Deno.serve(async req=>{
     const showOtherMenu=!followup&&normalizedChoice==='outros assuntos';
     const showClientMenu=!followup&&/^(sou cliente|ja sou cliente|cliente)$/.test(normalizedChoice);
     const showLeadMenu=!followup&&/^(nao sou cliente|nao sou cliente mesmo|novo atendimento)$/.test(normalizedChoice);
-    const askIdentity=!followup&&!hasHistory&&!showClientMenu&&!showLeadMenu&&!showOtherMenu&&!lawyerTalkRequest(message);
+    const askIdentity=!followup&&!hasHistory&&!showClientMenu&&!showLeadMenu&&!showOtherMenu&&isGreeting(normalizedChoice);
     // v77: cliente pediu para falar com a Dra. -> "está em atendimento" + botões (mensagem pelo app / agendar reunião).
-    const wantsLawyer=!followup&&!!verifiedClientId&&agentKey!=='billing'&&lawyerTalkRequest(message);
+    const wantsLawyer=!followup&&!!verifiedClientId&&(lawyerTalkRequest(message)||/^falar com a dra\.?$/.test(normalizedChoice));
     const pickedApp=!followup&&!!verifiedClientId&&isAppChoice(message);
     // v68 — ferramentas reais: período excepcional (taxas) e agenda (horários reais + registro no calendário).
     const lastOutbound=String(([...(hist||[])].find((m:any)=>m.direction==='outbound')||{} as any).body||'');
@@ -494,7 +489,7 @@ Deno.serve(async req=>{
       rules.length?'REGRAS OBRIGATÓRIAS (configuradas pela Dra. Suzanne):\n- '+rules.join('\n- '):'',
       agentKey==='support_n1'?'SUPORTE N1 PARA RECLAMACOES: mantenha tom firme, institucional e impessoal. Nao discuta, nao ironize e nao ofereca acesso direto a advogada como resposta a pressao. Identifique a reclamacao concreta, consulte o historico autorizado e responda objetivamente com a providencia possivel. Se nao houver fato novo, informe que a demanda ja esta registrada e nao reabra debate repetitivo. Em ofensa, estabeleca limite respeitoso; se persistir, encerre somente a interacao abusiva e preserve canais para urgencias, prazos e deveres profissionais. Nunca dificulte reclamacoes legitimas ou ameace o cliente. Maximo de tres linhas e uma pergunta por vez.':'',
       'POLITICA DE COMUNICACAO: responda em no maximo tres linhas curtas, com espacamento legivel. Faca apenas uma pergunta por vez. Sem blocos de perguntas, desculpas desnecessarias, intimidade, bajulacao ou excesso de empatia. Tenha personalidade: segura, calorosa e objetiva; firme só quando precisar. Resolva a demanda com os dados autorizados da LexOffice e a base de conhecimento disponivel antes de solicitar atendimento humano. Nao transfira automaticamente por insistencia, insulto ou pedido de falar com a advogada. Em ofensas, advirta uma vez de modo formal, sem discutir; se persistirem, encerre a interacao abusiva preservando canais para urgencias e prazos. Nunca invente acesso a documentos ou consultas que nao foram realizadas.',
-      'Nunca invente processo, andamento, agenda, pagamento, honorários ou resultado jurídico.',
+      'Nunca invente processo, andamento, agenda, pagamento, honorários ou resultado jurídico. Só confirme recebimento de documento, registro de solicitação, agendamento ou pagamento se houver confirmação explícita da operação pelo LexOffice.',
       followup?'A pessoa parou de responder. Siga a TAREFA abaixo: escreva UMA mensagem curta de retomada, retomando exatamente o ponto em que a conversa parou, sem pressionar e sem inventar valores, datas ou informações.':'Responda somente ao que o cliente disse nas últimas mensagens (o bloco "MENSAGENS NOVAS DO CLIENTE"). Se ele não falou de processo, pagamento ou agenda agora, não traga esses assuntos. Se ele mandou várias mensagens, responda tudo numa única mensagem curta.',
       `DATA E HORA AGORA (Brasília): ${new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',weekday:'long',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date())}. Use para cumprimentar certo (bom dia até 12h, boa tarde até 18h, boa noite depois).`,
       askIdentity?'PRIMEIRO CONTATO DA CONVERSA: responda naturalmente ao que a pessoa escreveu, pergunte se já é cliente e apresente três opções curtas: "Sou cliente", "Não sou cliente" e "Outros assuntos". O canal pode exibir botões ou opções numeradas; a pessoa também pode ignorá-los e escrever livremente.':'',
@@ -519,6 +514,13 @@ Deno.serve(async req=>{
         if(!dryRun)await a.from('whatsapp_conversations').update({chatbot_context:newCollectionContext,updated_at:new Date().toISOString()}).eq('id',conversationId);
       }
     }
+    if(askIdentity)deterministic=WELCOME;
+    else if(showClientMenu)deterministic='Como podemos ajudar com seu atendimento?';
+    else if(showOtherMenu)deterministic='Qual assunto você gostaria de tratar?';
+    else if(wantsLawyer)deterministic=LAWYER_BUSY;
+    else if(pickedApp)deterministic=`Você pode deixar um recado para a Dra. Suzanne pelo aplicativo:\n\n${CLIENT_APP_URL}`;
+    else if(!followup&&normalizedChoice==='enviar documentos')deterministic=`Envie seus documentos pela Área do Cliente:\n\n${CLIENT_APP_URL}`;
+    else if(!followup&&normalizedChoice==='urgencia')deterministic='O que está acontecendo? Há risco imediato à integridade física de alguém?';
     let gwRes:Response|null=null;
     const agendaIntroMode=!!agendaReply?.slots?.length;
     if((!agendaReply||agendaIntroMode)&&!deterministic)try{gwRes=await fetch(`${url}/functions/v1/ai-provider-gateway`,{method:'POST',headers:{Authorization:`Bearer ${sk}`,apikey:sk,'Content-Type':'application/json'},body:JSON.stringify({org_id:orgId,conversation_id:conversationId,agent_key:agentKey,purpose:'whatsapp_reply_helena',provider:policy.provider||'auto',model:policy.model||'',instructions:agendaIntroMode?instructions+'\n\nTAREFA DESTA RESPOSTA (AGENDA): escreva SOMENTE uma frase curta de abertura, coerente com a conversa (sem repetir saudação se a conversa já começou), dizendo que seguem os horários disponíveis. NÃO escreva datas, dias da semana nem horários: eles serão listados logo abaixo pelo sistema.':instructions,input:followup?`HISTÓRICO DA CONVERSA:\n${recent}\n\nTAREFA (não é mensagem do cliente):\n${message}`:`HISTÓRICO DA CONVERSA:\n${recent}\n\nMENSAGENS NOVAS DO CLIENTE (responda a estas):\n${message}`}) ,signal:AbortSignal.timeout(50000)});}catch{console.error('helena_gateway_timeout_or_network');}
@@ -533,20 +535,9 @@ Deno.serve(async req=>{
     if(agendaReply?.slots?.length)interactive={type:'list',button:'Ver horários',rows:agendaReply.slots.slice(0,10).map((sl:any,i:number)=>({id:'slot:'+(i+1),title:slotButtonTitle(sl),description:String(sl.label||'').slice(0,72)}))};
     else if(processRows.length)interactive={type:'list',button:'Ver processos',rows:processRows};
     else if(wantsLawyer)interactive={type:'button',buttons:LAWYER_BUTTONS};
-    else if(askIdentity)interactive={type:'button',buttons:[{id:'ident_cliente',title:'Sou cliente'},{id:'ident_lead',title:'Não sou cliente'},{id:'ident_outros',title:'Outros assuntos'}]};
-    else if(showClientMenu)interactive={type:'list',button:'Como posso ajudar?',rows:[
-      {id:'client_process',title:'Meu processo',description:'Andamentos e prazos'},
-      {id:'client_docs',title:'Documentos',description:'Enviar ou solicitar documentos'},
-      {id:'client_finance',title:'Financeiro',description:'Pagamentos e honorários'},
-      {id:'client_urgent',title:'Urgência',description:'Situação que exige atenção prioritária'},
-      {id:'client_app_note',title:'Mensagem pelo app',description:'Enviar recado diretamente à Dra. Suzanne'},
-      {id:'client_meeting',title:'Solicitar reunião',description:'Reunião online em dia útil'}
-    ]};
-    else if(showOtherMenu)interactive={type:'list',button:'Como posso ajudar?',rows:[
-      {id:'other_docs',title:'Documentos',description:'Enviar ou solicitar documentos'},
-      {id:'other_urgent',title:'Urgência',description:'Informar risco imediato'},
-      {id:'other_message',title:'Deixar um recado',description:'Explique em poucas palavras'}
-    ]};
+    else if(askIdentity)interactive={type:'list',button:'Como podemos ajudar?',rows:INITIAL};
+    else if(showClientMenu)interactive={type:'list',button:'Como posso ajudar?',rows:CLIENT};
+    else if(showOtherMenu)interactive={type:'list',button:'Escolha o assunto',rows:OTHER};
     else if(showLeadMenu)interactive={type:'list',button:'Escolha o assunto',rows:[
       {id:'lead_family',title:'Família e Sucessões',description:'Família, guarda e inventário'},
       {id:'lead_consumer',title:'Consumidor e Bancário',description:'Contratos, banco e cobranças'},

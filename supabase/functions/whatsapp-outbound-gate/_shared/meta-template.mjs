@@ -63,7 +63,7 @@ export function buildInteractivePayload(to, message, interactive) {
 export function interactiveAsText(message, interactive) {
   const items = interactive?.type === 'button' ? interactive.buttons : interactive?.type === 'list' ? interactive.rows : null;
   if (!Array.isArray(items) || !items.length) return message;
-  return `${message}\n\n${items.map((x, i) => `${i + 1}) ${x.title}`).join('\n')}`;
+  return `${message}\n\n${items.map((x, i) => `${i + 1}) ${x.title}${x.description ? ` — ${x.description}` : ""}`).join('\n')}`;
 }
 
 // v85 (12/11/2026) — modelo com espaçamento (pedido da Dra.: o aviso num parágrafo só ficava "frio").

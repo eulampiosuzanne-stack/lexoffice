@@ -458,7 +458,7 @@ Deno.serve(async (req) => {
     const cooldownMs = cooldownMin * 60 * 1000;
     const a = admin();
     if (key) {
-      const { data: existing } = await a.from("whatsapp_outbound_gate_log").select("id,allowed,reason").eq("org_id", orgId).eq("idempotency_key", key).maybeSingle();
+      const { data: existing } = await a.from("whatsapp_outbound_gate_log").select("id,allowed,reason").eq("org_id", orgId).eq("idempotency_key", key).eq("allowed", true).limit(1).maybeSingle();
       if (existing && existing.allowed === true) return json({ ok: true, duplicate: true, allowed: true, reason: existing.reason });
     }
     // Envios do painel (whatsapp-operator-send usam chave "operator:") são humanos ou ordens da Dra.: nunca bloqueia.
