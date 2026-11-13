@@ -26,6 +26,7 @@ const ProcessIntake = lazy(() => import("./pages/ProcessIntake"));
 const Tribunals = lazy(() => import("./pages/Tribunals"));
 const CRM = lazy(() => import("./pages/CRM"));
 const Agents = lazy(() => import("./pages/Agents"));
+const SfCare = lazy(() => import("./pages/SfCare"));
 const WhatsApp = lazy(() => import("./pages/WhatsApp"));
 const Integrations = lazy(() => import("./pages/Integrations"));
 const Signatures = lazy(() => import("./pages/Signatures"));
@@ -807,6 +808,7 @@ export default function App() {
             <Route path="/processos/adicionar" element={<ProcessIntake />}/>
             <Route path="/tribunais" element={<Tribunals />}/>
             <Route path="/agentes-ia" element={<Agents />}/>
+            <Route path="/sf-care" element={<SfCare />}/>
             <Route path="/atendimento/aplicativo" element={<ClientArea />}/>
     <Route path="/app-cliente" element={<Navigate to="/atendimento/aplicativo" replace/>}/>
             <Route path="/whatsapp" element={<WhatsApp />}/>
