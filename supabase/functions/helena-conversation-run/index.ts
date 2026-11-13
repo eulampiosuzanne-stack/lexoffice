@@ -1,3 +1,4 @@
+import { decideConversation, needsSecureChannel } from './decisions.mjs';
 import { WELCOME, AWAY, LAWYER_BUSY, INITIAL, CLIENT, OTHER, isGreeting, routeMenuIntent } from './attendimento-menu.mjs';
 import { resolveMenuChoice } from './menu-choice.mjs';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -321,7 +322,27 @@ Deno.serve(async req=>{
     if(verifiedClientId&&!conv?.client_id&&!dryRun)await a.from('whatsapp_conversations').update({client_id:verifiedClientId}).eq('org_id',orgId).eq('id',conversationId);
     const ctx=conv?.chatbot_context||null;
     const summary=String(ctx?.summary||'').trim();
-    const dossier=await clientDossier(a,orgId,verifiedClientId);
+    // An inbound WhatsApp message does not establish a verified app session.
+    const quotedId=typeof b.quoted_external_id==='string'?b.quoted_external_id.trim().slice(0,256):'';
+    let noticeAgent='';
+    if(quotedId){
+      const {data:notice}=await a.from('whatsapp_messages').select('metadata')
+        .eq('org_id',orgId).eq('conversation_id',conversationId).eq('direction','outbound')
+        .eq('external_message_id',quotedId).limit(1).maybeSingle();
+      noticeAgent=String(notice?.metadata?.agent_key||'');
+    }
+    const intent=decideConversation(message,noticeAgent);
+    const audit=async(decision:string)=>{
+      if(dryRun)return;
+      const {error}=await a.from('ai_orchestrator_events').insert({
+        org_id:orgId,conversation_id:conversationId,agent_key:agentKey,
+        event_type:'helena_decision',decision,reason:intent,
+        metadata:{quoted_notice:Boolean(noticeAgent),matched_client:Boolean(verifiedClientId)}
+      });
+      if(error)console.error('helena_decision_audit_failed',error.code);
+    };
+    const dossier='WhatsApp sem autenticação do cliente. Não revele dados de processo, documentos, compromissos ou valores particulares.';
+
 
     const detectedHandoff=followup?null:handoffReason(policy,message,ctx);
     // Pedidos comuns de contato humano e reclamações permanecem na triagem assistida.
@@ -331,7 +352,7 @@ Deno.serve(async req=>{
       const office=String(q.customer_facing_office||'o escritório');
       const txt=h.critical
         ?`Sua mensagem indica uma situação urgente e será encaminhada para análise prioritária. Se houver risco imediato à sua segurança, ligue 190. Não aguarde uma resposta por aqui para buscar proteção.`
-        :`Entendi. Esse assunto precisa ser tratado em reunião com a Dra. Suzanne. Posso verificar os horários disponíveis?`;
+         : 'Vou encaminhar sua mensagem para a equipe continuar o atendimento.';
       const sent=await send(txt,`handoff:${conversationId}:${Date.now()}`);
       if(!dryRun){
         const now=new Date().toISOString();
@@ -341,7 +362,17 @@ Deno.serve(async req=>{
       return J({ok:true,sent:!!sent.ok||undefined,handoff:true,reason:h.reason,critical:h.critical,reply:txt,dry_run:dryRun||undefined});
     };
     // Urgência real nunca espera o horário comercial.
-    if(hand?.critical)return await doHandoff(hand);
+    if(hand?.critical||(!followup&&intent==='human')){
+      await audit('human_handoff');
+      return await doHandoff(hand||{reason:'explicit_human_request',critical:false});
+    }
+    if(!followup&&needsSecureChannel(intent,Boolean(verifiedClientId))){
+      const reply=`Para consultar essas informações com segurança, entre na Área do Cliente com seu acesso:\n\n${CLIENT_APP_URL}`;
+      await audit('secure_channel');
+      if(dryRun)return J({ok:true,dry_run:true,intent,decision:'secure_channel',reply});
+      const sent=await send(reply,String(b.idempotency_key||'')||`helena:${conversationId}:${Date.now()}`);
+      return J({ok:true,sent:sent.ok,decision:'secure_channel',gate_reason:sent.reason});
+    }
 
     // v28 — cobrança da CONSULTA para lead não fica presa ao horário do financeiro (PIX pode ser pago a qualquer hora).
     const leadConsult=agentKey==='billing'&&!conv?.client_id;
@@ -358,54 +389,17 @@ Deno.serve(async req=>{
       try{hotLead=await hotLeadAlert(a,url,sk,orgId,agentKey,conversationId,phone,message,ctx,dryRun)}catch(e){console.error('hotLeadAlert',e);hotLead={alerted:false,error:String(e)}}
     }
 
-    let collection:any=ctx?.collection_schedule_id?{...ctx}:null;
+    let collection:any=null;
     let openDebts='';
-    if(agentKey==='billing'){
+    if(agentKey==='billing'&&!verifiedClientId){
       const {data:cs}=await a.from('collection_settings').select('late_fee_percent,monthly_interest_percent').eq('org_id',orgId).maybeSingle();
       const late=Number(cs?.late_fee_percent??10),rate=Number(cs?.monthly_interest_percent??1);
       if(collection?.financial_entry_id){const {data:f}=await a.from('financial_entries').select('id,amount,due_date,status').eq('id',collection.financial_entry_id).maybeSingle();if(f){const c=await entryBalance(a,f,late,rate);collection={...collection,principal:c.base,updated_amount:c.updated,days_overdue:c.days,late_fee_percent:late,monthly_interest_percent:rate,paid_off:f.status==='paid'}}}
       if(verifiedClientId){const {data:fs}=await a.from('financial_entries').select('id,amount,due_date,description,status').eq('client_id',verifiedClientId).eq('type','income').in('status',['overdue','partial']).order('due_date').limit(10);const lines:string[]=[];let tot=0;for(const f of fs||[]){const c=await entryBalance(a,f,late,rate);if(c.base<=0)continue;tot+=c.updated;lines.push(`${f.description||'parcela'} (venc. ${brDate(f.due_date)}): saldo ${brl(c.base)} + multa ${brl(c.fee)} + juros ${brl(c.interest)} = ${brl(c.updated)} (${c.days} dias de atraso)`)}if(lines.length)openDebts=`DÉBITOS EM ABERTO DO CLIENTE, CALCULADOS PARA HOJE (${brDate(todaySP())}): ${lines.join(' | ')}. TOTAL ATUALIZADO HOJE: ${brl(Math.round(tot*100)/100)}. Multa de ${late}% e juros de ${rate}% ao mês pro rata, conforme contrato. Use exatamente estes valores; o saldo aumenta a cada dia até o pagamento.`}
     }
 
-    const talksProcess=/^a cliente selecionou:/i.test(message)||PROCESS_TOPIC_RE.test(norm(message));
-    let processUpdateContext='';
-    // v75: processo escolhido na lista de botões (ou digitando o número da opção / o número do processo).
-    const offeredProcs:any[]=Array.isArray(ctx?.offered_processes)&&Date.now()-Number(ctx?.offered_processes_at||0)<48*3600000?ctx.offered_processes:[];
-    // v76: compara sem emoji/pontuação (o título do botão vem com \u{1F4C2} na frente).
-    const plain=(s:any)=>norm(String(s||'')).replace(/[^a-z0-9\/ ]/g,' ').replace(/\s+/g,' ').trim();
-    const nmsg=plain(message);
-    const pickedProc=offeredProcs.find((p:any)=>(nmsg.length>0&&nmsg===plain(p.title))||(/^\d{1,2}$/.test(nmsg)&&Number(nmsg)===Number(p.n))||(D(message).length>=15&&D(p.cnj)===D(message)))||null;
-    let processRows:any[]=[];
-    if((agentKey==='client_process_updates'&&talksProcess)||pickedProc){
-      let selectedProcess:any=null;
-      if(pickedProc&&verifiedClientId){
-        const {data:p}=await a.from('processes').select('id,cnj_number,subject,status').eq('org_id',orgId).eq('id',pickedProc.id).eq('client_id',verifiedClientId).maybeSingle();selectedProcess=p;
-      }else if(conv?.process_id&&verifiedClientId){
-        const {data:p}=await a.from('processes').select('id,cnj_number,subject,status').eq('org_id',orgId).eq('id',conv.process_id).eq('client_id',verifiedClientId).maybeSingle();selectedProcess=p;
-      }else if(verifiedClientId){
-        const {data:ps}=await a.from('processes').select('id,cnj_number,subject,status,updated_at').eq('org_id',orgId).eq('client_id',verifiedClientId).neq('status','archived').order('updated_at',{ascending:false}).limit(10);
-        if((ps||[]).length===1)selectedProcess=ps![0];
-        else if((ps||[]).length>1){
-          const offered=(ps||[]).slice(0,10).map((p:any,i:number)=>({n:i+1,id:p.id,cnj:String(p.cnj_number||''),title:('\u{1F4C2} '+`${i+1}. ${String(p.subject||'Processo').trim()}`).slice(0,24)}));
-          processRows=offered.map((o:any)=>({id:'proc:'+o.id,title:o.title,description:(o.cnj?'Processo '+o.cnj:'Processo').slice(0,72)}));
-          if(!dryRun)await a.from('whatsapp_conversations').update({chatbot_context:{...(ctx||{}),offered_processes:offered,offered_processes_at:Date.now()},updated_at:new Date().toISOString()}).eq('id',conversationId);
-          processUpdateContext='O CLIENTE POSSUI MAIS DE UM PROCESSO. Em uma frase curta, diga que vai verificar e peça que escolha o processo na lista que aparece logo abaixo da mensagem (botão "Ver processos"). NÃO escreva a lista nem os números dos processos no texto. Não informe andamento antes da escolha.';
-        }
-        else processUpdateContext='NENHUM PROCESSO FOI LOCALIZADO PARA ESTE CLIENTE. Informe isso com cuidado e peça o número do processo para conferência.';
-      }
-      if(selectedProcess){
-        const {data:mv}=await a.from('process_movements').select('movement_date,title,description,client_message').eq('org_id',orgId).eq('process_id',selectedProcess.id).eq('approved_for_client',true).eq('is_sensitive',false).order('movement_date',{ascending:false}).limit(1).maybeSingle();
-        if(mv){
-          processUpdateContext='PROCESSO '+String(selectedProcess.cnj_number||selectedProcess.id)+'. ANDAMENTO MAIS RECENTE, EM '+String(mv.movement_date||'')+': '+String(mv.title||'')+'. TEXTO: '+String(mv.client_message||mv.description||mv.title||'').trim()+'. Primeiro informe o andamento e depois explique em linguagem simples, sem inventar informação, prazo ou providência ausente.';
-        }else{
-          const cnjDigits=String(selectedProcess.cnj_number||'').replace(/\\D/g,'');
-          const {data:pub}=await a.from('djen_publications').select('publication_date,availability_date,communication_type,organ,text_content').eq('org_id',orgId).or(`process_id.eq.${selectedProcess.id},process_number.eq.${selectedProcess.cnj_number||cnjDigits}`).order('publication_date',{ascending:false,nullsFirst:false}).limit(1).maybeSingle();
-          processUpdateContext=pub
-            ?'PROCESSO '+String(selectedProcess.cnj_number||selectedProcess.id)+'. FONTE ALTERNATIVA OFICIAL DJEN. PUBLICAÇÃO MAIS RECENTE EM '+String(pub.publication_date||pub.availability_date||'')+': '+String(pub.communication_type||'Publicação')+' — '+String(pub.organ||'órgão não informado')+'. TEXTO: '+String(pub.text_content||'').slice(0,1800)+'. Explique somente o conteúdo objetivo desta publicação. Não invente prazo, estratégia ou consequência jurídica.'
-            :'PROCESSO '+String(selectedProcess.cnj_number||selectedProcess.id)+'. A sincronização automática não encontrou movimentação disponível nem publicação DJEN vinculada. Informe objetivamente que o sistema não localizou novo andamento disponível neste momento e que será feita nova conferência, SEM transferir automaticamente a conversa para atendimento humano e SEM inventar movimentação.';
-        }
-      }
-    }
+    const processRows:any[]=[];
+    const processUpdateContext='';
     let pixInfo='';
     if(agentKey==='billing'||agentKey==='sales'){const {data:fs}=await a.from('financial_settings').select('pix_key,pix_key_type,beneficiary_name').eq('org_id',orgId).maybeSingle();if(fs?.pix_key)pixInfo=`Chave PIX cadastrada: ${fs.pix_key}; tipo: ${fs.pix_key_type||'não informado'}; favorecido: ${fs.beneficiary_name||'escritório'}.`;else{const {data:ws}=await a.from('whatsapp_settings').select('consultation_pix_key,consultation_pix_owner_name').eq('org_id',orgId).maybeSingle();if(ws?.consultation_pix_key)pixInfo=`Chave PIX cadastrada: ${ws.consultation_pix_key} (CPF); favorecido: ${ws.consultation_pix_owner_name||'Suzanne Figueiredo'}. O PIX pode ser pago a qualquer dia, inclusive fins de semana.`}}
 
@@ -555,6 +549,7 @@ Deno.serve(async req=>{
       return J({ok:true,queued_for_approval:true,office_modules:officePlan.modules,office_review:officeReview,agent_key:agentKey,hot_lead:hotLead||undefined});
     }
 
+    await audit(agendaReply?.idempotencyKey?'booking_confirmed':interactive?'menu':'reply');
     const gate=await send(reply,agendaReply?.idempotencyKey||String(b.idempotency_key||'')||`helena:${conversationId}:${Date.now()}`,interactive);
     if(!gate.ok)return J({ok:true,sent:false,gate_reason:gate.reason||'gate_blocked',hot_lead:hotLead||undefined});
 

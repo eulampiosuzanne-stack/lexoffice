@@ -83,3 +83,20 @@ test('concurrent dispatches reserve once and ambiguous sends stay blocked', asyn
   assert.equal((await reserveDispatch(db, anotherOffice)).external_message_id, 'provider-id');
   assert.equal((await reserveDispatch(db, { ...record, destination: 'recipient-b' })).state, 'reserved');
 });
+
+test('Helena classifies requests and keeps sensitive data in the authenticated app', async () => {
+  const { decideConversation, needsSecureChannel } = await import('../supabase/functions/helena-conversation-run/decisions.mjs');
+  const examples = {
+    'Meu processo': 'case', 'Quero segunda via': 'finance', 'Preciso enviar um PDF': 'document',
+    'Quero agendar': 'schedule', 'Quero falar com a Dra.': 'lawyer',
+    'Preciso de atendimento humano': 'human', 'Quero reclamar': 'complaint',
+    'Sofri ameaça': 'urgent', 'Quero propor uma parceria': 'administrative', 'Não entendi': 'clarify',
+  };
+  for (const [message, expected] of Object.entries(examples)) assert.equal(decideConversation(message), expected);
+  assert.equal(decideConversation('E agora?', 'client_process_updates'), 'case');
+  assert.equal(decideConversation('E agora?', 'billing'), 'finance');
+  assert.equal(decideConversation('Preciso agendar', 'billing'), 'schedule');
+  assert.ok(needsSecureChannel('case', false));
+  assert.ok(needsSecureChannel('finance', true));
+  assert.ok(!needsSecureChannel('finance', false));
+});
