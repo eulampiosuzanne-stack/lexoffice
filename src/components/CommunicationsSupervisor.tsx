@@ -1,3 +1,4 @@
+import CommunicationMetrics from './CommunicationMetrics';
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
@@ -49,6 +50,7 @@ export default function CommunicationsSupervisor() {
   }
 
   return <>
+    <CommunicationMetrics />
     <section className="ac-surface" aria-busy={busy}>
       <div className="ac-section-head">
         <h2>Aguardando aprovação</h2>
