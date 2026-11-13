@@ -274,7 +274,7 @@ Deno.serve(async req=>{
     const a=A();
     const url=Deno.env.get('SUPABASE_URL')!,sk=svc;
 
-    if (!followup && /^(?:(?:op[cç][aã]o\s+)?(?:10|[1-9])[.!)]?|[a-z]+_[a-z_]+)$/i.test(message)) {
+    if (!followup && /^(?:(?:op[cç][aã]o\s+)?(?:10|[1-9])[.!)]?|[a-z]+_[a-z_]+|(?:proc|slot):[a-z0-9-]+)$/i.test(message)) {
       const { data: lastReply } = await a.from('whatsapp_messages')
         .select('metadata,created_at').eq('org_id',orgId).eq('conversation_id',conversationId)
         .eq('direction','outbound').order('created_at',{ascending:false}).limit(1).maybeSingle();

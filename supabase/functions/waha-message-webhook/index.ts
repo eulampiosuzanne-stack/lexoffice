@@ -53,7 +53,7 @@ if(!v){
  const created=await a.from('whatsapp_conversations').insert({org_id:c.org_id,contact_id:c.id,client_id:c.client_id||null,status:'open',bot_ativo:true,conversation_owner:'HELENA'}).select('id,org_id,bot_ativo,conversation_owner,last_human_outbound_at,owner_agent_key').single();
  if(created.error)throw created.error;
  v=created.data;
-}const now=new Date().toISOString();await a.from('whatsapp_conversations').update({last_message_at:now,last_message_preview:body||'[mídia]',updated_at:now}).eq('id',v.id);const media=p.image||p.audio||p.video||p.document||null;
+}const now=new Date().toISOString();await a.from('whatsapp_conversations').update({last_message_at:now,last_message_preview:body||'[mídia]',updated_at:now}).eq('id',v.id);const media=p.media||(p.image?{...p.image,mimetype:p.image.mimetype||'image/unknown'}:null)||(p.audio?{...p.audio,mimetype:p.audio.mimetype||'audio/unknown'}:null)||(p.video?{...p.video,mimetype:p.video.mimetype||'video/unknown'}:null)||p.document||(p.hasMedia?{}:null);
 const externalId=typeof p.id==='string'?p.id:String(p.id?._serialized||p.messageId||'').trim()||null;
 const inserted=await a.from('whatsapp_messages').insert({org_id:v.org_id,conversation_id:v.id,direction:p.fromMe?'outbound':'inbound',message_type:incomingMessageType(media),body:body||null,external_message_id:externalId,status:p.fromMe?'sent':'received',metadata:{source:p.source||'waha',media,selected_option:body||null}}).select('id').maybeSingle();
 if(inserted.error){if(inserted.error.code==='23505')return J({ok:true,event:'duplicate'});throw inserted.error}
@@ -85,7 +85,9 @@ if(p.fromMe){
     return J({ok:true,event:'human_takeover',conversation_id:v.id});
   }
   return J({ok:true,event:'outbound_recorded'});
-}const normalized=body.normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9 ]/g,' ').replace(/\\s+/g,' ').trim();
+}
+if(v.bot_ativo===false||v.conversation_owner==='HUMAN')return J({ok:true,event:'human_owner'});if(v.last_human_outbound_at){const t=new Date(v.last_human_outbound_at).getTime();if(Number.isFinite(t)&&Date.now()-t<1200000)return J({ok:true,event:'human_cooldown'})}
+const normalized=body.normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9 ]/g,' ').replace(/\\s+/g,' ').trim();
 const wantsAccess=/\\bQUERO\\b.*\\b(ACESSO|APP|APLICATIVO)\\b|\\b(ACESSO|APP|APLICATIVO)\\b.*\\bQUERO\\b|\\bPODE\\b.*\\b(LIBERAR|ENVIAR)\\b.*\\b(ACESSO|APP|APLICATIVO)\\b/.test(normalized);
 if(wantsAccess&&c.client_id){
   const {data:cl}=await a.from('clients').select('id,org_id,name,cpf_cnpj,whatsapp,phone,status').eq('id',c.client_id).maybeSingle();
@@ -106,7 +108,7 @@ if(wantsAccess&&c.client_id){
     return J({ok:true,event:'client_app_access_sent',conversation_id:v.id});
   }
 }
-if(v.bot_ativo===false||v.conversation_owner==='HUMAN')return J({ok:true,event:'human_owner'});if(v.last_human_outbound_at){const t=new Date(v.last_human_outbound_at).getTime();if(Number.isFinite(t)&&Date.now()-t<1200000)return J({ok:true,event:'human_cooldown'})}await a.from('whatsapp_conversations').update({conversation_owner:'HELENA',updated_at:now}).eq('id',v.id);const messageNorm=body.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+const messageNorm=body.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
 const explicitAgent=/meu processo|andamento|audi[eê]ncia|prazo/.test(messageNorm)?'client_process_updates':
   /financeiro|pagamento|boleto|honor[aá]rio|pix/.test(messageNorm)?'billing':
   /agendar|reuni[aã]o|consulta|mensagem pelo app|recado para a dra|falar com a dra/.test(messageNorm)?'client_schedule_relationship':null;
