@@ -1,3 +1,4 @@
+import { reserveDispatch, finishDispatch } from './_shared/dispatch-reservation.mjs';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2.57.4";
 import { panelTakeover } from "../_shared/panel-takeover.ts";
@@ -446,7 +447,7 @@ Deno.serve(async (req) => {
     const reactiveKeys = new Set(["helena_chatbot","client_service_triage","sales","client_schedule_relationship","scheduler","closer","legal_triage","support_n1","sdr"]);
     const humanRequested = b.operator_send === true || String(key || "").startsWith("operator:");
     const automatedPrefix = /^(notification:|collection:|alert:|process-notification:|lexsign-remind-)/i.test(String(key || ""));
-    const proactive = b.proactive === true || (!humanRequested && (automatedPrefix || (!reactiveKeys.has(agentKey) && agentKey !== "system" && agentKey !== "helena_office")));
+    const proactive = b.proactive === true || (!humanRequested && !String(key || "").startsWith("helena:") && (automatedPrefix || (!reactiveKeys.has(agentKey) && agentKey !== "system" && agentKey !== "helena_office")));
     if (proactive && !humanRequested) {
       const parts = new Intl.DateTimeFormat("en-US",{timeZone:"America/Sao_Paulo",weekday:"short",hour:"2-digit",hourCycle:"h23"}).formatToParts(new Date());
       const weekday = parts.find(p=>p.type==="weekday")?.value || "";
@@ -491,6 +492,8 @@ Deno.serve(async (req) => {
       .filter("settings->>provider","eq","waha").filter("settings->>channel_enabled","eq","true").maybeSingle();
     const providerName = officeWaha ? "waha" : (["meta","uazapi"].includes(String(b.force_provider||"")) ? String(b.force_provider) : await activeProvider(a));
     await trace(a, orgId, conversationId, agentKey, "ready_to_send", { provider: providerName });
+    let reservation = null;
+    let accepted = false;
     try {
       // Recheck immediately before provider submission: an operator may have taken over while the reply was prepared.
       if (panelAutomated) {
@@ -504,6 +507,14 @@ Deno.serve(async (req) => {
           const policy = await a.from("ai_agent_policies").select("active,allowed_channels").eq("org_id", orgId).eq("agent_key", agentKey).maybeSingle();
           if (policy.error || policy.data?.active !== true || !policy.data?.allowed_channels?.includes("whatsapp")) return json({ ok: true, allowed: false, reason: "agent_not_authorized" });
         }
+      }
+      if (key && !humanRequested) {
+        const dispatch = { org_id: orgId, dispatch_key: key, destination: digits(target) || target,
+          conversation_id: conversationId, agent_key: agentKey, provider: providerName };
+        const claim = await reserveDispatch(a, dispatch);
+        if (claim.state === "accepted") return json({ ok: true, allowed: true, duplicate: true, external_message_id: claim.external_message_id });
+        if (claim.state !== "reserved") return json({ ok: false, allowed: false, reason: claim.state === "uncertain" ? "delivery_uncertain" : "dispatch_in_progress" }, 409);
+        reservation = dispatch;
       }
       const delay = automated ? Number(b.delay_seconds || 0) : 0;
       let usedProvider = providerName, metaError = "";
@@ -534,6 +545,11 @@ Deno.serve(async (req) => {
         : await evolutionSend(a, orgId, target, interactiveAsText(message, interactive), delay, b.typing_indicator === true, image, caption, document, fileName);
       await log(a, { org_id: orgId, conversation_id: conversationId, agent_key: agentKey, allowed: true, reason: "sent_" + usedProvider + (metaError ? " | meta:" + metaError.slice(0, 120) : ""), body_preview: previewForLog(message, 240), idempotency_key: key });
       const externalId = String(provider?.messageid || provider?.key?.id || provider?.zaapId || provider?.messageId || provider?.id || "") || null;
+      accepted = true;
+      if (reservation) {
+        try { await finishDispatch(a, reservation, "accepted", externalId); }
+        catch (error) { console.error("dispatch_acceptance_write_failed", error?.code); }
+      }
       const menuItems = interactive?.type === "button" ? interactive.buttons : interactive?.type === "list" ? interactive.rows : null;
       const decisionMenu = Array.isArray(menuItems) ? menuItems.map(({ id, title }) => ({ id, title })) : null;
       if (conversationId && automated) {
@@ -544,6 +560,10 @@ Deno.serve(async (req) => {
       }
       return json({ ok: true, allowed: true, provider: usedProvider, meta_error: metaError || undefined, phone: digits(target), external_message_id: externalId, provider_response: provider, parsed_reply: formatted.parsedReply, formatted_reply: message });
     } catch (e) {
+      if (reservation && !accepted) {
+        try { await finishDispatch(a, reservation, "uncertain"); }
+        catch (error) { console.error("dispatch_failure_write_failed", error?.code); }
+      }
       const err = e instanceof Error ? e.message : String(e);
       await log(a, { org_id: orgId, conversation_id: conversationId, agent_key: agentKey, allowed: false, reason: providerName + "_send_failed:" + err.slice(0, 180), body_preview: previewForLog(message, 240), idempotency_key: key });
       await trace(a, orgId, conversationId, agentKey, "provider_error", { reason: providerName + "_send_failed", error: err });
