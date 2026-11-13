@@ -1,0 +1,14 @@
+﻿import assert from 'node:assert/strict';
+import {HELENA_MENUS} from '../src/lib/helena/menu-contract.ts';
+import {buildWahaList,extractWahaChoice,shouldShowMenu} from '../src/lib/helena/waha-menu-adapter.ts';
+const payload = buildWahaList('lexoffice','31999999999@c.us','start',HELENA_MENUS.start);
+assert.equal(payload.sections[0].rows.length,3);
+assert.equal(payload.sections[0].rows[0].id,'start:client');
+assert.equal(extractWahaChoice({payload:{selectedRowId:'start:client'}}),'start:client');
+assert.equal(extractWahaChoice({payload:{listResponse:{id:'start:new'}}}),'start:new');
+assert.equal(extractWahaChoice({payload:{body:'Gostaria de falar sobre pensão'}}),null);
+assert.equal(shouldShowMenu('oi',false),true);
+assert.equal(shouldShowMenu('Preciso de ajuda com meu processo',false),false);
+assert.equal(shouldShowMenu('oi',true),false);
+assert.throws(()=>buildWahaList('lexoffice','bad','start',HELENA_MENUS.start));
+console.log('WAHA payload adapter: 8 contract assertions passed (no live provider request).');
