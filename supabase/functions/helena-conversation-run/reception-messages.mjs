@@ -9,7 +9,7 @@ export const receptionMessages = Object.freeze({
   document_copy: 'Por segurança, consulte os documentos disponíveis na Área do Cliente.',
   request_received: 'Sua solicitação foi registrada.',
   request_review: 'Sua solicitação está em análise pela equipe.',
-  request_information: 'Precisamos de mais informações para seguir com sua solicitação.',
+  request_information: 'Você pode consultar o andamento da sua solicitação pela Área do Cliente.',
   request_closed: 'Sua solicitação foi concluída. Você pode consultar a atualização pela Área do Cliente.',
   case_access: 'Você pode consultar seu processo com segurança na Área do Cliente.',
   case_unverified: 'Ainda preciso confirmar o vínculo antes de consultar informações do processo.',
