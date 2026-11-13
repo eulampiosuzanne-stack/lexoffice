@@ -58,7 +58,7 @@ export default function CommunicationsSupervisor() {
       {notice && <p role="status">{notice}</p>}
       {!queue.length && !busy && !error && <p>Nenhuma comunicação pendente nesta fila.</p>}
       {queue.map(item => <details key={item.id} className="ac-disclosure">
-        <summary>{item.event_kind.replaceAll('_', ' ')} · {new Date(item.created_at).toLocaleDateString('pt-BR')}</summary>
+        <summary>{item.event_kind.replace(/_/g, ' ')} · {new Date(item.created_at).toLocaleDateString('pt-BR')}</summary>
         <p>{item.source_verified ? 'Fonte verificada' : 'Fonte pendente de verificação'}</p>
         <p>Cliente {item.client_id}{item.process_id && <> · Processo {item.process_id}</>}</p>
         <label>Mensagem<textarea rows={4} maxLength={2000} value={drafts[item.id] ?? item.message}
