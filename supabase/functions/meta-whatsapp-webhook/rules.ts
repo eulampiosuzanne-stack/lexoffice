@@ -26,7 +26,7 @@ export const TXT = {
   afterHours: "🌙 Nosso atendimento é de segunda a sexta, das 8h às 18h. Sua mensagem foi registrada e respondemos no próximo dia útil.\n\nAtendimentos fora do horário têm *taxa adicional*.",
   afterNext: "✅ Combinado! Retornamos no próximo dia útil.",
   afterUrgent: "🚨 Recebido. A Dra. Suzanne foi avisada agora.\n\nLembramos que o atendimento fora do horário tem taxa adicional.",
-  vip: (n: string) => `Olá${n ? ", " + n : ""}! 😊 Sua mensagem foi recebida e encaminhada à Dra. Suzanne. Ela continua o atendimento por aqui.`,
+  vip: (n: string) => `Oi${n ? ", " + n : ""}!\n\nJá vi sua mensagem.\n\nA Dra. Suzanne continua com você por aqui.`,
   urgentPrompt: "🚨 Atendimento prioritário. Por gentileza, descreva brevemente o ocorrido e informe se existe risco imediato ou prazo judicial próximo.",
   draPrompt: "Para direcionar sua solicitação à Dra. Suzanne, selecione uma das opções.",
   draSchedule: "As reuniões com a Dra. Suzanne são realizadas de segunda a sexta-feira, das 13h às 18h, mediante disponibilidade. Seu pedido será encaminhado para consulta da agenda.",
