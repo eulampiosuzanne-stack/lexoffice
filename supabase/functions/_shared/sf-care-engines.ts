@@ -1,6 +1,6 @@
 // SF Private Care — motores determinísticos de proposta, sem disparo automático.
 // A camada de execução deve persistir as propostas em fila auditável e exigir aprovação.
-import { planejarRelacionamento, deduplicar, type Cliente, type Processo, type Proposta } from "./sf-proactive-relationship.ts";
+import { planejarRelacionamento, deduplicar, type Cliente, type Processo, type Proposta, type PendenciaRelacionamento } from "./sf-proactive-relationship.ts";
 
 export type EventoSF =
   | { kind:"phase_changed"; process_id:string; phase:string; verified_at:string; explanation:string }
@@ -11,6 +11,7 @@ export type EventoSF =
 
 export type ContextoSF = {
   cliente:Cliente; processos:Processo[]; agora:Date; ultimaInteracao?:string|null;
+  pendencias?:PendenciaRelacionamento[];
   eventos:EventoSF[]; chavesEnviadas:Set<string>; chavesPendentes:Set<string>;
   humanoAtivo:boolean; ultimaMensagemHumana?:string|null; urgente:boolean;
   bloqueioFinanceiro:boolean; janelaMetaAberta:boolean; modeloMetaAprovado:boolean;
@@ -47,7 +48,7 @@ export function planejarMotoresSF(ctx:ContextoSF):PropostaSF[]{
         `Olá, ${name}! Temos uma atualização verificada do seu processo. ${e.explanation}`,"audio",e.movement_id);
     } else if(e.kind==="hearing"&&validDate(e.scheduled_at)&&e.preparation.trim()){
       const d=daysUntil(e.scheduled_at,agora);
-      if(d===7||d===1)add("hearing_preparation",e.process_id,`hearing:${e.hearing_id}:D-${d}`,
+      if(d===7||d===3||d===1)add("hearing_preparation",e.process_id,`hearing:${e.hearing_id}:D-${d}`,
         `Olá, ${name}! Sua audiência se aproxima. ${e.preparation}`,"text",e.hearing_id);
     } else if(e.kind==="onboarding"&&e.contract_verified){
       add("onboarding_video",e.process_id,`onboarding:${cliente.id}`,
@@ -57,7 +58,7 @@ export function planejarMotoresSF(ctx:ContextoSF):PropostaSF[]{
         `Olá, ${name}! Preparamos orientações para os documentos do seu processo. ${e.instructions}`,"text",e.request_id);
     }
   }
-  for(const p of planejarRelacionamento(cliente,ctx.processos,agora,ctx.ultimaInteracao)){
+  for(const p of planejarRelacionamento(cliente,ctx.processos,agora,ctx.ultimaInteracao,ctx.pendencias)){
     proposals.push({...p,channel:ctx.janelaMetaAberta||ctx.modeloMetaAprovado?"whatsapp":"app",media:"text",source_id:p.process_id});
   }
   const seen=new Set([...ctx.chavesEnviadas,...ctx.chavesPendentes]);
@@ -72,7 +73,7 @@ export function planejarMotoresSF(ctx:ContextoSF):PropostaSF[]{
 // Não executa envios: a camada de transporte ainda deve revalidar consentimento,
 // autorização Meta, opt-out, idempotência, limite diário e horário permitido.
 export function elegivelParaEnvioAutomatico(proposta:PropostaSF, ctx:ContextoSF):boolean{
-  const rotina=new Set(["hearing_preparation","document_checklist","care_checkin"]);
+  const rotina=new Set(["hearing_preparation","document_checklist"]);
   if(!rotina.has(proposta.kind)||proposta.media!=="text"||proposta.channel!=="whatsapp")return false;
   if(!ctx.cliente.opt_in||ctx.cliente.opt_out||ctx.humanoAtivo||ctx.urgente||ctx.bloqueioFinanceiro)return false;
   if(ctx.ultimaMensagemHumana&&validDate(ctx.ultimaMensagemHumana)&&elapsedMinutes(ctx.ultimaMensagemHumana,ctx.agora)<20)return false;
