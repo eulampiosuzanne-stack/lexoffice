@@ -55,6 +55,9 @@ if(!v){
  v=created.data;
 }const now=new Date().toISOString();await a.from('whatsapp_conversations').update({last_message_at:now,last_message_preview:body||'[mídia]',updated_at:now}).eq('id',v.id);const media=p.media||(p.image?{...p.image,mimetype:p.image.mimetype||'image/unknown'}:null)||(p.audio?{...p.audio,mimetype:p.audio.mimetype||'audio/unknown'}:null)||(p.video?{...p.video,mimetype:p.video.mimetype||'video/unknown'}:null)||p.document||(p.hasMedia?{}:null);
 const externalId=typeof p.id==='string'?p.id:String(p.id?._serialized||p.messageId||'').trim()||null;
+const sourceKind=String(p.source||b.source||'').toLowerCase();
+if(!p.fromMe&&(/^(api|automation|agent|bot|lexoffice)$/.test(sourceKind)||String(externalId||'').startsWith('true_')))return J({ok:true,ignored:'system_echo'});
+if(!p.fromMe&&!externalId)return J({ok:true,ignored:'missing_event_id'});
 const inserted=await a.from('whatsapp_messages').insert({org_id:v.org_id,conversation_id:v.id,direction:p.fromMe?'outbound':'inbound',message_type:incomingMessageType(media),body:body||null,external_message_id:externalId,status:p.fromMe?'sent':'received',metadata:{source:p.source||'waha',media,selected_option:body||null}}).select('id').maybeSingle();
 if(inserted.error){if(inserted.error.code==='23505')return J({ok:true,event:'duplicate'});throw inserted.error}
 if(p.fromMe){
@@ -87,6 +90,14 @@ if(p.fromMe){
   return J({ok:true,event:'outbound_recorded'});
 }
 if(v.bot_ativo===false||v.conversation_owner==='HUMAN')return J({ok:true,event:'human_owner'});if(v.last_human_outbound_at){const t=new Date(v.last_human_outbound_at).getTime();if(Number.isFinite(t)&&Date.now()-t<1200000)return J({ok:true,event:'human_cooldown'})}
+if(body){
+ const claim=await a.rpc('claim_waha_active_reply',{p_org:v.org_id,p_conversation:v.id,p_event:externalId});
+ if(claim.error)throw claim.error;
+ if(claim.data!=='claimed'){
+   console.info('waha_active_reply_blocked',JSON.stringify({conversation_id:v.id,reason:claim.data}));
+   return J({ok:true,event:claim.data});
+ }
+}
 const normalized=body.normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9 ]/g,' ').replace(/\\s+/g,' ').trim();
 const wantsAccess=/\\bQUERO\\b.*\\b(ACESSO|APP|APLICATIVO)\\b|\\b(ACESSO|APP|APLICATIVO)\\b.*\\bQUERO\\b|\\bPODE\\b.*\\b(LIBERAR|ENVIAR)\\b.*\\b(ACESSO|APP|APLICATIVO)\\b/.test(normalized);
 if(wantsAccess&&c.client_id){
