@@ -14,7 +14,7 @@ export default function SfCare(){
   if(!user||authError){if(live){setError('Entre com sua conta para acessar o SF Care.');setLoading(false)}return}
   const {data:profile,error:profileError}=await supabase.from('profiles').select('org_id,role_key').eq('id',user.id).maybeSingle();
   if(!live)return;
-  if(profileError||!profile?.org_id||!['owner','lawyer'].includes(profile.role_key)){setError('Acesso restrito à equipe jurídica autorizada.')}
+  if(profileError||!profile?.org_id||!['owner','admin','lawyer','responsible_lawyer'].includes(profile.role_key)){setError('Acesso restrito à equipe jurídica autorizada.')}
   else setOrgId(profile.org_id);
   setLoading(false);
  })();return()=>{live=false}},[]);
