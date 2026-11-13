@@ -47,7 +47,7 @@ export function planejarMotoresSF(ctx:ContextoSF):PropostaSF[]{
         `Olá, ${name}! Temos uma atualização verificada do seu processo. ${e.explanation}`,"audio",e.movement_id);
     } else if(e.kind==="hearing"&&validDate(e.scheduled_at)&&e.preparation.trim()){
       const d=daysUntil(e.scheduled_at,agora);
-      if(d===7||d===1)add("hearing_preparation",e.process_id,`hearing:${e.hearing_id}:D-${d}`,
+      if(d===7||d===3||d===1)add("hearing_preparation",e.process_id,`hearing:${e.hearing_id}:D-${d}`,
         `Olá, ${name}! Sua audiência se aproxima. ${e.preparation}`,"text",e.hearing_id);
     } else if(e.kind==="onboarding"&&e.contract_verified){
       add("onboarding_video",e.process_id,`onboarding:${cliente.id}`,
