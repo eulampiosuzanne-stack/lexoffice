@@ -501,6 +501,9 @@ Deno.serve(async req=>{
         if(!dryRun)await a.from('whatsapp_conversations').update({chatbot_context:newCollectionContext,updated_at:new Date().toISOString()}).eq('id',conversationId);
       }
     }
+    if (!followup && !deterministic && !agendaReply && officeReview.status === 'pending_review' && officeReview.id) {
+      deterministic = receptionMessages.request_received + ' ' + receptionMessages.request_review;
+    }
     if (!followup && !deterministic && !agendaReply && !wantsLawyer && !askIdentity && !showClientMenu && !showLeadMenu) {
       deterministic = receptionReply(message, CLIENT_APP_URL);
     }
