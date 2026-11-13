@@ -1,0 +1,16 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import {classificarProcessoSF, bastidoresVerificados, ajuizamentoConfirmado} from "./sf-care-lifecycle.ts";
+import {planejarMotoresSF} from "./sf-care-engines.ts";
+const date="2026-11-10T12:00:00Z";
+const evidence=(tipo)=>[{id:"ev1",tipo,confirmada:true,data:date}];
+const empty={recurso:false,execucao:false,cumprimento_sentenca:false,obrigacao_pendente:false,providencia_escritorio:false};
+const base={cliente:{id:"c1",name:"Ana Silva",status:"ativo",opt_in:true,opt_out:false},processos:[{id:"p1",status:"ativo",updated_at:null,last_movement_at:null,last_verified_at:null}],agora:new Date(date),ultimaInteracao:date,eventos:[],chavesEnviadas:new Set(),chavesPendentes:new Set(),humanoAtivo:false,urgente:false,bloqueioFinanceiro:false,janelaMetaAberta:false,modeloMetaAprovado:false};
+test("sentenca nao encerra",()=>assert.equal(classificarProcessoSF(evidence("sentenca"),empty,true).status,"revisao_encerramento"));
+test("execucao impede encerramento",()=>assert.equal(classificarProcessoSF(evidence("baixa_definitiva"),{...empty,execucao:true},true).status,"ativo"));
+test("baixa e validacao encerram",()=>assert.equal(classificarProcessoSF(evidence("baixa_definitiva"),empty,true).status,"encerrado_confirmado"));
+test("bastidores apenas providencias reais",()=>assert.equal(bastidoresVerificados("p1",[{id:"a",process_id:"p1",realizada_em:date,descricao:"Consulta ao tribunal",confirmada:true},{id:"b",process_id:"p1",realizada_em:date,descricao:"",confirmada:true}]).length,1));
+test("ajuizamento confirmado",()=>assert.equal(ajuizamentoConfirmado("p1",evidence("ajuizamento"))?.id,"ev1"));
+test("ajuizamento gera proposta sem envio",()=>{const result=planejarMotoresSF({...base,eventos:[{kind:"filing_verified",process_id:"p1",filing_id:"ev1",verified_at:date,explanation:"Protocolo confirmado"}]});assert.equal(result.length,1);assert.equal(result[0].kind,"filing_card");assert.equal(result[0].requires_approval,true)});
+test("encerrado nao gera andamento nem checkin",()=>assert.equal(planejarMotoresSF({...base,classificacoes:{p1:"encerrado_confirmado"},ultimaInteracao:null,eventos:[{kind:"movement_verified",process_id:"p1",movement_id:"m1",verified_at:date,explanation:"Andamento"}]}).length,0));
+test("um processo encerrado nao bloqueia outro ativo",()=>{const result=planejarMotoresSF({...base,processos:[...base.processos,{...base.processos[0],id:"p2"}],classificacoes:{p1:"encerrado_confirmado",p2:"ativo"},eventos:[{kind:"movement_verified",process_id:"p2",movement_id:"m2",verified_at:date,explanation:"Andamento"}]});assert.equal(result.length,1)});
