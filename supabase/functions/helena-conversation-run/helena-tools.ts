@@ -146,7 +146,13 @@ export async function agendaTool(a: any, o: { orgId: string; conversationId: str
       if (error || !data) { console.error('agenda_booking_failed', error?.code); return unavailable; }
       if (data.status === 'booked' && data.id) {
         const who = data.who === 'dra' ? 'Dra. Suzanne' : 'assessora Gláucia';
-        return { reply: `Sua reunião online com a ${who} está confirmada para ${data.label}, no horário de Brasília.`, idempotencyKey: `helena-booking:${data.id}` };
+        const label = typeof data.label === 'string' ? data.label : '';
+        const confirmed = /^(.+), às (\d{1,2}h(?:\d{2})?)$/.exec(label);
+        if (!confirmed) return unavailable;
+        const reply = receptionMessages.schedule_confirmed
+          .replace('{date}', () => confirmed[1])
+          .replace('{time}', () => confirmed[2]);
+        return { reply: `${reply}\nReunião online com a ${who}.`, idempotencyKey: `helena-booking:${data.id}` };
       }
       if (!['unavailable', 'expired'].includes(data.status)) return unavailable;
     }
