@@ -1,0 +1,10 @@
+import {test} from "node:test";
+import assert from "node:assert/strict";
+import {cardSF,enquetesSF,encaminharRespostaSF} from "./sf-care-interactions.ts";
+test("card processual exige evidência",()=>assert.throws(()=>cardSF({id:"1",process_id:"p1",category:"processual",title:"Processo ajuizado",body:"Confirmado",source_id:null})));
+test("card validado aguarda aprovação",()=>assert.equal(cardSF({id:"1",process_id:"p1",category:"processual",title:"Processo ajuizado",body:"Confirmado",source_id:"ev1"}).requires_approval,true));
+test("enquetes oferecem escolhas reais",()=>assert.equal(enquetesSF.length,2));
+test("resposta pede Helena",()=>assert.equal(encaminharRespostaSF({client_id:"c1",poll_id:"orientacoes",option_id:"documentos",inbound_event_id:"evt1",verified_identity:true},new Set())?.route,"helena"));
+test("pedido de ajuda vai para humano",()=>assert.equal(encaminharRespostaSF({client_id:"c1",poll_id:"experiencia",option_id:"ajuda",inbound_event_id:"evt2",verified_identity:true},new Set())?.route,"revisao_humana"));
+test("evento repetido não roteia",()=>assert.equal(encaminharRespostaSF({client_id:"c1",poll_id:"experiencia",option_id:"ajuda",inbound_event_id:"evt2",verified_identity:true},new Set(["evt2"])),null));
+test("identidade não verificada não roteia",()=>assert.equal(encaminharRespostaSF({client_id:"c1",poll_id:"experiencia",option_id:"ajuda",inbound_event_id:"evt2",verified_identity:false},new Set()),null));

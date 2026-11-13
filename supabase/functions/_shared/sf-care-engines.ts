@@ -1,8 +1,10 @@
 // SF Private Care — motores determinísticos de proposta, sem disparo automático.
 // A camada de execução deve persistir as propostas em fila auditável e exigir aprovação.
 import { planejarRelacionamento, deduplicar, type Cliente, type Processo, type Proposta } from "./sf-proactive-relationship.ts";
+import { podeComunicarProcessoSF, type ClassificacaoSF } from "./sf-care-lifecycle.ts";
 
 export type EventoSF =
+  | { kind:"filing_verified"; process_id:string; filing_id:string; verified_at:string; explanation:string }
   | { kind:"phase_changed"; process_id:string; phase:string; verified_at:string; explanation:string }
   | { kind:"movement_verified"; process_id:string; movement_id:string; verified_at:string; explanation:string }
   | { kind:"hearing"; process_id:string; hearing_id:string; scheduled_at:string; preparation:string }
@@ -11,6 +13,7 @@ export type EventoSF =
 
 export type ContextoSF = {
   cliente:Cliente; processos:Processo[]; agora:Date; ultimaInteracao?:string|null;
+  classificacoes?:Record<string,ClassificacaoSF>;
   eventos:EventoSF[]; chavesEnviadas:Set<string>; chavesPendentes:Set<string>;
   humanoAtivo:boolean; ultimaMensagemHumana?:string|null; urgente:boolean;
   bloqueioFinanceiro:boolean; janelaMetaAberta:boolean; modeloMetaAprovado:boolean;
@@ -39,6 +42,11 @@ export function planejarMotoresSF(ctx:ContextoSF):PropostaSF[]{
   const name=firstName(cliente.name);
   for(const e of ctx.eventos){
     if("process_id" in e&&e.process_id&&!pids.has(e.process_id))continue;
+    if("process_id" in e&&e.process_id&&!podeComunicarProcessoSF(ctx.classificacoes?.[e.process_id]||"ativo",e.kind))continue;
+    if(e.kind==="filing_verified"&&validDate(e.verified_at)&&e.explanation.trim()){
+      add("filing_card",e.process_id,`filing:${e.process_id}:${e.filing_id}`,
+        `Olá, ${name}! Seu processo foi ajuizado. ${e.explanation}`,"text",e.filing_id);
+    } else
     if(e.kind==="phase_changed"&&validDate(e.verified_at)&&e.explanation.trim()){
       add("phase_video",e.process_id,`phase:${e.process_id}:${e.phase}:${e.verified_at.slice(0,10)}`,
         `Olá, ${name}! A fase do seu processo foi atualizada: ${e.phase}. ${e.explanation}`,"video",e.process_id);
@@ -57,7 +65,9 @@ export function planejarMotoresSF(ctx:ContextoSF):PropostaSF[]{
         `Olá, ${name}! Preparamos orientações para os documentos do seu processo. ${e.instructions}`,"text",e.request_id);
     }
   }
-  for(const p of planejarRelacionamento(cliente,ctx.processos,agora,ctx.ultimaInteracao)){
+  const ativos=ctx.processos.filter(p=>podeComunicarProcessoSF(ctx.classificacoes?.[p.id]||"ativo","acompanhamento"));
+  for(const p of planejarRelacionamento(cliente,ativos,agora,ctx.ultimaInteracao)){
+    if(p.process_id===null&&ctx.processos.length>0&&ativos.length===0)continue;
     proposals.push({...p,channel:ctx.janelaMetaAberta||ctx.modeloMetaAprovado?"whatsapp":"app",media:"text",source_id:p.process_id});
   }
   const seen=new Set([...ctx.chavesEnviadas,...ctx.chavesPendentes]);
@@ -78,5 +88,5 @@ export function elegivelParaEnvioAutomatico(proposta:PropostaSF, ctx:ContextoSF)
   if(ctx.ultimaMensagemHumana&&validDate(ctx.ultimaMensagemHumana)&&elapsedMinutes(ctx.ultimaMensagemHumana,ctx.agora)<20)return false;
   if(!ctx.janelaMetaAberta&&!ctx.modeloMetaAprovado)return false;
   if(ctx.chavesEnviadas.has(proposta.dedupe_key)||ctx.chavesPendentes.has(proposta.dedupe_key))return false;
-  return proposta.client_id===ctx.cliente.id&&(!proposta.process_id||ctx.processos.some(p=>p.id===proposta.process_id));
+  return proposta.client_id===ctx.cliente.id&&(!proposta.process_id||ctx.processos.some(p=>p.id===proposta.process_id&&podeComunicarProcessoSF(ctx.classificacoes?.[p.id]||"ativo",proposta.kind)));
 }
