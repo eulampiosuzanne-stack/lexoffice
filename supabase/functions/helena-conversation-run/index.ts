@@ -308,6 +308,8 @@ Deno.serve(async req=>{
     }
     if(verifiedClientId&&!conv?.client_id&&!dryRun)await a.from('whatsapp_conversations').update({client_id:verifiedClientId}).eq('org_id',orgId).eq('id',conversationId);
     const ctx=conv?.chatbot_context||null;
+    const needsCaseVerification = !verifiedClientId &&
+      /^(?:meu processo|consultar meu processo|quero saber do meu processo|ultimo andamento)[.!?]*$/.test(norm(message).trim());
     const summary=String(ctx?.summary||'').trim();
     const dossier=await clientDossier(a,orgId,verifiedClientId);
 
@@ -357,6 +359,7 @@ Deno.serve(async req=>{
 
     const talksProcess=/^a cliente selecionou:/i.test(message)||PROCESS_TOPIC_RE.test(norm(message));
     let processUpdateContext='';
+    let noVerifiedMovement=false;
     // v75: processo escolhido na lista de botões (ou digitando o número da opção / o número do processo).
     const offeredProcs:any[]=Array.isArray(ctx?.offered_processes)&&Date.now()-Number(ctx?.offered_processes_at||0)<48*3600000?ctx.offered_processes:[];
     // v76: compara sem emoji/pontuação (o título do botão vem com \u{1F4C2} na frente).
@@ -368,8 +371,8 @@ Deno.serve(async req=>{
       let selectedProcess:any=null;
       if(pickedProc&&verifiedClientId){
         const {data:p}=await a.from('processes').select('id,cnj_number,subject,status').eq('org_id',orgId).eq('id',pickedProc.id).eq('client_id',verifiedClientId).maybeSingle();selectedProcess=p;
-      }else if(conv?.process_id){
-        const {data:p}=await a.from('processes').select('id,cnj_number,subject,status').eq('org_id',orgId).eq('id',conv.process_id).maybeSingle();selectedProcess=p;
+      }else if(conv?.process_id&&verifiedClientId){
+        const {data:p}=await a.from('processes').select('id,cnj_number,subject,status').eq('org_id',orgId).eq('id',conv.process_id).eq('client_id',verifiedClientId).maybeSingle();selectedProcess=p;
       }else if(verifiedClientId){
         const {data:ps}=await a.from('processes').select('id,cnj_number,subject,status,updated_at').eq('org_id',orgId).eq('client_id',verifiedClientId).neq('status','archived').order('updated_at',{ascending:false}).limit(10);
         if((ps||[]).length===1)selectedProcess=ps![0];
@@ -382,12 +385,13 @@ Deno.serve(async req=>{
         else processUpdateContext='NENHUM PROCESSO FOI LOCALIZADO PARA ESTE CLIENTE. Informe isso com cuidado e peça o número do processo para conferência.';
       }
       if(selectedProcess){
-        const {data:mv}=await a.from('process_movements').select('movement_date,title,description,client_message').eq('org_id',orgId).eq('process_id',selectedProcess.id).eq('approved_for_client',true).eq('is_sensitive',false).order('movement_date',{ascending:false}).limit(1).maybeSingle();
+        const {data:mv,error:movementError}=await a.from('process_movements').select('movement_date,title,description,client_message').eq('org_id',orgId).eq('process_id',selectedProcess.id).eq('approved_for_client',true).eq('is_sensitive',false).order('movement_date',{ascending:false}).limit(1).maybeSingle();
         if(mv){
           processUpdateContext='PROCESSO '+String(selectedProcess.cnj_number||selectedProcess.id)+'. ANDAMENTO MAIS RECENTE, EM '+String(mv.movement_date||'')+': '+String(mv.title||'')+'. TEXTO: '+String(mv.client_message||mv.description||mv.title||'').trim()+'. Primeiro informe o andamento e depois explique em linguagem simples, sem inventar informação, prazo ou providência ausente.';
         }else{
           const cnjDigits=String(selectedProcess.cnj_number||'').replace(/\\D/g,'');
-          const {data:pub}=await a.from('djen_publications').select('publication_date,availability_date,communication_type,organ,text_content').eq('org_id',orgId).or(`process_id.eq.${selectedProcess.id},process_number.eq.${selectedProcess.cnj_number||cnjDigits}`).order('publication_date',{ascending:false,nullsFirst:false}).limit(1).maybeSingle();
+          const {data:pub,error:publicationError}=await a.from('djen_publications').select('publication_date,availability_date,communication_type,organ,text_content').eq('org_id',orgId).or(`process_id.eq.${selectedProcess.id},process_number.eq.${selectedProcess.cnj_number||cnjDigits}`).order('publication_date',{ascending:false,nullsFirst:false}).limit(1).maybeSingle();
+          noVerifiedMovement=!movementError&&!publicationError&&!pub;
           processUpdateContext=pub
             ?'PROCESSO '+String(selectedProcess.cnj_number||selectedProcess.id)+'. FONTE ALTERNATIVA OFICIAL DJEN. PUBLICAÇÃO MAIS RECENTE EM '+String(pub.publication_date||pub.availability_date||'')+': '+String(pub.communication_type||'Publicação')+' — '+String(pub.organ||'órgão não informado')+'. TEXTO: '+String(pub.text_content||'').slice(0,1800)+'. Explique somente o conteúdo objetivo desta publicação. Não invente prazo, estratégia ou consequência jurídica.'
             :'PROCESSO '+String(selectedProcess.cnj_number||selectedProcess.id)+'. A sincronização automática não encontrou movimentação disponível nem publicação DJEN vinculada. Informe objetivamente que o sistema não localizou novo andamento disponível neste momento e que será feita nova conferência, SEM transferir automaticamente a conversa para atendimento humano e SEM inventar movimentação.';
@@ -500,6 +504,10 @@ Deno.serve(async req=>{
         showCollectionConfirmation=true;newCollectionContext={...ctx,negotiation_stage:'offered',proposed_text:message,projected_amount:projected,projected_extra_days:extraDays};
         if(!dryRun)await a.from('whatsapp_conversations').update({chatbot_context:newCollectionContext,updated_at:new Date().toISOString()}).eq('id',conversationId);
       }
+    }
+    if (!followup && !deterministic && !agendaReply && !officePlan.review_required) {
+      if (!processRows.length && needsCaseVerification) deterministic = receptionMessages.case_unverified + '\n\n' + CLIENT_APP_URL;
+      else if (noVerifiedMovement) deterministic = receptionMessages.case_no_update + '\n\n' + CLIENT_APP_URL;
     }
     if (!followup && !deterministic && !agendaReply && officeReview.status === 'pending_review' && officeReview.id) {
       deterministic = receptionMessages.request_received + ' ' + receptionMessages.request_review;
