@@ -827,7 +827,7 @@ export default function App() {
             <Route path="/tipografia" element={<Tipografia />}/>
             <Route path="/estrategia-processual" element={<Navigate to="/jurimetria" replace/>}/>
             <Route path="/conducao-processual" element={<ConducaoProcessual />}/>
-            <Route path="/peticao-ia" element={<Navigate to="/jurimetria" replace/>}/>
+            <Route path="/peticao-ia" element={<PetitionAssistant mode="petition" />}/>
             <Route path="/consultas" element={<Consultations />}/>
             <Route path="/documentos" element={<Documents />}/>
     <Route path="/documentos/gerar" element={<Documents mode="gerar"/>}/>

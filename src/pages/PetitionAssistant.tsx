@@ -279,7 +279,7 @@ async function wordFile(
   }
 }
 
-export default function PetitionAssistant() {
+export default function PetitionAssistant({ mode = "analysis" }: { mode?: "analysis" | "petition" }) {
   const [clients, setClients] = useState<Client[]>([]);
   const [processes, setProcesses] = useState<Proc[]>([]);
   const [docs, setDocs] = useState<Doc[]>([]);
@@ -1105,13 +1105,16 @@ export default function PetitionAssistant() {
     <div className="documents-v2-page petition-page">
       <header className="documents-v2-header">
         <div>
-          <h1>Jurimetria</h1>
-          <p>
+          <h1>{mode === "petition" ? "Nova Ação" : "Jurimetria"}</h1>
+          {mode === "petition" ? <>
+            <p>Descreva o caso e junte as provas para preparar uma petição inicial. Revise o rascunho antes de protocolar.</p>
+            <a href="/documentos/gerar">Usar um modelo de documento</a>
+          </> : <p>
             Coloque o caso. A IA calcula a chance de ganho, o tempo e o custo do
             processo, emite o parecer para o cliente, pede os documentos que
             faltam, indica o cálculo, monta a petição e deixa pronta a proposta
             de acordo quando ela fizer sentido.
-          </p>
+          </p>}
         </div>
       </header>
 

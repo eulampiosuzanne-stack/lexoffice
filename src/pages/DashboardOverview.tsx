@@ -120,7 +120,7 @@ export default function DashboardOverview({ financeBlocked = false }: { financeB
   };
 
   const shortcuts = [
-    { name: "Nova Ação", desc: "Petição com IA", path: "/documentos/gerar", icon: Gavel, variant: "wine" },
+    { name: "Nova Ação", desc: "Petição com IA", path: "/peticao-ia", icon: Gavel, variant: "wine" },
     { name: "Análise de Caso", desc: "Estratégia e risco", path: "/jurimetria", icon: Search, variant: "gold" },
     { name: "Honorários", desc: "Com tabela OAB", path: "/perfil-cliente/honorarios", icon: Scale, variant: "wine" },
     { name: "Agenda", desc: "Audiências e prazos", path: "/agenda", icon: CalendarDays, variant: "gold" },
