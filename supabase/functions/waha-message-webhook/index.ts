@@ -98,6 +98,7 @@ if(body){
    return J({ok:true,event:claim.data});
  }
 }
+try {
 const normalized=body.normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9 ]/g,' ').replace(/\\s+/g,' ').trim();
 const wantsAccess=/\\bQUERO\\b.*\\b(ACESSO|APP|APLICATIVO)\\b|\\b(ACESSO|APP|APLICATIVO)\\b.*\\bQUERO\\b|\\bPODE\\b.*\\b(LIBERAR|ENVIAR)\\b.*\\b(ACESSO|APP|APLICATIVO)\\b/.test(normalized);
 if(wantsAccess&&c.client_id){
@@ -123,4 +124,11 @@ const messageNorm=body.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
 const explicitAgent=/meu processo|andamento|audi[eê]ncia|prazo/.test(messageNorm)?'client_process_updates':
   /financeiro|pagamento|boleto|honor[aá]rio|pix/.test(messageNorm)?'billing':
   /agendar|reuni[aã]o|consulta|mensagem pelo app|recado para a dra|falar com a dra/.test(messageNorm)?'client_schedule_relationship':null;
-const agentKey=explicitAgent||String(v.owner_agent_key||DEFAULT_AGENT);if(body){const svc=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;const r=await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/helena-conversation-run`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${svc}`},body:JSON.stringify({org_id:v.org_id,conversation_id:v.id,phone,message:body,agent_key:agentKey,quoted_external_id:p.replyTo?.id||p._data?.quotedMsg?.id?._serialized,idempotency_key:externalId?`helena:${v.id}:${externalId}`:undefined})});const d=await r.json().catch(()=>({}));return J({ok:r.ok,event:v.owner_agent_key?'agent_handoff':'default_triage',agent_key:agentKey,agent_response:d},r.ok?200:r.status)}return J({ok:true,event:'received',conversation_id:v.id,owner:'HELENA'})}catch(e){console.error('waha-message-webhook',e);return J({ok:false,error:e instanceof Error?e.message:String(e)},500)}});
+const agentKey=explicitAgent||String(v.owner_agent_key||DEFAULT_AGENT);if(body){const svc=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;const r=await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/helena-conversation-run`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${svc}`},body:JSON.stringify({org_id:v.org_id,conversation_id:v.id,phone,message:body,agent_key:agentKey,quoted_external_id:p.replyTo?.id||p._data?.quotedMsg?.id?._serialized,idempotency_key:externalId?`helena:${v.id}:${externalId}`:undefined})});const d=await r.json().catch(()=>({}));return J({ok:r.ok,event:v.owner_agent_key?'agent_handoff':'default_triage',agent_key:agentKey,agent_response:d},r.ok?200:r.status)}return J({ok:true,event:'received',conversation_id:v.id,owner:'HELENA'})} finally {
+ if(body){
+  const release=await a.from('waha_active_reply_claims').update({in_progress:false})
+    .eq('org_id',v.org_id).eq('conversation_id',v.id).eq('event_id',externalId);
+  if(release.error)console.error('waha_active_reply_release_failed',release.error.code);
+ }
+}
+}catch(e){console.error('waha-message-webhook',e);return J({ok:false,error:e instanceof Error?e.message:String(e)},500)}});

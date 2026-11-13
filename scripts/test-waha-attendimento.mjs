@@ -9,8 +9,8 @@ test('WAHA fallback preserves each menu option and accepts number or identifier'
   for (const menu of [INITIAL, CLIENT, OTHER]) {
     const text = interactiveAsText('Escolha', { type: 'list', rows: menu });
     for (const [index, item] of menu.entries()) {
-      assert.equal(resolveMenuChoice(String(index + 1), menu), item.title);
-      assert.equal(resolveMenuChoice(item.id, menu), item.title);
+      assert.equal(resolveMenuChoice(String(index + 1), menu), item.title.replace(/^[\p{Extended_Pictographic}\u200D\uFE0F]+\s*/u, ''));
+      assert.equal(resolveMenuChoice(item.id, menu), item.title.replace(/^[\p{Extended_Pictographic}\u200D\uFE0F]+\s*/u, ''));
       assert.ok(text.includes(item.description));
     }
   }

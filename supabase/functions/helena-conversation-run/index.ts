@@ -1,4 +1,4 @@
-import { decideConversation, needsSecureChannel } from './decisions.mjs';
+import { decideConversation, needsSecureChannel, isThanks } from './decisions.mjs';
 import { WELCOME, AWAY, LAWYER_BUSY, INITIAL, CLIENT, OTHER, isGreeting, routeMenuIntent } from './attendimento-menu.mjs';
 import { resolveMenuChoice } from './menu-choice.mjs';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -423,7 +423,7 @@ Deno.serve(async req=>{
     const showLeadMenu=!followup&&/^(nao sou cliente|nao sou cliente mesmo|novo atendimento)$/.test(normalizedChoice);
     const askIdentity=!followup&&!hasHistory&&!showClientMenu&&!showLeadMenu&&!showOtherMenu&&isGreeting(normalizedChoice);
     // v77: cliente pediu para falar com a Dra. -> "está em atendimento" + botões (mensagem pelo app / agendar reunião).
-    const wantsLawyer=!followup&&!!verifiedClientId&&(lawyerTalkRequest(message)||/^falar com a dra\.?$/.test(normalizedChoice));
+    const wantsLawyer=!followup&&!!verifiedClientId&&(intent==='lawyer'||lawyerTalkRequest(message)||/^falar com a dra\.?$/.test(normalizedChoice));
     const pickedApp=!followup&&!!verifiedClientId&&isAppChoice(message);
     // v68 — ferramentas reais: período excepcional (taxas) e agenda (horários reais + registro no calendário).
     const lastOutbound=String(([...(hist||[])].find((m:any)=>m.direction==='outbound')||{} as any).body||'');
@@ -508,7 +508,8 @@ Deno.serve(async req=>{
         if(!dryRun)await a.from('whatsapp_conversations').update({chatbot_context:newCollectionContext,updated_at:new Date().toISOString()}).eq('id',conversationId);
       }
     }
-    if(askIdentity)deterministic=WELCOME;
+    if(!followup&&isThanks(message))deterministic='Imagina! 💛 Precisando, é só chamar.';
+    else if(askIdentity)deterministic=WELCOME;
     else if(showClientMenu)deterministic='Como podemos ajudar com seu atendimento?';
     else if(showOtherMenu)deterministic='Qual assunto você gostaria de tratar?';
     else if(wantsLawyer)deterministic=LAWYER_BUSY;
