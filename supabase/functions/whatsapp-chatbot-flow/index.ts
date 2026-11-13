@@ -1,3 +1,4 @@
+import { receptionMessages } from './reception-messages.mjs';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "jsr:@supabase/supabase-js@2.57.4";
 // v52 (13/11/2026) — MENU ELEGANTE: cada nó sai como LISTA interativa (emoji + título curto + descrição curta),
@@ -63,7 +64,7 @@ export const DEFAULT_NODES:Record<string,N>={
   restricted_urgent:{message:'🚨 Esta opção é exclusiva para situação com risco à vida ou à integridade física.\n\nDescreva, em uma mensagem, o que está acontecendo. A informação será encaminhada para análise prioritária.',options:[]},
   restricted_urgent_received:{message:'Recebemos sua comunicação de urgência. A informação foi encaminhada para análise prioritária. A restrição do atendimento permanece ativa.',options:[]},
   process_delivery_followup:{message:'Você entendeu o andamento enviado ou deseja que eu explique melhor?',options:[
-    {id:'understood',label:'✅ Entendi',description:'Está tudo claro',reply:'Perfeito! Se surgir qualquer dúvida, é só me chamar por aqui.'},
+    {id:'understood',label:'✅ Entendi',description:'Está tudo claro',reply:receptionMessages.understood},
     {id:'explain',label:'❓ Quero explicações',description:'Explicar com mais detalhes',agent:'client_process_updates'}]},
   collection_followup:{message:'Como deseja tratar esta pendência?',options:[
     {id:'pix',label:'💠 Receber chave PIX',description:'Dados para pagamento',agent:'billing',ctx:{collection_action:'pix'}},
@@ -92,14 +93,14 @@ async function loadNodes(a:any,orgId:string):Promise<{nodes:Record<string,N>,ena
       {id:'administrative',label:'🏢 Assuntos administrativos',description:'Informações sobre o escritório',agent:T},
       {id:'general',label:'💬 Atendimento geral',description:'Conte como podemos ajudar',agent:T},back
     ]};
-    nodes.start={message:'Olá! 😊 Como podemos ajudar?',section:'Atendimento',options:[
+    nodes.start={message:receptionMessages.welcome,section:'Atendimento',options:[
       {id:'existing',label:'👩‍💼 Já sou cliente',description:'Já tenho atendimento com o escritório.',next:'reception_client'},
       {id:'prospect',label:'⚖️ Não sou cliente',description:'Quero atendimento jurídico.',next:'new'},
       {id:'other',label:'💬 Outros assuntos',description:'Informações, parcerias e assuntos administrativos.',next:'reception_other'}
     ]};
-    nodes.advogada={message:'A Dra. Suzanne está em atendimento agora. 😊 Como prefere seguir?',options:[
+    nodes.advogada={message:receptionMessages.busy,options:[
       {id:'book',label:'📅 Ver horários',description:'Verificar disponibilidade para o próximo dia útil',agent:'client_schedule_relationship',ctx:{lawyer_talk:true}},
-      {id:'note',label:'📝 Recado pelo app',description:'Enviar um recado direto à Dra. Suzanne',reply:'Você pode enviar seu recado pela área de mensagens do Aplicativo do Cliente. 💛'},back
+      {id:'note',label:'📝 Recado pelo app',description:'Enviar um recado direto à Dra. Suzanne',reply:receptionMessages.app_note},back
     ]};
   }
   return {nodes,enabled:data?.enabled!==false,render:data?.flow?.render==='text'?'text':'list'};
