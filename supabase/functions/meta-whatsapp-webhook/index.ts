@@ -82,16 +82,36 @@ async function sendText(s: any, o: string, cv: any, to: string, body: string, so
 }
 // ---------- Helena orquestrada: uma única voz, especialistas internos em rotação ----------
 function metaIntent(text: string, isClient: boolean) {
-  const t = String(text || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const t = String(text || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  if (/\b(?:agendar|marcar|remarcar)\s+(?:(?:um|uma|o|a|meu|minha)\s+)?(?:reuniao|consulta|horario|atendimento)\b/.test(t)) return "client_schedule_relationship";
   if (/process|andamento|audiencia|sentenca|decisao|juiz|liminar|movimenta|intima|citacao|prazo/.test(t)) return "client_process_updates";
   if (/pag|parcela|boleto|\bpix\b|cobranca|debito|honorario|atras|comprovante|cartao/.test(t)) return "billing";
   if (/agend|reuniao|consulta|horario|remarc|atendimento presencial/.test(t)) return "client_schedule_relationship";
   if (!isClient && /(contrat|proposta|valor da acao|quanto custa|parcelar|entrada|desconto|vou pensar|ta caro|muito caro)/.test(t)) return "sales";
   return "client_service_triage";
 }
+// v-esp (12/11/2026): especialistas internos Agendador (scheduler) e Closer. A Helena continua sendo a única voz;
+// o especialista só muda as instruções/regras usadas. Fase de teste: só para os números em specialist_test_phones
+// (use "*" para liberar para todos os clientes depois da aprovação da Dra. Suzanne).
+export function routeSpecialist(base: string, o: { enabled: boolean; released: boolean }) {
+  if (!o.enabled) return base;
+  if (base === "client_schedule_relationship") return "scheduler";
+  if (base === "sales" && o.released) return "closer";
+  return base;
+}
+async function specialistsEnabledFor(s: any, phone: string) {
+  try {
+    const { data } = await s.from("system_runtime_secrets").select("secret").eq("key", "specialist_test_phones").maybeSingle();
+    const list = String(data?.secret || "").split(/[,;\s]+/).filter(Boolean);
+    if (list.includes("*")) return true;
+    const p = D(phone).slice(-8);
+    return !!p && list.some((x: string) => D(x).slice(-8) === p);
+  } catch { return false; }
+}
 async function runHelenaMeta(s: any, o: string, cv: any, from: string, text: string) {
   const isClient = !!cv?.client_id;
-  const agentKey = metaIntent(text, isClient);
+  const released = ["sales", "closer"].includes(String(cv?.owner_agent_key || ""));
+  const agentKey = routeSpecialist(metaIntent(text, isClient), { enabled: await specialistsEnabledFor(s, from), released });
   const svc = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const r = await fetch(Deno.env.get("SUPABASE_URL")! + "/functions/v1/helena-conversation-run", {
     method: "POST",
@@ -103,6 +123,28 @@ async function runHelenaMeta(s: any, o: string, cv: any, from: string, text: str
   return { agent_key: agentKey, result: data };
 }
 
+// v48 — indicador "digitando…" (marca como lida e mostra digitando por até 25 s ou até a resposta sair).
+async function showTyping(s: any, eid: string | null) {
+  if (!eid) return;
+  try { await graphSend(s, { status: "read", message_id: eid, typing_indicator: { type: "text" } }); } catch (e) { console.error("typing_indicator", e instanceof Error ? e.message : e); }
+}
+// v48 — espera alguns segundos; se chegou mensagem mais nova, esta execução sai (a mais nova responde tudo).
+// Retorna null quando deve sair; senão, o texto de todas as mensagens ainda sem resposta (juntas).
+const BURST_WAIT_MS = 7000;
+async function settleBurst(s: any, cv: any, eid: string | null): Promise<string | null | ""> {
+  if (run().dry) return "";
+  await new Promise((r) => setTimeout(r, BURST_WAIT_MS));
+  const { data: mine } = eid ? await s.from("whatsapp_messages").select("created_at").eq("conversation_id", cv.id).eq("external_message_id", eid).maybeSingle() : { data: null };
+  if (!mine?.created_at) return "";
+  const { data: newer } = await s.from("whatsapp_messages").select("id").eq("conversation_id", cv.id).eq("direction", "inbound").gt("created_at", mine.created_at).limit(1);
+  if ((newer || []).length) return null;
+  const { data: lastOut } = await s.from("whatsapp_messages").select("created_at").eq("conversation_id", cv.id).eq("direction", "outbound").order("created_at", { ascending: false }).limit(1).maybeSingle();
+  let q = s.from("whatsapp_messages").select("body,created_at").eq("conversation_id", cv.id).eq("direction", "inbound").lte("created_at", mine.created_at).order("created_at", { ascending: true }).limit(10);
+  if (lastOut?.created_at) q = q.gt("created_at", lastOut.created_at);
+  const { data: pending } = await q;
+  const bodies = (pending || []).map((m: any) => String(m.body || "").trim()).filter(Boolean);
+  return bodies.length > 1 ? bodies.join("\n") : "";
+}
 async function recentMenu(s: any, cv: any, menu: string) {
   const since = new Date(Date.now() - MENU_REPEAT_MIN * 60000).toISOString();
   const { data } = await s.from("whatsapp_messages").select("id").eq("conversation_id", cv.id).eq("direction", "outbound").eq("metadata->>source", "meta_menu_menu").eq("metadata->>menu", menu).gte("created_at", since).limit(1).maybeSingle();
@@ -277,7 +319,7 @@ async function collectJuridiq(s: any, o: string, msg: any, value: any) {
   const { cv } = await context(s, o, String(msg.from), name);
   const document = msg?.type === "document" ? msg.document : null;
   const text = String(msg?.text?.body || document?.caption || "").trim();
-  const cnj = [...new Set((text.match(/\\b\\d{7}-?\\d{2}\\.?\\d{4}\\.?\\d\\.?\\d{2}\\.?\\d{4}\\b/g) || []).map((x: string) => x.replace(/\\D/g, "")))];
+  const cnj = [...new Set((text.match(/\b\d{7}-?\d{2}\.?\d{4}\.?\d\.?\d{2}\.?\d{4}\b/g) || []).map((x: string) => x.replace(/\D/g, "")))];
   const media = document ? { type: "document", id: document.id || null, mime: document.mime_type || null, filename: document.filename || null, sha256: document.sha256 || null } : null;
   const eid = typeof msg?.id === "string" ? msg.id : null;
   const saved = await store(s, o, cv, eid, text || (media ? "[Publicação Juridiq IA: documento recebido]" : "[Aviso Juridiq IA]"), false, "juridiq_ia", { juridiq: true, cnj_numbers: cnj, media, needs_pdf_extraction: !!media, requires_validation: true }, document ? "document" : "text");
@@ -300,17 +342,15 @@ async function handle(s: any, o: string, msg: any, value: any, enabled: boolean)
   if (!enabled) return { action: "stored_bot_disabled" };
   if (!(await botAllowed(s, o, cv.id, ph))) return { action: "stored_human_active" };
 
-  // HELENA: áudios são registrados, mas não respondem à triagem.
+  // v47 (07/11/2026) — sem textos fixos: áudio é registrado e a própria Helena pede, do jeito dela, que a pessoa escreva (no máximo 2 vezes em 12h).
   if (media?.type === "audio") {
-    const { data: previousNotices, error: noticeError } = await s.from("whatsapp_messages").select("id").eq("org_id", o).eq("conversation_id", cv.id).eq("direction", "outbound").in("metadata->>source", ["meta_menu_audio_notice_1", "meta_menu_audio_notice_2"]).limit(2);
-    if (noticeError) { console.error("audio_notice_lookup", noticeError); return { action: "audio_registered_notice_check_failed" }; }
-    const noticeCount = previousNotices?.length || 0;
-    if (noticeCount === 0) {
-      await sendText(s, o, cv, fromRaw, "Prezado(a), recebi sua mensagem de áudio.\n\n" + "Para assegurar a precisão das informações, solicitamos que encaminhe sua mensagem por escrito. " + "Os áudios são analisados somente ao final do expediente.\n\n" + "Em caso de urgência, descreva a situação por texto.", "meta_menu_audio_notice_1");
-    } else if (noticeCount === 1) {
-      await sendText(s, o, cv, fromRaw, "Reiteramos que as mensagens de áudio são verificadas somente ao final do expediente.\n\n" + "Para darmos continuidade ao atendimento, escreva sua solicitação. " + "Caso exista urgência, informe a situação por texto.", "meta_menu_audio_notice_2");
-    }
-    return { action: noticeCount < 2 ? "audio_notice_" + (noticeCount + 1) : "audio_registered_no_repeat" };
+    const since = new Date(Date.now() - 12 * 3600000).toISOString();
+    const { count: audioCount } = await s.from("whatsapp_messages").select("id", { count: "exact", head: true }).eq("org_id", o).eq("conversation_id", cv.id).eq("direction", "inbound").like("body", "[áudio recebido]%").gte("created_at", since);
+    if ((audioCount || 0) > 2) return { action: "audio_registered_no_repeat" };
+    try {
+      const routed = await runHelenaMeta(s, o, cv, fromRaw, "[A pessoa enviou um áudio. Você não consegue ouvir áudios agora. Peça com naturalidade, em uma ou duas frases, que ela escreva o que precisa.]");
+      return { action: "audio_helena", agent_key: routed.agent_key };
+    } catch (e) { console.error("meta_helena_audio", e); return { action: "audio_registered" }; }
   }
 
   if (!media && !interactiveId && isAck(text)) return { action: "ignored_short_ack" };
@@ -328,9 +368,18 @@ async function handle(s: any, o: string, msg: any, value: any, enabled: boolean)
   }
 
   // Texto livre segue para o orquestrador. Menus nativos continuam disponíveis quando escolhidos.
-  if (!media && !interactiveId && text.trim() && !isMenuWord(text)) {
+  // v47 — texto livre, palavras de menu e arquivos (foto, documento, vídeo) vão para a Helena; nada de menu ou texto fixo.
+  const helenaInput = media
+    ? `[A pessoa enviou ${media.label}${text.trim() ? ` com a legenda: "${text.trim()}"` : ""}. Você não consegue ver o conteúdo. Agradeça com naturalidade, diga que ficou registrado aqui no atendimento e não comente nem analise o conteúdo.]`
+    : text.trim();
+  if (helenaInput) {
+    // v48 — "digitando…" na hora e espera curta para juntar mensagens seguidas numa resposta só (sem rajada).
+    await showTyping(s, eid);
+    const merged = await settleBurst(s, cv, eid);
+    if (merged === null) return { action: "debounced_newer_message" };
+    const finalInput = merged && merged !== (media ? `[${media.label} recebido]${text ? "\n" + text : ""}` : text) ? merged : helenaInput;
     try {
-      const routed = await runHelenaMeta(s, o, cv, fromRaw, text.trim());
+      const routed = await runHelenaMeta(s, o, cv, fromRaw, finalInput);
       return { action: "helena_orchestrated", agent_key: routed.agent_key };
     } catch (e) {
       console.error("meta_helena_orchestrated", e);
@@ -353,7 +402,7 @@ async function handle(s: any, o: string, msg: any, value: any, enabled: boolean)
 
   if (doneRecently) return { action: "stored_after_done" };
   if (!media && wantsCall(text)) { await sendText(s, o, cv, fromRaw, TXT.call, "meta_menu_call"); await notifyLex(s, o, "Pedido de ligação (WhatsApp)", `${profileName || D(fromRaw)}: ${text.slice(0, 500)}`); await done(s, o, cv, {}); return { action: "call_registered" }; }
-  if (!hours.inHours) { const r = await afterHoursMenu(s, o, cv, fromRaw, node !== "meta_afterhours_menu"); return { action: r.skipped ? "after_hours_repeat_skipped" : "after_hours_menu" }; }
+  if (!hours.inHours) return { action: "after_hours_registered" };
   if (NODE_MENU[node]) {
     const menuName = ({ meta_root: "root", meta_client_menu: "client", meta_dra_menu: "dra", meta_lead_area: "areas", meta_lead_next: "lead_next", meta_afterhours_menu: "after" } as any)[node];
     if (await recentMenu(s, cv, menuName)) return { action: "menu_repeat_skipped" };
@@ -364,7 +413,7 @@ async function handle(s: any, o: string, msg: any, value: any, enabled: boolean)
     if (node === "meta_lead_next") { await sendMenu(s, o, cv, fromRaw, "lead_next", TXT.chooseOption, MENU.leadNext, "button"); return { action: "lead_next" }; }
     if (node === "meta_afterhours_menu") { await afterHoursMenu(s, o, cv, fromRaw); return { action: "after_hours_menu" }; }
   }
-  const r = await mainMenu(s, o, cv, fromRaw, false); return { action: r.skipped ? "menu_repeat_skipped" : "main_menu" };
+  return { action: "stored_no_fixed_reply" };
 }
 
 // Mensagens que a Dra./equipe enviam pelo celular (coexistência): param o robô naquela conversa.
@@ -378,6 +427,36 @@ async function handleEchoes(s: any, o: string, value: any) {
     if (fresh) { await pauseForHuman(s, cv, c, "operator_phone_message"); n++; }
   }
   return n;
+}
+
+async function recordProcessDelivery(s: any, orgId: string, statuses: any[], dry: boolean) {
+  for (const event of statuses) {
+    // v-diag (11/11/2026): registra falhas de entrega da Meta (antes eram ignoradas em silêncio).
+    if (event?.status === "failed") console.log("meta_status_failed", JSON.stringify({ id: event?.id, recipient: String(event?.recipient_id || "").slice(-4), errors: event?.errors }));
+    if (typeof event?.id !== "string" || !event.id.startsWith("wamid.")) continue;
+    if (event.status !== "delivered" && event.status !== "read") continue;
+    const time = new Date(Number(event.timestamp) * 1000);
+    if (!Number.isFinite(time.getTime()) || time.getTime() <= 0 || dry) continue;
+    const stamp = time.toISOString();
+    const columns = event.status === "read" ? ["delivered_at", "read_at"] : ["delivered_at"];
+    for (const column of columns) {
+      const { error } = await s.from("process_notification_queue")
+        .update({ [column]: stamp })
+        .eq("org_id", orgId)
+        .eq("channel", "whatsapp")
+        .eq("external_message_id", event.id)
+        .or(`${column}.is.null,${column}.gt.${stamp}`);
+      if (error) throw new Error("Could not record Meta delivery status");
+      const { error: collectionError } = await s.from("whatsapp_messages")
+        .update({ [column]: stamp })
+        .eq("org_id", orgId)
+        .eq("direction", "outbound")
+        .eq("metadata->>source", "financial_collection")
+        .eq("external_message_id", event.id)
+        .or(`${column}.is.null,${column}.gt.${stamp}`);
+      if (collectionError) throw new Error("Could not record Meta collection delivery status");
+    }
+  }
 }
 
 Deno.serve(async (req) => {
@@ -412,13 +491,21 @@ Deno.serve(async (req) => {
       try { o = await org(s); } catch { return j({ ok: true, ignored: "meta_not_connected", dry_run: dry }); }
       const myId = await secret(s, "meta_whatsapp_phone_number_id");
       if (String(value?.metadata?.phone_number_id || "") !== myId) return j({ ok: true, ignored: "other_number" });
+      if (Array.isArray(value.statuses) && value.statuses.length) {
+        await recordProcessDelivery(s, o, value.statuses, dry);
+        if (!value.messages?.length && !value.message_echoes?.length) {
+          return j({ ok: true, action: "delivery_status", dry_run: dry });
+        }
+      }
       // v37: com a Evolution conectada, a Meta não grava nem processa (evita mensagens duplicadas e pausas falsas).
       if (await evolutionPrimary(s, o)) return j({ ok: true, ignored: "evolution_primary", dry_run: dry });
       // v41: número de teste atendido pela Uazapi — não grava nem pausa aqui.
       if (await uazapiTestNumber(s, value)) return j({ ok: true, ignored: "uazapi_test_number", dry_run: dry });
       if (change?.field === "smb_message_echoes" || value?.message_echoes?.length) { const n = await handleEchoes(s, o, value); return j({ ok: true, action: "human_echo_pause", count: n, dry_run: dry }); }
       if (!value.messages?.length) return j({ ok: true, ignored: "status_or_no_message" });
-      const juridiq = await collectJuridiq(s, o, value.messages[0], value);\n      if (juridiq) return j({ ok: true, ...juridiq, dry_run: dry });\n      const enabled = dry || (await secret(s, "meta_chatbot_enabled")) === "true";
+      const juridiq = await collectJuridiq(s, o, value.messages[0], value);
+      if (juridiq) return j({ ok: true, ...juridiq, dry_run: dry });
+      const enabled = dry || (await secret(s, "meta_chatbot_enabled")) === "true";
       const result = await handle(s, o, value.messages[0], value, enabled);
       return j({ ok: true, ...result, dry_run: dry, outbound: dry ? run().out : undefined });
     } catch (x) { console.error(x); return j({ ok: false, error: x instanceof Error ? x.message : String(x) }, 500); }
