@@ -26,3 +26,16 @@ Deno.test("ignora evento de processo de outro cliente",()=>{
  const event={kind:"movement_verified" as const,process_id:"outro",movement_id:"m1",verified_at:now.toISOString(),explanation:"Andamento confirmado"};
  assert(planejarMotoresSF({...base,eventos:[event]}).length===0,"vínculo");
 });
+
+Deno.test("relacionamento depende de pendência real e só propõe um lembrete por evento",()=>{
+ const pending={id:"doc-1",client_id:"c1",kind:"document" as const,state:"pending" as const,due_at:"2026-11-09T12:00:00Z"};
+ const inactive={...base,ultimaInteracao:"2026-09-01T12:00:00Z",processos:[]};
+ assert(planejarMotoresSF(inactive).length===0,"inatividade sem pendência");
+ const result=planejarMotoresSF({...inactive,pendencias:[pending,pending]});
+ assert(result.length===1&&result[0].requires_approval,"um lembrete sujeito a revisão");
+ assert(planejarMotoresSF({...inactive,pendencias:[{...pending,state:"resolved"}]}).length===0,"documento recebido");
+ assert(planejarMotoresSF({...inactive,pendencias:[{...pending,client_id:"outro"}]}).length===0,"vínculo");
+ assert(planejarMotoresSF({...inactive,pendencias:[{...pending,last_reminder_at:"2026-11-09T12:00:00Z"}]}).length===0,"lembrete anterior");
+ assert(planejarMotoresSF({...inactive,pendencias:[pending],humanoAtivo:true}).length===0,"pausa humana");
+ assert(planejarMotoresSF({...inactive,pendencias:[pending],chavesPendentes:new Set([result[0].dedupe_key])}).length===0,"fila existente");
+});

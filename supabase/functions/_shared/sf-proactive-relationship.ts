@@ -6,7 +6,15 @@ export type Cliente = {id:string;name:string;status:string|null;relationship_tie
 export type Proposta = {client_id:string;process_id:string|null;kind:string;dedupe_key:string;priority:"normal"|"review";text:string;requires_approval:true};
 const days=(a:string,b:Date)=>Math.floor((b.getTime()-new Date(a).getTime())/86400000);
 const date=(d:Date)=>d.toISOString().slice(0,10);
-export function planejarRelacionamento(cliente:Cliente, processos:Processo[], hoje:Date, ultimaInteracao?:string|null):Proposta[]{
+export type PendenciaRelacionamento = {
+  id:string;
+  client_id:string;
+  kind:"document"|"request";
+  state:"pending"|"resolved";
+  due_at:string;
+  last_reminder_at?:string|null;
+};
+export function planejarRelacionamento(cliente:Cliente, processos:Processo[], hoje:Date, ultimaInteracao?:string|null, pendencias:PendenciaRelacionamento[]=[]):Proposta[]{
   if(!cliente.opt_in||cliente.opt_out||!["ativo","active","cliente","cliente_ativo","cliente_private"].includes((cliente.status||"").toLowerCase()))return [];
   const out:Proposta[]=[];
   const first=(cliente.name||"").trim().split(/\s+/)[0]||"cliente";
@@ -24,8 +32,16 @@ export function planejarRelacionamento(cliente:Cliente, processos:Processo[], ho
       }
     }
   }
-  if(!ultimaInteracao||days(ultimaInteracao,hoje)>=30){
-    out.push({client_id:cliente.id,process_id:null,kind:"care_checkin",dedupe_key:`care:${cliente.id}:${hoje.getUTCFullYear()}-${hoje.getUTCMonth()+1}`,priority:"normal",requires_approval:true,text:`Olá, ${first}! 🌷 Aqui é a Helena, do escritório Suzanne Figueiredo. Passando para saber como você está e se precisa de alguma ajuda com as orientações ou documentos do seu caso. Se preferir não receber estes contatos, é só me avisar.`});
+  if(ultimaInteracao&&days(ultimaInteracao,hoje)<7)return out;
+  for(const pending of pendencias){
+    if(pending.client_id!==cliente.id||pending.state!=="pending"||!pending.id)continue;
+    const due=Date.parse(pending.due_at);
+    if(!Number.isFinite(due)||due>hoje.getTime())continue;
+    if(pending.last_reminder_at)continue;
+    const text=pending.kind==="document"
+      ? `Oi, ${first}! 😊 Ainda estamos aguardando o documento solicitado. Você pode enviá-lo pelo nosso aplicativo. 📄`
+      : `Olá, ${first}! Sua solicitação está em acompanhamento pela equipe. Você pode consultar a atualização pelo nosso aplicativo. 💛`;
+    out.push({client_id:cliente.id,process_id:null,kind:"care_checkin",dedupe_key:`care:${cliente.id}:${pending.kind}:${pending.id}`,priority:"review",requires_approval:true,text});
   }
   return out;
 }

@@ -5,6 +5,17 @@ import {
   formatWhatsAppAgentReply,
   previewForLog,
 } from "./_shared/whatsapp-reply-format.mjs";
+import { buildTemplatePayload, buildTemplatePayloadV2, buildInteractivePayload, interactiveAsText, interactiveAsMenuText } from "./_shared/meta-template.mjs";
+// v96 (13/11/2026) — respostas da Helena saem com "*Helena | Secretária*" no topo (avisos automáticos e menu não).
+// v94 (13/11/2026) — WAHA: indicador "digitando..." com atraso antes das respostas da Helena.
+// v92 (13/11/2026) — MENU ELEGANTE: interativo com style "menu" vai pelo WAHA como LISTA (título + descrição por opção);
+//        se o WAHA recusar a lista (ou prefer="text"), sai em texto com emoji, título em negrito e descrição em itálico.
+// v84 (12/11/2026) — BOTÕES: a Helena pode mandar botões (até 3) ou lista (até 10) nos momentos de decisão (campo "interactive").
+//        Pela Meta saem como botões; nos outros canais as opções vão numeradas no texto. Fora do limite, sai texto comum.
+// v82 (11/11/2026) — AVISOS PROATIVOS PELA META: fora da janela de 24 h a Meta aceitava o texto livre e o descartava
+//        em silêncio (131047) — a LEX marcava "enviado" e o cliente não recebia nada. Agora aviso automático para quem
+//        não escreveu nas últimas 24 h sai pelo modelo aprovado "atualizacao_escritorio_sf" (./_shared/meta-template.mjs).
+// v81 (10/11/2026) — Meta: áudio (data:audio/...) vai como mensagem de voz (type audio, botão de play).
 // v77 (06/11/2026) — provedor META (API oficial, whatsapp_provider=meta) com reserva automática na Uazapi se a Meta recusar
 //        (ex.: fora da janela de 24 h sem modelo aprovado). force_provider (só chamada interna) permite teste.
 // v76 (05/11/2026) — restaura o caminho Uazapi (= v73): envio e webhook de entrada da instância painelsf-escritorio (número 4141).
@@ -58,7 +69,127 @@ async function runtimeSecret(a: any, key: string) {
 }
 async function activeProvider(a: any) {
   const p = (await runtimeSecret(a, "whatsapp_provider")).toLowerCase();
-  return p === "meta" ? "meta" : p === "uazapi" ? "uazapi" : "evolution";
+  return p === "waha" ? "waha" : p === "meta" ? "meta" : p === "uazapi" ? "uazapi" : "evolution";
+}
+async function wahaSend(a: any, orgId: string, conversationId: string | null, target: string, text: string, image: string | null, caption: string | null, document: string | null, fileName: string | null, interactive: any = null, typingSeconds = 0) {
+  const configuredUrl = (Deno.env.get("WAHA_API_URL") || "https://lexoffice-waha-production.up.railway.app").trim();
+  const apiKey = (Deno.env.get("WAHA_API_KEY") || "").trim();
+  if (!configuredUrl || !apiKey) throw new Error("WAHA não configurado no servidor");
+  const url = new URL(configuredUrl);
+  if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash) {
+    throw new Error("WAHA requer um endereço HTTPS válido");
+  }
+  const { data, error } = await a.from("integration_connections")
+    .select("settings").eq("org_id", orgId).eq("provider", "whatsapp")
+    .eq("status", "connected").filter("settings->>provider", "eq", "waha")
+    .filter("settings->>channel_enabled", "eq", "true").maybeSingle();
+  const session = data?.settings?.waha_session;
+  if (error || typeof session !== "string" || !session.trim()) throw new Error("WAHA: sessão ativa do escritório não identificada");
+  const base = url.toString().replace(/\/$/, "");
+  const headers = { "X-Api-Key": apiKey, "Content-Type": "application/json" };
+  const state = await fetch(base + "/api/sessions/" + encodeURIComponent(session), { headers, redirect: "error", signal: AbortSignal.timeout(10000) });
+  if (!state.ok || (await state.json()).status !== "WORKING") throw new Error("WAHA: sessão do escritório indisponível");
+  const phone = digits(target);
+  if (!target.includes("@") && !phone) throw new Error("WAHA: destino inválido");
+  let chatId = target.includes("@") ? target : phone + "@c.us";
+  let contactId: string | null = null;
+  let storedChatId = "";
+  if (conversationId && !target.includes("@")) {
+    const { data: conversation } = await a.from("whatsapp_conversations")
+      .select("contact_id").eq("org_id", orgId).eq("id", conversationId).maybeSingle();
+    contactId = typeof conversation?.contact_id === "string" ? conversation.contact_id : null;
+    if (contactId) {
+      const { data: contact } = await a.from("whatsapp_contacts").select("whatsapp_id")
+        .eq("org_id", orgId).eq("id", contactId).maybeSingle();
+      storedChatId = String(contact?.whatsapp_id || "").trim();
+    }
+  }
+  // LID não contém o telefone; ao vincular pelo próprio contato, não compare os dígitos do LID com o número.
+  if (!target.includes("@") && /^\d+@lid$/.test(storedChatId)) {
+    chatId = storedChatId;
+  } else if (!target.includes("@")) {
+    // O WAHA resolve PN para o chatId correto e também trata o nono dígito brasileiro.
+    const lookupUrl = base + "/api/contacts/check-exists?phone=" + encodeURIComponent(phone) + "&session=" + encodeURIComponent(session);
+    const lookup = await fetch(lookupUrl, { headers, redirect: "error", signal: AbortSignal.timeout(10000) });
+    if (!lookup.ok) throw new Error("WAHA não conseguiu resolver o contato (HTTP " + lookup.status + ")");
+    const resolved = await lookup.json();
+    if (resolved?.numberExists !== true || typeof resolved?.chatId !== "string" || !/^\d+@(lid|c\.us)$/.test(resolved.chatId)) {
+      throw new Error("WAHA não encontrou um chatId válido para o número");
+    }
+    chatId = resolved.chatId;
+    if (contactId) await a.from("whatsapp_contacts").update({ whatsapp_id: chatId }).eq("org_id", orgId).eq("id", contactId);
+  }
+  const media = document || image;
+  const menu = !media && interactive?.style === "menu" && interactive?.type === "list" && Array.isArray(interactive.rows) && interactive.rows.length > 0;
+  if (menu && interactive.prefer !== "text") {
+    const cutW = (v: any, n: number) => Array.from(String(v ?? "").trim()).slice(0, n).join("");
+    const listBody = { session, chatId, message: {
+      title: cutW(interactive.header || "", 60),
+      description: cutW(interactive.body || text, 1024),
+      footer: cutW(interactive.footer || "", 60),
+      button: cutW(interactive.button || "Ver opções", 20),
+      sections: [{ title: cutW(interactive.section || "Opções", 24), rows: interactive.rows.slice(0, 10).map((r: any) => ({ title: cutW(r.title, 24), rowId: cutW(r.id, 200), description: r.description ? cutW(r.description, 72) : null })) }],
+    } };
+    try {
+      const lr = await fetch(base + "/api/sendList", { method: "POST", headers, body: JSON.stringify(listBody), redirect: "error", signal: AbortSignal.timeout(20000) });
+      if (lr.ok) {
+        const lj = await lr.json().catch(() => null);
+        const lid = typeof lj?.id === "string" ? lj.id : lj?.id?._serialized || lj?.key?.id || lj?.message?.id || null;
+        if (lid) return { id: String(lid), format: "list" };
+      }
+      console.error("waha sendList recusado", lr.status, (await lr.text().catch(() => "")).slice(0, 300));
+    } catch (e) { console.error("waha sendList erro", e instanceof Error ? e.message : String(e)); }
+    text = interactiveAsMenuText(interactive.body || text, interactive);
+  } else if (menu) text = interactiveAsMenuText(interactive.body || text, interactive);
+  // v94 — "digitando..." antes da resposta da Helena (parece humano): mostra o indicador e espera alguns segundos.
+  if (!media && typingSeconds > 0) {
+    try {
+      await fetch(base + "/api/startTyping", { method: "POST", headers, body: JSON.stringify({ session, chatId }), redirect: "error", signal: AbortSignal.timeout(8000) });
+      await new Promise((r) => setTimeout(r, Math.min(15, typingSeconds) * 1000));
+      await fetch(base + "/api/stopTyping", { method: "POST", headers, body: JSON.stringify({ session, chatId }), redirect: "error", signal: AbortSignal.timeout(8000) });
+    } catch (e) { console.error("waha typing", e instanceof Error ? e.message : String(e)); }
+  }
+  const voice = document?.match(/^data:audio\/ogg;base64,([A-Za-z0-9+/]+={0,2})$/);
+  const endpoint = voice ? "sendVoice" : document ? "sendFile" : image ? "sendImage" : "sendText";
+  const body = voice ? { session, chatId, convert: false,
+    file: { mimetype: "audio/ogg; codecs=opus", filename: fileName || "voz.ogg", data: voice[1] },
+  } : media ? { session, chatId, caption: caption || text,
+    file: { url: media, ...(fileName ? { filename: fileName } : {}) }
+  } : { session, chatId, text };
+  if (media && !voice && !media.startsWith("https://")) throw new Error("WAHA: mídia exige URL HTTPS");
+  const response = await fetch(base + "/api/" + endpoint, {
+    method: "POST", headers, body: JSON.stringify(body), redirect: "error", signal: AbortSignal.timeout(20000),
+  });
+  if (!response.ok) throw new Error("WAHA recusou o envio (HTTP " + response.status + ")");
+  const result = await response.json();
+  const id = typeof result?.id === "string" ? result.id : result?.id?._serialized;
+  if (!id) throw new Error("WAHA: resposta sem identificador de mensagem");
+  return menu ? { id, format: "menu_text" } : { id };
+}
+
+// v82 — o cliente escreveu nas últimas 24 h? (janela de atendimento da Meta). Devolve também o nome para o modelo.
+async function metaWindow(a: any, orgId: string, conversationId: string | null, target: string) {
+  const p = digits(target), since = new Date(Date.now() - 23.5 * 3600000).toISOString();
+  let name = "";
+  const convIds: string[] = [];
+  if (conversationId) convIds.push(conversationId);
+  try {
+    const variants = [...new Set([p, p.startsWith("55") ? p.slice(2) : "55" + p])];
+    const { data: cts } = await a.from("whatsapp_contacts").select("id,name,client_id").eq("org_id", orgId).in("phone", variants).limit(5);
+    for (const ct of cts || []) {
+      if (!name && ct.name) name = String(ct.name);
+      const { data: cvs } = await a.from("whatsapp_conversations").select("id").eq("org_id", orgId).eq("contact_id", ct.id).limit(10);
+      for (const cv of cvs || []) convIds.push(cv.id);
+      if (!name && ct.client_id) { const { data: cl } = await a.from("clients").select("name").eq("id", ct.client_id).maybeSingle(); if (cl?.name) name = String(cl.name); }
+    }
+    if (!name) { const { data: cl } = await a.from("clients").select("name").eq("org_id", orgId).or(`whatsapp.ilike.%${p.slice(-8)}%,phone.ilike.%${p.slice(-8)}%`).limit(1).maybeSingle(); if (cl?.name) name = String(cl.name); }
+    if (!convIds.length) return { open: false, name };
+    const { count } = await a.from("whatsapp_messages").select("id", { count: "exact", head: true }).in("conversation_id", [...new Set(convIds)]).eq("direction", "inbound").gte("created_at", since);
+    return { open: (count || 0) > 0, name };
+  } catch (e) {
+    console.error("metaWindow", e);
+    return { open: false, name }; // na dúvida, usa o modelo (entrega garantida)
+  }
 }
 // v77 — API OFICIAL DA META (Cloud API, número 4141 em coexistência com o app).
 // Envia texto, imagem e documento. Fora da janela de 24 h a Meta só aceita modelo aprovado (erro 131047);
@@ -79,26 +210,35 @@ async function metaUpload(token: string, phoneId: string, mime: string, b64: str
   if (!r.ok || !d?.id) throw new Error("Meta upload " + r.status + ": " + String(d?.error?.message || "falha").slice(0, 200));
   return String(d.id);
 }
-async function metaSend(a:any,orgId:string,phone:string,message:string,image:string|null=null,caption:string|null=null,document:string|null=null,fileName:string|null=null){
+async function metaSend(a:any,orgId:string,phone:string,message:string,image:string|null=null,caption:string|null=null,document:string|null=null,fileName:string|null=null,template:{name:string}|null=null,interactive:any=null){
   if(orgId!==OFFICE_ORG)throw new Error("Provedor Meta não autorizado nesta organização");
   const token=await runtimeSecret(a,"meta_system_user_token"),phoneId=await runtimeSecret(a,"meta_whatsapp_phone_number_id"),p=digits(phone);
   if(!token||!phoneId||!/^\d{10,15}$/.test(p))throw new Error("Meta não configurada ou número inválido");
-  let payload:any;
+  let payload:any,payloadOld:any=null;
   const media=document||image;
-  if(media){
-    const kind=document?"document":"image";
+  if(template&&!media){
+    // v85: modelo novo com espaçamento; se o aviso for curto, usa o modelo antigo.
+    payloadOld=buildTemplatePayload(p,template.name,message);
+    payload=buildTemplatePayloadV2(p,template.name,message)||payloadOld;
+  } else if(media){
     const du=dataUriParts(media);
-    const ref:any=du?{id:await metaUpload(token,phoneId,du.mime,du.b64,fileName||(document?"documento.pdf":"imagem.jpg"))}:/^https:\/\//.test(media)?{link:media}:null;
+    // v81 (10/11/2026): áudio (data:audio/...) sai como mensagem de voz com botão de play, não como arquivo para baixar.
+    const isAudio=Boolean(document&&du&&/^audio\//i.test(du.mime));
+    const kind=isAudio?"audio":document?"document":"image";
+    const ref:any=du?{id:await metaUpload(token,phoneId,du.mime,du.b64,fileName||(isAudio?"audio.ogg":document?"documento.pdf":"imagem.jpg"))}:/^https:\/\//.test(media)?{link:media}:null;
     if(!ref)throw new Error("Mídia inválida para a Meta");
     const cap=String(caption||message||"").slice(0,1024);
-    if(cap)ref.caption=cap;
-    if(document)ref.filename=fileName||"documento.pdf";
+    if(cap&&!isAudio)ref.caption=cap;
+    if(document&&!isAudio)ref.filename=fileName||"documento.pdf";
     payload={to:p,type:kind,[kind]:ref};
-  } else payload={to:p,type:"text",text:{body:String(message).slice(0,4096),preview_url:/https?:\/\//.test(message)}};
-  const r=await fetch(`${GRAPH}/${phoneId}/messages`,{method:"POST",headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({messaging_product:"whatsapp",recipient_type:"individual",...payload}),signal:AbortSignal.timeout(30000)});
-  const d:any=await r.json().catch(()=>({}));
+  } else payload=(interactive?buildInteractivePayload(p,message,interactive):null)||{to:p,type:"text",text:{body:String(message).slice(0,4096),preview_url:/https?:\/\//.test(message)}};
+  const post=(pl:any)=>fetch(`${GRAPH}/${phoneId}/messages`,{method:"POST",headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({messaging_product:"whatsapp",recipient_type:"individual",...pl}),signal:AbortSignal.timeout(30000)});
+  let r=await post(payload);
+  let d:any=await r.json().catch(()=>({}));
+  // v85: modelo novo ainda não aprovado/recusado pela Meta (erros 132xxx) -> reenvia pelo modelo antigo, para o aviso nunca deixar de sair.
+  if(!r.ok&&payloadOld&&payload!==payloadOld&&/^132\d{3}$/.test(String(d?.error?.code||""))){console.error("meta_template_v2_fallback",String(d?.error?.code||""));r=await post(payloadOld);d=await r.json().catch(()=>({}));}
   if(!r.ok){const e:any=new Error("Meta "+r.status+" ("+String(d?.error?.code||"")+"): "+String(d?.error?.error_data?.details||d?.error?.message||"falha").slice(0,240));e.metaCode=Number(d?.error?.code||0);throw e;}
-  return {...d,messageid:String(d?.messages?.[0]?.id||"")};
+  return {...d,messageid:String(d?.messages?.[0]?.id||""),template_used:Boolean(template&&!media)};
 }
 async function uazapiSend(a:any,orgId:string,phone:string,message:string,delaySeconds=0,image:string|null=null,caption:string|null=null,document:string|null=null,fileName:string|null=null){
  if(orgId!==OFFICE_ORG)throw new Error("Provedor Uazapi não autorizado nesta organização");
@@ -334,9 +474,12 @@ Deno.serve(async (req) => {
       image = b.image ? String(b.image) : null,
       document = b.document ? String(b.document) : null,
       fileName = b.file_name ? String(b.file_name).replace(/[\\/]/g, "-").slice(0, 180) : null,
-      caption = b.caption ? String(b.caption) : null;
+      caption = b.caption ? String(b.caption) : null,
+      interactive = b.interactive && typeof b.interactive === "object" ? b.interactive : null;
     if (!orgId || !target || (!rawMessage && !image && !document)) return json({ ok: false, error: "org_id, destino e mensagem ou mídia são obrigatórios" }, 400);
-    const reactiveKeys = new Set(["helena_chatbot","client_service_triage","sales","client_schedule_relationship"]);
+    // v83 (12/11/2026): especialistas internos da Helena também são RESPOSTA a quem escreveu (antes o Agendador/Closer
+    //        eram tratados como aviso automático e ficavam bloqueados fora do horário, sem resposta nenhuma).
+    const reactiveKeys = new Set(["helena_chatbot","client_service_triage","sales","client_schedule_relationship","scheduler","closer","legal_triage","support_n1","sdr"]);
     const humanRequested = b.operator_send === true || String(key || "").startsWith("operator:");
     const automatedPrefix = /^(notification:|collection:|alert:|process-notification:|lexsign-remind-)/i.test(String(key || ""));
     const proactive = b.proactive === true || (!humanRequested && (automatedPrefix || (!reactiveKeys.has(agentKey) && agentKey !== "system" && agentKey !== "helena_office")));
@@ -364,7 +507,7 @@ Deno.serve(async (req) => {
     if(restriction&&agentKey!=='billing'&&!helenaRestrictedOk){await log(a,{org_id:orgId,conversation_id:conversationId,agent_key:agentKey,allowed:false,reason:'financial_service_restriction',body_preview:previewForLog(rawMessage,240),idempotency_key:key});return json({ok:true,allowed:false,reason:'financial_service_restriction'});}
     const automated = AGENT_KEYS.has(agentKey) || b.format_agent_reply === true,
       formatted = automated
-        ? formatWhatsAppAgentReply(rawMessage, { includeHeader: false })
+        ? formatWhatsAppAgentReply(rawMessage, { includeHeader: !proactive && !humanRequested && agentKey !== "system" && agentKey !== "helena_chatbot" && interactive?.style !== "menu" })
         : { rawAgentOutput: rawMessage, parsedReply: sanitize(rawMessage), formattedReply: sanitize(rawMessage) },
       message = formatted.formattedReply;
     if (!message && !image && !document) return json({ ok: false, error: "Mensagem vazia após formatação" }, 400);
@@ -379,7 +522,10 @@ Deno.serve(async (req) => {
       await log(a, { org_id: orgId, conversation_id: conversationId, agent_key: agentKey, allowed: false, reason: hb.reason, body_preview: previewForLog(message, 240), idempotency_key: key });
       return json({ ok: true, allowed: false, reason: hb.reason, resume_at: hb.state.cooldown_until });
     }
-    const providerName = ["meta","uazapi"].includes(String(b.force_provider||"")) ? String(b.force_provider) : await activeProvider(a);
+    const { data: officeWaha } = await a.from("integration_connections").select("id")
+      .eq("org_id",orgId).eq("provider","whatsapp").eq("status","connected")
+      .filter("settings->>provider","eq","waha").filter("settings->>channel_enabled","eq","true").maybeSingle();
+    const providerName = officeWaha ? "waha" : (["meta","uazapi"].includes(String(b.force_provider||"")) ? String(b.force_provider) : await activeProvider(a));
     await trace(a, orgId, conversationId, agentKey, "ready_to_send", { provider: providerName });
     try {
       // Recheck immediately before provider submission: an operator may have taken over while the reply was prepared.
@@ -398,24 +544,34 @@ Deno.serve(async (req) => {
       const delay = automated ? Number(b.delay_seconds || 0) : 0;
       let usedProvider = providerName, metaError = "";
       let provider: any;
-      if (providerName === "meta") {
-        try { provider = await metaSend(a, orgId, target, message, image, caption, document, fileName); }
+      if (providerName === "waha") {
+        // v94: atraso de digitação = o configurado no agente (delay_seconds); sem configuração, proporcional ao tamanho (3 a 10 s).
+        const typingSeconds = automated && !proactive && agentKey !== "system" ? (delay > 0 ? delay : Math.max(3, Math.min(10, Math.round(String(message).length / 30)))) : 0;
+        provider = await wahaSend(a, orgId, conversationId, target, interactive?.style === "menu" ? message : interactiveAsText(message, interactive), image, caption, document, fileName, interactive, typingSeconds);
+      } else if (providerName === "meta") {
+        // v82: aviso automático (não é resposta a quem acabou de escrever) e cliente fora da janela de 24 h -> modelo aprovado.
+        let template: { name: string } | null = null;
+        if (!humanRequested && (proactive || automatedPrefix) && !image && !document) {
+          const w = await metaWindow(a, orgId, conversationId, target);
+          if (!w.open) template = { name: w.name };
+        }
+        try { provider = await metaSend(a, orgId, target, message, image, caption, document, fileName, template, template ? null : interactive); if (template) usedProvider = "meta_template"; }
         catch (me) {
           metaError = me instanceof Error ? me.message : String(me);
-          const fallbackOn = false; // Política SF: Meta exclusivamente; nunca transferir envios para Uazapi.
+          const fallbackOn = b.allow_provider_fallback !== false && (await runtimeSecret(a, "meta_fallback_uazapi")).toLowerCase() !== "false";
           if (!fallbackOn) throw me;
           await trace(a, orgId, conversationId, agentKey, "meta_failed_fallback_uazapi", { reason: "meta_failed", error: metaError });
-          provider = await uazapiSend(a, orgId, target, message, 0, image, caption, document, fileName);
+          provider = await uazapiSend(a, orgId, target, (interactive?.style === "menu" ? interactiveAsMenuText(message, interactive) : interactiveAsText(message, interactive)), 0, image, caption, document, fileName);
           usedProvider = "uazapi_fallback";
         }
       } else provider = providerName === "uazapi"
-        ? await uazapiSend(a, orgId, target, message, delay, image, caption, document, fileName)
-        : await evolutionSend(a, orgId, target, message, delay, b.typing_indicator === true, image, caption, document, fileName);
+        ? await uazapiSend(a, orgId, target, (interactive?.style === "menu" ? interactiveAsMenuText(message, interactive) : interactiveAsText(message, interactive)), delay, image, caption, document, fileName)
+        : await evolutionSend(a, orgId, target, (interactive?.style === "menu" ? interactiveAsMenuText(message, interactive) : interactiveAsText(message, interactive)), delay, b.typing_indicator === true, image, caption, document, fileName);
       await log(a, { org_id: orgId, conversation_id: conversationId, agent_key: agentKey, allowed: true, reason: "sent_" + usedProvider + (metaError ? " | meta:" + metaError.slice(0, 120) : ""), body_preview: previewForLog(message, 240), idempotency_key: key });
       const externalId = String(provider?.messageid || provider?.key?.id || provider?.zaapId || provider?.messageId || provider?.id || "") || null;
       if (conversationId && automated) {
         try {
-          await a.from("whatsapp_messages").insert({ org_id: orgId, conversation_id: conversationId, direction: "outbound", message_type: document ? "document" : image ? "image" : "text", body: formatted.parsedReply, status: "sent", sent_at: new Date().toISOString(), external_message_id: externalId, metadata: { source: "ai_agent", agent_key: agentKey, file_name: fileName, provider: usedProvider } });
+          await a.from("whatsapp_messages").insert({ org_id: orgId, conversation_id: conversationId, direction: "outbound", message_type: document && /^data:audio\//i.test(document) ? "audio" : document ? "document" : image ? "image" : "text", body: formatted.parsedReply, status: "sent", sent_at: new Date().toISOString(), external_message_id: externalId, metadata: { source: "ai_agent", agent_key: agentKey, file_name: fileName, provider: usedProvider } });
           await a.from("whatsapp_conversations").update({ last_message_at: new Date().toISOString(), last_message_preview: previewForLog(formatted.parsedReply, 120), updated_at: new Date().toISOString() }).eq("id", conversationId);
         } catch (e) { console.error("history_insert", e); }
       }
