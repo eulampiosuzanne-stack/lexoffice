@@ -1,3 +1,4 @@
+import { processFollowupDecision } from '../_shared/process-followup-policy.mjs';
 import { prepareDistribution } from './distribution.mjs';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "jsr:@supabase/supabase-js@2.57.4";
@@ -15,8 +16,10 @@ Deno.serve(async(req)=>{
   if(["favorable_decision","case_closed_nps"].includes(event_kind)&&lawyer_approved!==true)return reply({ok:false,error:"lawyer_verification_required"},422);
   const db=createClient(Deno.env.get("SUPABASE_URL")!,service,{auth:{persistSession:false}});
   const {data:c,error:ce}=await db.from("clients").select("id,name,status,is_demo").eq("id",client_id).eq("org_id",org_id).maybeSingle();
-  const {data:p,error:pe}=await db.from("processes").select(event_kind==="process_distributed"?"id,client_id,is_demo,cnj_number,court,tribunal_name,tribunal_code":"id,client_id,is_demo").eq("id",process_id).eq("org_id",org_id).maybeSingle();
+  const {data:p,error:pe}=await db.from("processes").select(event_kind==="process_distributed"?"id,client_id,is_demo,status,cnj_number,court,tribunal_name,tribunal_code":"id,client_id,is_demo,status").eq("id",process_id).eq("org_id",org_id).maybeSingle();
   if(ce||pe||!c||!p||p.client_id!==client_id||c.is_demo||p.is_demo)return reply({ok:false,error:"client_process_link_invalid"},422);
+  const blocked=processFollowupDecision(p.status);
+  if(blocked&&event_kind!=="case_closed_nps")return reply({ok:false,error:blocked},422);
   const {data:pref}=await db.from("client_notification_preferences").select("whatsapp_enabled,proactive_process_updates").eq("org_id",org_id).eq("client_id",client_id).maybeSingle();
   if(!pref?.whatsapp_enabled||!pref?.proactive_process_updates)return reply({ok:false,error:"consent_missing"},422);
   const distribution=event_kind==="process_distributed"?prepareDistribution(p,client_id):null;
