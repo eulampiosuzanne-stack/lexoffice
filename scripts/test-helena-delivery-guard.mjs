@@ -1,0 +1,14 @@
+﻿import assert from 'node:assert/strict';
+import {authorizeHelenaDelivery} from '../src/lib/helena/delivery-guard.ts';
+const base={tenantId:'firm1',clientTenantId:'firm1',messageId:'evt-1',alreadySentIds:new Set(),now:1_800_000,isAutomatedSender:true,needsHumanReview:false,approved:false,providerReady:true,recipientVerified:true};
+const decide=(patch={})=>authorizeHelenaDelivery({...base,...patch});
+assert.equal(decide().allow,true);
+assert.equal(decide({clientTenantId:'other'}).reason,'tenant_mismatch');
+assert.equal(decide({alreadySentIds:new Set(['evt-1'])}).reason,'duplicate_or_missing_id');
+assert.equal(decide({recipientVerified:false}).reason,'unverified_recipient');
+assert.equal(decide({providerReady:false}).reason,'provider_unavailable');
+assert.equal(decide({humanLastMessageAt:base.now-60_000}).reason,'human_cooldown');
+assert.equal(decide({humanLastMessageAt:base.now-20*60_000}).allow,true);
+assert.equal(decide({needsHumanReview:true}).reason,'human_review_required');
+assert.equal(decide({needsHumanReview:true,approved:true}).allow,true);
+console.log('Helena delivery guard: 9 safety scenarios passed.');
