@@ -6,3 +6,11 @@ export function weekendNotice(orgId, now = new Date()) {
   if (day !== '2026-11-14' && day !== '2026-11-15') return '';
   return 'A Dra. Suzanne e a Dra. Gláucia retomam o atendimento na segunda-feira, 16/11. Se preferir, deixe um recado na área de mensagens do Aplicativo do Cliente:\n\nhttps://lexoffice.univittagroup.com.br/cliente';
 }
+
+export const isSuzanneOffice = orgId => orgId === office;
+
+export function requestsLawyerContact(message) {
+  const text = message.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+  const person = '(?:suzanne|glaucia|dra\\.?|doutora|advogada)';
+  return new RegExp('\\b(?:falar|conversar|ligar|reuniao|atendimento)\\b.{0,35}\\b(?:com|para|pra)\\s+(?:a\\s+)?'+person+'(?=\\W|$)|\\b'+person+'\\W+.{0,20}\\b(?:pode|consegue)\\s+(?:falar|conversar|me ligar)\\b').test(text);
+}

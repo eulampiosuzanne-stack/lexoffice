@@ -99,7 +99,8 @@ async function loadNodes(a:any,orgId:string):Promise<{nodes:Record<string,N>,ena
       {id:'prospect',label:'⚖️ Não sou cliente',description:'Quero atendimento jurídico.',next:'new'},
       {id:'other',label:'💬 Outros assuntos',description:'Informações, parcerias e assuntos administrativos.',next:'reception_other'}
     ]};
-    nodes.advogada={message:receptionMessages.busy,options:[
+    const notice=weekendNotice(orgId);
+    nodes.advogada=notice?{message:notice,options:[back]}:{message:receptionMessages.busy,options:[
       {id:'book',label:'📅 Ver horários',description:'Verificar disponibilidade para o próximo dia útil',agent:'client_schedule_relationship',ctx:{lawyer_talk:true}},
       {id:'note',label:'📝 Recado pelo app',description:'Enviar um recado direto à Dra. Suzanne',reply:receptionMessages.app_note},back
     ]};
@@ -147,13 +148,16 @@ Deno.serve(async req=>{if(req.method!=='POST')return J({ok:false},405);try{
     return J({ok:true,preview:true,enabled,render,node:k,message:x.message,interactive:x.options.length?menuInteractive(k,x,render):null,options:x.options.map((v:any,i:number)=>({number:i+1,id:v.id,label:v.label,description:v.description||'',next:v.next||null,agent:v.agent||null})),matched:Boolean(result),selected:chosen?{id:chosen.id,label:chosen.label,next:chosen.next||null,agent:chosen.agent||null}:null});
   }
 
-  if(weekendNotice(o)&&!['process_delivery_followup','collection_followup','collection_interest_confirmation'].includes(k))return J({ok:true,blocked:true,reason:'office_closure',path});
   if(!enabled){const allow=(await secret(a,'ai_test_allowlist')).split(/[,;\s]+/).map(D).filter(Boolean);if(o!=='b3dd3ed0-2a05-4087-8220-307a44352cec'||!allow.includes(D(p)))return J({ok:true,blocked:true,reason:'flow_disabled',path});}
   const why=await blocked(a,o,id,p);if(why)return J({ok:true,blocked:true,reason:why,path});
   if(ch||tx){
     const r=resolve(nodes,k,ch,tx);
     if(!r)return J({ok:true,matched:false,node:k,known_node:Boolean(nodes[k])});
     const z=r.opt;
+    if(weekendNotice(o)&&r.node==='advogada'&&z.id==='book'){
+      const resp=await sendNode(a,o,id,p,'advogada',nodes.advogada,render);
+      return J({ok:true,matched:true,node:'advogada',path,provider_response:resp});
+    }
     // Caminho sem repetições: volta ao menu zera; a mesma escolha seguida não se acumula.
     if(z.id==='menu'||z.next==='start')path=[];else{const last=path[path.length-1];if(!(last&&last.node===r.node&&last.choice===z.id))path=[...path,{node:r.node,choice:z.id,label:z.label}].slice(-6)}
     if(z.reply){const resp=await sendNode(a,o,id,p,'reply_'+r.node,{message:z.reply,options:[]},render);await logOut(a,o,id,z.reply,r.node,resp);return J({ok:true,matched:true,replied:true,node:'agent_conversation',path})}

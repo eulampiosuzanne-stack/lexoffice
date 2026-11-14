@@ -1,4 +1,4 @@
-import { weekendNotice } from './office-availability.mjs';
+import { weekendNotice, requestsLawyerContact, isSuzanneOffice } from './office-availability.mjs';
 import { receptionReply } from './reception-reply.mjs';
 import { receptionMessages } from './reception-messages.mjs';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -333,7 +333,7 @@ Deno.serve(async req=>{
     };
     // Urgência real nunca espera o horário comercial.
     if(hand?.critical)return await doHandoff(hand);
-    const notice = !followup ? weekendNotice(orgId) : '';
+    const notice = !followup && requestsLawyerContact(message) ? weekendNotice(orgId) : '';
     if (notice) {
       const result = await send(notice, `ooh:${conversationId}:2026-11-16`);
       return J({ok:true,notice_sent:result.ok && result.allowed===true,reason:result.reason,dry_run:dryRun, ...(dryRun?{reply:notice}:{})});
@@ -341,7 +341,7 @@ Deno.serve(async req=>{
 
     // v28 — cobrança da CONSULTA para lead não fica presa ao horário do financeiro (PIX pode ser pago a qualquer hora).
     const leadConsult=agentKey==='billing'&&!conv?.client_id;
-    if(!dryRun&&!followup&&!leadConsult&&!withinBusinessHours(policy)){
+    if(!dryRun&&!followup&&!leadConsult&&!isSuzanneOffice(orgId)&&!withinBusinessHours(policy)){
       const day=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo'}).format(new Date());
       const r=await send(receptionMessages.away,`ooh:${conversationId}:${day}`);
       return J({ok:true,skipped:'outside_business_hours',notice_sent:!!r.ok});
