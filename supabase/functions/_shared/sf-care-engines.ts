@@ -1,10 +1,8 @@
-// SF Private Care — motores determinísticos de proposta, sem disparo automático.
-// A camada de execução deve persistir as propostas em fila auditável e exigir aprovação.
-import { planejarRelacionamento, deduplicar, type Cliente, type Processo, type Proposta } from "./sf-proactive-relationship.ts";
-import { podeComunicarProcessoSF, type ClassificacaoSF } from "./sf-care-lifecycle.ts";
+// SF Private Care â€” motores determinÃ­sticos de proposta, sem disparo automÃ¡tico.
+// A camada de execuÃ§Ã£o deve persistir as propostas em fila auditÃ¡vel e exigir aprovaÃ§Ã£o.
+import { planejarRelacionamento, deduplicar, type Cliente, type Processo, type Proposta, type PendenciaRelacionamento } from "./sf-proactive-relationship.ts";
 
 export type EventoSF =
-  | { kind:"filing_verified"; process_id:string; filing_id:string; verified_at:string; explanation:string }
   | { kind:"phase_changed"; process_id:string; phase:string; verified_at:string; explanation:string }
   | { kind:"movement_verified"; process_id:string; movement_id:string; verified_at:string; explanation:string }
   | { kind:"hearing"; process_id:string; hearing_id:string; scheduled_at:string; preparation:string }
@@ -13,7 +11,7 @@ export type EventoSF =
 
 export type ContextoSF = {
   cliente:Cliente; processos:Processo[]; agora:Date; ultimaInteracao?:string|null;
-  classificacoes?:Record<string,ClassificacaoSF>;
+  pendencias?:PendenciaRelacionamento[];
   eventos:EventoSF[]; chavesEnviadas:Set<string>; chavesPendentes:Set<string>;
   humanoAtivo:boolean; ultimaMensagemHumana?:string|null; urgente:boolean;
   bloqueioFinanceiro:boolean; janelaMetaAberta:boolean; modeloMetaAprovado:boolean;
@@ -35,58 +33,51 @@ export function planejarMotoresSF(ctx:ContextoSF):PropostaSF[]{
   const pids=new Set(ctx.processos.map(p=>p.id));
   const proposals:PropostaSF[]=[];
   const add=(kind:string,processId:string|null,key:string,text:string,media:PropostaSF["media"],sourceId:string|null)=>{
-    // Nunca inventar confirmação de auditoria, movimentação, assinatura ou audiência.
+    // Nunca inventar confirmaÃ§Ã£o de auditoria, movimentaÃ§Ã£o, assinatura ou audiÃªncia.
     proposals.push({client_id:cliente.id,process_id:processId,kind,dedupe_key:key,priority:"review",requires_approval:true,
       text:safe(text),channel:ctx.janelaMetaAberta||ctx.modeloMetaAprovado?"whatsapp":"app",media,source_id:sourceId});
   };
   const name=firstName(cliente.name);
   for(const e of ctx.eventos){
     if("process_id" in e&&e.process_id&&!pids.has(e.process_id))continue;
-    if("process_id" in e&&e.process_id&&!podeComunicarProcessoSF(ctx.classificacoes?.[e.process_id]||"ativo",e.kind))continue;
-    if(e.kind==="filing_verified"&&validDate(e.verified_at)&&e.explanation.trim()){
-      add("filing_card",e.process_id,`filing:${e.process_id}:${e.filing_id}`,
-        `Olá, ${name}! Seu processo foi ajuizado. ${e.explanation}`,"text",e.filing_id);
-    } else
     if(e.kind==="phase_changed"&&validDate(e.verified_at)&&e.explanation.trim()){
       add("phase_video",e.process_id,`phase:${e.process_id}:${e.phase}:${e.verified_at.slice(0,10)}`,
-        `Olá, ${name}! A fase do seu processo foi atualizada: ${e.phase}. ${e.explanation}`,"video",e.process_id);
+        `OlÃ¡, ${name}! A fase do seu processo foi atualizada: ${e.phase}. ${e.explanation}`,"video",e.process_id);
     } else if(e.kind==="movement_verified"&&validDate(e.verified_at)&&e.explanation.trim()){
       add("movement_audio",e.process_id,`movement:${e.process_id}:${e.movement_id}`,
-        `Olá, ${name}! Temos uma atualização verificada do seu processo. ${e.explanation}`,"audio",e.movement_id);
+        `OlÃ¡, ${name}! Temos uma atualizaÃ§Ã£o verificada do seu processo. ${e.explanation}`,"audio",e.movement_id);
     } else if(e.kind==="hearing"&&validDate(e.scheduled_at)&&e.preparation.trim()){
       const d=daysUntil(e.scheduled_at,agora);
-      if(d===7||d===1)add("hearing_preparation",e.process_id,`hearing:${e.hearing_id}:D-${d}`,
-        `Olá, ${name}! Sua audiência se aproxima. ${e.preparation}`,"text",e.hearing_id);
+      if(d===7||d===3||d===1)add("hearing_preparation",e.process_id,`hearing:${e.hearing_id}:D-${d}`,
+        `OlÃ¡, ${name}! Sua audiÃªncia se aproxima. ${e.preparation}`,"text",e.hearing_id);
     } else if(e.kind==="onboarding"&&e.contract_verified){
       add("onboarding_video",e.process_id,`onboarding:${cliente.id}`,
-        `Olá, ${name}! Bem-vindo(a) ao acompanhamento digital do escritório. Conheça os recursos do seu aplicativo.`,"video",null);
+        `OlÃ¡, ${name}! Bem-vindo(a) ao acompanhamento digital do escritÃ³rio. ConheÃ§a os recursos do seu aplicativo.`,"video",null);
     } else if(e.kind==="document_request"&&e.instructions.trim()){
       add("document_checklist",e.process_id,`documents:${e.request_id}`,
-        `Olá, ${name}! Preparamos orientações para os documentos do seu processo. ${e.instructions}`,"text",e.request_id);
+        `OlÃ¡, ${name}! Preparamos orientaÃ§Ãµes para os documentos do seu processo. ${e.instructions}`,"text",e.request_id);
     }
   }
-  const ativos=ctx.processos.filter(p=>podeComunicarProcessoSF(ctx.classificacoes?.[p.id]||"ativo","acompanhamento"));
-  for(const p of planejarRelacionamento(cliente,ativos,agora,ctx.ultimaInteracao)){
-    if(p.process_id===null&&ctx.processos.length>0&&ativos.length===0)continue;
+  for(const p of planejarRelacionamento(cliente,ctx.processos,agora,ctx.ultimaInteracao,ctx.pendencias)){
     proposals.push({...p,channel:ctx.janelaMetaAberta||ctx.modeloMetaAprovado?"whatsapp":"app",media:"text",source_id:p.process_id});
   }
   const seen=new Set([...ctx.chavesEnviadas,...ctx.chavesPendentes]);
-  return deduplicar(proposals,seen).filter((p,i,a)=>a.findIndex(x=>x.dedupe_key===p.dedupe_key)===i);
+  return (deduplicar(proposals,seen) as PropostaSF[]).filter((p,i,a)=>a.findIndex(x=>x.dedupe_key===p.dedupe_key)===i);
 }
 
-// Regras obrigatórias no executor: aprovação humana individual; envio Meta somente com
-// janela de atendimento válida ou template aprovado; idempotência persistida em banco;
+// Regras obrigatÃ³rias no executor: aprovaÃ§Ã£o humana individual; envio Meta somente com
+// janela de atendimento vÃ¡lida ou template aprovado; idempotÃªncia persistida em banco;
 // opt-out verificado novamente no instante do envio; nunca fallback para outros provedores.
 
-// Decisão operacional sem revisão manual para comunicações rotineiras verificadas.
-// Não executa envios: a camada de transporte ainda deve revalidar consentimento,
-// autorização Meta, opt-out, idempotência, limite diário e horário permitido.
+// DecisÃ£o operacional sem revisÃ£o manual para comunicaÃ§Ãµes rotineiras verificadas.
+// NÃ£o executa envios: a camada de transporte ainda deve revalidar consentimento,
+// autorizaÃ§Ã£o Meta, opt-out, idempotÃªncia, limite diÃ¡rio e horÃ¡rio permitido.
 export function elegivelParaEnvioAutomatico(proposta:PropostaSF, ctx:ContextoSF):boolean{
-  const rotina=new Set(["hearing_preparation","document_checklist","care_checkin"]);
+  const rotina=new Set(["hearing_preparation","document_checklist"]);
   if(!rotina.has(proposta.kind)||proposta.media!=="text"||proposta.channel!=="whatsapp")return false;
   if(!ctx.cliente.opt_in||ctx.cliente.opt_out||ctx.humanoAtivo||ctx.urgente||ctx.bloqueioFinanceiro)return false;
   if(ctx.ultimaMensagemHumana&&validDate(ctx.ultimaMensagemHumana)&&elapsedMinutes(ctx.ultimaMensagemHumana,ctx.agora)<20)return false;
   if(!ctx.janelaMetaAberta&&!ctx.modeloMetaAprovado)return false;
   if(ctx.chavesEnviadas.has(proposta.dedupe_key)||ctx.chavesPendentes.has(proposta.dedupe_key))return false;
-  return proposta.client_id===ctx.cliente.id&&(!proposta.process_id||ctx.processos.some(p=>p.id===proposta.process_id&&podeComunicarProcessoSF(ctx.classificacoes?.[p.id]||"ativo",proposta.kind)));
+  return proposta.client_id===ctx.cliente.id&&(!proposta.process_id||ctx.processos.some(p=>p.id===proposta.process_id));
 }
