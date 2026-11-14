@@ -1,11 +1,12 @@
 import CommunicationMetrics from './CommunicationMetrics';
+import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
 type Pending = { id: string; event_kind: string; message: string; source_verified: boolean; created_at: string; process_id: string | null; client_id: string };
 type Audit = { id: string; agent_key: string; allowed: boolean; reason: string; created_at: string };
 
-export default function CommunicationsSupervisor() {
+export default function CommunicationsSupervisor({ sfCare = false }: { sfCare?: boolean }) {
   const [queue, setQueue] = useState<Pending[]>([]);
   const [audit, setAudit] = useState<Audit[]>([]);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -50,15 +51,25 @@ export default function CommunicationsSupervisor() {
   }
 
   return <>
-    <CommunicationMetrics />
-    <section className="ac-surface" aria-busy={busy}>
+    {sfCare ? <header className="ac-surface">
+      <h2>SF Care</h2>
+      <p>Acompanhe as comunicações de relacionamento preparadas para seus clientes e revise o conteúdo antes de autorizar.</p>
+    </header> : <>
+      <CommunicationMetrics />
+      <section className="ac-surface">
+        <h2>Revisão do SF Care</h2>
+        <Link to="?area=sf-care">Abrir fila de aprovação do SF Care</Link>
+      </section>
+    </>}
+    {sfCare && <section className="ac-surface" aria-busy={busy}>
       <div className="ac-section-head">
         <h2>Aguardando aprovação</h2>
         <button className="secondary" disabled={busy} onClick={() => void load()}>Atualizar</button>
       </div>
       {error && <p role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
-      {!queue.length && !busy && !error && <p>Nenhuma comunicação pendente nesta fila.</p>}
+      {busy && <p role="status">Consultando a fila…</p>}
+      {!queue.length && !busy && !error && <p>Nenhuma comunicação do SF Care aguarda sua aprovação.</p>}
       {queue.map(item => <details key={item.id} className="ac-disclosure">
         <summary>{item.event_kind.replace(/_/g, ' ')} · {new Date(item.created_at).toLocaleDateString('pt-BR')}</summary>
         <p>{item.source_verified ? 'Fonte verificada' : 'Fonte pendente de verificação'}</p>
@@ -66,18 +77,19 @@ export default function CommunicationsSupervisor() {
         <label>Mensagem<textarea rows={4} maxLength={2000} value={drafts[item.id] ?? item.message}
           onChange={event => setDrafts(previous => ({ ...previous, [item.id]: event.target.value }))} /></label>
         <div className="ac-section-head">
-          <button className="secondary" disabled={busy} onClick={() => void review(item, 'reject')}>Rejeitar</button>
+          <button className="secondary" disabled={busy} onClick={() => void review(item, 'reject')}>Não autorizar</button>
           <button className="primary" disabled={busy || !item.source_verified || !(drafts[item.id] ?? item.message).trim()}
-            onClick={() => void review(item, 'approve')}>Aprovar comunicação</button>
+            onClick={() => void review(item, 'approve')}>Autorizar envio</button>
         </div>
       </details>)}
-    </section>
-    <section className="ac-surface">
+    </section>}
+    {!sfCare && <section className="ac-surface" aria-busy={busy}>
       <h2>Auditoria recente de envios</h2>
+      {error && <p role="alert">{error}</p>}
       {audit.length ? <ul>{audit.map(entry => <li key={entry.id}>
         <strong>{entry.agent_key}</strong> · {entry.allowed ? 'Aceito pelo provedor' : 'Retido ou com falha'} · {entry.reason}
         {' · '}{new Date(entry.created_at).toLocaleString('pt-BR')}
       </li>)}</ul> : !busy && !error && <p>Nenhum registro retornado.</p>}
-    </section>
+    </section>}
   </>;
 }
