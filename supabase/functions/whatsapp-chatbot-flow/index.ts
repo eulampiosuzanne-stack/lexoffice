@@ -1,3 +1,4 @@
+import { weekendNotice } from './office-availability.mjs';
 import { receptionMessages } from './reception-messages.mjs';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "jsr:@supabase/supabase-js@2.57.4";
@@ -146,6 +147,7 @@ Deno.serve(async req=>{if(req.method!=='POST')return J({ok:false},405);try{
     return J({ok:true,preview:true,enabled,render,node:k,message:x.message,interactive:x.options.length?menuInteractive(k,x,render):null,options:x.options.map((v:any,i:number)=>({number:i+1,id:v.id,label:v.label,description:v.description||'',next:v.next||null,agent:v.agent||null})),matched:Boolean(result),selected:chosen?{id:chosen.id,label:chosen.label,next:chosen.next||null,agent:chosen.agent||null}:null});
   }
 
+  if(weekendNotice(o)&&!['process_delivery_followup','collection_followup','collection_interest_confirmation'].includes(k))return J({ok:true,blocked:true,reason:'office_closure',path});
   if(!enabled){const allow=(await secret(a,'ai_test_allowlist')).split(/[,;\s]+/).map(D).filter(Boolean);if(o!=='b3dd3ed0-2a05-4087-8220-307a44352cec'||!allow.includes(D(p)))return J({ok:true,blocked:true,reason:'flow_disabled',path});}
   const why=await blocked(a,o,id,p);if(why)return J({ok:true,blocked:true,reason:why,path});
   if(ch||tx){
