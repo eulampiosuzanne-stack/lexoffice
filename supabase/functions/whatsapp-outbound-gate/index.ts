@@ -516,6 +516,17 @@ Deno.serve(async (req) => {
         if (claim.state !== "reserved") return json({ ok: false, allowed: false, reason: claim.state === "uncertain" ? "delivery_uncertain" : "dispatch_in_progress" }, 409);
         reservation = dispatch;
       }
+      if (conversationId && String(key || "").startsWith("helena:")) {
+        const current = await a.from("whatsapp_conversations").select("bot_ativo,conversation_owner,human_takeover_reason,last_human_outbound_at")
+          .eq("org_id", orgId).eq("id", conversationId).maybeSingle();
+        const cv = current.data;
+        const paused = !cv || cv.bot_ativo === false || cv.conversation_owner === "HUMAN" || cv.human_takeover_reason === "watchdog_loop"
+          || (cv.last_human_outbound_at && Date.now() - Date.parse(cv.last_human_outbound_at) < 1200000);
+        if (current.error || paused) {
+          await log(a, { org_id: orgId, conversation_id: conversationId, agent_key: agentKey, allowed: false, reason: "active_reply_cancelled", idempotency_key: key });
+          return json({ ok: true, allowed: false, reason: "active_reply_cancelled" });
+        }
+      }
       const delay = automated ? Number(b.delay_seconds || 0) : 0;
       let usedProvider = providerName, metaError = "";
       let provider: any;
