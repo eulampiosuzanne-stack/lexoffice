@@ -21,7 +21,7 @@ Deno.serve(async(req)=>{
   const blocked=processFollowupDecision(p.status);
   if(blocked&&event_kind!=="case_closed_nps")return reply({ok:false,error:blocked},422);
   const {data:pref}=await db.from("client_notification_preferences").select("whatsapp_enabled,proactive_process_updates").eq("org_id",org_id).eq("client_id",client_id).maybeSingle();
-  if(!pref?.whatsapp_enabled||!pref?.proactive_process_updates)return reply({ok:false,error:"consent_missing"},422);
+  if(pref&&(pref.whatsapp_enabled===false||pref.proactive_process_updates===false))return reply({ok:false,error:"client_opted_out"},422);
   const distribution=event_kind==="process_distributed"?prepareDistribution(p,client_id):null;
   if(event_kind==="process_distributed"&&!distribution)return reply({ok:false,error:"distribution_details_unverified"},422);
   const first=String(c.name||"cliente").trim().split(/\s+/)[0].replace(/[<>]/g,"").slice(0,60);

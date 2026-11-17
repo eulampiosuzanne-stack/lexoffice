@@ -44,7 +44,7 @@ Deno.serve(async req=>{
     if(!uuid.test(clientId)||!Object.hasOwn(templates,kind))return json({ok:false,error:"invalid_draft"},422);
     const {data:client}=await a.from("clients").select("id,name,status,is_demo").eq("org_id",profile.org_id).eq("id",clientId).maybeSingle();
     const {data:pref}=await a.from("client_notification_preferences").select("whatsapp_enabled,proactive_process_updates").eq("org_id",profile.org_id).eq("client_id",clientId).maybeSingle();
-    if(!client||client.is_demo||!["ativo","active","cliente","cliente_ativo","cliente_private"].includes(String(client.status||"").toLowerCase())||!pref?.whatsapp_enabled||!pref?.proactive_process_updates)return json({ok:false,error:"client_not_eligible"},422);
+    if(!client||client.is_demo||!["ativo","active","cliente","cliente_ativo","cliente_private"].includes(String(client.status||"").toLowerCase())||(pref&&(pref.whatsapp_enabled===false||pref.proactive_process_updates===false))||(kind!=="post_filing_checkin"&&(!pref?.whatsapp_enabled||!pref?.proactive_process_updates)))return json({ok:false,error:"client_not_eligible"},422);
     if(kind==="post_filing_checkin"){
       const {data:processes,error:processError}=await a.from("processes").select("id,cnj_number,status").eq("org_id",profile.org_id).eq("client_id",clientId).limit(30);
       if(processError)throw processError;
