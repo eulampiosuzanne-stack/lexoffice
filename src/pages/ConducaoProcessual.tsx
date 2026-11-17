@@ -761,7 +761,7 @@ export default function ConducaoProcessual() {
     setDraftText(text);
     setDraftResearch(String(data.research || ""));
     setDraftStudy(String(data.dossier || ""));
-    setDraftProvider(`Claude · ${data.model} · ${data.documents_read?.length || 0} documentos lidos`);
+    setDraftProvider(`${data.provider==="gemini"?"Gemini":"Claude"} · ${data.model} · ${data.documents_read?.length || 0} documentos lidos`);
     const { data: u } = await supabase.auth.getUser();
     const ins = await supabase
       .from("process_conduction_drafts")
