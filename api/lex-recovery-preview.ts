@@ -68,7 +68,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   const resource = params.get('resource') || '';
   const limit = Number(params.get('limit') ?? 50);
   const offset = Number(params.get('offset') ?? 0);
-  if (!Object.hasOwn(queries, resource) || !Number.isInteger(limit) || limit < 1 || limit > 100
+  if (!Object.prototype.hasOwnProperty.call(queries, resource) || !Number.isInteger(limit) || limit < 1 || limit > 100
       || !Number.isInteger(offset) || offset < 0 || offset > 10_000) {
     return respond(res, 400, { error: 'Consulta ou paginação inválida.' });
   }
