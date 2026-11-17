@@ -689,6 +689,11 @@ export default function ConducaoProcessual() {
           provas_que_pede: analysis.analise?.provas_que_pede || analysis.provas,
           estrategia: analysis.analise?.estrategia,
           alertas: analysis.analise?.alertas,
+          dicas: analysis.dicas,
+          confianca: analysis.analise?.confianca,
+          base: analysis.base,
+          ritmo: analysis.ritmo,
+          fontes: analysis.fontes,
         }
       : null;
     const input = JSON.stringify({
@@ -713,9 +718,17 @@ export default function ConducaoProcessual() {
           descricao: String(m.description || "").slice(0, 700),
         })),
       perfil_do_juizo: juizo,
+      recomendacao_da_conducao: {
+        providencia: guide.foco,
+        passos: guide.passos,
+        polo_representado: poloAutor ? "autor" : poloReu ? "réu" : "não confirmado",
+        ultima_movimentacao: processSummary.recent[0] || null,
+        prazos_pendentes: processSummary.pending.slice(0,10),
+        peca_recomendada: nextAction?.suggested.includes(kind) || guide.minutas.includes(kind),
+      },
       orientacoes_da_advogada: draftExtra || null,
     });
-    const instructions = `Você é advogada sênior do escritório Suzanne Figueiredo — Advocacia e Soluções Jurídicas (OAB/MG). Redija a peça processual pedida, completa, em português jurídico formal, pronta para revisão: endereçamento ao juízo, qualificação resumida por referência ("já qualificada nos autos"), fatos processuais relevantes, fundamentação, pedidos e fecho com local, data e "Suzanne Figueiredo — OAB/MG [●]". Ajuste a estratégia ao perfil do juízo quando informado.\n\nBANCO DE PEÇAS OURO DA LEXOFFICE: antes de redigir, escolha silenciosamente apenas os recursos que aumentem a compreensão do caso: síntese processual; alegação × resposta; decisão/sentença × erro/vício × reforma pretendida; linha do tempo; fato × prova × consequência; pontos controvertidos × prova necessária × finalidade; quadro financeiro ou gráfico somente quando números forem probatórios; quesito pericial × resposta × documento contrário × impugnação; requisitos de tutela/liminar; testemunha × fato a provar; e, em memoriais, controvérsia × decisão anterior × prova produzida × razão para acolhimento. Use tabelas simples, listas curtas e blocos de síntese compatíveis com Word. Não use recurso visual decorativo.\n\nOs modelos são referência de arquitetura e Visual Law, não fonte de verdade. Nunca transporte nomes, fatos, valores, artigos ou jurisprudência de outro caso. Use somente os dados deste processo. Não invente fatos, datas, valores, nomes, documentos, artigos ou precedentes. Onde faltar dado, use [●]. Não cite precedente não fornecido. Texto sem markdown e sem asteriscos; títulos em CAIXA ALTA.`;
+    const instructions = `Você é advogada sênior do escritório Suzanne Figueiredo — Advocacia e Soluções Jurídicas (OAB/MG). Redija a peça processual pedida, completa, em português jurídico formal, pronta para revisão: endereçamento ao juízo, qualificação resumida por referência ("já qualificada nos autos"), fatos processuais relevantes, fundamentação, pedidos e fecho com local, data e "Suzanne Figueiredo — OAB/MG [●]". Considere expressamente a recomendação da condução processual e, quando disponível, a análise do juízo (perfil, provas, alertas e estratégia). Não trate padrões estatísticos do juízo como fatos deste processo; não afirme cabimento sem conferir os atos e o prazo. Quando não houver perfil do juízo, informe a limitação sem inventá-lo. Ajuste a estratégia ao perfil do juízo quando informado.\n\nBANCO DE PEÇAS OURO DA LEXOFFICE: antes de redigir, escolha silenciosamente apenas os recursos que aumentem a compreensão do caso: síntese processual; alegação × resposta; decisão/sentença × erro/vício × reforma pretendida; linha do tempo; fato × prova × consequência; pontos controvertidos × prova necessária × finalidade; quadro financeiro ou gráfico somente quando números forem probatórios; quesito pericial × resposta × documento contrário × impugnação; requisitos de tutela/liminar; testemunha × fato a provar; e, em memoriais, controvérsia × decisão anterior × prova produzida × razão para acolhimento. Use tabelas simples, listas curtas e blocos de síntese compatíveis com Word. Não use recurso visual decorativo.\n\nOs modelos são referência de arquitetura e Visual Law, não fonte de verdade. Nunca transporte nomes, fatos, valores, artigos ou jurisprudência de outro caso. Use somente os dados deste processo. Não invente fatos, datas, valores, nomes, documentos, artigos ou precedentes. Onde faltar dado, use [●]. Não cite precedente não fornecido. Texto sem markdown e sem asteriscos; títulos em CAIXA ALTA.`;
     const { data, error } = await supabase.functions.invoke(
       "ai-provider-gateway",
       {
@@ -802,6 +815,27 @@ export default function ConducaoProcessual() {
     a.download = `${safeName(title)}.${ext}`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }
+
+  async function downloadDraftPdf() {
+    if(!draftText.trim())return;
+    try {
+      const {jsPDF}=await import("jspdf");
+      const pdf=new jsPDF({unit:"mm",format:"a4"});
+      const margin=23, width=164, bottom=273;
+      let y=25;
+      pdf.setFont("times","bold");pdf.setFontSize(11);
+      pdf.text("SUZANNE FIGUEIREDO | ADVOCACIA E SOLUÇÕES JURÍDICAS",105,y,{align:"center"});
+      y+=9;pdf.setDrawColor(178,138,74);pdf.line(margin,y,187,y);y+=12;
+      pdf.setFont("times","normal");pdf.setFontSize(11);
+      const lines=pdf.splitTextToSize(draftText.replace(/\r/g,""),width);
+      for(const line of lines){
+        if(y>bottom){pdf.addPage();y=25;}
+        pdf.text(String(line),margin,y);y+=6;
+      }
+      pdf.save(safeName(`${DRAFTS[draftKind]||"Minuta"} - ${proc?.cnj_number||"processo"}`)+".pdf");
+      setNotice({kind:"ok",text:"PDF gerado para revisão. Envie ao cliente somente após conferir o conteúdo e os dados sigilosos."});
+    }catch(e){setNotice({kind:"error",text:"Não foi possível gerar o PDF: "+(e instanceof Error?e.message:String(e))});}
   }
 
   async function addDeadline() {
@@ -1564,6 +1598,9 @@ export default function ConducaoProcessual() {
                     }
                   >
                     <Copy size={16} /> Copiar
+                  </button>
+                  <button className="doc-refresh" onClick={downloadDraftPdf}>
+                    <Download size={16} /> Gerar PDF para compartilhar
                   </button>
                   <button className="doc-refresh" onClick={downloadDraft}>
                     <Download size={16} /> Baixar Word (timbrado)
