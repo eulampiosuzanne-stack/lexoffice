@@ -381,6 +381,7 @@ export default function ConducaoProcessual() {
   const [draftText, setDraftText] = useState("");
   const [clientReportText, setClientReportText] = useState("");
   const [clientReportId, setClientReportId] = useState("");
+  const [clientReportAt, setClientReportAt] = useState("");
   const [reportPublished, setReportPublished] = useState(false);
   const [draftResearch, setDraftResearch] = useState("");
   const [draftStudy, setDraftStudy] = useState("");
@@ -459,7 +460,8 @@ export default function ConducaoProcessual() {
     setNotice(null);
     setDraftText("");
     setDraftKind("");
-    const [m, d, h, a, c, dr] = await Promise.all([
+    setClientReportText("");setClientReportId("");setClientReportAt("");setReportPublished(false);
+    const [m, d, h, a, c, dr, report] = await Promise.all([
       supabase
         .from("process_movements")
         .select("id,movement_date,title,description,source")
@@ -496,7 +498,13 @@ export default function ConducaoProcessual() {
         .eq("process_id", id)
         .order("created_at", { ascending: false })
         .limit(30),
+      supabase.from("process_conduction_jobs").select("result,updated_at")
+        .eq("process_id",id).eq("stage","completed").eq("state->>mode","client_report")
+        .order("updated_at",{ascending:false}).limit(1).maybeSingle(),
     ]);
+    if(report.data?.result?.text){
+      setClientReportText(report.data.result.text);setClientReportId(id);setClientReportAt(report.data.updated_at);
+    }
     setMovs((m.data as any) || []);
     setDeadlines((d.data as any) || []);
     setHearings((h.data as any) || []);
@@ -765,7 +773,7 @@ export default function ConducaoProcessual() {
         content: text,
         research_evidence: {
           study: data.dossier, research: data.research, sources: data.sources,
-          provider: data.provider, model: data.model, documents_read: data.documents_read,
+          provider: data.provider, model: data.model, providers: data.providers, documents_read: data.documents_read,
           judge_analysis_at: data.judge_analysis_at, generated_at: new Date().toISOString(),
         },
         created_by: u?.user?.id || null,
@@ -828,6 +836,7 @@ export default function ConducaoProcessual() {
       const data=await runLegalJob({process_id:proc.id,mode:"client_report",title:"Relatório ao cliente"});
       setClientReportText(data.text);
       setClientReportId(proc.id);
+      setClientReportAt(new Date().toISOString());
       setReportPublished(false);
       setNotice({kind:"ok",text:"Confira e ajuste o relatório antes de baixar ou enviar ao App."});
     }catch(error){
@@ -871,7 +880,7 @@ export default function ConducaoProcessual() {
     line("Atualização do seu processo",true);
     line("Cliente: "+(proc.clients?.name||"Não informado"));
     line("Processo: "+(proc.cnj_number||proc.internal_number||"Não informado"));
-    line("Atualizado em "+new Intl.DateTimeFormat("pt-BR",{timeZone:"America/Sao_Paulo"}).format(new Date()));
+    line("Relatório gerado em "+new Intl.DateTimeFormat("pt-BR",{timeZone:"America/Sao_Paulo"}).format(new Date(clientReportAt||Date.now())));
     for(const paragraph of clientReportText.split(/\n+/).filter(p=>p.trim())){
       line(paragraph,/^[A-ZÁÉÍÓÚÂÊÔÃÕÇ ]{5,}$/.test(paragraph.trim()));
     }
@@ -1263,6 +1272,7 @@ export default function ConducaoProcessual() {
             </div>
             {clientReportId===proc.id&&clientReportText&&<section className="doc-library-card" aria-label="Revisão do relatório ao cliente">
               <h3>Relatório ao cliente</h3>
+              {clientReportAt&&<p className="pa-muted">Gerado em {brDT(clientReportAt)}. Confira se houve novas movimentações antes do envio.</p>}
               <label>Conteúdo para revisão
                 <textarea rows={18} value={clientReportText} onChange={e=>{setClientReportText(e.target.value);setReportPublished(false);}}/>
               </label>
