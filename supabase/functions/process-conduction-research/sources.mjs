@@ -33,3 +33,9 @@ export function renderCitations(content) {
     return block.text + (references.length ? '\nFontes: ' + [...new Set(references)].join(' | ') : '');
   }).join('\n\n');
 }
+
+// A generated report cannot infer that no work was done from missing workflow data.
+export function prepareClientReportText(content) {
+  return renderCitations(content).replace(/(?:Nenhuma dessas medidas está (?:concluída ou aprovada|decidida)[^.]*|Essas providências ainda não foram executadas nem aprovadas)\./gi,
+    'As providências propostas dependem de revisão da advogada.');
+}

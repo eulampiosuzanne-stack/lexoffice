@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2.57.4";
-import { extractResearchSources, renderCitations } from "./sources.mjs";
+import { extractResearchSources, renderCitations, prepareClientReportText } from "./sources.mjs";
 
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { ...cors, "Content-Type": "application/json" } });
@@ -187,7 +187,7 @@ async function advanceJob(db: any, org: string, actor: string, id: string) {
     }else if(stage==="report"){
       const report=await claude(key,state.model,[{type:"text",text:"ESTUDO INTERNO (NÃO COPIAR AO CLIENTE)\n"+state.dossier+"\nEXTRATOS DOS AUTOS: priorize as datas e o teor das decisões aqui identificados\n"+(state.batch_results||[]).join("\n\n")}],
         "Escreva um relatório final ao cliente, entre 250 e 450 palavras, em português simples e profissional. Use somente os títulos O QUE ACONTECEU; O QUE ISSO SIGNIFICA PARA VOCÊ; PRÓXIMAS PROVIDÊNCIAS; O QUE PRECISAMOS DE VOCÊ. Comece com a decisão mais recente, sua data e evento comprovados. Explique TODOS os capítulos relevantes favoráveis e desfavoráveis, sem confundir movimento complementar com outra decisão. Não é um parecer interno: exclua perfil estatístico do juiz, discussão de teses, críticas às peças ou representação, alternativas de contagem de prazo e especulações. Não escreva que não houve trabalho do escritório nem exponha ausência de registro como ausência de atuação. Não solicite depósito, ratificação de procuração ou valores ao cliente por mera hipótese. Explique o que foi decidido, o que ainda não foi decidido e que providências concretas serão avaliadas pela advogada, sem afirmar execução ou aprovação não comprovada. Datas finais indicadas pelo sistema só podem ser descritas como registros a conferir; prefira informar que a equipe conferirá o prazo, sem enumerar datas alternativas. Peça apenas documentos ou informações diretamente necessários, no máximo quatro itens. Não prometa resultados. Não transfira ao cliente incertezas internas de identificação: se o vínculo não estiver confirmado, não produza relatório e informe a pendência. Sem markdown, tabelas, JSON ou fontes internas. Não inclua detalhes de outro processo.");
-      result={text:renderCitations(report.content).replace(/Nenhuma dessas medidas está (?:concluída ou aprovada|decidida)[^.]*\./gi,"As providências propostas dependem de revisão da advogada."),provider:"anthropic",model:state.model,documents_read:state.documents};
+      result={text:prepareClientReportText(report.content),provider:"anthropic",model:state.model,documents_read:state.documents};
       stage="completed";
     }else if(stage==="research"){
       const match=String(state.dossier).match(/PESQUISA_PUBLICA_JSON:\s*(\{[^\n]+\})/);
