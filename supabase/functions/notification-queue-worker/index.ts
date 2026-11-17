@@ -34,13 +34,13 @@ Deno.serve(async(req)=>{
     if(item.template_key==="sf_care_reviewed"){
       const outboxId=String(payload.sf_outbox_id||"");
       const {data:care,error:careError}=await a.from("sf_care_outbox")
-        .select("id,status,lawyer_approved,source_verified,client_id,org_id")
+        .select("id,status,lawyer_approved,source_verified,client_id,org_id,event_kind")
         .eq("id",outboxId).eq("org_id",item.org_id).eq("client_id",item.client_id).maybeSingle();
       const {data:pref,error:prefError}=await a.from("client_notification_preferences")
         .select("whatsapp_enabled,proactive_process_updates")
         .eq("org_id",item.org_id).eq("client_id",item.client_id).maybeSingle();
       if(careError||prefError)throw careError||prefError;
-      if(!care||care.status!=="queued"||!care.lawyer_approved||!care.source_verified||!pref?.whatsapp_enabled||!pref?.proactive_process_updates){
+      if(!care||care.status!=="queued"||!care.lawyer_approved||!care.source_verified||(care.event_kind==="process_distributed"||care.event_kind==="post_filing_checkin"?(pref&&(pref.whatsapp_enabled===false||pref.proactive_process_updates===false)):(!pref?.whatsapp_enabled||!pref?.proactive_process_updates))){
         await a.from("notification_queue").update({status:"cancelled",last_error:"sf_care_approval_or_consent_revoked",updated_at:new Date().toISOString()}).eq("id",item.id).eq("status","processing");
         results.push({id:item.id,ok:false,blocked:"sf_care_approval_or_consent_revoked"});
         continue;
