@@ -834,6 +834,39 @@ export default function ConducaoProcessual() {
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }
 
+  async function downloadClientJudgePdf() {
+    if(!proc||!analysis){setNotice({kind:"error",text:"Realize a análise do juízo antes de gerar o relatório para o cliente."});return;}
+    try {
+      const {jsPDF}=await import("jspdf");
+      const pdf=new jsPDF({unit:"mm",format:"a4"});
+      const margin=23,width=164;
+      let y=25;
+      const line=(value:string,bold=false)=>{
+        pdf.setFont("times",bold?"bold":"normal");pdf.setFontSize(11);
+        const lines=pdf.splitTextToSize(value,width);
+        for(const l of lines){if(y>272){pdf.addPage();y=25;}pdf.text(String(l),margin,y);y+=6;}
+        y+=3;
+      };
+      pdf.setFont("times","bold");pdf.setFontSize(12);
+      pdf.text("SUZANNE FIGUEIREDO | ADVOCACIA",105,y,{align:"center"});
+      y+=9;pdf.setDrawColor(178,138,74);pdf.line(margin,y,187,y);y+=12;
+      line("RELATÓRIO INFORMATIVO AO CLIENTE",true);
+      line("Processo: "+(proc.cnj_number||proc.internal_number||"Não informado"));
+      line("Cliente: "+(proc.clients?.name||"Não informado"));
+      line("Juízo: "+(analysis.vara?.nome||proc.vara||"Não informado"));
+      line("Data do relatório: "+new Date().toLocaleDateString("pt-BR"));
+      const resumo=analysis.analise?.resumo;
+      if(resumo)line("PANORAMA PÚBLICO DO JUÍZO\\n"+String(resumo),true);
+      line("SITUAÇÃO PROCESSUAL",true);
+      line("Fase indicada no cadastro: "+(PHASES[phaseIdx]?.label||"A confirmar"));
+      line("Último andamento registrado: "+(processSummary.recent[0]?.title||"Não disponível"));
+      line("INFORMAÇÕES IMPORTANTES",true);
+      line("Este relatório é informativo, baseado nos registros disponíveis e em pesquisa pública. Não contém minuta de petição, orientações jurídicas internas nem garantia de resultado. Prazos e decisões devem ser conferidos nos autos oficiais.");
+      pdf.save(safeName("Relatorio ao cliente - "+(proc.cnj_number||"processo"))+".pdf");
+      setNotice({kind:"ok",text:"Relatório em PDF gerado para conferência e envio manual ao cliente."});
+    }catch(e){setNotice({kind:"error",text:"Falha ao gerar PDF para cliente: "+(e instanceof Error?e.message:String(e))});}
+  }
+
   async function downloadDraftPdf() {
     if(!draftText.trim())return;
     try {
@@ -1169,11 +1202,11 @@ export default function ConducaoProcessual() {
               <button type="button" className="doc-refresh" onClick={()=>setStrategySection("catalogo")}>
                 <FileSignature size={17}/> Ver todas as peças
               </button>
-              {draftText.trim() && <button type="button" className="doc-refresh" onClick={downloadDraftPdf}>
-                <Download size={17}/> Gerar PDF da minuta
+              <button type="button" className="doc-refresh" disabled={!analysis} onClick={downloadClientJudgePdf}>
+                <Download size={17}/> Gerar PDF para envio ao cliente
               </button>}
             </div>
-            <p className="pa-muted">Selecione a peça e gere a minuta na aba Minutas. O PDF aparece após a redação e revisão do texto.</p>
+            <p className="pa-muted">O relatório para o cliente apresenta um resumo informativo do juízo e do andamento, sem expor a minuta ou a estratégia interna. O PDF da peça continua na aba Minutas.</p>
             {analysis && (
               <>
                 <p className="pa-muted">
