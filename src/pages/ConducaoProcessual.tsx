@@ -677,6 +677,23 @@ export default function ConducaoProcessual() {
     setNotice({ kind: "ok", text: "Perfil do juízo atualizado." });
   }
 
+  function judgeGuidanceText() {
+    if (!analysis) return "";
+    const a=analysis.analise||{};
+    const format=(v:any)=>Array.isArray(v)?v.map(x=>typeof x==="string"?x:JSON.stringify(x)).join("; "):typeof v==="string"?v:v?JSON.stringify(v):"";
+    return [
+      "ANÁLISE DO JUÍZO (publicações públicas, não substitui a análise dos autos):",
+      analysis.vara?.nome ? "Vara: "+analysis.vara.nome : "",
+      a.resumo ? "Síntese: "+format(a.resumo) : "",
+      a.estrategia ? "Estratégia sugerida: "+format(a.estrategia) : "",
+      a.provas_que_pede||analysis.provas ? "Provas observadas: "+format(a.provas_que_pede||analysis.provas) : "",
+      a.alertas ? "Alertas: "+format(a.alertas) : "",
+      analysis.dicas ? "Dicas: "+format(analysis.dicas) : "",
+      a.confianca ? "Confiança: "+format(a.confianca) : "",
+      "Usar apenas quando pertinente aos fatos e à fase deste processo. Não presumir decisões ou tendências individuais."
+    ].filter(Boolean).join("\\n");
+  }
+
   async function makeDraft(kind: string) {
     if (!supabase || !proc) return;
     setDraftKind(kind);
@@ -1582,8 +1599,18 @@ export default function ConducaoProcessual() {
             </div>
             <label className="pa-block">
               <span>Orientações para a minuta (opcional)</span>
+              <div className="pa-row">
+                <button type="button" className="doc-refresh" disabled={!analysis || busy!==""} onClick={()=>{
+                  const t=judgeGuidanceText();
+                  setDraftExtra(old=>old.includes("ANÁLISE DO JUÍZO (")?old:[old.trim(),t].filter(Boolean).join("\\n\\n"));
+                  setNotice({kind:"ok",text:"Análise do juízo inserida nas orientações. Você pode editar antes de gerar a peça."});
+                }}>
+                  <Scale size={16}/> Inserir análise do juízo nas orientações
+                </button>
+                {!analysis && <span className="pa-muted">Atualize primeiro o perfil do juízo na aba Estratégia e juízo.</span>}
+              </div>
               <textarea
-                rows={2}
+                rows={7}
                 value={draftExtra}
                 onChange={(e) => setDraftExtra(e.target.value)}
                 placeholder="Ex.: impugnar o laudo no ponto da incapacidade; pedir nova perícia."
