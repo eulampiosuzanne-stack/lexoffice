@@ -2,12 +2,35 @@ import { FormEvent,useEffect,useState } from 'react';
 import { CheckCircle2,Loader2,ShieldCheck } from 'lucide-react';
 
 const ENDPOINT='https://dcpwcuototomxoiszukt.supabase.co/functions/v1/client-intake-public';
+const evidenceTypes = '.png,.pdf,.mp3,.m4a,.ogg,.oga,.opus,.wav,.webm,.aac,.flac';
+const evidenceLimit = 20 * 1024 * 1024;
 const blank:any={name:'',cpf_cnpj:'',rg:'',birth_date:'',gender:'',mother_name:'',marital_status:'',profession:'',email:'',phone:'',whatsapp:'',notes:'',address:{zip:'',street:'',number:'',complement:'',neighborhood:'',city:'',state:''}};
 export default function PublicClientForm({token}:{token:string}){
  const [state,setState]=useState<'checking'|'ready'|'sending'|'success'|'invalid'>('checking'),[form,setForm]=useState<any>(blank),[error,setError]=useState(''),[office,setOffice]=useState('LEXOFFICE'),[expires,setExpires]=useState('');
- async function call(action:string,data?:any){const r=await fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,token,data})});const json=await r.json().catch(()=>({}));if(!r.ok)throw new Error(json?.error||'Não foi possível processar o formulário.');return json}
+ const [evidence,setEvidence] = useState<File[]>([]);
+ async function call(action:string,data?:any){
+  const attachments = action==='submit' && evidence.length ? new FormData() : null;
+  if(attachments){
+   attachments.set('submission',JSON.stringify({action,token,data}));
+   evidence.forEach(file=>attachments.append('evidence',file));
+  }
+  const r=await fetch(ENDPOINT,{method:'POST',...(attachments?{}:{headers:{'Content-Type':'application/json'}}),body:attachments??JSON.stringify({action,token,data})});const json=await r.json().catch(()=>({}));if(!r.ok)throw new Error(json?.error||'Não foi possível processar o formulário.');return json}
  useEffect(()=>{call('validate').then(d=>{setOffice(d.organization_name||'LEXOFFICE');setExpires(d.expires_at||'');setState('ready')}).catch(e=>{setError(e.message);setState('invalid')})},[token]);
  const set=(k:string,v:string)=>setForm((f:any)=>({...f,[k]:v}));const addr=(k:string,v:string)=>setForm((f:any)=>({...f,address:{...f.address,[k]:v}}));
+ function addEvidence(files:FileList|null){
+  if(!files?.length)return;
+  const next=[...evidence,...Array.from(files)];
+  if(next.some(file=>!evidenceTypes.split(',').includes('.'+file.name.split('.').pop()?.toLowerCase())||!file.size)){
+   setError('Escolha imagens PNG, documentos PDF ou arquivos de áudio válidos.');
+   return;
+  }
+  if(next.length>8||next.reduce((total,file)=>total+file.size,0)>evidenceLimit){
+   setError('Você pode anexar até 8 arquivos, somando no máximo 20 MB.');
+   return;
+  }
+  setError('');
+  setEvidence(next);
+ }
  async function submit(e:FormEvent){e.preventDefault();setError('');setState('sending');try{await call('submit',form);setState('success')}catch(e:any){setError(e.message);setState('ready')}}
  if(state==='checking')return <main className="public-intake-state"><Loader2 className="spin"/><h1>Validando formulário...</h1></main>;
  if(state==='invalid')return <main className="public-intake-state"><h1>Formulário indisponível</h1><p>{error||'O link expirou, já foi utilizado ou não é válido.'}</p></main>;
@@ -22,7 +45,17 @@ export default function PublicClientForm({token}:{token:string}){
   </div>
   <h2>Contato</h2><div className="intake-grid"><label>E-mail<input type="email" maxLength={254} value={form.email} onChange={e=>set('email',e.target.value)} autoComplete="email"/></label><label>Telefone<input maxLength={40} value={form.phone} onChange={e=>set('phone',e.target.value)} autoComplete="tel"/></label><label className="wide">WhatsApp<input maxLength={40} value={form.whatsapp} onChange={e=>set('whatsapp',e.target.value)}/></label></div>
   <h2>Endereço</h2><div className="intake-grid"><label>CEP<input maxLength={12} value={form.address.zip} onChange={e=>addr('zip',e.target.value)}/></label><label className="wide">Rua / Avenida<input maxLength={180} value={form.address.street} onChange={e=>addr('street',e.target.value)}/></label><label>Número<input maxLength={30} value={form.address.number} onChange={e=>addr('number',e.target.value)}/></label><label>Complemento<input maxLength={120} value={form.address.complement} onChange={e=>addr('complement',e.target.value)}/></label><label>Bairro<input maxLength={120} value={form.address.neighborhood} onChange={e=>addr('neighborhood',e.target.value)}/></label><label>Cidade<input maxLength={120} value={form.address.city} onChange={e=>addr('city',e.target.value)}/></label><label>UF<input maxLength={2} value={form.address.state} onChange={e=>addr('state',e.target.value.toUpperCase())}/></label></div>
-  <h2>Descrição detalhada do caso</h2><label>Conte com suas palavras o que aconteceu, desde o início<textarea rows={10} maxLength={4000} value={form.notes} onChange={e=>set('notes',e.target.value)} placeholder="Explique o problema com detalhes: o que aconteceu, quando começou, quem está envolvido, quais providências já foram tomadas, se existem datas ou prazos importantes e o que você espera resolver. Não precisa usar termos jurídicos."/></label>
+  <h2>Resumo do caso</h2><label>Conte com suas palavras o que aconteceu, desde o início<textarea rows={16} maxLength={12000} style={{minHeight:320,resize:"vertical"}} value={form.notes} onChange={e=>set('notes',e.target.value)} placeholder="Explique o problema com detalhes: o que aconteceu, quando começou, quem está envolvido, quais providências já foram tomadas, se existem datas ou prazos importantes e o que você espera resolver. Não precisa usar termos jurídicos."/></label>
+  <fieldset disabled={state==='sending'}>
+   <legend>Provas do caso</legend>
+   <label>Anexar provas em PNG, PDF ou áudio
+    <input type="file" accept={evidenceTypes} multiple onChange={event=>{addEvidence(event.currentTarget.files);event.currentTarget.value=''}}/>
+   </label>
+   <p>Até 8 arquivos, com limite total de 20 MB.</p>
+   {evidence.length>0&&<ul>{evidence.map((file,index)=><li key={index}>
+    {file.name}{' '}<button type="button" onClick={()=>setEvidence(files=>files.filter((_,position)=>position!==index))}>Remover</button>
+   </li>)}</ul>}
+  </fieldset>
   {error&&<div className="public-intake-error" role="alert">{error}</div>}<button className="public-intake-submit" disabled={state==='sending'}>{state==='sending'?<><Loader2 className="spin" size={18}/> Enviando...</>:<>Enviar cadastro</>}</button><p className="public-intake-privacy">Ao enviar, os dados serão armazenados no cadastro interno do escritório para atendimento jurídico.</p>
  </form></section></main>;
 }
