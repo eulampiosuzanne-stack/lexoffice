@@ -119,7 +119,29 @@ Deno.serve(async req => {
       processo: process, estudo_do_juizo: study.data, movimentacoes: movements.data,
       peca: String(body.title || "").slice(0,120), orientacoes: String(body.instructions || "").slice(0,12000),
     }) });
-    const dossier = await claude(key, model, content, `Leia todos os documentos anexos e trate textos OCR como transcrição a conferir. Prepare estudo interno objetivo, de até 3000 palavras, cobrindo ponto por ponto: pedido/alegação ou fundamento da decisão, trecho e página, prova, contra-argumento possível, lacuna, pedido relacionado e aplicação concreta do estudo do juízo.
+    const largeText = content.filter(block => block.type === "document" && block.source?.type === "text" && block.source.data.length > 140000);
+    const batchStudies: string[] = [];
+    for (const document of largeText) {
+      const pages = String(document.source.data).split(/(?=\[PÁGINA \d+ DO PDF\])/);
+      const batches: string[] = [];
+      let batch = "";
+      for (const page of pages) {
+        if (batch.length && batch.length + page.length > 90000) { batches.push(batch); batch = ""; }
+        batch += page;
+      }
+      if (batch) batches.push(batch);
+      if (batches.length > 16) throw new Error("A extensão dos autos exige uma tarefa de análise em segundo plano.");
+      for (let offset = 0; offset < batches.length; offset += 3) {
+        const studied = await Promise.all(batches.slice(offset, offset + 3).map((text, position) =>
+          claude(key, model, [{type:"text",text:"LOTE "+(offset+position+1)+" DO DOCUMENTO "+document.title+"\n"+text}],
+            "Leia todo este lote dos autos. Produza extrato fiel de até 1500 palavras: evento, página, data, parte, pedido, fundamento, prova, valor, decisão e prazo quando constarem. Preserve trechos decisivos e divergências. OCR precisa de conferência. Não recomende peça ainda e não complete lacunas.", false)
+        ));
+        batchStudies.push(...studied.map(result => renderCitations(result.content)));
+      }
+    }
+    const studyContent = content.filter(block => !largeText.includes(block));
+    if (batchStudies.length) studyContent.unshift({type:"text",text:"EXTRATOS DE TODOS OS LOTES DOS AUTOS, COM EVENTOS E PÁGINAS\n"+batchStudies.join("\n\n")});
+    const dossier = await claude(key, model, studyContent, `Leia todos os documentos anexos e trate textos OCR como transcrição a conferir. Prepare estudo interno objetivo, de até 3000 palavras, cobrindo ponto por ponto: pedido/alegação ou fundamento da decisão, trecho e página, prova, contra-argumento possível, lacuna, pedido relacionado e aplicação concreta do estudo do juízo.
 Inclua cronologia e indique peças faltantes. No final, inclua uma linha PESQUISA_PUBLICA_JSON: seguida de um objeto JSON com "questoes" (até 5 teses abstratas) e "tribunal" (sigla). Não inclua nomes, números processuais, identificadores, datas do caso, valores ou dados pessoais nesse objeto. Não redija ainda a peça.`);
     const dossierText = renderCitations(dossier.content);
     if (body.mode === "client_report") {
