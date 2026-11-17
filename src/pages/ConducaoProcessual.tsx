@@ -942,7 +942,7 @@ export default function ConducaoProcessual() {
       if(typeof tips==="string"||Array.isArray(tips))note("Observações adicionais da análise pública",tips);
       heading("03","Análise integrada do processo e do juízo");
       for(const part of integrated.split(/\\n+/).map(v=>v.trim()).filter(Boolean)){
-        if(/^[A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9 ,:;–-]{8,}$/.test(part) && part.length<110)note(part,"");
+        if(/^[A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9 ,:;–-]{8,}$/.test(part) && part.length<110)text(part,{bold:true,size:11});
         else text(part);
       }
       heading("04","Esclarecimentos à cliente");
