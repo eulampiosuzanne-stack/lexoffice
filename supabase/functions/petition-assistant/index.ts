@@ -356,7 +356,7 @@ Regras: nunca mencione o valor mínimo nem o teto (são limites internos de nego
 
 async function ask(gKey: string, models: string[], prompt: string, asJson: boolean, maxTokens: number) {
   if (!gKey) return { ok: false as const, status: 503, detail: "Google Gemini não configurado" };
-  return gemini(gKey, models, { contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: asJson ? 0.1 : 0.3, maxOutputTokens: Math.max(maxTokens, 8192), ...(asJson ? { responseMimeType: "application/json" } : {}) } }, Date.now() + 135000);
+  return gemini(gKey, models, { contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: asJson ? 0.1 : 0.3, maxOutputTokens: Math.max(maxTokens, 8192), ...(asJson ? { responseMimeType: "application/json" } : {}) } }, Date.now() + 145000);
 }
 
 const firstName = (n: string) => String(n || "").trim().split(/\s+/)[0] || "";
