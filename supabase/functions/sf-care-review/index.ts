@@ -32,6 +32,34 @@ Deno.serve(async req=>{
    if(queue.error||audit.error)throw queue.error||audit.error;
    return json({ok:true,queue:queue.data,audit:audit.data});
   }
+  if(body.action==="create_care_draft"){
+    const clientId=String(body.client_id||""),kind=String(body.kind||"");
+    const templates:Record<string,string>={
+      post_filing_checkin:"Como estão as coisas desde o ajuizamento da sua ação? Você está conseguindo acompanhar as informações pelo aplicativo? Nossa equipe está à disposição.",
+      office_card:"O escritório Suzanne Figueiredo Advocacia e Soluções Jurídicas oferece acompanhamento digital. Consulte seu processo pelo aplicativo.",
+      educational_card:"Cada processo tem etapas e prazos próprios. Para informações sobre o seu caso, consulte nossa equipe.",
+      satisfaction_poll:"Como você avalia nosso atendimento? 1. Muito bom; 2. Bom; 3. Preciso de esclarecimentos; 4. Quero conversar.",
+      interest_poll:"Qual conteúdo gostaria de receber? 1. Etapas do processo; 2. Aplicativo; 3. Documentos; 4. Audiências."
+    };
+    if(!uuid.test(clientId)||!Object.hasOwn(templates,kind))return json({ok:false,error:"invalid_draft"},422);
+    const {data:client}=await a.from("clients").select("id,name,status,is_demo").eq("org_id",profile.org_id).eq("id",clientId).maybeSingle();
+    const {data:pref}=await a.from("client_notification_preferences").select("whatsapp_enabled,proactive_process_updates").eq("org_id",profile.org_id).eq("client_id",clientId).maybeSingle();
+    if(!client||client.is_demo||!["ativo","active","cliente","cliente_ativo","cliente_private"].includes(String(client.status||"").toLowerCase())||!pref?.whatsapp_enabled||!pref?.proactive_process_updates)return json({ok:false,error:"client_not_eligible"},422);
+    const first=String(client.name||"cliente").trim().split(/\s+/)[0].replace(/[<>]/g,"").slice(0,50);
+    const message="Olá, "+first+"! "+templates[kind];
+    const dedupe=["sf","care",kind,clientId,new Date().toISOString().slice(0,10)].join(":");
+    const {data,error}=await a.from("sf_care_outbox").upsert({org_id:profile.org_id,client_id:clientId,process_id:null,event_kind:kind,dedupe_key:dedupe,message,media_kind:"text",status:"pending_review",source_verified:true,lawyer_approved:false,metadata:{origin:"sf_care_editorial",created_by:user.id,format:kind.includes("card")?"card":kind.includes("poll")?"poll":"text"}},{onConflict:"org_id,dedupe_key",ignoreDuplicates:true}).select("id").maybeSingle();
+    if(error)throw error;
+    return json({ok:true,created:!!data,id:data?.id||null,sent:false});
+  }
+  if(body.action==="eligible_clients"){
+    const {data:clients,error}=await a.from("clients").select("id,name,status,is_demo").eq("org_id",profile.org_id).eq("is_demo",false).order("name").limit(250);
+    if(error)throw error;
+    const {data:prefs,error:pe}=await a.from("client_notification_preferences").select("client_id").eq("org_id",profile.org_id).eq("whatsapp_enabled",true).eq("proactive_process_updates",true);
+    if(pe)throw pe;
+    const allowed=new Set((prefs||[]).map(p=>p.client_id));
+    return json({ok:true,clients:(clients||[]).filter(c=>allowed.has(c.id)&&["ativo","active","cliente","cliente_ativo","cliente_private"].includes(String(c.status||"").toLowerCase())).map(c=>({id:c.id,name:c.name}))});
+  }
   const id=String(body.id||""),decision=String(body.decision||"");
   if(!uuid.test(id)||!["approve","reject"].includes(decision))return json({ok:false,error:"invalid_request"},422);
   const {data:row}=await a.from("sf_care_outbox").select("id,org_id,status,source_verified,metadata").eq("id",id).eq("org_id",profile.org_id).maybeSingle();
