@@ -1144,6 +1144,19 @@ export default function ConducaoProcessual() {
                 {analysis ? "Atualizar análise" : "Analisar o juízo"}
               </button>
             </div>
+            <div className="pa-row">
+              <button type="button" className="doc-primary" disabled={busy!==""}
+                onClick={()=>{setDraftKind(nextAction?.suggested[0]||guide.minutas[0]||"manifestacao");setStrategySection("minutas");}}>
+                <FileSignature size={17}/> Redigir peça com IA + análise do juízo
+              </button>
+              <button type="button" className="doc-refresh" onClick={()=>setStrategySection("catalogo")}>
+                <FileSignature size={17}/> Ver todas as peças
+              </button>
+              {draftText.trim() && <button type="button" className="doc-refresh" onClick={downloadDraftPdf}>
+                <Download size={17}/> Gerar PDF da minuta
+              </button>}
+            </div>
+            <p className="pa-muted">Selecione a peça e gere a minuta na aba Minutas. O PDF aparece após a redação e revisão do texto.</p>
             {analysis && (
               <>
                 <p className="pa-muted">
