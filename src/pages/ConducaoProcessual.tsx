@@ -135,19 +135,15 @@ const norm = (s: string) =>
     .toLowerCase();
 
 // A fase atual é a mais avançada que aparece nos andamentos (o processo só anda para frente).
-export function detectPhase(
-  movs: { title?: string | null; description?: string | null }[],
-): PhaseKey {
-  let idx = 0;
-  for (const m of movs) {
-    const t = norm(
-      `${m.title || ""} ${String(m.description || "").slice(0, 1500)}`,
-    );
-    PHASES.forEach((p, i) => {
-      if (i > idx && p.re.test(t)) idx = i;
-    });
+export function detectPhase(movs: { title?: string | null; description?: string | null; movement_date?: string | null }[]): PhaseKey {
+  // Usar a movimentação relevante mais recente; fases podem retroceder após recurso/anulação.
+  const ordered = [...movs].sort((a,b)=>String(b.movement_date || "").localeCompare(String(a.movement_date || "")));
+  for (const m of ordered) {
+    const t = norm(`${m.title || ""} ${String(m.description || "").slice(0,1500)}`);
+    // Uma referência histórica a sentença não deve prevalecer sobre uma intimação atual.
+    for (const p of [...PHASES].reverse()) if (p.re.test(t)) return p.key;
   }
-  return PHASES[idx].key;
+  return "citacao";
 }
 
 const GUIDE: Record<
@@ -526,6 +522,22 @@ export default function ConducaoProcessual() {
       passos: [...verificar, ...base.passos.map((p) => `Se aplicável após conferência: ${p}`)],
     };
   }, [phase, tutelaIndeferida, poloReu, poloAutor, decisoes]);
+  const nextAction = useMemo(() => {
+    if (!proc) return null;
+    const role = poloAutor ? "autora" : poloReu ? "ré" : "não confirmado";
+    const latest = processSummary.recent[0];
+    const suggested = role === "não confirmado" ? [] : (
+      phase === "replica" ? (poloAutor ? ["replica"] : ["manifestacao"]) :
+      phase === "provas" ? ["especificacao_provas"] :
+      phase === "instrucao" ? ["rol_testemunhas","quesitos","manifestacao_laudo"] :
+      phase === "alegacoes" ? ["memoriais"] :
+      phase === "recurso" ? (poloReu ? ["contrarrazoes","manifestacao"] : ["manifestacao","contrarrazoes"]) :
+      phase === "cumprimento" ? ["cumprimento"] :
+      phase === "sentenca" ? ["embargos","manifestacao"] :
+      GUIDE[phase].minutas
+    );
+    return {role, latest, suggested};
+  }, [proc, poloAutor, poloReu, phase, processSummary]);
   const suggestedChecks = useMemo(() => {
     const fromJudge = (analysis?.analise?.provas_que_pede || analysis?.provas || [])
       .map((p: any) => `Prova: ${p?.prova || p?.item || p}`)
@@ -912,6 +924,14 @@ export default function ConducaoProcessual() {
             <p><b>Processo:</b> {proc.cnj_number || proc.internal_number || "Número não informado"} · <b>Parte representada:</b> {proc.pole || "Polo não confirmado"}</p>
             <p><b>Andamentos encontrados:</b> {processSummary.total} · <b>Prazos pendentes:</b> {processSummary.pending.length}</p>
             {processSummary.pending.length > 0 && <ul className="cp-steps">{processSummary.pending.slice(0,8).map(d=><li key={d.id}>{d.title} · {brDT(d.due_at)} · {d.status}</li>)}</ul>}
+            <div className="cp-focus">
+              <p><b>Polo do escritório:</b> {nextAction?.role || "não confirmado"} · <b>Fase identificada:</b> {PHASES.find(p=>p.key===phase)?.label}</p>
+              <p><b>Próxima providência sugerida:</b> {guide.foco}</p>
+              <p><b>Último andamento:</b> {nextAction?.latest ? `${brD(nextAction.latest.movement_date)} · ${nextAction.latest.title || "Movimentação"}` : "Não disponível"}</p>
+              <p className="pa-muted">Recomendação preliminar: confirmar teor da intimação, prazo e posição processual antes de peticionar.</p>
+              <h3>Peças possíveis para esta fase</h3>
+              {nextAction?.suggested.length ? <div className="pa-row">{nextAction.suggested.map(k=><button key={k} type="button" onClick={()=>{setDraftKind(k);setStrategySection("minutas");}}>{DRAFTS[k]}</button>)}</div> : <p>Confirme primeiro o polo representado no cadastro.</p>}
+            </div>
             <h3>Últimas movimentações registradas</h3>
             {processSummary.recent.length ? <ul className="cp-steps">{processSummary.recent.map(m=><li key={m.id}><b>{brD(m.movement_date)} · {m.title || "Movimentação"}</b>{m.description ? <p>{String(m.description).slice(0,700)}</p> : null}</li>)}</ul> : <p className="pa-muted">Nenhum andamento cadastrado. Importe os autos ou consulte a intimação oficial antes de definir providências.</p>}
             <div className="pa-row">
