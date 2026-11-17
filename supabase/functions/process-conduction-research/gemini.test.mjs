@@ -22,3 +22,9 @@ test('seleciona modelo estável atual e compatível em vez de versão antiga anu
  const m=name=>({name,supportedGenerationMethods:['generateContent']});
  assert.equal(selectGeminiModel([m('models/gemini-2.5-flash'),m('models/gemini-3.8-flash'),m('models/gemini-9.0-flash-image')]),'models/gemini-3.8-flash');
 });
+
+test('explica a cota diária em português sem expor resposta bruta do provedor',async()=>{
+ const {geminiErrorMessage}=await import('./gemini.mjs');
+ const message=geminiErrorMessage({error:{message:'raw provider message',details:[{violations:[{quotaId:'GenerateRequestsPerDayPerProjectPerModel-FreeTier',quotaValue:'20'}]}]}},429);
+ assert.match(message,/20 solicitações por dia/);assert.doesNotMatch(message,/raw provider/);
+});

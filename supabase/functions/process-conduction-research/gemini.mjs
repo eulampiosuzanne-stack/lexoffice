@@ -35,3 +35,12 @@ export function selectGeminiModel(models) {
  const candidates=models.filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent')&&/^models\/gemini-\d+(?:\.\d+)?-flash$/.test(m.name));
  return candidates.sort((a,b)=>Number(b.name.match(/gemini-([\d.]+)/)[1])-Number(a.name.match(/gemini-([\d.]+)/)[1]))[0]?.name;
 }
+
+export function geminiErrorMessage(data,status) {
+ const details=data?.error?.details||[];
+ const violations=details.flatMap(d=>d.violations||[]);
+ const daily=violations.find(v=>/PerDay/i.test(v.quotaId||''));
+ if(status===429&&daily)return 'A cota diária da API Gemini foi atingida'+(daily.quotaValue?' ('+daily.quotaValue+' solicitações por dia)':'')+'. Amplie a cota do projeto Google ou aguarde sua renovação. Nenhum texto incompleto foi liberado.';
+ if(status===429)return 'A API Gemini atingiu um limite temporário de uso. Aguarde antes de tentar novamente. Nenhum texto incompleto foi liberado.';
+ return 'O Gemini não concluiu a operação (HTTP '+status+'). Nenhum texto incompleto foi liberado.';
+}
