@@ -32,7 +32,7 @@ import "./integrations.css";
 import "./document-library.css";
 import "./petition-assistant.css";
 
-type Client = { id: string; name: string; cpf_cnpj?: string | null };
+type Client = { id: string; name: string; cpf_cnpj?: string | null; notes?: string | null };
 type Proc = {
   id: string;
   client_id?: string | null;
@@ -334,7 +334,7 @@ export default function PetitionAssistant() {
     const [{ data: c }, { data: p }, { data: r }] = await Promise.all([
       supabase
         .from("clients")
-        .select("id,name,cpf_cnpj")
+        .select("id,name,cpf_cnpj,notes")
         .order("name")
         .limit(2000),
       supabase
@@ -395,6 +395,16 @@ export default function PetitionAssistant() {
     setSelected([]);
     setProcessId("");
   }, [clientId]);
+
+  function chooseClient(nextId: string) {
+    if (nextId === clientId) return;
+    const previousSummary = clients.find((item) => item.id === clientId)?.notes || "";
+    if (notes.trim() && notes !== previousSummary &&
+        !window.confirm("Trocar de cliente e substituir a descrição dos fatos deste formulário?")) return;
+    setClientId(nextId);
+    setNotes(clients.find((item) => item.id === nextId)?.notes || "");
+    setDirty(true);
+  }
 
   const client = clients.find((c) => c.id === clientId);
   const available = useMemo(
@@ -1154,7 +1164,7 @@ export default function PetitionAssistant() {
             <span>Cliente do escritório (opcional)</span>
             <select
               value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
+              onChange={(e) => chooseClient(e.target.value)}
             >
               <option value="">Não cliente / novo caso</option>
               {clients.map((c) => (
