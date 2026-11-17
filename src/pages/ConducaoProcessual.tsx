@@ -323,6 +323,8 @@ async function fnError(error: any) {
 export default function ConducaoProcessual() {
  const [strategySection,setStrategySection]=useState('providencias');
   const [procs, setProcs] = useState<Proc[]>([]);
+  const [clients, setClients] = useState<{id:string;name:string}[]>([]);
+  const [clientSearch, setClientSearch] = useState("");
   const [filter, setFilter] = useState("");
   const [procId, setProcId] = useState(
     () => new URLSearchParams(window.location.search).get("processo") || "",
@@ -355,6 +357,11 @@ export default function ConducaoProcessual() {
       if (!supabase) return;
       const { data: org } = await supabase.rpc("current_org_id");
       setOrgId(String(org || ""));
+      if (org) {
+        const {data:rows,error:clientError}=await supabase.from("clients").select("id,name").eq("org_id",String(org)).order("name").limit(2000);
+        if(clientError) setNotice({kind:"error",text:"Erro ao carregar clientes: "+clientError.message});
+        else setClients((rows as {id:string;name:string}[])||[]);
+      }
       const { data, error } = await supabase
         .from("processes")
         .select(
@@ -390,6 +397,18 @@ export default function ConducaoProcessual() {
       )
       .slice(0, 80);
   }, [procs, filter]);
+
+  async function updateRepresentation(patch: {client_id?:string|null;pole?:string}) {
+    if(!supabase||!proc||!orgId) return;
+    setBusy("representation");
+    const {data,error}=await supabase.from("processes").update(patch).eq("id",proc.id).eq("org_id",orgId).select("id,client_id,pole,clients(name)").single();
+    if(error||!data) setNotice({kind:"error",text:"Não foi possível salvar: "+(error?.message||"sem permissão")});
+    else {
+      setProcs(prev=>prev.map(p=>p.id===proc.id?{...p,client_id:data.client_id,pole:data.pole,clients:data.clients as Proc["clients"]}:p));
+      setNotice({kind:"ok",text:"Vínculo e polo atualizados."});
+    }
+    setBusy("");
+  }
 
   async function loadProcess(id: string) {
     if (!supabase || !id) return;
@@ -473,8 +492,8 @@ export default function ConducaoProcessual() {
   // Detecção textual é um alerta preliminar, não substitui leitura do inteiro teor.
   // Diretrizes universais: nenhuma estratégia sem polo confirmado e fonte verificável.
   const polo = norm(String(proc?.pole || "").trim());
-  const poloReu = /^(reu|requerido|demandado|executado|polo passivo|passivo)$/.test(polo);
-  const poloAutor = /^(autor|autora|requerente|demandante|exequente|polo ativo|ativo)$/.test(polo);
+  const poloReu = /^(reu|requerido|demandado|executado|polo passivo|passivo|defendant|respondent)$/.test(polo);
+  const poloAutor = /^(autor|autora|requerente|demandante|exequente|polo ativo|ativo|plaintiff|claimant)$/.test(polo);
   const decisoes = useMemo(() => movs.filter((m) =>
     /decisao|despacho|sentenca|liminar|tutela|intimacao/.test(norm(`${m.title || ""} ${m.description || ""}`))
   ), [movs]);
@@ -893,6 +912,26 @@ export default function ConducaoProcessual() {
             </select>
           </label>
         </div>
+        {proc && <div className="doc-library-card">
+          <h3>Cliente e polo representado</h3>
+          <div className="doc-upload-grid">
+            <label><span>Buscar cliente</span><input value={clientSearch} onChange={e=>setClientSearch(e.target.value)} placeholder="Digite Ana Maria"/></label>
+            <label><span>Cliente vinculado</span>
+              <select value={proc.client_id||""} disabled={busy!==""} onChange={e=>updateRepresentation({client_id:e.target.value||null})}>
+                <option value="">Selecione o cliente</option>
+                {clients.filter(c=>c.id===proc.client_id||norm(c.name).includes(norm(clientSearch))).slice(0,100).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </label>
+            <label><span>Polo representado pelo escritório</span>
+              <select value={/^(defendant|respondent|reu|requerido|demandado|executado|polo passivo|passivo)$/i.test(proc.pole||"")?"reu":/^(plaintiff|claimant|autor|autora|requerente|demandante|exequente|polo ativo|ativo)$/i.test(proc.pole||"")?"autor":""} disabled={busy!==""} onChange={e=>updateRepresentation({pole:e.target.value})}>
+                <option value="">Selecione o polo</option>
+                <option value="autor">Autor(a) / Requerente / Exequente</option>
+                <option value="reu">Réu / Ré / Requerido(a) / Executado(a)</option>
+              </select>
+            </label>
+          </div>
+          <p className="pa-muted">Alterações salvas no processo para orientar as próximas providências e minutas.</p>
+        </div>}
         {proc && (
           <p className="pa-muted cp-procline">
             <Gavel size={14} /> {proc.class_name || "Classe não informada"} ·{" "}
