@@ -463,6 +463,13 @@ export default function ConducaoProcessual() {
     }
   }, [procId]);
 
+  // Análise dos autos locais, independente da disponibilidade externa do DJEN.
+  // Nunca confundir uma movimentação resumida com o inteiro teor da decisão.
+  const processSummary = useMemo(() => {
+    const recent = [...movs].sort((a,b) => String(b.movement_date).localeCompare(String(a.movement_date))).slice(0,12);
+    const pending = deadlines.filter(d => !/complet|conclu|done|cancel/i.test(d.status));
+    return { recent, pending, total: movs.length };
+  }, [movs, deadlines]);
   const autoPhase = useMemo(() => detectPhase(movs), [movs]);
   const phase = (state.phase_override as PhaseKey) || autoPhase;
   const phaseIdx = PHASES.findIndex((p) => p.key === phase);
@@ -895,6 +902,24 @@ export default function ConducaoProcessual() {
       {proc && busy !== "load" && (
         <>
           {strategySection==='providencias' && <><section className="doc-library-card">
+            <div className="doc-section-title">
+              <span className="doc-section-icon"><FileCheck2 size={20}/></span>
+              <div>
+                <h2>Análise dos autos para manifestação</h2>
+                <p>Dados cadastrados no LexOffice, sem depender do DJEN. Confira o inteiro teor antes de protocolar.</p>
+              </div>
+            </div>
+            <p><b>Processo:</b> {proc.cnj_number || proc.internal_number || "Número não informado"} · <b>Parte representada:</b> {proc.pole || "Polo não confirmado"}</p>
+            <p><b>Andamentos encontrados:</b> {processSummary.total} · <b>Prazos pendentes:</b> {processSummary.pending.length}</p>
+            {processSummary.pending.length > 0 && <ul className="cp-steps">{processSummary.pending.slice(0,8).map(d=><li key={d.id}>{d.title} · {brDT(d.due_at)} · {d.status}</li>)}</ul>}
+            <h3>Últimas movimentações registradas</h3>
+            {processSummary.recent.length ? <ul className="cp-steps">{processSummary.recent.map(m=><li key={m.id}><b>{brD(m.movement_date)} · {m.title || "Movimentação"}</b>{m.description ? <p>{String(m.description).slice(0,700)}</p> : null}</li>)}</ul> : <p className="pa-muted">Nenhum andamento cadastrado. Importe os autos ou consulte a intimação oficial antes de definir providências.</p>}
+            <div className="pa-row">
+              <button type="button" className="doc-primary" onClick={()=>setStrategySection('minutas')}>Preparar manifestação</button>
+              <button type="button" onClick={()=>setStrategySection('estrategia')}>Consultar perfil do juízo (opcional)</button>
+            </div>
+            <p className="pa-muted">A fase sugerida é preliminar. Prazos, polo e decisões exigem conferência na fonte oficial.</p>
+          </section><section className="doc-library-card">
             <div className="doc-section-title">
               <span className="doc-section-icon">
                 <Compass size={20} />
