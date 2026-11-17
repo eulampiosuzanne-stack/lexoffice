@@ -379,6 +379,9 @@ export default function ConducaoProcessual() {
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [draftKind, setDraftKind] = useState("");
   const [draftText, setDraftText] = useState("");
+  const [clientReportText, setClientReportText] = useState("");
+  const [clientReportId, setClientReportId] = useState("");
+  const [reportPublished, setReportPublished] = useState(false);
   const [draftResearch, setDraftResearch] = useState("");
   const [draftStudy, setDraftStudy] = useState("");
   const [draftProvider, setDraftProvider] = useState("");
@@ -800,37 +803,100 @@ export default function ConducaoProcessual() {
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }
 
-  async function downloadClientJudgePdf() {
-    if(!proc||!analysis){setNotice({kind:"error",text:"Realize a análise do juízo antes de gerar o relatório para o cliente."});return;}
+  async function prepareClientReport() {
+    if (!supabase || !proc || busy) return;
+    setBusy("client-report");
+    setNotice({kind:"info",text:"Lendo os autos para preparar o relatório ao cliente…"});
     try {
-      const {jsPDF}=await import("jspdf");
-      const pdf=new jsPDF({unit:"mm",format:"a4"});
-      const margin=23,width=164;
-      let y=25;
-      const line=(value:string,bold=false)=>{
-        pdf.setFont("times",bold?"bold":"normal");pdf.setFontSize(11);
-        const lines=pdf.splitTextToSize(value,width);
-        for(const l of lines){if(y>272){pdf.addPage();y=25;}pdf.text(String(l),margin,y);y+=6;}
-        y+=3;
-      };
-      pdf.setFont("times","bold");pdf.setFontSize(12);
-      pdf.text("SUZANNE FIGUEIREDO | ADVOCACIA",105,y,{align:"center"});
-      y+=9;pdf.setDrawColor(178,138,74);pdf.line(margin,y,187,y);y+=12;
-      line("RELATÓRIO INFORMATIVO AO CLIENTE",true);
-      line("Processo: "+(proc.cnj_number||proc.internal_number||"Não informado"));
-      line("Cliente: "+(proc.clients?.name||"Não informado"));
-      line("Juízo: "+(analysis.vara?.nome||proc.vara||"Não informado"));
-      line("Data do relatório: "+new Date().toLocaleDateString("pt-BR"));
-      const resumo=analysis.analise?.resumo;
-      if(resumo)line("PANORAMA PÚBLICO DO JUÍZO\\n"+String(resumo),true);
-      line("SITUAÇÃO PROCESSUAL",true);
-      line("Fase indicada no cadastro: "+(PHASES[phaseIdx]?.label||"A confirmar"));
-      line("Último andamento registrado: "+(processSummary.recent[0]?.title||"Não disponível"));
-      line("INFORMAÇÕES IMPORTANTES",true);
-      line("Este relatório é informativo, baseado nos registros disponíveis e em pesquisa pública. Não contém minuta de petição, orientações jurídicas internas nem garantia de resultado. Prazos e decisões devem ser conferidos nos autos oficiais.");
-      pdf.save(safeName("Relatorio ao cliente - "+(proc.cnj_number||"processo"))+".pdf");
-      setNotice({kind:"ok",text:"Relatório em PDF gerado para conferência e envio manual ao cliente."});
-    }catch(e){setNotice({kind:"error",text:"Falha ao gerar PDF para cliente: "+(e instanceof Error?e.message:String(e))});}
+      const {data,error}=await supabase.functions.invoke("process-conduction-research",{
+        body:{process_id:proc.id,mode:"client_report",title:"Relatório ao cliente"},
+      });
+      if(error)throw new Error(await fnError(error));
+      if(!data?.ok||!data.text)throw new Error(data?.error||"O relatório não foi concluído.");
+      setClientReportText(data.text);
+      setClientReportId(proc.id);
+      setReportPublished(false);
+      setNotice({kind:"ok",text:"Confira e ajuste o relatório antes de baixar ou enviar ao App."});
+    }catch(error){
+      setNotice({kind:"error",text:error instanceof Error?error.message:"Falha ao preparar o relatório."});
+    }finally{setBusy("");}
+  }
+
+  async function buildClientReportPdf() {
+    if(!proc||clientReportId!==proc.id||!clientReportText.trim())throw new Error("Prepare o relatório deste processo.");
+    const {jsPDF}=await import("jspdf");
+    const pdf=new jsPDF({unit:"mm",format:"a4"});
+    const margin=23,width=164;
+    let y=24;
+    const header=()=>{
+      pdf.setFillColor(101,0,31);pdf.rect(0,0,210,13,"F");
+      pdf.setTextColor(101,0,31);pdf.setFont("times","bold");pdf.setFontSize(13);
+      pdf.text("Suzanne Figueiredo",margin,26);
+      pdf.setFont("times","normal");pdf.setFontSize(10);
+      pdf.text("Advocacia e Soluções Jurídicas",margin,33);
+      pdf.setDrawColor(178,138,74);pdf.line(margin,38,187,38);y=49;
+      pdf.setTextColor(35,30,27);
+    };
+    const line=(text:string,bold=false)=>{
+      pdf.setFont("times",bold?"bold":"normal");pdf.setFontSize(bold?12:11);
+      const lines=pdf.splitTextToSize(text,width);
+      for(const row of lines){
+        if(y>272){pdf.addPage();header();}
+        pdf.text(String(row),margin,y);y+=6;
+      }
+      y+=4;
+    };
+    header();
+    line("Atualização do seu processo",true);
+    line("Cliente: "+(proc.clients?.name||"Não informado"));
+    line("Processo: "+(proc.cnj_number||proc.internal_number||"Não informado"));
+    line("Atualizado em "+new Intl.DateTimeFormat("pt-BR",{timeZone:"America/Sao_Paulo"}).format(new Date()));
+    for(const paragraph of clientReportText.split(/\n+/).filter(p=>p.trim())){
+      line(paragraph,/^[A-ZÁÉÍÓÚÂÊÔÃÕÇ ]{5,}$/.test(paragraph.trim()));
+    }
+    for(let page=1;page<=pdf.getNumberOfPages();page++){
+      pdf.setPage(page);pdf.setFont("times","normal");pdf.setFontSize(9);
+      pdf.setTextColor(90,80,70);pdf.text("Documento confidencial · "+page+" / "+pdf.getNumberOfPages(),105,287,{align:"center"});
+    }
+    return pdf;
+  }
+
+  async function downloadClientJudgePdf() {
+    try{
+      const pdf=await buildClientReportPdf();
+      pdf.save(safeName("Relatório ao cliente - "+(proc?.cnj_number||"processo"))+".pdf");
+    }catch(error){setNotice({kind:"error",text:error instanceof Error?error.message:"Falha ao gerar PDF."});}
+  }
+
+  async function sendClientReport() {
+    if(!supabase||!proc?.client_id||!proc.clients?.name||busy||reportPublished||clientReportId!==proc.id)return;
+    if(!window.confirm("Enviar este relatório ao App de "+proc.clients.name+"?"))return;
+    setBusy("publish-report");setNotice(null);
+    try{
+      const {data:{user}}=await supabase.auth.getUser();
+      if(!user)throw new Error("Entre novamente no LexOffice.");
+      const pdf=await buildClientReportPdf(),blob=pdf.output("blob");
+      const name=safeName("Relatório ao cliente - "+(proc.cnj_number||"processo"))+".pdf";
+      const path=proc.client_id+"/"+crypto.randomUUID()+"-"+name;
+      const bucket=supabase.storage.from("client-documents");
+      const upload=await bucket.upload(path,blob,{contentType:"application/pdf",upsert:false});
+      if(upload.error)throw upload.error;
+      const document=await supabase.from("documents").insert({
+        org_id:orgId,owner_user_id:user.id,client_id:proc.client_id,process_id:proc.id,
+        name,file_path:path,mime_type:"application/pdf",size_bytes:blob.size,
+        category:"client_portal",uploaded_by:user.id,
+      }).select("id").single();
+      if(document.error)throw document.error;
+      const publication=await supabase.from("client_document_requests").insert({
+        org_id:orgId,client_id:proc.client_id,title:"Atualização do seu processo",
+        description:"Relatório disponibilizado pelo escritório.",status:"available",document_id:document.data.id,
+        requested_by:user.id,requires_authorization:false,authorization_status:"not_required",reminder_enabled:false,
+      }).select("id").single();
+      if(publication.error)throw publication.error;
+      setReportPublished(true);
+      setNotice({kind:"ok",text:"Relatório disponível no App de "+proc.clients.name+"."});
+    }catch(error){setNotice({kind:"error",text:"Não foi possível confirmar a publicação. "+((error as {message?:string})?.message||"")});}
+    finally{setBusy("");}
   }
 
   async function downloadDraftPdf() {
@@ -1168,11 +1234,20 @@ export default function ConducaoProcessual() {
               <button type="button" className="doc-refresh" onClick={()=>setStrategySection("catalogo")}>
                 <FileSignature size={17}/> Ver todas as peças
               </button>
-              <button type="button" className="doc-refresh" disabled={!analysis} onClick={downloadClientJudgePdf}>
-                <Download size={17}/> Gerar PDF para envio ao cliente
+              <button type="button" className="doc-refresh" disabled={busy!==""} onClick={prepareClientReport}>
+                <Download size={17}/> Preparar relatório ao cliente
               </button>
             </div>
-            <p className="pa-muted">O relatório para o cliente apresenta um resumo informativo do juízo e do andamento, sem expor a minuta ou a estratégia interna. O PDF da peça continua na aba Minutas.</p>
+            {clientReportId===proc.id&&clientReportText&&<section className="doc-library-card" aria-label="Revisão do relatório ao cliente">
+              <h3>Relatório ao cliente</h3>
+              <label>Conteúdo para revisão
+                <textarea rows={18} value={clientReportText} onChange={e=>{setClientReportText(e.target.value);setReportPublished(false);}}/>
+              </label>
+              <div className="pa-row">
+                <button className="doc-refresh" disabled={busy!==""||!clientReportText.trim()} onClick={downloadClientJudgePdf}>Baixar PDF</button>
+                <button className="doc-primary" disabled={busy!==""||!proc.client_id||!proc.clients?.name||reportPublished||!clientReportText.trim()} onClick={sendClientReport}>{reportPublished?"Disponível no App":"Enviar ao App do Cliente"}</button>
+              </div>
+            </section>}
             {analysis && (
               <>
                 <p className="pa-muted">
