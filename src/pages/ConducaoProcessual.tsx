@@ -925,6 +925,8 @@ export default function ConducaoProcessual() {
     try {
       const {jsPDF}=await import("jspdf");
       const pdf=new jsPDF({unit:"mm",format:"a4"});
+      const {registerClientReportFonts}=await import("../lib/clientReportFonts");
+      registerClientReportFonts(pdf);
       const margin=23, width=164, bottom=273;
       let y=25;
       pdf.setFont("ClientReportSans","bold");pdf.setFontSize(11);

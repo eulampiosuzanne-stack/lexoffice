@@ -195,8 +195,8 @@ async function advanceJob(db: any, org: string, actor: string, id: string) {
       const plan=JSON.parse(match[1]);
       const questions=Array.isArray(plan.questoes)?plan.questoes.filter((q:unknown)=>typeof q==="string").slice(0,5):[];
       if(!questions.length||questions.some((q:string)=>/\d{6,}|\d{7}-\d{2}|@|https?:/i.test(q)))throw new Error("O plano de pesquisa exige conferência para evitar identificadores do caso.");
-      const research=await claude(key,state.model,[{type:"text",text:JSON.stringify({questoes:questions,tribunal:String(plan.tribunal||"").replace(/[^A-Z]/g,"").slice(0,8)})}],
-        "Pesquise na web fontes oficiais atuais para as questões abstratas. Responda em até 900 palavras; faça no máximo três buscas focadas e cite fontes precisas, sem transcrever páginas extensas. Confira legislação vigente, precedentes qualificados e jurisprudência favorável e contrária. Identifique tribunal, processo, julgamento, relator e URL; explique pertinência e distinção. Preserve as citações das fontes consultadas. Informe o que não pode ser confirmado.",
+      const research=await claude(key,state.model,[{type:"text",text:JSON.stringify({questoes:questions.slice(state.research_offset||0,(state.research_offset||0)+2),tribunal:String(plan.tribunal||"").replace(/[^A-Z]/g,"").slice(0,8)})}],
+        "Pesquise na web fontes oficiais atuais para TODAS as questões deste lote; não substitua a questão por outro assunto. Confira primeiro o texto da lei em Planalto, Câmara ou Senado, incluindo os incisos citados. Responda em até 900 palavras; faça no máximo três buscas focadas e cite fontes precisas, sem transcrever páginas extensas. Confira legislação vigente, precedentes qualificados e jurisprudência favorável e contrária. Identifique tribunal, processo, julgamento, relator e URL; explique pertinência e distinção. Preserve as citações das fontes consultadas. Informe o que não pode ser confirmado.",
         true,state.research_messages||[]);
       state.research_blocks=[...(state.research_blocks||[]),...(research.content||[])];
       if(research.resume_messages){
@@ -204,15 +204,19 @@ async function advanceJob(db: any, org: string, actor: string, id: string) {
         if(state.research_turns>2)throw new Error("A pesquisa continua incompleta e precisa de revisão.");
         state.research_messages=research.resume_messages;
       }else{
-        state.sources=extractResearchSources(state.research_blocks);
-        if(!state.sources.length)throw new Error("A pesquisa não retornou citações oficiais verificáveis.");
-        state.research=renderCitations(state.research_blocks);
-        stage="draft";
+        state.research_offset=(state.research_offset||0)+2;
+        state.research_messages=[];state.research_turns=0;
+        if(state.research_offset>=questions.length){
+          state.sources=extractResearchSources(state.research_blocks);
+          if(!state.sources.length)throw new Error("A pesquisa não retornou citações oficiais verificáveis.");
+          state.research=renderCitations(state.research_blocks);
+          stage="draft";
+        }
       }
     }else if(stage==="draft"){
       const draft=await claude(key,state.model,[{type:"text",text:
-        "ESTUDO DOS AUTOS\n"+state.dossier+"\nPESQUISA CONFERIDA\n"+state.research+"\nPEÇA\n"+state.title}],
-        "Redija a peça completa para revisão. Enfrente cada fundamento da decisão com fato, prova/evento/página, norma e jurisprudência da pesquisa, inclusive argumentos contrários e distinções. Use o estudo do juiz como orientação interna. Não invente jurisprudência nem números. Não conclua tempestividade sem contagem confirmada. Se faltar decisão ou prova indispensável, entregue ESTUDO INCOMPLETO com pendências específicas. Se houver dados suficientes, entregue MINUTA PARA REVISÃO. Endereçamento conforme órgão competente. Use síntese, linha do tempo, quadros fundamento × resposta × prova × pedido, e destaques quando pertinentes. Só proponha gráficos com dados verificados. URLs das fontes ao final. Assinatura Suzanne Figueiredo, OAB/MG 131.880.");
+        "METADADOS CONFIRMADOS E EXTRATOS DOS AUTOS (prevalecem sobre omissões da síntese)\n"+JSON.stringify(state.content)+"\n"+(state.batch_results||[]).join("\n\n")+"\nESTUDO DOS AUTOS\n"+state.dossier+"\nPESQUISA CONFERIDA\n"+state.research+"\nPEÇA\n"+state.title}],
+        "Redija a peça completa para revisão. Não diga que faltam nome, número CNJ, data ou teor da decisão quando constarem dos metadados e extratos. Diferencie a decisão e seus movimentos complementares. Não sugira prazo alternativo sem fonte de contagem verificada; indique a data do sistema como registro a conferir. Se houver mais de uma medida, separe a peça escolhida do parecer interno, sem misturar argumentos de recurso numa emenda meramente formal. Enfrente cada fundamento da decisão com fato, prova/evento/página, norma e jurisprudência da pesquisa, inclusive argumentos contrários e distinções. Use o estudo do juiz como orientação interna. Não invente jurisprudência nem números. Não conclua tempestividade sem contagem confirmada. Se faltar decisão ou prova indispensável, entregue ESTUDO INCOMPLETO com pendências específicas. Se houver dados suficientes, entregue MINUTA PARA REVISÃO. Endereçamento conforme órgão competente. Use síntese, linha do tempo, quadros fundamento × resposta × prova × pedido, e destaques quando pertinentes. Só proponha gráficos com dados verificados. URLs das fontes ao final. Assinatura Suzanne Figueiredo, OAB/MG 131.880.");
       result={text:renderCitations(draft.content),dossier:state.dossier,research:state.research,
         sources:state.sources,provider:"anthropic",model:state.model,documents_read:state.documents,judge_analysis_at:state.judge_analysis_at};
       stage="completed";
