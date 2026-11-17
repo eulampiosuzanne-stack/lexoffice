@@ -13,8 +13,8 @@ Use o estudo do juízo como orientação interna, indicando limitações e perti
 Não afirme tempestividade ou cabimento com base apenas em um aviso de publicação.
 Diferencie conclusões confirmadas, hipóteses e informações faltantes. Escreva em português brasileiro.`;
 
-async function claude(key: string, model: string, content: unknown[], instructions: string, search = false) {
-  const messages: any[] = [{ role: "user", content }];
+async function claude(key: string, model: string, content: unknown[], instructions: string, search = false, resume: any[] = []) {
+  const messages: any[] = resume.length ? resume : [{ role: "user", content }];
   for (let continuation = 0; continuation < 3; continuation++) {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -31,6 +31,7 @@ async function claude(key: string, model: string, content: unknown[], instructio
     if (data.stop_reason === "max_tokens")
       throw new Error("O Claude atingiu o limite de saída em " + (search ? "pesquisa" : "leitura ou redação") + ". A resposta incompleta não foi liberada.");
     if (data.stop_reason !== "pause_turn") return data;
+    if (search) return {...data,resume_messages:[...messages,{role:"assistant",content:data.content},{role:"user",content:"Continue e conclua a pesquisa com citações oficiais."}]};
     messages.push({ role: "assistant", content: data.content });
     messages.push({ role: "user", content: "Continue a pesquisa interrompida e conclua com citações oficiais." });
   }
@@ -53,6 +54,7 @@ Deno.serve(async req => {
     const { data: profile } = await db.from("profiles").select("org_id,role_key,status").eq("id", user.id).single();
     if (!profile || !["owner","lawyer"].includes(profile.role_key) || !["active","ativo"].includes(profile.status))
       return reply({ ok: false, error: "Acesso restrito à equipe jurídica autorizada." }, 403);
+    if (body.job_id) return await advanceJob(db,profile.org_id,user.id,String(body.job_id));
     const processId = String(body.process_id || "");
     const { data: process } = await db.from("processes").select("*").eq("id", processId).eq("org_id", profile.org_id).eq("owner_user_id", user.id).maybeSingle();
     if (!process) return reply({ ok: false, error: "Processo indisponível para esta conta." }, 404);
@@ -119,73 +121,110 @@ Deno.serve(async req => {
       processo: process, estudo_do_juizo: study.data, movimentacoes: movements.data,
       peca: String(body.title || "").slice(0,120), orientacoes: String(body.instructions || "").slice(0,12000),
     }) });
-    const largeText = content.filter(block => block.type === "document" && block.source?.type === "text" && block.source.data.length > 140000);
-    const batchStudies: string[] = [];
-    for (const document of largeText) {
-      const pages = String(document.source.data).split(/(?=\[PÁGINA \d+ DO PDF\])/);
-      const batches: string[] = [];
+    const texts = content.filter(block => block.type === "document" && block.source?.type === "text" && block.source.data.length > 140000);
+    const batches: string[] = [];
+    for (const document of texts) {
       let batch = "";
-      for (const page of pages) {
+      for (const page of String(document.source.data).split(/(?=\[PÁGINA \d+ DO PDF\])/)) {
         if (batch.length && batch.length + page.length > 90000) { batches.push(batch); batch = ""; }
         batch += page;
       }
       if (batch) batches.push(batch);
-      if (batches.length > 16) throw new Error("A extensão dos autos exige uma tarefa de análise em segundo plano.");
-      for (let offset = 0; offset < batches.length; offset += 3) {
-        const studied = await Promise.all(batches.slice(offset, offset + 3).map((text, position) =>
-          claude(key, model, [{type:"text",text:"LOTE "+(offset+position+1)+" DO DOCUMENTO "+document.title+"\n"+text}],
-            "Leia todo este lote dos autos. Produza extrato fiel de até 1500 palavras: evento, página, data, parte, pedido, fundamento, prova, valor, decisão e prazo quando constarem. Preserve trechos decisivos e divergências. OCR precisa de conferência. Não recomende peça ainda e não complete lacunas.", false)
-        ));
-        batchStudies.push(...studied.map(result => renderCitations(result.content)));
-      }
     }
-    const studyContent = content.filter(block => !largeText.includes(block));
-    if (batchStudies.length) studyContent.unshift({type:"text",text:"EXTRATOS DE TODOS OS LOTES DOS AUTOS, COM EVENTOS E PÁGINAS\n"+batchStudies.join("\n\n")});
-    const dossier = await claude(key, model, studyContent, `Leia todos os documentos anexos e trate textos OCR como transcrição a conferir. Prepare estudo interno objetivo, de até 3000 palavras, cobrindo ponto por ponto: pedido/alegação ou fundamento da decisão, trecho e página, prova, contra-argumento possível, lacuna, pedido relacionado e aplicação concreta do estudo do juízo.
-Inclua cronologia e indique peças faltantes. No final, inclua uma linha PESQUISA_PUBLICA_JSON: seguida de um objeto JSON com "questoes" (até 5 teses abstratas) e "tribunal" (sigla). Não inclua nomes, números processuais, identificadores, datas do caso, valores ou dados pessoais nesse objeto. Não redija ainda a peça.`);
-    const dossierText = renderCitations(dossier.content);
-    if (body.mode === "client_report") {
-      const report = await claude(key, model, [{
-        type: "text",
-        text: "ESTUDO INTERNO PARA PREPARAR COMUNICAÇÃO AO CLIENTE\n" + dossierText,
-      }], `Prepare exclusivamente um relatório breve para o cliente, com linguagem simples, humana e respeitosa.
-Use os títulos: O QUE ACONTECEU; O QUE ISSO SIGNIFICA PARA VOCÊ; PRÓXIMAS PROVIDÊNCIAS; O QUE PRECISAMOS DE VOCÊ.
-Explique separadamente os capítulos da decisão, inclusive resultados favoráveis e desfavoráveis. Identifique o evento e a data confirmados. Explique termos jurídicos. Diga se o processo continua.
-Só afirme providências executadas pelo escritório quando documentadas. Indique providências futuras como pendentes de revisão da advogada.
-Não inclua estudo estatístico do juiz, estratégias internas, teses confidenciais ou informações de outros processos. Não prometa resultado.
-Não invente prazo final. Se depender de contagem, diga que será conferido pela equipe.
-Se os documentos não esclarecem o que o cliente precisa fazer, diga que a equipe informará após a conferência. Até 700 palavras, sem markdown e sem gráficos fictícios.`);
-      return reply({ok:true,text:renderCitations(report.content),provider:"anthropic",model,
-        documents_read:readable.map(d=>({id:d.id,name:d.name}))});
-    }
-    const match = dossierText.match(/PESQUISA_PUBLICA_JSON:\s*(\{[^\n]+\})/);
-    if (!match) throw new Error("O estudo não produziu um plano de pesquisa verificável.");
-    const plan = JSON.parse(match[1]);
-    const questions = Array.isArray(plan.questoes) ? plan.questoes.filter((q: unknown) => typeof q === "string").slice(0,5) : [];
-    if (!questions.length) throw new Error("A pesquisa jurídica não identificou teses.");
-    const forbidden = [process.cnj_number, process.opposing_party].filter(Boolean).map(String);
-    if (questions.some((q: string) => /\d|@|https?:/i.test(q) || forbidden.some(value => value.length > 3 && q.toLowerCase().includes(value.toLowerCase()))))
-      throw new Error("O plano de pesquisa contém identificadores do caso e precisa de revisão.");
-    const research = await claude(key, model, [{ type: "text", text: JSON.stringify({ questoes: questions, tribunal: String(plan.tribunal || "").replace(/[^A-Z]/g,"").slice(0,8) }) }],
-      "Pesquise obrigatoriamente na web fontes oficiais atuais. Para cada questão, confira legislação vigente, precedentes qualificados, jurisprudência recente favorável e contrária, tribunal, processo, relator, julgamento e URL. Explique pertinência e distinção. Informe o que não foi confirmado. Inclua citações das fontes consultadas. Pesquise somente as questões abstratas fornecidas.", true);
-    const sources = extractResearchSources(research.content);
-    if (!sources.length) throw new Error("A pesquisa não retornou fontes oficiais com citações verificáveis.");
-    const researchText = renderCitations(research.content);
-    const draft = await claude(key, model, [{
-      type: "text", text: "ESTUDO DOS AUTOS\n" + dossierText + "\nPESQUISA JURÍDICA\n" + researchText +
-        "\nTIPO DE PEÇA\n" + String(body.title || "").slice(0,120),
-    }], `Redija peça completa para revisão da advogada, sustentando pontualmente cada questão identificada no estudo com fatos, referência à prova/página, norma conferida e precedentes pertinentes da pesquisa.
-Confronte fundamentos contrários e precedentes desfavoráveis. Use o estudo do juízo para escolher a argumentação, sem atribuir preferências pessoais ao magistrado.
-Se faltarem decisão, documento ou datas indispensáveis, produza relatório de pendências em vez de fingir uma peça pronta.
-Não declare tempestividade sem memória de contagem confirmada. Enderece a peça ao órgão competente para seu tipo.
-Use síntese, quadro fato × prova × consequência, linha do tempo, quadro fundamento × resposta × pedido quando pertinentes. Gráficos e mapas apenas se houver dados e necessidade demonstráveis. Tabelas simples compatíveis com edição; não use diagramas fictícios.
-Cite legislação e jurisprudência somente das fontes fornecidas, preservando URL. Não invente conteúdo para preencher lacunas. Assine Suzanne Figueiredo, OAB/MG 131.880. No início indique MINUTA PARA REVISÃO ou ESTUDO INCOMPLETO, conforme os dados efetivamente lidos.`);
-    return reply({
-      ok: true, text: renderCitations(draft.content), dossier: dossierText, research: researchText,
-      sources, provider: "anthropic", model, documents_read: readable.map(d => ({ id: d.id, name: d.name })),
-      judge_analysis_at: study.data?.created_at || null,
-    });
+    if (batches.length > 16) throw new Error("A extensão dos autos exige importação por volumes.");
+    const {data:job,error:jobError}=await db.from("process_conduction_jobs").insert({
+      org_id:profile.org_id,owner_user_id:user.id,process_id:processId,
+      stage:batches.length?"reading":"study",
+      state:{
+        content:content.filter(block=>!texts.includes(block)),batches,batch_results:[],
+        mode:body.mode==="client_report"?"client_report":"draft",model,
+        title:String(body.title||"").slice(0,120),documents:readable.map(d=>({id:d.id,name:d.name})),
+        judge_analysis_at:study.data?.created_at||null,
+      },
+    }).select("id,stage").single();
+    if(jobError)throw new Error("Não foi possível iniciar o processamento.");
+    return reply({ok:true,pending:true,job_id:job.id,stage:job.stage,progress:0});
   } catch (error) {
     return reply({ ok: false, error: error instanceof Error ? error.message : "Falha na análise jurídica." }, 502);
   }
 });
+
+async function advanceJob(db: any, org: string, actor: string, id: string) {
+  const {data:job}=await db.from("process_conduction_jobs").select("*")
+    .eq("id",id).eq("org_id",org).eq("owner_user_id",actor).maybeSingle();
+  if(!job)return reply({ok:false,error:"Processamento indisponível."},404);
+  const current=await db.from("processes").select("id").eq("id",job.process_id).eq("org_id",org).eq("owner_user_id",actor).maybeSingle();
+  if(!current.data)return reply({ok:false,error:"Acesso ao processo indisponível."},403);
+  if(job.stage==="completed")return reply({ok:true,...job.result,job_id:id});
+  const now=new Date().toISOString();
+  if(job.running_until&&job.running_until>now)return reply({ok:false,error:"Esta etapa já está em execução. Aguarde."},409);
+  const lock=await db.from("process_conduction_jobs").update({
+    running_until:new Date(Date.now()+145000).toISOString(),revision:job.revision+1,
+  }).eq("id",id).eq("revision",job.revision).select("id").maybeSingle();
+  if(!lock.data)return reply({ok:false,error:"O processamento foi atualizado. Consulte novamente."},409);
+  try{
+    const {data:saved}=await db.rpc("read_integration_secret",{p_org_id:org,p_provider:"anthropic_api"});
+    const key=String(saved||Deno.env.get("ANTHROPIC_API_KEY")||"").trim();
+    if(!key)throw new Error("Claude indisponível para este escritório.");
+    const state=job.state;
+    let stage=job.stage;
+    let result=null;
+    if(stage==="reading"){
+      const offset=state.batch_results.length;
+      const studied=await Promise.all(state.batches.slice(offset,offset+3).map((text:string,index:number)=>
+        claude(key,state.model,[{type:"text",text:"LOTE "+(offset+index+1)+"\n"+text}],
+          "Leia este lote integralmente. Extraia em até 900 palavras eventos, páginas, datas, alegações, pedidos, provas, valores, fundamentos das decisões e prazos expressos. Preserve contradições. OCR é transcrição a conferir. Não recomende peça nem invente dados.")
+      ));
+      state.batch_results.push(...studied.map((item:any)=>renderCitations(item.content)));
+      if(state.batch_results.length===state.batches.length)stage="study";
+    }else if(stage==="study"){
+      const study=await claude(key,state.model,[
+        ...state.content,
+        ...(state.batch_results.length?[{type:"text",text:"EXTRATOS DE TODOS OS LOTES, COM EVENTOS E PÁGINAS\n"+state.batch_results.join("\n\n")}]:[]),
+      ],"Prepare estudo interno objetivo, até 1200 palavras. Para cada questão: fundamento ou alegação, evento e página, prova, contraponto, lacuna, pedido e pertinência do estudo do juízo. Identifique documentos faltantes e vedações a afirmar prazo sem contagem. Ao final, inclua em linha única PESQUISA_PUBLICA_JSON: seguida de JSON com questoes (até 5 teses abstratas) e tribunal (sigla). Nenhum nome, número de processo, dado pessoal, valor ou data do caso nas questões.");
+      state.dossier=renderCitations(study.content);
+      stage=state.mode==="client_report"?"report":"research";
+    }else if(stage==="report"){
+      const report=await claude(key,state.model,[{type:"text",text:"ESTUDO DOS AUTOS\n"+state.dossier}],
+        "Produza relatório ao cliente, até 600 palavras, claro e acolhedor, com os títulos O QUE ACONTECEU; O QUE ISSO SIGNIFICA PARA VOCÊ; PRÓXIMAS PROVIDÊNCIAS; O QUE PRECISAMOS DE VOCÊ. Explique cada capítulo favorável e desfavorável da decisão, evento e data. Só afirme providências do escritório já realizadas se documentadas. Providências futuras dependem da revisão da advogada. Não exponha perfil estatístico do juiz, estratégia interna, hipóteses como fatos ou informações de outros processos. Não invente prazo final nem prometa resultado. Diga quando o prazo depende de conferência. Linguagem simples, sem markdown.");
+      result={text:renderCitations(report.content),provider:"anthropic",model:state.model,documents_read:state.documents};
+      stage="completed";
+    }else if(stage==="research"){
+      const match=String(state.dossier).match(/PESQUISA_PUBLICA_JSON:\s*(\{[^\n]+\})/);
+      if(!match)throw new Error("O estudo não concluiu o plano de pesquisa. Revise as questões antes de prosseguir.");
+      const plan=JSON.parse(match[1]);
+      const questions=Array.isArray(plan.questoes)?plan.questoes.filter((q:unknown)=>typeof q==="string").slice(0,5):[];
+      if(!questions.length||questions.some((q:string)=>/\d|@|https?:/i.test(q)))throw new Error("O plano de pesquisa exige conferência para evitar identificadores do caso.");
+      const research=await claude(key,state.model,[{type:"text",text:JSON.stringify({questoes:questions,tribunal:String(plan.tribunal||"").replace(/[^A-Z]/g,"").slice(0,8)})}],
+        "Pesquise na web fontes oficiais atuais para as questões abstratas. Confira legislação vigente, precedentes qualificados e jurisprudência favorável e contrária. Identifique tribunal, processo, julgamento, relator e URL; explique pertinência e distinção. Preserve as citações das fontes consultadas. Informe o que não pode ser confirmado.",
+        true,state.research_messages||[]);
+      state.research_blocks=[...(state.research_blocks||[]),...(research.content||[])];
+      if(research.resume_messages){
+        state.research_turns=(state.research_turns||0)+1;
+        if(state.research_turns>2)throw new Error("A pesquisa continua incompleta e precisa de revisão.");
+        state.research_messages=research.resume_messages;
+      }else{
+        state.sources=extractResearchSources(state.research_blocks);
+        if(!state.sources.length)throw new Error("A pesquisa não retornou citações oficiais verificáveis.");
+        state.research=renderCitations(state.research_blocks);
+        stage="draft";
+      }
+    }else if(stage==="draft"){
+      const draft=await claude(key,state.model,[{type:"text",text:
+        "ESTUDO DOS AUTOS\n"+state.dossier+"\nPESQUISA CONFERIDA\n"+state.research+"\nPEÇA\n"+state.title}],
+        "Redija a peça completa para revisão. Enfrente cada fundamento da decisão com fato, prova/evento/página, norma e jurisprudência da pesquisa, inclusive argumentos contrários e distinções. Use o estudo do juiz como orientação interna. Não invente jurisprudência nem números. Não conclua tempestividade sem contagem confirmada. Se faltar decisão ou prova indispensável, entregue ESTUDO INCOMPLETO com pendências específicas. Se houver dados suficientes, entregue MINUTA PARA REVISÃO. Endereçamento conforme órgão competente. Use síntese, linha do tempo, quadros fundamento × resposta × prova × pedido, e destaques quando pertinentes. Só proponha gráficos com dados verificados. URLs das fontes ao final. Assinatura Suzanne Figueiredo, OAB/MG 131.880.");
+      result={text:renderCitations(draft.content),dossier:state.dossier,research:state.research,
+        sources:state.sources,provider:"anthropic",model:state.model,documents_read:state.documents,judge_analysis_at:state.judge_analysis_at};
+      stage="completed";
+    }else throw new Error("Etapa de processamento inválida.");
+    const updated=await db.from("process_conduction_jobs").update({
+      stage,state,result,running_until:null,updated_at:new Date().toISOString(),
+    }).eq("id",id).eq("revision",job.revision+1).select("id").maybeSingle();
+    if(updated.error||!updated.data)throw new Error("Não foi possível confirmar o progresso. Consulte novamente.");
+    return reply(result?{ok:true,...result,job_id:id}:{ok:true,pending:true,job_id:id,stage,
+      progress:stage==="reading"?Math.round(state.batch_results.length/state.batches.length*60):stage==="study"?65:80});
+  }catch(error){
+    await db.from("process_conduction_jobs").update({running_until:null}).eq("id",id).eq("revision",job.revision+1);
+    return reply({ok:false,job_id:id,error:error instanceof Error?error.message:"Falha no processamento."},502);
+  }
+}
