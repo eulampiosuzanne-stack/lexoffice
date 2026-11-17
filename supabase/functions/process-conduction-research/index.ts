@@ -22,15 +22,15 @@ async function claude(key: string, model: string, content: unknown[], instructio
       body: JSON.stringify({
         model, max_tokens: search ? 8000 : 16000, system: system + "\n" + instructions,
         messages,
-        ...(search ? { tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 6, allowed_domains: domains }] } : {}),
+        ...(search ? { tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 3, allowed_domains: domains }] } : {}),
       }),
       signal: AbortSignal.timeout(110000),
     });
     const data = await response.json();
     if (!response.ok) throw new Error("O Claude não concluiu " + (search ? "a pesquisa" : "a leitura ou redação") + " (HTTP " + response.status + ").");
-    if (data.stop_reason === "max_tokens")
+    if (data.stop_reason === "max_tokens" && !search)
       throw new Error("O Claude atingiu o limite de saída em " + (search ? "pesquisa" : "leitura ou redação") + ". A resposta incompleta não foi liberada.");
-    if (data.stop_reason !== "pause_turn") return data;
+    if (!["pause_turn","max_tokens"].includes(data.stop_reason)) return data;
     if (search) return {...data,resume_messages:[...messages,{role:"assistant",content:data.content},{role:"user",content:"Continue e conclua a pesquisa com citações oficiais."}]};
     messages.push({ role: "assistant", content: data.content });
     messages.push({ role: "user", content: "Continue a pesquisa interrompida e conclua com citações oficiais." });
@@ -185,18 +185,18 @@ async function advanceJob(db: any, org: string, actor: string, id: string) {
       state.dossier=renderCitations(study.content);
       stage=state.mode==="client_report"?"report":"research";
     }else if(stage==="report"){
-      const report=await claude(key,state.model,[{type:"text",text:"ESTUDO DOS AUTOS\n"+state.dossier}],
-        "Produza relatório ao cliente, até 600 palavras, claro e acolhedor, com os títulos O QUE ACONTECEU; O QUE ISSO SIGNIFICA PARA VOCÊ; PRÓXIMAS PROVIDÊNCIAS; O QUE PRECISAMOS DE VOCÊ. Explique cada capítulo favorável e desfavorável da decisão, evento e data. Só afirme providências do escritório já realizadas se documentadas. Providências futuras dependem da revisão da advogada. Não exponha perfil estatístico do juiz, estratégia interna, hipóteses como fatos ou informações de outros processos. Não invente prazo final nem prometa resultado. Diga quando o prazo depende de conferência. Linguagem simples, sem markdown.");
-      result={text:renderCitations(report.content),provider:"anthropic",model:state.model,documents_read:state.documents};
+      const report=await claude(key,state.model,[{type:"text",text:"ESTUDO INTERNO (NÃO COPIAR AO CLIENTE)\n"+state.dossier+"\nEXTRATOS DOS AUTOS: priorize as datas e o teor das decisões aqui identificados\n"+(state.batch_results||[]).join("\n\n")}],
+        "Escreva um relatório final ao cliente, entre 250 e 450 palavras, em português simples e profissional. Use somente os títulos O QUE ACONTECEU; O QUE ISSO SIGNIFICA PARA VOCÊ; PRÓXIMAS PROVIDÊNCIAS; O QUE PRECISAMOS DE VOCÊ. Comece com a decisão mais recente, sua data e evento comprovados. Explique TODOS os capítulos relevantes favoráveis e desfavoráveis, sem confundir movimento complementar com outra decisão. Não é um parecer interno: exclua perfil estatístico do juiz, discussão de teses, críticas às peças ou representação, alternativas de contagem de prazo e especulações. Não escreva que não houve trabalho do escritório nem exponha ausência de registro como ausência de atuação. Não solicite depósito, ratificação de procuração ou valores ao cliente por mera hipótese. Explique o que foi decidido, o que ainda não foi decidido e que providências concretas serão avaliadas pela advogada, sem afirmar execução ou aprovação não comprovada. Datas finais indicadas pelo sistema só podem ser descritas como registros a conferir; prefira informar que a equipe conferirá o prazo, sem enumerar datas alternativas. Peça apenas documentos ou informações diretamente necessários, no máximo quatro itens. Não prometa resultados. Não transfira ao cliente incertezas internas de identificação: se o vínculo não estiver confirmado, não produza relatório e informe a pendência. Sem markdown, tabelas, JSON ou fontes internas. Não inclua detalhes de outro processo.");
+      result={text:renderCitations(report.content).replace(/Nenhuma dessas medidas está (?:concluída ou aprovada|decidida)[^.]*\./gi,"As providências propostas dependem de revisão da advogada."),provider:"anthropic",model:state.model,documents_read:state.documents};
       stage="completed";
     }else if(stage==="research"){
       const match=String(state.dossier).match(/PESQUISA_PUBLICA_JSON:\s*(\{[^\n]+\})/);
       if(!match)throw new Error("O estudo não concluiu o plano de pesquisa. Revise as questões antes de prosseguir.");
       const plan=JSON.parse(match[1]);
       const questions=Array.isArray(plan.questoes)?plan.questoes.filter((q:unknown)=>typeof q==="string").slice(0,5):[];
-      if(!questions.length||questions.some((q:string)=>/\d|@|https?:/i.test(q)))throw new Error("O plano de pesquisa exige conferência para evitar identificadores do caso.");
+      if(!questions.length||questions.some((q:string)=>/\d{6,}|\d{7}-\d{2}|@|https?:/i.test(q)))throw new Error("O plano de pesquisa exige conferência para evitar identificadores do caso.");
       const research=await claude(key,state.model,[{type:"text",text:JSON.stringify({questoes:questions,tribunal:String(plan.tribunal||"").replace(/[^A-Z]/g,"").slice(0,8)})}],
-        "Pesquise na web fontes oficiais atuais para as questões abstratas. Confira legislação vigente, precedentes qualificados e jurisprudência favorável e contrária. Identifique tribunal, processo, julgamento, relator e URL; explique pertinência e distinção. Preserve as citações das fontes consultadas. Informe o que não pode ser confirmado.",
+        "Pesquise na web fontes oficiais atuais para as questões abstratas. Responda em até 900 palavras; faça no máximo três buscas focadas e cite fontes precisas, sem transcrever páginas extensas. Confira legislação vigente, precedentes qualificados e jurisprudência favorável e contrária. Identifique tribunal, processo, julgamento, relator e URL; explique pertinência e distinção. Preserve as citações das fontes consultadas. Informe o que não pode ser confirmado.",
         true,state.research_messages||[]);
       state.research_blocks=[...(state.research_blocks||[]),...(research.content||[])];
       if(research.resume_messages){
