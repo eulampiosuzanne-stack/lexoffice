@@ -64,7 +64,8 @@ Deno.serve(async req=>{
     const {data:prefs,error:pe}=await a.from("client_notification_preferences").select("client_id").eq("org_id",profile.org_id).eq("whatsapp_enabled",true).eq("proactive_process_updates",true);
     if(pe)throw pe;
     const allowed=new Set((prefs||[]).map(p=>p.client_id));
-    return json({ok:true,clients:(clients||[]).filter(c=>allowed.has(c.id)&&["ativo","active","cliente","cliente_ativo","cliente_private"].includes(String(c.status||"").toLowerCase())).map(c=>({id:c.id,name:c.name}))});
+    const eligible=(clients||[]).filter(c=>allowed.has(c.id)&&["ativo","active","cliente","cliente_ativo","cliente_private"].includes(String(c.status||"").toLowerCase()));
+    return json({ok:true,clients:eligible.map(c=>({id:c.id,name:c.name})),diagnostics:{clients_checked:(clients||[]).length,consented_clients:allowed.size,eligible_clients:eligible.length,limited_to_first_250:true}});
   }
   if(body.action==="prepare_weekly_care"){
     const {data:clients,error:ce}=await a.from("clients").select("id,name,status,is_demo").eq("org_id",profile.org_id).eq("is_demo",false).limit(250);

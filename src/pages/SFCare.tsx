@@ -12,6 +12,7 @@ const campaigns = [
 ];
 export default function SFCare() {
   const [clients,setClients] = useState<Client[]>([]);
+  const [diagnostics,setDiagnostics] = useState<{clients_checked:number;consented_clients:number;eligible_clients:number}|null>(null);
   const [clientId,setClientId] = useState('');
   const [kind,setKind] = useState(campaigns[0].id);
   const [busy,setBusy] = useState(false);
@@ -23,6 +24,7 @@ export default function SFCare() {
       if(!active)return;
       if(error||!data?.ok){setNotice('Não foi possível carregar os clientes autorizados.');return;}
       setClients(data.clients||[]);
+      setDiagnostics(data.diagnostics||null);
     });
     return ()=>{active=false;};
   },[]);
@@ -85,6 +87,7 @@ export default function SFCare() {
         {busy?'Preparando...':'Criar proposta para aprovação'}
       </button>
       {notice&&<p role="status">{notice}</p>}
+      {diagnostics&&<p role="status"><strong>Diagnóstico:</strong> {diagnostics.clients_checked} clientes consultados, {diagnostics.consented_clients} com autorizações de comunicação proativa e {diagnostics.eligible_clients} elegíveis nesta consulta. {diagnostics.consented_clients===0?"Não há consentimentos registrados para envio proativo pelo WhatsApp. Verifique a coleta de autorização antes de iniciar campanhas.":""}</p>}
       {!clients.length&&<p>Nenhum cliente elegível carregado. Verifique consentimentos e permissões.</p>}
     </section>
     <div key={refresh}><CommunicationsSupervisor /></div>
