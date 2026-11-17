@@ -34,6 +34,11 @@ const ASK_LINES = ["Dra., me faz um carinho?", "Ei, Dra.! Olha eu aqui!", "Vim c
 const HUNGRY_LINES = ["Dra., estou com fominha... me dá um petisco?", "Meu potinho está vazio, Dra.!", "Um petisco para a Guardiã?"];
 const HAPPY_LINES = ["Obrigada, Dra.! Agora vou trabalhar feliz.", "Que delícia! Barriguinha cheia.", "Eba! A senhora é a melhor!"];
 const PLAY_LINES = ["Achei uma caixinha! Vou brincar!", "Olha, Dra., que caixa divertida!", "Au au! Essa caixinha é minha!"];
+const ZOOM_LINES = ["Uhuuul! Hora da corridinha!", "Pega eu se puder!", "Vrummm!"];
+const TAIL_LINES = ["Quase peguei meu rabinho!", "Fica parado, rabinho!", "Rodopiei!"];
+// 17/11/2026: a Dra. pediu menos interrupções e uma Guardiã mais brincalhona — ela sai bem menos vezes,
+// fala só de vez em quando e, quando sai, brinca (caixinha, corridinha ou correr atrás do rabo).
+const TALK_CHANCE = 0.3;
 const PET_LINES = ["Que carinho bom!", "Abanando o rabinho aqui!", "Adoro quando a senhora faz isso."];
 
 export default function Guardian() {
@@ -183,8 +188,27 @@ export default function Guardian() {
       return r.width > 40 && r.height > 30 && r.top > 60 && r.bottom < window.innerHeight - 20 && r.left >= 0 && r.right <= window.innerWidth;
     });
     const isHungry = Date.now() - readNumber(FED_STORAGE, Date.now()) > HUNGRY_AFTER_MS;
-    const toy = boxes.length && !isHungry && Math.random() < 0.85 ? pick(boxes) : null;
-    if (toy) {
+    const roll = Math.random();
+    const toy = boxes.length && !isHungry && roll < 0.5 ? pick(boxes) : null;
+    const talk = isHungry || Math.random() < TALK_CHANCE;
+    if (!toy && !isHungry && roll < 0.75) {
+      // Corridinha: dispara por 3 pontos da tela e volta.
+      setMood("walking");
+      if (talk) say(pick(ZOOM_LINES), 2600);
+      for (let i = 0; i < 3; i++) {
+        const t = toOffset(WALKER_W + Math.random() * (window.innerWidth - WALKER_W * 2), window.innerHeight - 20 - Math.random() * 160);
+        await walkTo(t.x, t.y, RUN_SPEED * 1.3);
+      }
+    } else if (!toy && !isHungry) {
+      // Corre atrás do próprio rabo no cantinho.
+      setMood("playing");
+      if (talk) say(pick(TAIL_LINES), 3200);
+      for (let i = 0; i < 6; i++) {
+        const fl = !facingLeftRef.current;
+        setFacingLeft(fl); facingLeftRef.current = fl;
+        await hop(380);
+      }
+    } else if (toy) {
       const r = toy.getBoundingClientRect();
       const target = toOffset(r.left + r.width / 2 + 30, r.bottom + 4);
       setMood("walking");
@@ -199,9 +223,7 @@ export default function Guardian() {
       toy.classList.add("sf-guardian-toy");
       await hop(1200);
       toy.classList.remove("sf-guardian-toy");
-      setMood("asking");
-      say(pick(ASK_LINES), 4500);
-      await pause(4800);
+      if (talk) { setMood("asking"); say(pick(ASK_LINES), 4500); await pause(4800); }
     } else {
       const room = Math.max(0, now0.left - offsetRef.current.x - 24);
       setMood("walking");
@@ -218,12 +240,12 @@ export default function Guardian() {
     busy.current = false;
   }, [hop, pause, say, walkTo]);
 
-  // Passeia com frequência (a primeira logo depois de abrir, depois a cada 25 a 60 segundos) ela sai para passear, se a Dra. não estiver mexendo nela.
+  // Passeia de vez em quando (17/11/2026: antes era a cada 25–60 s; agora a cada 6–10 min), se a Dra. não estiver mexendo nela.
   useEffect(() => {
     if (!animated) { if (frame.current) cancelAnimationFrame(frame.current); frame.current = null; busy.current = false; offsetRef.current = { x: 0, y: 0 }; setOffset({ x: 0, y: 0 }); document.querySelectorAll(".sf-guardian-toy").forEach((el) => el.classList.remove("sf-guardian-toy")); setMood("idle"); return; }
     let cancelled = false;
     const schedule = (first = false) => {
-      const wait = first ? 5000 + Math.random() * 4000 : 25000 + Math.random() * 35000;
+      const wait = first ? 90000 + Math.random() * 60000 : 360000 + Math.random() * 240000; // 1º passeio após 1,5–2,5 min; depois a cada 6–10 min
       later(wait, () => {
         if (cancelled) return;
         if (document.visibilityState === "visible" && !menuOpenRef.current && window.innerWidth >= 360) void stroll();
