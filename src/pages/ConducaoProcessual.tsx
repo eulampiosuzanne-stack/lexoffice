@@ -700,6 +700,20 @@ export default function ConducaoProcessual() {
     ].filter(Boolean).join("\n");
   }
 
+  async function runLegalJob(body: Record<string, unknown>) {
+    if (!supabase) throw new Error("Conexão indisponível.");
+    let response = await supabase.functions.invoke("process-conduction-research", {body});
+    for (let step=0; step<24; step++) {
+      if(response.error)throw new Error(await fnError(response.error));
+      if(!response.data?.ok)throw new Error(response.data?.error||"Processamento não concluído.");
+      if(!response.data.pending)return response.data;
+      const labels: Record<string,string>={reading:"Lendo os autos por lotes",study:"Relacionando fatos, provas e estudo do juízo",report:"Preparando o relatório ao cliente",research:"Conferindo fontes oficiais",draft:"Redigindo a peça"};
+      setNotice({kind:"info",text:(labels[response.data.stage]||"Processando")+"…"});
+      response=await supabase.functions.invoke("process-conduction-research",{body:{job_id:response.data.job_id}});
+    }
+    throw new Error("O processamento exige acompanhamento adicional.");
+  }
+
   async function makeDraft(kind: string) {
     if (!supabase || !proc) return;
     setDraftKind(kind);
@@ -710,12 +724,10 @@ export default function ConducaoProcessual() {
     setDraftProvider("");
     let result;
     try {
-      result = await supabase.functions.invoke("process-conduction-research", {
-        body: { process_id: proc.id, kind, title: DRAFTS[kind], instructions: draftExtra },
-      });
-    } catch {
+      result = {data:await runLegalJob({process_id:proc.id,kind,title:DRAFTS[kind],instructions:draftExtra}),error:null};
+    } catch (error) {
       setBusy("");
-      setNotice({kind:"error",text:"Não foi possível confirmar a geração. Tente novamente após conferir a conexão."});
+      setNotice({kind:"error",text:error instanceof Error?error.message:"Não foi possível confirmar a geração."});
       return;
     }
     const { data, error } = result;
@@ -808,11 +820,7 @@ export default function ConducaoProcessual() {
     setBusy("client-report");
     setNotice({kind:"info",text:"Lendo os autos para preparar o relatório ao cliente…"});
     try {
-      const {data,error}=await supabase.functions.invoke("process-conduction-research",{
-        body:{process_id:proc.id,mode:"client_report",title:"Relatório ao cliente"},
-      });
-      if(error)throw new Error(await fnError(error));
-      if(!data?.ok||!data.text)throw new Error(data?.error||"O relatório não foi concluído.");
+      const data=await runLegalJob({process_id:proc.id,mode:"client_report",title:"Relatório ao cliente"});
       setClientReportText(data.text);
       setClientReportId(proc.id);
       setReportPublished(false);
@@ -830,21 +838,27 @@ export default function ConducaoProcessual() {
     let y=24;
     const header=()=>{
       pdf.setFillColor(101,0,31);pdf.rect(0,0,210,13,"F");
-      pdf.setTextColor(101,0,31);pdf.setFont("times","bold");pdf.setFontSize(13);
+      pdf.setTextColor(101,0,31);pdf.setFont("helvetica","bold");pdf.setFontSize(13);
       pdf.text("Suzanne Figueiredo",margin,26);
-      pdf.setFont("times","normal");pdf.setFontSize(10);
+      pdf.setFont("helvetica","normal");pdf.setFontSize(10);
       pdf.text("Advocacia e Soluções Jurídicas",margin,33);
       pdf.setDrawColor(178,138,74);pdf.line(margin,38,187,38);y=49;
       pdf.setTextColor(35,30,27);
     };
     const line=(text:string,bold=false)=>{
-      pdf.setFont("times",bold?"bold":"normal");pdf.setFontSize(bold?12:11);
-      const lines=pdf.splitTextToSize(text,width);
+      pdf.setFont("helvetica",bold?"bold":"normal");pdf.setFontSize(bold?11:11);
+      const clean=text.replace(/^#{1,6}\s*/, "").replace(/\*\*(.*?)\*\*/g,"$1").trim();
+      const lines=pdf.splitTextToSize(clean,width);
+      if(bold){
+        if(y+lines.length*6+9>272){pdf.addPage();header();}
+        pdf.setFillColor(233,223,201);pdf.roundedRect(margin-3,y-5,width+6,lines.length*6+5,1,1,"F");
+        pdf.setTextColor(101,0,31);
+      }else pdf.setTextColor(35,30,27);
       for(const row of lines){
         if(y>272){pdf.addPage();header();}
         pdf.text(String(row),margin,y);y+=6;
       }
-      y+=4;
+      y+=bold?7:4;
     };
     header();
     line("Atualização do seu processo",true);
@@ -855,7 +869,7 @@ export default function ConducaoProcessual() {
       line(paragraph,/^[A-ZÁÉÍÓÚÂÊÔÃÕÇ ]{5,}$/.test(paragraph.trim()));
     }
     for(let page=1;page<=pdf.getNumberOfPages();page++){
-      pdf.setPage(page);pdf.setFont("times","normal");pdf.setFontSize(9);
+      pdf.setPage(page);pdf.setFont("helvetica","normal");pdf.setFontSize(9);
       pdf.setTextColor(90,80,70);pdf.text("Documento confidencial · "+page+" / "+pdf.getNumberOfPages(),105,287,{align:"center"});
     }
     return pdf;
@@ -906,10 +920,10 @@ export default function ConducaoProcessual() {
       const pdf=new jsPDF({unit:"mm",format:"a4"});
       const margin=23, width=164, bottom=273;
       let y=25;
-      pdf.setFont("times","bold");pdf.setFontSize(11);
+      pdf.setFont("helvetica","bold");pdf.setFontSize(11);
       pdf.text("SUZANNE FIGUEIREDO | ADVOCACIA E SOLUÇÕES JURÍDICAS",105,y,{align:"center"});
       y+=9;pdf.setDrawColor(178,138,74);pdf.line(margin,y,187,y);y+=12;
-      pdf.setFont("times","normal");pdf.setFontSize(11);
+      pdf.setFont("helvetica","normal");pdf.setFontSize(11);
       const lines=pdf.splitTextToSize(draftText.replace(/\r/g,""),width);
       for(const line of lines){
         if(y>bottom){pdf.addPage();y=25;}
@@ -1052,7 +1066,7 @@ export default function ConducaoProcessual() {
           </label>
           <label>
             <span>Processo</span>
-            <select value={procId} onChange={(e) => setProcId(e.target.value)}>
+            <select value={procId} disabled={busy!==""} onChange={(e) => setProcId(e.target.value)}>
               <option value="">Selecione…</option>
               {proc && !list.some((p) => p.id === proc.id) && (
                 <option value={proc.id}>{procLabel(proc)}</option>
