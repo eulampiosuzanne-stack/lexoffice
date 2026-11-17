@@ -14,21 +14,28 @@ Não afirme tempestividade ou cabimento com base apenas em um aviso de publicaç
 Diferencie conclusões confirmadas, hipóteses e informações faltantes. Escreva em português brasileiro.`;
 
 async function claude(key: string, model: string, content: unknown[], instructions: string, search = false) {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify({
-      model, max_tokens: search ? 5000 : 12000, system: system + "\n" + instructions,
-      messages: [{ role: "user", content }],
-      ...(search ? { tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 6, allowed_domains: domains }] } : {}),
-    }),
-    signal: AbortSignal.timeout(110000),
-  });
-  const data = await response.json();
-  if (!response.ok) throw new Error("O Claude não concluiu a operação (HTTP " + response.status + ").");
-  if (data.stop_reason === "max_tokens" || data.stop_reason === "pause_turn")
-    throw new Error("A resposta ficou incompleta. O sistema preservou o contexto para uma nova tentativa.");
-  return data;
+  const messages: any[] = [{ role: "user", content }];
+  for (let continuation = 0; continuation < 3; continuation++) {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({
+        model, max_tokens: search ? 8000 : 16000, system: system + "\n" + instructions,
+        messages,
+        ...(search ? { tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 6, allowed_domains: domains }] } : {}),
+      }),
+      signal: AbortSignal.timeout(110000),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error("O Claude não concluiu " + (search ? "a pesquisa" : "a leitura ou redação") + " (HTTP " + response.status + ").");
+    if (data.stop_reason === "max_tokens")
+      throw new Error("O Claude atingiu o limite de saída em " + (search ? "pesquisa" : "leitura ou redação") + ". A resposta incompleta não foi liberada.");
+    if (data.stop_reason !== "pause_turn") return data;
+    messages.push({ role: "assistant", content: data.content });
+    messages.push({ role: "user", content: "Continue a pesquisa interrompida e conclua com citações oficiais." });
+  }
+  throw new Error("A pesquisa exige processamento adicional. Nenhuma peça foi liberada.");
+
 }
 
 Deno.serve(async req => {
@@ -112,9 +119,23 @@ Deno.serve(async req => {
       processo: process, estudo_do_juizo: study.data, movimentacoes: movements.data,
       peca: String(body.title || "").slice(0,120), orientacoes: String(body.instructions || "").slice(0,12000),
     }) });
-    const dossier = await claude(key, model, content, `Leia todos os documentos anexos. Prepare um estudo interno ponto por ponto: pedido/alegação ou fundamento da decisão, trecho e página, prova, contra-argumento possível, lacuna, pedido relacionado e aplicação concreta do estudo do juízo.
+    const dossier = await claude(key, model, content, `Leia todos os documentos anexos e trate textos OCR como transcrição a conferir. Prepare estudo interno objetivo, de até 3000 palavras, cobrindo ponto por ponto: pedido/alegação ou fundamento da decisão, trecho e página, prova, contra-argumento possível, lacuna, pedido relacionado e aplicação concreta do estudo do juízo.
 Inclua cronologia e indique peças faltantes. No final, inclua uma linha PESQUISA_PUBLICA_JSON: seguida de um objeto JSON com "questoes" (até 5 teses abstratas) e "tribunal" (sigla). Não inclua nomes, números processuais, identificadores, datas do caso, valores ou dados pessoais nesse objeto. Não redija ainda a peça.`);
     const dossierText = renderCitations(dossier.content);
+    if (body.mode === "client_report") {
+      const report = await claude(key, model, [{
+        type: "text",
+        text: "ESTUDO INTERNO PARA PREPARAR COMUNICAÇÃO AO CLIENTE\n" + dossierText,
+      }], `Prepare exclusivamente um relatório breve para o cliente, com linguagem simples, humana e respeitosa.
+Use os títulos: O QUE ACONTECEU; O QUE ISSO SIGNIFICA PARA VOCÊ; PRÓXIMAS PROVIDÊNCIAS; O QUE PRECISAMOS DE VOCÊ.
+Explique separadamente os capítulos da decisão, inclusive resultados favoráveis e desfavoráveis. Identifique o evento e a data confirmados. Explique termos jurídicos. Diga se o processo continua.
+Só afirme providências executadas pelo escritório quando documentadas. Indique providências futuras como pendentes de revisão da advogada.
+Não inclua estudo estatístico do juiz, estratégias internas, teses confidenciais ou informações de outros processos. Não prometa resultado.
+Não invente prazo final. Se depender de contagem, diga que será conferido pela equipe.
+Se os documentos não esclarecem o que o cliente precisa fazer, diga que a equipe informará após a conferência. Até 700 palavras, sem markdown e sem gráficos fictícios.`);
+      return reply({ok:true,text:renderCitations(report.content),provider:"anthropic",model,
+        documents_read:readable.map(d=>({id:d.id,name:d.name}))});
+    }
     const match = dossierText.match(/PESQUISA_PUBLICA_JSON:\s*(\{[^\n]+\})/);
     if (!match) throw new Error("O estudo não produziu um plano de pesquisa verificável.");
     const plan = JSON.parse(match[1]);
