@@ -48,7 +48,10 @@ Deno.serve(async req=>{
     if(kind==="post_filing_checkin"){
       const {data:processes,error:processError}=await a.from("processes").select("id,cnj_number,status").eq("org_id",profile.org_id).eq("client_id",clientId).limit(30);
       if(processError)throw processError;
-      const verified=(processes||[]).some(p=>typeof p.cnj_number==="string"&&/^\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}$/.test(p.cnj_number)&&!["rascunho","draft","cancelado"].includes(String(p.status||"").toLowerCase()));
+      const validProcessIds=(processes||[]).filter(p=>typeof p.cnj_number==="string"&&/^\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}$/.test(p.cnj_number)&&!["rascunho","draft","cancelado"].includes(String(p.status||"").toLowerCase())).map(p=>p.id);
+      const {data:distributionEvents,error:distributionError}=validProcessIds.length?await a.from("sf_care_outbox").select("id").eq("org_id",profile.org_id).eq("client_id",clientId).eq("event_kind","process_distributed").eq("source_verified",true).in("process_id",validProcessIds).limit(1):{data:[],error:null};
+      if(distributionError)throw distributionError;
+      const verified=(distributionEvents||[]).length>0;
       if(!verified)return json({ok:false,error:"filing_not_verified"},422);
     }
     const first=String(client.name||"cliente").trim().split(/\s+/)[0].replace(/[<>]/g,"").slice(0,50);
