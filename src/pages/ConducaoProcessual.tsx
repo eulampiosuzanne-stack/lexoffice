@@ -835,36 +835,116 @@ export default function ConducaoProcessual() {
   }
 
   async function downloadClientJudgePdf() {
-    if(!proc||!analysis){setNotice({kind:"error",text:"Realize a análise do juízo antes de gerar o relatório para o cliente."});return;}
+    if (!proc || !analysis) {
+      setNotice({kind:"error",text:"Atualize a análise do juízo antes de gerar o relatório."});
+      return;
+    }
     try {
-      const {jsPDF}=await import("jspdf");
-      const pdf=new jsPDF({unit:"mm",format:"a4"});
-      const margin=23,width=164;
-      let y=25;
-      const line=(value:string,bold=false)=>{
-        pdf.setFont("times",bold?"bold":"normal");pdf.setFontSize(11);
-        const lines=pdf.splitTextToSize(value,width);
-        for(const l of lines){if(y>272){pdf.addPage();y=25;}pdf.text(String(l),margin,y);y+=6;}
+      const {jsPDF} = await import("jspdf");
+      const pdf = new jsPDF({unit:"mm",format:"a4"});
+      const W=210, left=22, right=188, usable=166;
+      const gold:[number,number,number]=[178,138,74];
+      const ink:[number,number,number]=[35,34,33];
+      const muted:[number,number,number]=[103,99,93];
+      let y=0, page=0;
+      const clean=(v:unknown):string => {
+        if(v==null)return "";
+        const raw=Array.isArray(v)?v.map(clean).filter(Boolean).join("; "):typeof v==="string"?v:typeof v==="object"?"":String(v);
+        return raw.replace(/\\\\n/g," ").replace(/\\s+/g," ").trim();
+      };
+      const pageStart=()=>{
+        page++;
+        pdf.setFillColor(248,246,240);pdf.rect(0,0,W,297,"F");
+        pdf.setFillColor(...ink);pdf.rect(0,0,W,34,"F");
+        pdf.setTextColor(233,223,201);pdf.setFont("times","bold");pdf.setFontSize(13);
+        pdf.text("SF",left,17);
+        pdf.setTextColor(255,255,255);pdf.setFontSize(10);
+        pdf.text("SUZANNE FIGUEIREDO",34,15);
+        pdf.setFont("times","normal");pdf.setFontSize(8);
+        pdf.text("ADVOCACIA E SOLUÇÕES JURÍDICAS",34,21);
+        pdf.setDrawColor(...gold);pdf.setLineWidth(.7);pdf.line(left,36,right,36);
+        pdf.setDrawColor(218,210,195);pdf.setLineWidth(.2);pdf.line(left,279,right,279);
+        pdf.setTextColor(...muted);pdf.setFont("times","normal");pdf.setFontSize(8);
+        pdf.text("DOCUMENTO INFORMATIVO | USO DO CLIENTE",left,285);
+        pdf.text(String(page),right,285,{align:"right"});
+        y=48;
+      };
+      const ensure=(height:number)=>{if(y+height>269)pageStart();};
+      const paragraph=(value:unknown,indent=0)=>{
+        const str=clean(value);if(!str)return;
+        pdf.setFont("times","normal");pdf.setFontSize(10.5);pdf.setTextColor(...ink);
+        const lines=pdf.splitTextToSize(str,usable-indent);
+        for(const ln of lines){ensure(6);pdf.text(String(ln),left+indent,y);y+=5.8;}
         y+=3;
       };
-      pdf.setFont("times","bold");pdf.setFontSize(12);
-      pdf.text("SUZANNE FIGUEIREDO | ADVOCACIA",105,y,{align:"center"});
-      y+=9;pdf.setDrawColor(178,138,74);pdf.line(margin,y,187,y);y+=12;
-      line("RELATÓRIO INFORMATIVO AO CLIENTE",true);
-      line("Processo: "+(proc.cnj_number||proc.internal_number||"Não informado"));
-      line("Cliente: "+(proc.clients?.name||"Não informado"));
-      line("Juízo: "+(analysis.vara?.nome||proc.vara||"Não informado"));
-      line("Data do relatório: "+new Date().toLocaleDateString("pt-BR"));
-      const resumo=analysis.analise?.resumo;
-      if(resumo)line("PANORAMA PÚBLICO DO JUÍZO\\n"+String(resumo),true);
-      line("SITUAÇÃO PROCESSUAL",true);
-      line("Fase indicada no cadastro: "+(PHASES[phaseIdx]?.label||"A confirmar"));
-      line("Último andamento registrado: "+(processSummary.recent[0]?.title||"Não disponível"));
-      line("INFORMAÇÕES IMPORTANTES",true);
-      line("Este relatório é informativo, baseado nos registros disponíveis e em pesquisa pública. Não contém minuta de petição, orientações jurídicas internas nem garantia de resultado. Prazos e decisões devem ser conferidos nos autos oficiais.");
+      const heading=(number:string,title:string)=>{
+        ensure(21);y+=4;
+        pdf.setFillColor(...gold);pdf.roundedRect(left,y-5,9,9,1,1,"F");
+        pdf.setTextColor(255,255,255);pdf.setFont("times","bold");pdf.setFontSize(9);
+        pdf.text(number,left+4.5,y+1,{align:"center"});
+        pdf.setTextColor(...ink);pdf.setFontSize(12);
+        pdf.text(title,left+14,y+1);
+        y+=13;
+      };
+      const field=(label:string,value:unknown)=>{
+        const v=clean(value)||"Não informado";
+        ensure(14);
+        pdf.setTextColor(...muted);pdf.setFont("times","bold");pdf.setFontSize(9);
+        pdf.text(label.toUpperCase(),left+5,y);
+        pdf.setFont("times","normal");pdf.setFontSize(10);pdf.setTextColor(...ink);
+        const lines=pdf.splitTextToSize(v,usable-10);
+        y+=6;
+        for(const ln of lines){ensure(6);pdf.text(String(ln),left+5,y);y+=5.5;}
+        y+=4;
+      };
+      const metric=(x:number,label:string,value:unknown)=>{
+        pdf.setFillColor(237,232,222);pdf.roundedRect(x,y,51,24,2,2,"F");
+        pdf.setFont("times","bold");pdf.setFontSize(14);pdf.setTextColor(...ink);
+        pdf.text(String(value),x+5,y+11);
+        pdf.setFont("times","normal");pdf.setFontSize(8);pdf.setTextColor(...muted);
+        pdf.text(label,x+5,y+18);
+      };
+      pageStart();
+      pdf.setFont("times","bold");pdf.setFontSize(18);pdf.setTextColor(...ink);
+      pdf.text("RELATÓRIO DE ACOMPANHAMENTO",left,y);y+=9;
+      pdf.setFont("times","normal");pdf.setFontSize(10);pdf.setTextColor(...muted);
+      pdf.text("Panorama processual e informações públicas sobre o juízo",left,y);y+=13;
+      pdf.setFillColor(255,255,255);pdf.roundedRect(left,y-5,usable,35,2,2,"F");
+      field("Cliente",proc.clients?.name);
+      field("Processo",proc.cnj_number||proc.internal_number);
+      y+=3;
+      heading("01","Identificação e situação do processo");
+      field("Juízo",analysis.vara?.nome||proc.vara);
+      field("Fase indicada no sistema",PHASES[phaseIdx]?.label||"A confirmar");
+      const last=processSummary.recent[0];
+      field("Movimentação mais recente registrada",last?([last.movement_date,last.title].filter(Boolean).join(" | ")):"Não disponível");
+      heading("02","Panorama público da unidade judicial");
+      const base=analysis.base||{};
+      const metrics=[
+        ["Publicações",base.publicacoes],
+        ["Sentenças",base.sentencas],
+        ["Base analisada",base.publicacoes!=null?"Pública":"Não informada"]
+      ] as const;
+      if(base.publicacoes!=null||base.sentencas!=null){
+        ensure(31);metrics.forEach((m,i)=>metric(left+i*57,m[0],m[1]??"N/D"));y+=32;
+      }
+      const summary=clean(analysis.analise?.resumo);
+      if(summary){
+        paragraph("A pesquisa pública da unidade judicial registra as seguintes observações:");
+        paragraph(summary.replace(/^Trata-se de análise jurídica direcionada à Dra\\.? Suzanne Figueiredo referente ao processo de busca e apreensão em andamento na 2ª Vara Cível de Igarapé\\.?\\s*/i,""));
+      }else paragraph("Não há síntese pública consolidada disponível para esta unidade na análise atual.");
+      const provas=clean(analysis.analise?.provas_que_pede||analysis.provas);
+      if(provas){heading("03","Aspectos observados nas publicações");paragraph(provas);}
+      const ritmo=clean(analysis.ritmo?.resumo||analysis.ritmo?.descricao);
+      if(ritmo){heading(provas?"04":"03","Ritmo processual observado");paragraph(ritmo);}
+      heading("•","Informações para a cliente");
+      paragraph("Este documento apresenta informações registradas no sistema e tendências observadas em publicações públicas da unidade judicial. Esses dados não permitem prever o resultado do processo nem substituem a leitura de decisões e intimações dos autos.");
+      paragraph("Prazos, providências e eventuais decisões específicas devem ser confirmados pela equipe jurídica antes de qualquer medida.");
       pdf.save(safeName("Relatorio ao cliente - "+(proc.cnj_number||"processo"))+".pdf");
-      setNotice({kind:"ok",text:"Relatório em PDF gerado para conferência e envio manual ao cliente."});
-    }catch(e){setNotice({kind:"error",text:"Falha ao gerar PDF para cliente: "+(e instanceof Error?e.message:String(e))});}
+      setNotice({kind:"ok",text:"Relatório institucional gerado. Revise o conteúdo antes de encaminhar à cliente."});
+    }catch(e){
+      setNotice({kind:"error",text:"Falha ao gerar relatório: "+(e instanceof Error?e.message:String(e))});
+    }
   }
 
   async function downloadDraftPdf() {
