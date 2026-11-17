@@ -1204,7 +1204,7 @@ export default function ConducaoProcessual() {
               </button>
               <button type="button" className="doc-refresh" disabled={!analysis} onClick={downloadClientJudgePdf}>
                 <Download size={17}/> Gerar PDF para envio ao cliente
-              </button>}
+              </button>
             </div>
             <p className="pa-muted">O relatório para o cliente apresenta um resumo informativo do juízo e do andamento, sem expor a minuta ou a estratégia interna. O PDF da peça continua na aba Minutas.</p>
             {analysis && (
