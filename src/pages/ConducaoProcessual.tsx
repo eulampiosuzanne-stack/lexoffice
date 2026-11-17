@@ -839,7 +839,28 @@ export default function ConducaoProcessual() {
       setNotice({kind:"error",text:"Atualize a análise do juízo antes de gerar o relatório."});
       return;
     }
+    if(!supabase || !orgId){setNotice({kind:"error",text:"Não foi possível identificar a organização para a análise de IA."});return;}
+    setBusy("client-report");
+    setNotice({kind:"info",text:"Consultando os registros processuais e o Perfil do Juízo para preparar o relatório..."});
     try {
+      const {data:source,error:sourceError}=await Promise.all([
+        supabase.from("process_movements").select("movement_date,title,description").eq("process_id",proc.id).order("movement_date",{ascending:false}).limit(150),
+        supabase.from("process_deadlines").select("title,description,due_at,status,priority").eq("process_id",proc.id).order("due_at",{ascending:true}).limit(100),
+        supabase.from("process_hearings").select("title,starts_at,status").eq("process_id",proc.id).order("starts_at",{ascending:true}).limit(30)
+      ]).then(results=>({data:results.map(x=>x.data||[]),error:results.find(x=>x.error)?.error}));
+      if(sourceError)throw sourceError;
+      const material={
+        processo:{numero:proc.cnj_number,cliente:proc.clients?.name,classe:proc.class_name,assunto:proc.subject,vara:proc.vara,polo:proc.pole},
+        movimentos:source[0],prazos:source[1],audiencias:source[2],perfil_do_juizo:analysis,
+        limitacao:"A consulta contém registros do LexOffice, não comprova acesso ao inteiro teor dos autos. Não declarar leitura integral."
+      };
+      const result=await supabase.functions.invoke("ai-provider-gateway",{body:{
+        org_id:orgId,provider:"auto",purpose:"process_client_integrated_report",agent_key:"process_conduction",
+        instructions:"Você é analista jurídica do escritório. Gere um relatório INFORMATIVO para cliente em português formal, baseado exclusivamente no JSON fornecido. Integre a situação INDIVIDUAL do processo e o perfil PÚBLICO do juízo, sem confundir tendências da vara com decisões do processo. Use seções: DECISÕES E PRAZOS IDENTIFICADOS; PROVAS E QUESTÕES QUE EXIGEM CONFERÊNCIA; PERFIL DO JUÍZO E REPERCUSSÕES NO CASO; PROVIDÊNCIAS PROPOSTAS; LIMITAÇÕES DAS FONTES. Só declare decisão, prazo, valor, contrato ou prova se constar expressamente dos dados recebidos; cite data e título/descrição do registro em cada afirmação relevante. Se não houver teor integral de decisão ou contrato, diga que não foi possível verificar. Não invente jurisprudência. Não afirme ter lido autos completos. Não exponha estratégia sigilosa, previsões de resultado ou mensagens privadas. Não inclua nome, timbre ou título geral. Não use markdown.",
+        input:JSON.stringify(material)
+      }});
+      if(result.error || !result.data?.ok || !String(result.data.text||"").trim())throw result.error||new Error("A IA não retornou uma análise válida.");
+      const integrated=String(result.data.text).trim();
       const {jsPDF}=await import("jspdf");
       const pdf=new jsPDF({unit:"mm",format:"a4"});
       const left=22,right=188,width=166;
@@ -919,14 +940,19 @@ export default function ConducaoProcessual() {
       note("Padrões processuais observados",analysis.ritmo?.resumo||analysis.ritmo?.descricao);
       const tips=analysis.dicas;
       if(typeof tips==="string"||Array.isArray(tips))note("Observações adicionais da análise pública",tips);
-      heading("03","Esclarecimentos à cliente");
+      heading("03","Análise integrada do processo e do juízo");
+      for(const part of integrated.split(/\\n+/).map(v=>v.trim()).filter(Boolean)){
+        if(/^[A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9 ,:;–-]{8,}$/.test(part) && part.length<110)note(part,"");
+        else text(part);
+      }
+      heading("04","Esclarecimentos à cliente");
       text("As informações acima refletem registros disponíveis no sistema e observações de publicações públicas da unidade judicial. Não representam decisão específica no seu processo, nem permitem prever seu resultado.");
       text("A equipe jurídica deve conferir as movimentações, intimações e prazos diretamente nos autos antes de indicar qualquer providência.");
       pdf.save(safeName("Relatorio ao cliente - "+(proc.cnj_number||"processo"))+".pdf");
       setNotice({kind:"ok",text:"PDF gerado para revisão jurídica antes do envio à cliente."});
     }catch(e){
       setNotice({kind:"error",text:"Falha ao gerar PDF: "+(e instanceof Error?e.message:String(e))});
-    }
+    }finally{setBusy("");}
   }
 
   async function downloadDraftPdf() {
@@ -1264,7 +1290,7 @@ export default function ConducaoProcessual() {
               <button type="button" className="doc-refresh" onClick={()=>setStrategySection("catalogo")}>
                 <FileSignature size={17}/> Ver todas as peças
               </button>
-              <button type="button" className="doc-refresh" disabled={!analysis} onClick={downloadClientJudgePdf}>
+              <button type="button" className="doc-refresh" disabled={!analysis || busy!==""} onClick={downloadClientJudgePdf}>
                 <Download size={17}/> Gerar PDF para envio ao cliente
               </button>
             </div>
