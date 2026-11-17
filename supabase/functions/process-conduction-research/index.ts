@@ -38,17 +38,19 @@ Deno.serve(async req => {
     const bearer = req.headers.get("authorization") || "";
     if (!bearer.startsWith("Bearer ")) return reply({ ok: false, error: "Entre novamente no LexOffice." }, 401);
     const db = createClient(project, service, { auth: { persistSession: false } });
-    const { data: { user }, error: authError } = await db.auth.getUser(bearer.slice(7));
+    const body = await req.json();
+    const internal = bearer === "Bearer " + service;
+    const session = internal ? {data:{user:{id:String(body.actor_id || "")}},error:null} : await db.auth.getUser(bearer.slice(7));
+    const {data:{user},error:authError} = session;
     if (authError || !user) return reply({ ok: false, error: "Sessão inválida." }, 401);
     const { data: profile } = await db.from("profiles").select("org_id,role_key,status").eq("id", user.id).single();
     if (!profile || !["owner","lawyer"].includes(profile.role_key) || !["active","ativo"].includes(profile.status))
       return reply({ ok: false, error: "Acesso restrito à equipe jurídica autorizada." }, 403);
-    const body = await req.json();
     const processId = String(body.process_id || "");
     const { data: process } = await db.from("processes").select("*").eq("id", processId).eq("org_id", profile.org_id).eq("owner_user_id", user.id).maybeSingle();
     if (!process) return reply({ ok: false, error: "Processo indisponível para esta conta." }, 404);
     const [documents, study, movements] = await Promise.all([
-      db.from("documents").select("id,name,file_path,mime_type,category").eq("org_id", profile.org_id).eq("owner_user_id", user.id).eq("process_id", processId).order("created_at").limit(41),
+      db.from("documents").select("id,name,file_path,mime_type,category,notes").eq("org_id", profile.org_id).eq("owner_user_id", user.id).eq("process_id", processId).order("created_at").limit(41),
       db.from("process_judge_analyses").select("result,created_at").eq("org_id", profile.org_id).eq("process_id", processId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
       db.from("process_movements").select("movement_date,title,description").eq("org_id", profile.org_id).eq("process_id", processId).order("movement_date", { ascending: false }).limit(100),
     ]);
@@ -73,9 +75,21 @@ Deno.serve(async req => {
       models.find((m: any) => m.id.includes("sonnet"))?.id;
     if (!model) throw new Error("Não há modelo Claude compatível disponível para esta conta.");
 
+    const extractions = new Set(documents.data.flatMap(document => {
+      try {
+        const notes = JSON.parse(document.notes || "{}");
+        return document.mime_type === "text/plain" && notes.extracted_pdf_sha256 ? [notes.extracted_pdf_sha256] : [];
+      } catch { return []; }
+    }));
+    const readable = documents.data.filter(document => {
+      try {
+        const notes = JSON.parse(document.notes || "{}");
+        return !(document.mime_type === "application/pdf" && notes.sha256 && extractions.has(notes.sha256));
+      } catch { return true; }
+    });
     const content: any[] = [];
     let bytes = 0;
-    for (const document of documents.data) {
+    for (const document of readable) {
       const mime = document.mime_type || (document.file_path.endsWith(".pdf") ? "application/pdf" : "");
       if (mime !== "application/pdf" && !["image/png","image/jpeg","image/webp","text/plain"].includes(mime))
         return reply({ ok: false, error: "O documento " + document.name + " precisa ser convertido para PDF antes da leitura completa." }, 422);
@@ -125,7 +139,7 @@ Use síntese, quadro fato × prova × consequência, linha do tempo, quadro fund
 Cite legislação e jurisprudência somente das fontes fornecidas, preservando URL. Não invente conteúdo para preencher lacunas. Assine Suzanne Figueiredo, OAB/MG 131.880. No início indique MINUTA PARA REVISÃO ou ESTUDO INCOMPLETO, conforme os dados efetivamente lidos.`);
     return reply({
       ok: true, text: renderCitations(draft.content), dossier: dossierText, research: researchText,
-      sources, provider: "anthropic", model, documents_read: documents.data.map(d => ({ id: d.id, name: d.name })),
+      sources, provider: "anthropic", model, documents_read: readable.map(d => ({ id: d.id, name: d.name })),
       judge_analysis_at: study.data?.created_at || null,
     });
   } catch (error) {
