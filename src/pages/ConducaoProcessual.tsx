@@ -1,5 +1,5 @@
 import InternalNavigation from '../components/InternalNavigation';
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Compass,
   Search,
@@ -369,6 +369,12 @@ export default function ConducaoProcessual() {
   const [movs, setMovs] = useState<Mov[]>([]);
   const [deadlines, setDeadlines] = useState<Deadline[]>([]);
   const [hearings, setHearings] = useState<Hearing[]>([]);
+  const [loadedProcessId, setLoadedProcessId] = useState("");
+  const [judgeLoadError, setJudgeLoadError] = useState(false);
+  const [publishedReportFor, setPublishedReportFor] = useState("");
+  const publishingReport = useRef(false);
+  const processLoad = useRef(0);
+  const [draftJudgeSource, setDraftJudgeSource] = useState("");
   const [analysis, setAnalysis] = useState<any>(null);
   const [analysisAt, setAnalysisAt] = useState("");
   const [state, setState] = useState<{
@@ -449,7 +455,14 @@ export default function ConducaoProcessual() {
 
   async function loadProcess(id: string) {
     if (!supabase || !id) return;
+    const request = ++processLoad.current;
     setBusy("load");
+    setLoadedProcessId("");
+    setAnalysis(null);
+    setAnalysisAt("");
+    setJudgeLoadError(false);
+    setDraftJudgeSource("");
+    setDraftExtra("");
     setNotice(null);
     setDraftText("");
     setDraftKind("");
@@ -491,6 +504,9 @@ export default function ConducaoProcessual() {
         .order("created_at", { ascending: false })
         .limit(30),
     ]);
+    if (request !== processLoad.current) return;
+    setLoadedProcessId(id);
+    setJudgeLoadError(Boolean(a.error));
     setMovs((m.data as any) || []);
     setDeadlines((d.data as any) || []);
     setHearings((h.data as any) || []);
@@ -673,18 +689,25 @@ export default function ConducaoProcessual() {
       return;
     }
     setAnalysis(data.result);
+    setJudgeLoadError(false);
     setAnalysisAt(data.created_at || new Date().toISOString());
     setNotice({ kind: "ok", text: "Perfil do juízo atualizado." });
   }
 
   async function makeDraft(kind: string) {
-    if (!supabase || !proc) return;
+    if (!supabase || !proc || loadedProcessId !== proc.id) return;
+    if (judgeLoadError) {
+      setNotice({kind:"error",text:"Não foi possível carregar o estudo do juízo. Abra Estratégia e juízo e atualize a análise antes de gerar a peça."});
+      return;
+    }
     setDraftKind(kind);
     setBusy("draft");
     setNotice({ kind: "info", text: `Redigindo: ${DRAFTS[kind]}…` });
     const juizo = analysis
       ? {
           vara: analysis.vara?.nome,
+          magistrados_identificados_na_pesquisa: (Array.isArray(analysis.juizes) ? analysis.juizes : []).map((j: { nome?: string })=>j.nome).filter(Boolean),
+          data_da_pesquisa: analysisAt || null,
           resumo: analysis.analise?.resumo,
           provas_que_pede: analysis.analise?.provas_que_pede || analysis.provas,
           estrategia: analysis.analise?.estrategia,
@@ -697,6 +720,8 @@ export default function ConducaoProcessual() {
         }
       : null;
     const input = JSON.stringify({
+      tarefa: "Redija a peça indicada. Use o perfil_do_juizo, quando disponível, para escolher fundamentos, provas e pedidos pertinentes aos autos. Mantenha a análise estratégica interna: não transcreva o perfil, não atribua preferências ao magistrado e não invente fontes. Se a amostra for insuficiente, siga os dados dos autos.",
+      perfil_do_juizo: juizo,
       peca: DRAFTS[kind],
       fase_atual: PHASES[phaseIdx].label,
       processo: {
@@ -717,7 +742,6 @@ export default function ConducaoProcessual() {
           titulo: m.title,
           descricao: String(m.description || "").slice(0, 700),
         })),
-      perfil_do_juizo: juizo,
       recomendacao_da_conducao: {
         providencia: guide.foco,
         passos: guide.passos,
@@ -757,6 +781,7 @@ export default function ConducaoProcessual() {
       .replace(/\*\*/g, "")
       .trim();
     setDraftText(text);
+    setDraftJudgeSource(juizo ? (analysisAt ? `Estudo do juízo incluído na geração, de ${brDT(analysisAt)}.` : "Estudo do juízo incluído na geração.") : "Minuta gerada sem estudo do juízo.");
     const { data: u } = await supabase.auth.getUser();
     const ins = await supabase
       .from("process_conduction_drafts")
@@ -834,8 +859,99 @@ export default function ConducaoProcessual() {
         pdf.text(String(line),margin,y);y+=6;
       }
       pdf.save(safeName(`${DRAFTS[draftKind]||"Minuta"} - ${proc?.cnj_number||"processo"}`)+".pdf");
-      setNotice({kind:"ok",text:"PDF gerado para revisão. Envie ao cliente somente após conferir o conteúdo e os dados sigilosos."});
+      setNotice({kind:"ok",text:"PDF interno da minuta gerado para revisão."});
     }catch(e){setNotice({kind:"error",text:"Não foi possível gerar o PDF: "+(e instanceof Error?e.message:String(e))});}
+  }
+
+  const clientReport = [
+    ["Processo", proc?.cnj_number || proc?.internal_number || "Identificação não cadastrada"],
+    ["Cliente", proc?.clients?.name || ""],
+    ["Etapa do processo", PHASES[phaseIdx]?.label || "Em conferência"],
+    ["Acompanhamento", "O escritório acompanha o processo e informará você caso haja uma atualização relevante ou seja necessária alguma providência da sua parte."],
+  ].filter(([, value]) => value);
+
+  async function clientReportPdf() {
+    const { jsPDF } = await import("jspdf");
+    const pdf = new jsPDF({ unit: "mm", format: "a4" });
+    pdf.setTextColor(35, 28, 24);
+    pdf.setFont("times", "bold");
+    pdf.setFontSize(18);
+    pdf.text("Atualização do seu processo", 23, 30);
+    pdf.setFontSize(12);
+    pdf.text("Suzanne Figueiredo Advocacia e Soluções Jurídicas", 23, 40);
+    pdf.setFont("times", "normal");
+    pdf.text(new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo" }).format(new Date()), 23, 50);
+    let y = 65;
+    for (const [label, value] of clientReport) {
+      pdf.setFont("times", "bold");
+      pdf.text(label, 23, y);
+      pdf.setFont("times", "normal");
+      const lines = pdf.splitTextToSize(value, 164);
+      pdf.text(lines, 23, y + 7);
+      y += 15 + 6 * lines.length;
+    }
+    return pdf;
+  }
+
+  async function downloadClientReport() {
+    if (!proc || loadedProcessId !== proc.id) return;
+    try {
+      const pdf = await clientReportPdf();
+      pdf.save(`Atualizacao-${safeName(proc.cnj_number || proc.internal_number || "processo")}.pdf`);
+      setNotice({ kind: "ok", text: "PDF do cliente baixado." });
+    } catch {
+      setNotice({ kind: "error", text: "Não foi possível gerar o PDF do cliente." });
+    }
+  }
+
+  async function publishClientReport() {
+    if (!supabase || !orgId || !proc?.client_id || !proc.clients?.name ||
+        loadedProcessId !== proc.id || busy || publishingReport.current || publishedReportFor === proc.id) return;
+    const clientId = proc.client_id;
+    if (!window.confirm(`Disponibilizar este resumo no App de ${proc.clients.name}?`)) return;
+    publishingReport.current = true;
+    setBusy("publish-report");
+    setNotice(null);
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) throw new Error("Sessão expirada. Entre novamente.");
+      const pdf = await clientReportPdf();
+      const file = pdf.output("blob");
+      const name = `Atualizacao-${safeName(proc.cnj_number || proc.internal_number || "processo")}.pdf`;
+      const path = `${clientId}/${crypto.randomUUID()}-${name}`;
+      const bucket = supabase.storage.from("client-documents");
+      const upload = await bucket.upload(path, file, { upsert: false, contentType: "application/pdf" });
+      if (upload.error) throw upload.error;
+      const document = await supabase.from("documents").insert({
+        org_id: orgId, client_id: clientId, process_id: proc.id, name, file_path: path,
+        mime_type: "application/pdf", size_bytes: file.size, category: "client_portal",
+        uploaded_by: user.id, owner_user_id: user.id,
+      }).select("id").single();
+      if (document.error) {
+        if (document.error.code && !document.error.code.startsWith("PGRST")) await bucket.remove([path]);
+        throw document.error;
+      }
+      const publication = await supabase.from("client_document_requests").insert({
+        org_id: orgId, client_id: clientId, title: "Atualização do seu processo",
+        description: "Resumo disponibilizado pelo escritório.",
+        status: "available", document_id: document.data.id, requested_by: user.id,
+        requires_authorization: false, authorization_status: "not_required", reminder_enabled: false,
+      }).select("id").single();
+      if (publication.error) {
+        if (publication.error.code && !publication.error.code.startsWith("PGRST")) {
+          const removed = await supabase.from("documents").delete().eq("id", document.data.id).eq("org_id", orgId).select("id").maybeSingle();
+          if (removed.data) await bucket.remove([path]);
+        }
+        throw publication.error;
+      }
+      setPublishedReportFor(proc.id);
+      setNotice({ kind: "ok", text: `Resumo disponibilizado no App de ${proc.clients.name}.` });
+    } catch (error) {
+      setNotice({ kind: "error", text: "Não foi possível confirmar a publicação no App. " + ((error as {message?: string})?.message || "") });
+    } finally {
+      publishingReport.current = false;
+      setBusy("");
+    }
   }
 
   async function addDeadline() {
@@ -970,7 +1086,7 @@ export default function ConducaoProcessual() {
           </label>
           <label>
             <span>Processo</span>
-            <select value={procId} onChange={(e) => setProcId(e.target.value)}>
+            <select value={procId} disabled={busy !== ""} onChange={(e) => setProcId(e.target.value)}>
               <option value="">Selecione…</option>
               {proc && !list.some((p) => p.id === proc.id) && (
                 <option value={proc.id}>{procLabel(proc)}</option>
@@ -1144,6 +1260,19 @@ export default function ConducaoProcessual() {
                 {analysis ? "Atualizar análise" : "Analisar o juízo"}
               </button>
             </div>
+            {loadedProcessId === proc?.id && <details className="cp-judge-tips">
+              <summary>Resumo para o cliente</summary>
+              <dl>{clientReport.map(([label,value])=><div key={label}><dt><strong>{label}</strong></dt><dd>{value}</dd></div>)}</dl>
+              <div className="pa-row">
+                <button type="button" className="doc-refresh" disabled={busy !== ""} onClick={downloadClientReport}>
+                  <Download size={16}/> Baixar PDF do cliente
+                </button>
+                <button type="button" className="doc-primary" disabled={busy !== "" || !proc.client_id || !proc.clients?.name || publishedReportFor === proc.id} onClick={publishClientReport}>
+                  {publishedReportFor === proc.id ? "Enviado ao App" : "Enviar ao App do Cliente"}
+                </button>
+              </div>
+              {(!proc.client_id || !proc.clients?.name) && <p>Vincule o cliente ao processo para habilitar o envio.</p>}
+            </details>}
             {analysis && (
               <>
                 <p className="pa-muted">
@@ -1535,6 +1664,10 @@ export default function ConducaoProcessual() {
                 </p>
               </div>
             </div>
+            <p role="status">{loadedProcessId !== proc.id ? "Carregando contexto do processo." : judgeLoadError
+              ? "Erro ao carregar o estudo do juízo. Atualize em Estratégia e juízo."
+              : analysis ? "O estudo do juízo será considerado ao gerar a próxima minuta."
+              : "Estudo do juízo indisponível. Use Estratégia e juízo para gerar a análise antes da minuta."}</p>
             <div className="cp-draft-buttons">
               {[...new Set([...(nextAction?.suggested||[]),...guide.minutas])].map((k) => (
                 <button
@@ -1579,6 +1712,7 @@ export default function ConducaoProcessual() {
             {draftText && (
               <>
                 <h3>{DRAFTS[draftKind]}</h3>
+                {draftJudgeSource && <p>{draftJudgeSource}</p>}
                 <textarea
                   className="pa-petition"
                   style={{ minHeight: 420 }}
@@ -1600,7 +1734,7 @@ export default function ConducaoProcessual() {
                     <Copy size={16} /> Copiar
                   </button>
                   <button className="doc-refresh" onClick={downloadDraftPdf}>
-                    <Download size={16} /> Gerar PDF para compartilhar
+                    <Download size={16} /> Baixar PDF interno da minuta
                   </button>
                   <button className="doc-refresh" onClick={downloadDraft}>
                     <Download size={16} /> Baixar Word (timbrado)
@@ -1659,6 +1793,7 @@ export default function ConducaoProcessual() {
                         className="doc-refresh"
                         onClick={() => {
                           setDraftKind(d.kind);
+                          setDraftJudgeSource("");
                           setDraftText(d.content);
                         }}
                       >
