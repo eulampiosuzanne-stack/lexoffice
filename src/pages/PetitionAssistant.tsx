@@ -1013,7 +1013,7 @@ export default function PetitionAssistant() {
       }
       setRunSelection([]);
       await loadBase();
-      setNotice({ kind: "ok", text: restore ? "Análise(s) restaurada(s)." : "Análise(s) movida(s) para a lixeira. Recuperação disponível por 30 dias." });
+      setNotice({ kind: "ok", text: restore ? "Análise(s) restaurada(s)." : "Análise(s) movida(s) para a lixeira. Análise recuperável pela lixeira." });
     } catch (e: any) {
       setNotice({ kind: "error", text: e.message || "Não foi possível alterar as análises." });
     } finally {
