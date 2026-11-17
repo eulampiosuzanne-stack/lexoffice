@@ -248,6 +248,43 @@ const DRAFTS: Record<string, string> = {
   cumprimento: "Pedido de cumprimento de sentença",
   tutela: "Reiteração do pedido de tutela de urgência",
   manifestacao: "Manifestação simples",
+  contestacao: "Contestação",
+  reconvencao: "Reconvenção",
+  impugnacao_documentos: "Impugnação a documentos",
+  impugnacao_gratuidade: "Impugnação à gratuidade da justiça",
+  impugnacao_valor_causa: "Impugnação ao valor da causa",
+  emenda_inicial: "Emenda à petição inicial",
+  aditamento_inicial: "Aditamento da petição inicial",
+  peticao_inicial: "Petição inicial",
+  habilitacao: "Habilitação nos autos",
+  juntada: "Petição de juntada de documentos",
+  desentranhamento: "Pedido de desentranhamento",
+  producao_antecipada: "Produção antecipada de prova",
+  impugnacao_pericia: "Impugnação ao laudo pericial",
+  agravo_instrumento: "Agravo de instrumento",
+  agravo_interno: "Agravo interno",
+  apelacao: "Apelação",
+  recurso_inominado: "Recurso inominado",
+  contrarrazoes_inominado: "Contrarrazões ao recurso inominado",
+  embargos_execucao: "Embargos à execução",
+  impugnacao_cumprimento: "Impugnação ao cumprimento de sentença",
+  excecao_preexecutividade: "Exceção de pré-executividade",
+  execucao_alimentos: "Execução de alimentos",
+  justificativa_alimentos: "Justificativa em execução de alimentos",
+  acordo: "Petição de homologação de acordo",
+  desistência: "Pedido de desistência",
+  alvara: "Pedido de expedição de alvará",
+  desbloqueio: "Pedido de desbloqueio de valores",
+  penhora: "Pedido de penhora / pesquisa patrimonial",
+  tutela_antecipada: "Pedido de tutela provisória",
+  esclarecimentos: "Pedido de esclarecimentos",
+};
+const DRAFT_GROUPS: Record<string,string[]> = {
+  "Início e defesa":["peticao_inicial","emenda_inicial","aditamento_inicial","contestacao","reconvencao","replica","impugnacao_documentos","impugnacao_gratuidade","impugnacao_valor_causa"],
+  "Provas e instrução":["especificacao_provas","quesitos","rol_testemunhas","manifestacao_laudo","impugnacao_pericia","producao_antecipada","memoriais"],
+  "Decisões e recursos":["embargos","agravo_instrumento","agravo_interno","apelacao","contrarrazoes","recurso_inominado","contrarrazoes_inominado"],
+  "Execução e cumprimento":["cumprimento","impugnacao_cumprimento","embargos_execucao","excecao_preexecutividade","execucao_alimentos","justificativa_alimentos","penhora","desbloqueio","alvara"],
+  "Tutelas e petições diversas":["tutela","tutela_antecipada","habilitacao","juntada","desentranhamento","acordo","desistência","esclarecimentos","manifestacao"],
 };
 const PHASE_CHECK: Record<PhaseKey, string[]> = {
   citacao: ["Comprovante de citação juntado"],
@@ -949,7 +986,7 @@ export default function ConducaoProcessual() {
         </div>
       )}
 
-      {proc&&<InternalNavigation variant="underline" aria-label="Área do processo">{[['providencias','Fase e providências'],['estrategia','Estratégia e juízo'],['minutas','Minutas']].map(([key,label])=><button key={key} type="button" aria-current={strategySection===key?'page':undefined} onClick={()=>setStrategySection(key)}>{label}</button>)}</InternalNavigation>}
+      {proc&&<InternalNavigation variant="underline" aria-label="Área do processo">{[['providencias','Fase e providências'],['estrategia','Estratégia e juízo'],['catalogo','Todas as peças'],['minutas','Minutas']].map(([key,label])=><button key={key} type="button" aria-current={strategySection===key?'page':undefined} onClick={()=>setStrategySection(key)}>{label}</button>)}</InternalNavigation>}
       {proc && busy !== "load" && (
         <>
           {strategySection==='providencias' && <><section className="doc-library-card">
@@ -1434,6 +1471,23 @@ export default function ConducaoProcessual() {
             </label>
           </section></>}
 
+          {strategySection==='catalogo' && <section className="doc-library-card">
+            <div className="doc-section-title"><span className="doc-section-icon"><FileSignature size={20}/></span><div>
+              <h2>Catálogo de peças processuais</h2>
+              <p>Selecione qualquer peça para este processo. As opções recomendadas aparecem primeiro, mas a escolha é da advogada.</p>
+            </div></div>
+            <div className="cp-focus"><b>Peças sugeridas para a fase atual:</b> {nextAction?.suggested.map(k=>DRAFTS[k]).filter(Boolean).join(" · ")||"Confirme o polo e os atos do processo"}</div>
+            {Object.entries(DRAFT_GROUPS).map(([group,keys])=><div key={group}>
+              <h3>{group}</h3>
+              <div className="cp-draft-buttons">
+                {keys.map(k=><button key={k} type="button" disabled={busy!==""} className={nextAction?.suggested.includes(k)?"doc-primary":""}
+                  onClick={()=>{setDraftKind(k);setStrategySection("minutas");}}>
+                  <FileSignature size={15}/> {DRAFTS[k]} {nextAction?.suggested.includes(k)?"(sugerida)":""}
+                </button>)}
+              </div>
+            </div>)}
+            <p className="pa-muted">Catálogo de opções, não afirmação de cabimento. Verifique rito, fase, legitimidade, decisão e prazo antes de gerar ou protocolar.</p>
+          </section>}
           {strategySection==='minutas' && <><section className="doc-library-card">
             <div className="doc-section-title">
               <span className="doc-section-icon">
@@ -1448,7 +1502,7 @@ export default function ConducaoProcessual() {
               </div>
             </div>
             <div className="cp-draft-buttons">
-              {guide.minutas.map((k) => (
+              {[...new Set([...(nextAction?.suggested||[]),...guide.minutas])].map((k) => (
                 <button
                   key={k}
                   className="doc-primary"
@@ -1471,7 +1525,7 @@ export default function ConducaoProcessual() {
               >
                 <option value="">Outra peça…</option>
                 {Object.entries(DRAFTS)
-                  .filter(([k]) => !guide.minutas.includes(k))
+                  .filter(([k]) => ![...(nextAction?.suggested||[]),...guide.minutas].includes(k))
                   .map(([k, v]) => (
                     <option key={k} value={k}>
                       {v}
