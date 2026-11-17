@@ -59,6 +59,15 @@ export default function SFCare() {
         </select>
       </label>
       <p>{campaigns.find(c=>c.id===kind)?.detail}</p>
+      <aside className="ac-surface" aria-label="Prévia da campanha" style={{margin:'12px 0',borderLeft:'3px solid #B28A4A',padding:16}}>
+        <strong>Prévia do conteúdo</strong>
+        <p>{kind==='post_filing_checkin'?'Como estão as coisas desde o ajuizamento da sua ação? Você está conseguindo acompanhar as informações pelo aplicativo?':
+          kind==='office_card'?'Suzanne Figueiredo Advocacia e Soluções Jurídicas. Acompanhamento digital, com informações pelo aplicativo.':
+          kind==='educational_card'?'Cada processo tem etapas e prazos próprios. Para orientações individuais, fale com nossa equipe.':
+          kind==='satisfaction_poll'?'Como você avalia nosso atendimento? Muito bom | Bom | Preciso de esclarecimentos | Quero conversar.':
+          'Qual conteúdo gostaria de receber? Etapas do processo | Aplicativo | Documentos | Audiências.'}</p>
+        <small>Prévia textual. Cards com imagem e enquetes interativas ainda exigem integração de mídia e respostas.</small>
+      </aside>
       <button className="primary" disabled={!clientId||busy} onClick={()=>void createDraft()}>
         {busy?'Preparando...':'Criar proposta para aprovação'}
       </button>
