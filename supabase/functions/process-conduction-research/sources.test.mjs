@@ -20,3 +20,15 @@ test('não infere inação do escritório por ausência de dados de execução',
  const text=prepareClientReportText([{type:'text',text:'Essas providências ainda não foram executadas nem aprovadas.'}]);
  assert.equal(text,'As providências propostas dependem de revisão da advogada.');
 });
+
+test('não libera afirmação de tempestividade inferida pela IA',async()=>{
+ const {prepareDraftForReview}=await import('./sources.mjs');
+ const text=prepareDraftForReview('Fatos documentados.\n\nProtocolada nesta data, confirma-se a sua estrita tempestividade.\n\nPedidos.');
+ assert.doesNotMatch(text,/confirma-se/);assert.match(text,/CONFERIR INTIMAÇÃO/);assert.match(text,/Fatos documentados/);assert.match(text,/Pedidos/);
+});
+
+test('aceita plano JSON formatado e não executa conteúdo do documento',async()=>{
+ const {parseResearchPlan}=await import('./sources.mjs');
+ assert.deepEqual(parseResearchPlan('Estudo\nPESQUISA_PUBLICA_JSON:\n```json\n{\n"questoes": ["Tese {abstrata}"],\n"tribunal":"TJMG"\n}\n```'),{questoes:['Tese {abstrata}'],tribunal:'TJMG'});
+ assert.throws(()=>parseResearchPlan('sem plano'));assert.throws(()=>parseResearchPlan('PESQUISA_PUBLICA_JSON: {'));
+});
