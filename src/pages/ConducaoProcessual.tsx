@@ -702,11 +702,16 @@ export default function ConducaoProcessual() {
 
   async function runLegalJob(body: Record<string, unknown>) {
     if (!supabase) throw new Error("Conexão indisponível.");
-    let response = await supabase.functions.invoke("process-conduction-research", {body});
+    const jobKey="lexoffice:conduction:"+String(body.process_id)+":"+String(body.mode||body.title||"draft");
+    let savedJob: {id:string;signature:string}|null=null;
+    const signature=JSON.stringify(body);
+    try{savedJob=JSON.parse(sessionStorage.getItem(jobKey)||"null");}catch{/* Ignore unavailable browser storage. */}
+    let response = await supabase.functions.invoke("process-conduction-research", {body:savedJob?.signature===signature?{job_id:savedJob.id}:body});
     for (let step=0; step<24; step++) {
       if(response.error)throw new Error(await fnError(response.error));
       if(!response.data?.ok)throw new Error(response.data?.error||"Processamento não concluído.");
-      if(!response.data.pending)return response.data;
+      if(!response.data.pending){try{sessionStorage.removeItem(jobKey);}catch{}return response.data;}
+      try{sessionStorage.setItem(jobKey,JSON.stringify({id:response.data.job_id,signature}));}catch{}
       const labels: Record<string,string>={reading:"Lendo os autos por lotes",study:"Relacionando fatos, provas e estudo do juízo",report:"Preparando o relatório ao cliente",research:"Conferindo fontes oficiais",draft:"Redigindo a peça"};
       setNotice({kind:"info",text:(labels[response.data.stage]||"Processando")+"…"});
       response=await supabase.functions.invoke("process-conduction-research",{body:{job_id:response.data.job_id}});
@@ -834,19 +839,21 @@ export default function ConducaoProcessual() {
     if(!proc||clientReportId!==proc.id||!clientReportText.trim())throw new Error("Prepare o relatório deste processo.");
     const {jsPDF}=await import("jspdf");
     const pdf=new jsPDF({unit:"mm",format:"a4"});
+    const {registerClientReportFonts}=await import("../lib/clientReportFonts");
+    registerClientReportFonts(pdf);
     const margin=23,width=164;
     let y=24;
     const header=()=>{
       pdf.setFillColor(101,0,31);pdf.rect(0,0,210,13,"F");
-      pdf.setTextColor(101,0,31);pdf.setFont("helvetica","bold");pdf.setFontSize(13);
+      pdf.setTextColor(101,0,31);pdf.setFont("ClientReportSans","bold");pdf.setFontSize(13);
       pdf.text("Suzanne Figueiredo",margin,26);
-      pdf.setFont("helvetica","normal");pdf.setFontSize(10);
+      pdf.setFont("ClientReportSans","normal");pdf.setFontSize(10);
       pdf.text("Advocacia e Soluções Jurídicas",margin,33);
       pdf.setDrawColor(178,138,74);pdf.line(margin,38,187,38);y=49;
       pdf.setTextColor(35,30,27);
     };
     const line=(text:string,bold=false)=>{
-      pdf.setFont("helvetica",bold?"bold":"normal");pdf.setFontSize(bold?11:11);
+      pdf.setFont("ClientReportSans",bold?"bold":"normal");pdf.setFontSize(bold?11:11);
       const clean=text.replace(/^#{1,6}\s*/, "").replace(/\*\*(.*?)\*\*/g,"$1").trim();
       const lines=pdf.splitTextToSize(clean,width);
       if(bold){
@@ -869,7 +876,7 @@ export default function ConducaoProcessual() {
       line(paragraph,/^[A-ZÁÉÍÓÚÂÊÔÃÕÇ ]{5,}$/.test(paragraph.trim()));
     }
     for(let page=1;page<=pdf.getNumberOfPages();page++){
-      pdf.setPage(page);pdf.setFont("helvetica","normal");pdf.setFontSize(9);
+      pdf.setPage(page);pdf.setFont("ClientReportSans","normal");pdf.setFontSize(9);
       pdf.setTextColor(90,80,70);pdf.text("Documento confidencial · "+page+" / "+pdf.getNumberOfPages(),105,287,{align:"center"});
     }
     return pdf;
@@ -920,10 +927,10 @@ export default function ConducaoProcessual() {
       const pdf=new jsPDF({unit:"mm",format:"a4"});
       const margin=23, width=164, bottom=273;
       let y=25;
-      pdf.setFont("helvetica","bold");pdf.setFontSize(11);
+      pdf.setFont("ClientReportSans","bold");pdf.setFontSize(11);
       pdf.text("SUZANNE FIGUEIREDO | ADVOCACIA E SOLUÇÕES JURÍDICAS",105,y,{align:"center"});
       y+=9;pdf.setDrawColor(178,138,74);pdf.line(margin,y,187,y);y+=12;
-      pdf.setFont("helvetica","normal");pdf.setFontSize(11);
+      pdf.setFont("ClientReportSans","normal");pdf.setFontSize(11);
       const lines=pdf.splitTextToSize(draftText.replace(/\r/g,""),width);
       for(const line of lines){
         if(y>bottom){pdf.addPage();y=25;}
