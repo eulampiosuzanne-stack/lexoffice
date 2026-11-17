@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Activity, AlertTriangle, BarChart3, Bell, CalendarDays, Check, CheckSquare, ChevronRight, CircleDollarSign, ClipboardList, Clock3, FileText, FolderOpen, Gavel, Megaphone, MessageCircle, Scale, Search, Users, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import DebtorsBoard from "../components/DebtorsBoard";
 import { inactiveProcesses } from "../lib/managementPanel";
 
 
@@ -172,6 +173,8 @@ export default function DashboardOverview({ financeBlocked = false }: { financeB
         </div>
       </section>
     </div>
+
+    {!financeBlocked && <DebtorsBoard />}
 
     <div className="hc-dashboard-bottom">
       <section className="hc-panel hc-character-card hc-donna" aria-labelledby="hc-donna-title">
