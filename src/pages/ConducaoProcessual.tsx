@@ -691,7 +691,7 @@ export default function ConducaoProcessual() {
       analysis.dicas ? "Dicas: "+format(analysis.dicas) : "",
       a.confianca ? "Confiança: "+format(a.confianca) : "",
       "Usar apenas quando pertinente aos fatos e à fase deste processo. Não presumir decisões ou tendências individuais."
-    ].filter(Boolean).join("\\n");
+    ].filter(Boolean).join("\n");
   }
 
   async function makeDraft(kind: string) {
@@ -1602,7 +1602,7 @@ export default function ConducaoProcessual() {
               <div className="pa-row">
                 <button type="button" className="doc-refresh" disabled={!analysis || busy!==""} onClick={()=>{
                   const t=judgeGuidanceText();
-                  setDraftExtra(old=>old.includes("ANÁLISE DO JUÍZO (")?old:[old.trim(),t].filter(Boolean).join("\\n\\n"));
+                  setDraftExtra(old=>old.includes("ANÁLISE DO JUÍZO (")?old:[old.trim(),t].filter(Boolean).join("\n\n"));
                   setNotice({kind:"ok",text:"Análise do juízo inserida nas orientações. Você pode editar antes de gerar a peça."});
                 }}>
                   <Scale size={16}/> Inserir análise do juízo nas orientações
