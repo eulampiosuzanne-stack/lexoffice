@@ -66,6 +66,29 @@ Deno.serve(async req=>{
     const allowed=new Set((prefs||[]).map(p=>p.client_id));
     return json({ok:true,clients:(clients||[]).filter(c=>allowed.has(c.id)&&["ativo","active","cliente","cliente_ativo","cliente_private"].includes(String(c.status||"").toLowerCase())).map(c=>({id:c.id,name:c.name}))});
   }
+  if(body.action==="prepare_weekly_care"){
+    const {data:clients,error:ce}=await a.from("clients").select("id,name,status,is_demo").eq("org_id",profile.org_id).eq("is_demo",false).limit(250);
+    if(ce)throw ce;
+    const {data:prefs,error:pe}=await a.from("client_notification_preferences").select("client_id").eq("org_id",profile.org_id).eq("whatsapp_enabled",true).eq("proactive_process_updates",true);
+    if(pe)throw pe;
+    const eligible=new Set((prefs||[]).map(p=>p.client_id));
+    const week=new Date().toISOString().slice(0,10);
+    const {data:recent,error:re}=await a.from("sf_care_outbox").select("client_id").eq("org_id",profile.org_id).gte("created_at",new Date(Date.now()-7*86400000).toISOString()).limit(1000);
+    if(re)throw re;
+    const contacted=new Set((recent||[]).map(r=>r.client_id));
+    const candidates=(clients||[]).filter(c=>eligible.has(c.id)&&!contacted.has(c.id)&&["ativo","active","cliente","cliente_ativo","cliente_private"].includes(String(c.status||"").toLowerCase())).slice(0,20);
+    const drafts=candidates.map(c=>({
+      org_id:profile.org_id,client_id:c.id,process_id:null,event_kind:"relationship_checkin",
+      dedupe_key:["sf","weekly-care",c.id,week].join(":"),
+      message:"Olá, "+String(c.name||"cliente").trim().split(/\s+/)[0].replace(/[<>]/g,"").slice(0,50)+"! Como você está? Gostaríamos de saber como está sendo seu acompanhamento com nosso escritório. Caso tenha alguma dúvida ou queira conversar, estamos à disposição.",
+      media_kind:"text",status:"pending_review",source_verified:true,lawyer_approved:false,
+      metadata:{origin:"sf_care_weekly",created_by:user.id,requires_review:true}
+    }));
+    if(!drafts.length)return json({ok:true,created:0,sent:false,reason:"no_eligible_clients"});
+    const {data,error}=await a.from("sf_care_outbox").upsert(drafts,{onConflict:"org_id,dedupe_key",ignoreDuplicates:true}).select("id");
+    if(error)throw error;
+    return json({ok:true,created:(data||[]).length,sent:false,requires_review:true});
+  }
   const id=String(body.id||""),decision=String(body.decision||"");
   if(!uuid.test(id)||!["approve","reject"].includes(decision))return json({ok:false,error:"invalid_request"},422);
   const {data:row}=await a.from("sf_care_outbox").select("id,org_id,status,source_verified,metadata").eq("id",id).eq("org_id",profile.org_id).maybeSingle();

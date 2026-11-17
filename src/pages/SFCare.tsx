@@ -26,6 +26,17 @@ export default function SFCare() {
     });
     return ()=>{active=false;};
   },[]);
+  async function prepareWeekly(){
+    if(busy)return;
+    setBusy(true);setNotice('');
+    try{
+      const {data,error}=await supabase.functions.invoke('sf-care-review',{body:{action:'prepare_weekly_care'}});
+      if(error||!data?.ok)throw new Error(data?.error||'Falha ao preparar acompanhamento');
+      setNotice(String(data.created||0)+' proposta(s) de acompanhamento preparadas para revisão. Nenhuma mensagem foi enviada.');
+      setRefresh(n=>n+1);
+    }catch(e){setNotice(e instanceof Error?e.message:'Falha ao preparar acompanhamento');}
+    finally{setBusy(false);}
+  }
   async function createDraft(){
     if(!clientId||busy)return;
     setBusy(true);setNotice('');
@@ -46,6 +57,8 @@ export default function SFCare() {
     </header>
     <section className="ac-surface" style={{marginBottom:20}}>
       <h2>Preparar comunicação</h2>
+      <p><strong>Acompanhamento periódico:</strong> prepara até 20 propostas para clientes com consentimento, sem comunicações nos últimos sete dias. Todas ficam aguardando sua aprovação.</p>
+      <button className="secondary" disabled={busy} onClick={()=>void prepareWeekly()}>Preparar acompanhamentos da semana</button>
       <p>Selecione um cliente com consentimento registrado e escolha a ação de relacionamento.</p>
       <label>Cliente
         <select value={clientId} onChange={e=>setClientId(e.target.value)}>
