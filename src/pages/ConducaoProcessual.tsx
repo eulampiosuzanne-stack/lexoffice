@@ -379,6 +379,9 @@ export default function ConducaoProcessual() {
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [draftKind, setDraftKind] = useState("");
   const [draftText, setDraftText] = useState("");
+  const [draftResearch, setDraftResearch] = useState("");
+  const [draftStudy, setDraftStudy] = useState("");
+  const [draftProvider, setDraftProvider] = useState("");
   const [draftExtra, setDraftExtra] = useState("");
   const [newItem, setNewItem] = useState("");
   const [newDl, setNewDl] = useState({ title: "", due: "" });
@@ -699,66 +702,20 @@ export default function ConducaoProcessual() {
     setDraftKind(kind);
     setBusy("draft");
     setNotice({ kind: "info", text: `Redigindo: ${DRAFTS[kind]}…` });
-    const juizo = analysis
-      ? {
-          vara: analysis.vara?.nome,
-          resumo: analysis.analise?.resumo,
-          provas_que_pede: analysis.analise?.provas_que_pede || analysis.provas,
-          estrategia: analysis.analise?.estrategia,
-          alertas: analysis.analise?.alertas,
-          dicas: analysis.dicas,
-          confianca: analysis.analise?.confianca,
-          base: analysis.base,
-          ritmo: analysis.ritmo,
-          fontes: analysis.fontes,
-        }
-      : null;
-    const input = JSON.stringify({
-      peca: DRAFTS[kind],
-      fase_atual: PHASES[phaseIdx].label,
-      processo: {
-        numero: proc.cnj_number,
-        classe: proc.class_name,
-        assunto: proc.subject,
-        area: proc.area,
-        vara: proc.vara || analysis?.vara?.nome,
-        comarca: proc.comarca,
-        cliente: proc.clients?.name,
-        polo_do_cliente: proc.pole,
-        parte_contraria: proc.opposing_party,
-      },
-      andamentos_recentes: movs
-        .slice(0, 15)
-        .map((m) => ({
-          data: String(m.movement_date).slice(0, 10),
-          titulo: m.title,
-          descricao: String(m.description || "").slice(0, 700),
-        })),
-      perfil_do_juizo: juizo,
-      recomendacao_da_conducao: {
-        providencia: guide.foco,
-        passos: guide.passos,
-        polo_representado: poloAutor ? "autor" : poloReu ? "réu" : "não confirmado",
-        ultima_movimentacao: processSummary.recent[0] || null,
-        prazos_pendentes: processSummary.pending.slice(0,10),
-        peca_recomendada: nextAction?.suggested.includes(kind) || guide.minutas.includes(kind),
-      },
-      orientacoes_da_advogada: draftExtra || null,
-    });
-    const instructions = `Você é advogada sênior do escritório Suzanne Figueiredo — Advocacia e Soluções Jurídicas (OAB/MG). Redija a peça processual pedida, completa, em português jurídico formal, pronta para revisão: endereçamento ao juízo, qualificação resumida por referência ("já qualificada nos autos"), fatos processuais relevantes, fundamentação, pedidos e fecho com local, data e "Suzanne Figueiredo — OAB/MG [●]". Considere expressamente a recomendação da condução processual e, quando disponível, a análise do juízo (perfil, provas, alertas e estratégia). Não trate padrões estatísticos do juízo como fatos deste processo; não afirme cabimento sem conferir os atos e o prazo. Quando não houver perfil do juízo, informe a limitação sem inventá-lo. Ajuste a estratégia ao perfil do juízo quando informado.\n\nBANCO DE PEÇAS OURO DA LEXOFFICE: antes de redigir, escolha silenciosamente apenas os recursos que aumentem a compreensão do caso: síntese processual; alegação × resposta; decisão/sentença × erro/vício × reforma pretendida; linha do tempo; fato × prova × consequência; pontos controvertidos × prova necessária × finalidade; quadro financeiro ou gráfico somente quando números forem probatórios; quesito pericial × resposta × documento contrário × impugnação; requisitos de tutela/liminar; testemunha × fato a provar; e, em memoriais, controvérsia × decisão anterior × prova produzida × razão para acolhimento. Use tabelas simples, listas curtas e blocos de síntese compatíveis com Word. Não use recurso visual decorativo.\n\nOs modelos são referência de arquitetura e Visual Law, não fonte de verdade. Nunca transporte nomes, fatos, valores, artigos ou jurisprudência de outro caso. Use somente os dados deste processo. Não invente fatos, datas, valores, nomes, documentos, artigos ou precedentes. Onde faltar dado, use [●]. Não cite precedente não fornecido. Texto sem markdown e sem asteriscos; títulos em CAIXA ALTA.`;
-    const { data, error } = await supabase.functions.invoke(
-      "ai-provider-gateway",
-      {
-        body: {
-          org_id: orgId,
-          provider: "auto",
-          purpose: "process_conduction_draft",
-          agent_key: "process_conduction",
-          instructions,
-          input,
-        },
-      },
-    );
+    setDraftResearch("");
+    setDraftStudy("");
+    setDraftProvider("");
+    let result;
+    try {
+      result = await supabase.functions.invoke("process-conduction-research", {
+        body: { process_id: proc.id, kind, title: DRAFTS[kind], instructions: draftExtra },
+      });
+    } catch {
+      setBusy("");
+      setNotice({kind:"error",text:"Não foi possível confirmar a geração. Tente novamente após conferir a conexão."});
+      return;
+    }
+    const { data, error } = result;
     setBusy("");
     if (error || !data?.ok || !String(data?.text || "").trim()) {
       setNotice({
@@ -774,6 +731,9 @@ export default function ConducaoProcessual() {
       .replace(/\*\*/g, "")
       .trim();
     setDraftText(text);
+    setDraftResearch(String(data.research || ""));
+    setDraftStudy(String(data.dossier || ""));
+    setDraftProvider(`Claude · ${data.model} · ${data.documents_read?.length || 0} documentos lidos`);
     const { data: u } = await supabase.auth.getUser();
     const ins = await supabase
       .from("process_conduction_drafts")
@@ -783,14 +743,20 @@ export default function ConducaoProcessual() {
         kind,
         title: DRAFTS[kind],
         content: text,
+        research_evidence: {
+          study: data.dossier, research: data.research, sources: data.sources,
+          provider: data.provider, model: data.model, documents_read: data.documents_read,
+          judge_analysis_at: data.judge_analysis_at, generated_at: new Date().toISOString(),
+        },
         created_by: u?.user?.id || null,
       })
       .select("id,kind,title,content,created_at")
       .single();
     if (!ins.error && ins.data) setDrafts((v) => [ins.data as any, ...v]);
     setNotice({
-      kind: "ok",
-      text: "Minuta pronta. Revise antes de protocolar.",
+      kind: ins.error ? "error" : "ok",
+      text: ins.error ? "A redação foi gerada, mas não foi salva. Copie o conteúdo antes de sair. " + ins.error.message :
+        "Redação e fontes salvas para revisão jurídica.",
     });
   }
 
@@ -1649,6 +1615,9 @@ export default function ConducaoProcessual() {
                 placeholder="Ex.: impugnar o laudo no ponto da incapacidade; pedir nova perícia."
               />
             </label>
+            {draftProvider && <p role="status">{draftProvider}</p>}
+            {draftStudy && <details><summary>Estudo dos autos e aplicação do perfil do juízo</summary><pre style={{whiteSpace:"pre-wrap"}}>{draftStudy}</pre></details>}
+            {draftResearch && <details><summary>Pesquisa jurídica e fontes consultadas</summary><pre style={{whiteSpace:"pre-wrap"}}>{draftResearch}</pre></details>}
             {draftText && (
               <>
                 <h3>{DRAFTS[draftKind]}</h3>
