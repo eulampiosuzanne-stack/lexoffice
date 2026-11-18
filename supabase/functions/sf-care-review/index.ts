@@ -19,6 +19,13 @@ async function eligibleClients(a:any,orgId:string,limit:number){
   const eligible=checked.filter((c:any)=>ACTIVE.includes(String(c.status||"").toLowerCase())&&hasDest(c)&&!blocked.has(c.id));
   return {checked,eligible,blocked:blocked.size};
 }
+const CNJ=/^\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}$/;
+// Clientes com ação já ajuizada: processo com número CNJ válido, fora de rascunho/cancelado, sem parceria e sem demo.
+async function filedClientIds(a:any,orgId:string){
+  const {data,error}=await a.from("processes").select("client_id,cnj_number,status,is_partnership,is_demo").eq("org_id",orgId).not("client_id","is",null).limit(5000);
+  if(error)throw error;
+  return new Set((data||[]).filter((p:any)=>typeof p.cnj_number==="string"&&CNJ.test(p.cnj_number)&&!["rascunho","draft","cancelado"].includes(String(p.status||"").toLowerCase())&&p.is_partnership!==true&&p.is_demo!==true).map((p:any)=>p.client_id));
+}
 Deno.serve(async req=>{
  if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors});
  if(req.method!=="POST")return json({ok:false,error:"method_not_allowed"},405);
@@ -91,7 +98,9 @@ Deno.serve(async req=>{
     return json({ok:true,clients:eligible.map((c:any)=>({id:c.id,name:c.name})),diagnostics:{clients_checked:checked.length,opted_out_clients:blocked,eligible_clients:eligible.length,policy:"active_with_whatsapp_unless_opted_out",limited_to_first_250:true}});
   }
   if(body.action==="prepare_weekly_care"){
-    const {eligible}=await eligibleClients(a,profile.org_id,1000);
+    const {eligible:allEligible}=await eligibleClients(a,profile.org_id,1000);
+    const filed=await filedClientIds(a,profile.org_id);
+    const eligible=allEligible.filter((c:any)=>filed.has(c.id));
     const week=new Date().toISOString().slice(0,10);
     const brt=new Date(Date.now()-3*3600000);
     const dayStart=new Date(Date.UTC(brt.getUTCFullYear(),brt.getUTCMonth(),brt.getUTCDate(),3)).toISOString();
