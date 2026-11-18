@@ -9,6 +9,9 @@ const campaigns = [
   { id: 'educational_card', label: 'Card educativo', detail: 'Orientação geral, sem aconselhamento jurídico individual' },
   { id: 'satisfaction_poll', label: 'Pesquisa de satisfação', detail: 'Ouvir o cliente e identificar pedidos de contato humano' },
   { id: 'interest_poll', label: 'Enquete de interesses', detail: 'Descobrir quais conteúdos são úteis ao cliente' },
+  { id: 'relationship_reconnect', label: 'Retomar contato', detail: 'Acolher clientes sem interação recente' },
+  { id: 'birthday_greeting', label: 'Aniversário', detail: 'Mensagem de felicitação com autorização do cliente' },
+  { id: 'institutional_news', label: 'Novidades do escritório', detail: 'Informações institucionais relevantes e autorizadas' },
 ];
 export default function SFCare() {
   const [clients,setClients] = useState<Client[]>([]);
@@ -18,6 +21,8 @@ export default function SFCare() {
   const [busy,setBusy] = useState(false);
   const [notice,setNotice] = useState('');
   const [refresh,setRefresh] = useState(0);
+  const [plannedDate,setPlannedDate] = useState('');
+  const [plannedNotes,setPlannedNotes] = useState('');
   useEffect(() => {
     let active=true;
     supabase.functions.invoke('sf-care-review',{body:{action:'eligible_clients'}}).then(({data,error})=>{
@@ -74,13 +79,24 @@ export default function SFCare() {
         </select>
       </label>
       <p>{campaigns.find(c=>c.id===kind)?.detail}</p>
+      <label>Data sugerida para a campanha (planejamento local)
+        <input type="date" value={plannedDate} onChange={e=>setPlannedDate(e.target.value)} />
+      </label>
+      <label>Observações de planejamento (não enviadas)
+        <textarea value={plannedNotes} onChange={e=>setPlannedNotes(e.target.value)} maxLength={500} rows={3} />
+      </label>
+      {(plannedDate||plannedNotes)&&<p role="note">Planejamento informativo. A data e as observações ainda não são persistidas nem agendam disparos.</p>}
+
       <aside className="ac-surface" aria-label="Prévia da campanha" style={{margin:'12px 0',borderLeft:'3px solid #B28A4A',padding:16}}>
         <strong>Prévia do conteúdo</strong>
         <p>{kind==='post_filing_checkin'?'Como estão as coisas desde o ajuizamento da sua ação? Você está conseguindo acompanhar as informações pelo aplicativo?':
           kind==='office_card'?'Suzanne Figueiredo Advocacia e Soluções Jurídicas. Acompanhamento digital, com informações pelo aplicativo.':
           kind==='educational_card'?'Cada processo tem etapas e prazos próprios. Para orientações individuais, fale com nossa equipe.':
           kind==='satisfaction_poll'?'Como você avalia nosso atendimento? Muito bom | Bom | Preciso de esclarecimentos | Quero conversar.':
-          'Qual conteúdo gostaria de receber? Etapas do processo | Aplicativo | Documentos | Audiências.'}</p>
+          kind==='interest_poll'?'Qual conteúdo gostaria de receber? Etapas do processo | Aplicativo | Documentos | Audiências.':
+          kind==='relationship_reconnect'?'Olá! Gostaríamos de saber como você está e se precisa de algum esclarecimento.':
+          kind==='birthday_greeting'?'Desejamos a você um feliz aniversário!':
+          'Confira as novidades e orientações institucionais do nosso escritório.'}</p>
         <small>Prévia textual. Cards com imagem e enquetes interativas ainda exigem integração de mídia e respostas.</small>
       </aside>
       <button className="primary" disabled={!clientId||busy} onClick={()=>void createDraft()}>
