@@ -1,9 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2.57.4";
 import { extractResearchSources, renderCitations, prepareClientReportText, prepareDraftForReview, parseResearchPlan } from "./sources.mjs";
+import { preliminaryContext, markPreliminaryDraft, caseFileMode } from "./preliminary.mjs";
 import {geminiParts,groundedContent,resolveGroundedUrl,selectGeminiModel,geminiErrorMessage} from "./gemini.mjs";
-
-import { loadAuthorizedProcess } from "./access.mjs";
 
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { ...cors, "Content-Type": "application/json" } });
@@ -91,20 +90,21 @@ Deno.serve(async req => {
     const { data: profile } = await db.from("profiles").select("org_id,role_key,status").eq("id", user.id).single();
     if (!profile || !["owner","lawyer"].includes(profile.role_key) || !["active","ativo"].includes(profile.status))
       return reply({ ok: false, error: "Acesso restrito à equipe jurídica autorizada." }, 403);
-    const scopedDb = internal ? db : createClient(project, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: bearer } }, auth: { persistSession: false } });
-    if (body.job_id) return await advanceJob(db,profile.org_id,user.id,String(body.job_id),scopedDb,internal);
+    if (body.job_id) return await advanceJob(db,profile.org_id,user.id,String(body.job_id));
     const processId = String(body.process_id || "");
-    const process = await loadAuthorizedProcess(scopedDb,db,profile.org_id,user.id,processId,internal);
+    // A equipe jurídica (dona e advogadas ativas do escritório) pode conduzir qualquer processo do escritório.
+    const { data: process } = await db.from("processes").select("*").eq("id", processId).eq("org_id", profile.org_id).maybeSingle();
     if (!process) return reply({ ok: false, error: "Processo indisponível para esta conta." }, 404);
     const [documents, study, movements] = await Promise.all([
-      (internal ? db.from("documents").select("id,name,file_path,mime_type,category,notes").eq("owner_user_id",user.id) : scopedDb.from("documents").select("id,name,file_path,mime_type,category,notes")).eq("org_id", profile.org_id).eq("process_id", processId).order("created_at").limit(41),
+      db.from("documents").select("id,name,file_path,mime_type,category,notes").eq("org_id", profile.org_id).eq("process_id", processId).order("created_at").limit(41),
       db.from("process_judge_analyses").select("result,created_at").eq("org_id", profile.org_id).eq("process_id", processId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
       db.from("process_movements").select("movement_date,title,description").eq("org_id", profile.org_id).eq("process_id", processId).order("movement_date", { ascending: false }).limit(100),
     ]);
     if (documents.error || study.error || movements.error) throw new Error("Falha ao carregar os autos e o estudo do juízo.");
-    if (!documents.data?.length) return reply({
+    const { preliminary, blocked } = caseFileMode(documents.data, body.mode);
+    if (blocked) return reply({
       ok: false, code: "case_files_missing",
-      error: "O LexOffice localizou o estudo do juízo, mas este processo ainda não possui documentos dos autos vinculados. O acesso ao tribunal não está integrado a esta operação. A geração anterior usou somente movimentações resumidas.",
+      error: "Vincule os autos antes de gerar o relatório ao cliente. A minuta preliminar da petição pode ser preparada com os registros disponíveis.",
     }, 422);
     if (documents.data.length > 40) return reply({ ok: false, error: "Há mais de 40 documentos. A leitura completa exige processamento em lotes antes da redação." }, 422);
     const { data: policy } = await db.from("ai_agent_policies").select("active,model,policy").eq("org_id", profile.org_id).eq("agent_key", "process_conduction").maybeSingle();
@@ -156,6 +156,7 @@ Deno.serve(async req => {
     }
     content.push({ type: "text", text: JSON.stringify({
       processo: process, estudo_do_juizo: study.data, movimentacoes: movements.data,
+      ...(preliminary ? { limitacoes: preliminaryContext } : {}),
       peca: String(body.title || "").slice(0,120), orientacoes: String(body.instructions || "").slice(0,12000),
     }) });
     const texts = content.filter(block => block.type === "document" && block.source?.type === "text" && block.source.data.length > 140000);
@@ -174,7 +175,7 @@ Deno.serve(async req => {
       stage:batches.length?"reading":"study",
       state:{
         content:content.filter(block=>!texts.includes(block)),batches,batch_results:[],
-        mode:body.mode==="client_report"?"client_report":"draft",model,
+        mode:body.mode==="client_report"?"client_report":"draft",model,preliminary,
         title:String(body.title||"").slice(0,120),documents:readable.map(d=>({id:d.id,name:d.name})),
         judge_analysis_at:study.data?.created_at||null,
       },
@@ -186,12 +187,13 @@ Deno.serve(async req => {
   }
 });
 
-async function advanceJob(db: any, org: string, actor: string, id: string, scopedDb: any, internal: boolean) {
+async function advanceJob(db: any, org: string, actor: string, id: string) {
+  // Qualquer integrante jurídico ativo do escritório pode retomar o processamento.
   const {data:job}=await db.from("process_conduction_jobs").select("*")
-    .eq("id",id).eq("org_id",org).eq("owner_user_id",actor).maybeSingle();
+    .eq("id",id).eq("org_id",org).maybeSingle();
   if(!job)return reply({ok:false,error:"Processamento indisponível."},404);
-  const current=await loadAuthorizedProcess(scopedDb,db,org,actor,job.process_id,internal);
-  if(!current)return reply({ok:false,error:"Acesso ao processo indisponível."},403);
+  const current=await db.from("processes").select("id").eq("id",job.process_id).eq("org_id",org).maybeSingle();
+  if(!current.data)return reply({ok:false,error:"Acesso ao processo indisponível."},403);
   if(job.stage==="completed")return reply({ok:true,...job.result,job_id:id});
   const now=new Date().toISOString();
   if(job.running_until&&job.running_until>now)return reply({ok:false,error:"Esta etapa já está em execução. Aguarde."},409);
@@ -204,7 +206,7 @@ async function advanceJob(db: any, org: string, actor: string, id: string, scope
     const key=String(saved||Deno.env.get("ANTHROPIC_API_KEY")||"").trim();
     if(!key&&!await geminiAllowed(org,job.process_id))throw new Error("Provedor indisponível para este processo.");
     const state=job.state;
-    const callModel=(content:any[],instructions:string,search=false,resume:any[]=[])=>claude(org,key,state.model,content,instructions,search,resume,job.process_id);
+    const callModel=(content:any[],instructions:string,search=false,resume:any[]=[])=>claude(org,key,state.model,content,instructions+(state.preliminary ? "\n"+preliminaryContext : ""),search,resume,job.process_id);
     let stage=job.stage;
     let result=null;
     if(stage==="reading"){
@@ -264,7 +266,7 @@ async function advanceJob(db: any, org: string, actor: string, id: string, scope
       parts.push(prepareDraftForReview(renderCitations(draft.content)));state.draft_parts=parts;
       state.providers=[...(state.providers||[]),{provider:draft.actual_provider||"anthropic",model:draft.actual_model||state.model,stage:"draft"}];
       if(parts.length===sections.length){
-        result={text:parts.join("\n\n"),dossier:state.dossier,research:state.research,
+        result={text:state.preliminary ? markPreliminaryDraft(parts.join("\n\n")) : parts.join("\n\n"),preliminary:state.preliminary===true,dossier:state.dossier,research:state.research,
           sources:state.sources,provider:draft.actual_provider||"anthropic",model:draft.actual_model||state.model,providers:state.providers,documents_read:state.documents,judge_analysis_at:state.judge_analysis_at};
         stage="completed";
       }
