@@ -342,7 +342,7 @@ html[data-lex-theme="light"] body .app > main .content {
     0 4px 0 var(--lx-brand-shell-deep), 0 7px 12px var(--lx-shadow-color);
 }
 html[data-lex-theme="light"] body .app > main .content :where(button,a):where(.primary,.btn-primary,.lx-button--primary,.integration-action,.secondary,.lx-button--secondary,.workspace-hub-card,.management-metric,.report-kpi,.process-metrics > button,.hearing-metrics > button):not(:where(.danger,.ux-danger,.work-danger,.destructive,.lx-button--danger,[data-variant="danger"])) {
-  --lx-control-face: var(--lx-control-wine-face);
+  --lx-control-face: linear-gradient(155deg,var(--lx-brand-wine-lit),var(--lx-brand-shell) 74%,var(--lx-brand-shell-deep));
   --lx-control-ink: var(--lx-brand-shell-text);
   background: var(--lx-control-face);
   color: var(--lx-control-ink);
