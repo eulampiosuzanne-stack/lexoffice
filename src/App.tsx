@@ -35,7 +35,6 @@ const PetitionAssistant = lazy(() => import("./pages/PetitionAssistant"));
 const ConducaoProcessual = lazy(() => import("./pages/ConducaoProcessual"));
 const RevisaoPeca = lazy(() => import("./pages/RevisaoPeca"));
 const Tipografia = lazy(() => import("./pages/Tipografia"));
-const SfCare = lazy(() => import("./pages/SfCare"));
 const Consultations = lazy(() => import("./pages/Consultations"));
 const Documents = lazy(() => import("./pages/Documents"));
 const Finance = lazy(() => import("./pages/Finance"));
@@ -826,7 +825,6 @@ export default function App() {
             <Route path="/jurimetria" element={<PetitionAssistant />}/>
             <Route path="/revisao-peca" element={<RevisaoPeca />}/>
             <Route path="/tipografia" element={<Tipografia />}/>
-            <Route path="/sf-care" element={<SfCare />}/>
             <Route path="/estrategia-processual" element={<Navigate to="/jurimetria" replace/>}/>
             <Route path="/conducao-processual" element={<ConducaoProcessual />}/>
             <Route path="/peticao-ia" element={<Navigate to="/jurimetria" replace/>}/>
