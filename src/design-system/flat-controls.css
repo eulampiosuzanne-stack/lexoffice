@@ -1,0 +1,50 @@
+/* Botões 2D: cor sólida, borda nítida e sem relevo (sem sombra, brilho ou gradiente).
+   Pensado para quem tem pouca percepção de profundidade (visão monocular). */
+html:root:root body .app.app.app.app.app.app :where(.primary,.legacy-enter,button[type="submit"],.integration-action,.hc-primary,.hc-guardian-status button){
+  background: var(--lx-brand-shell);
+  color: var(--lx-brand-shell-text);
+  border: 2px solid var(--lx-brand-gold);
+  box-shadow: none;
+  text-shadow: none;
+  transform: none;
+  font-weight: 750;
+}
+html:root:root body .app.app.app.app.app.app :where(.secondary){
+  background: var(--lx-brand-gold);
+  color: var(--lx-brand-gold-ink);
+  border: 2px solid var(--lx-brand-shell);
+  box-shadow: none;
+  text-shadow: none;
+  transform: none;
+  font-weight: 750;
+}
+html:root:root body .app.app.app.app.app.app :where(.primary,.legacy-enter,button[type="submit"],.integration-action,.hc-primary,.hc-guardian-status button):hover,
+html:root:root body .app.app.app.app.app.app :where(.primary,.legacy-enter,button[type="submit"],.integration-action,.hc-primary,.hc-guardian-status button):active{
+  background: var(--lx-brand-gold);
+  color: var(--lx-brand-gold-ink);
+  border-color: var(--lx-brand-shell);
+  box-shadow: none;
+  transform: none;
+}
+html:root:root body .app.app.app.app.app.app :where(.secondary):hover,
+html:root:root body .app.app.app.app.app.app :where(.secondary):active{
+  background: var(--lx-brand-shell);
+  color: var(--lx-brand-shell-text);
+  border-color: var(--lx-brand-gold);
+  box-shadow: none;
+  transform: none;
+}
+html:root:root body .app.app.app.app.app.app :where(.primary,.legacy-enter,button[type="submit"],.integration-action,.hc-primary,.hc-guardian-status button):focus-visible,
+html:root:root body .app.app.app.app.app.app :where(.secondary):focus-visible{
+  outline: 3px solid var(--lx-focus);
+  outline-offset: 3px;
+}
+/* Desabilitado: cinza liso com borda tracejada (não depende só de cor) */
+html:root:root body .app.app.app.app.app.app :where(.primary,.legacy-enter,button[type="submit"],.integration-action,.hc-primary,.hc-guardian-status button):disabled,
+html:root:root body .app.app.app.app.app.app :where(.secondary):disabled{
+  background: var(--lx-surface-hover);
+  color: var(--lx-text-muted);
+  border: 2px dashed var(--lx-border-strong);
+  box-shadow: none;
+  cursor: not-allowed;
+}
