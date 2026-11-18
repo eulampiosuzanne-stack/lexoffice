@@ -48,3 +48,9 @@ html:root:root body .app.app.app.app.app.app :where(.secondary):disabled{
   box-shadow: none;
   cursor: not-allowed;
 }
+
+/* A mascote nunca pode cobrir botões: o clique passa por ela. */
+.sf-guardian-walker-btn,
+.sf-guardian-walker-btn .sf-guardian-walker {
+  pointer-events: none;
+}
