@@ -19,7 +19,7 @@ async function eligibleClients(a:any,orgId:string,limit:number){
   const eligible=checked.filter((c:any)=>ACTIVE.includes(String(c.status||"").toLowerCase())&&hasDest(c)&&!blocked.has(c.id));
   return {checked,eligible,blocked:blocked.size};
 }
-const CNJ=/^\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}$/;
+const CNJ=/^(\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}|\d{20})$/;
 // Clientes com ação já ajuizada: processo com número CNJ válido, fora de rascunho/cancelado, sem parceria e sem demo.
 async function filedClientIds(a:any,orgId:string){
   const {data,error}=await a.from("processes").select("client_id,cnj_number,status,is_partnership,is_demo").eq("org_id",orgId).not("client_id","is",null).limit(5000);
