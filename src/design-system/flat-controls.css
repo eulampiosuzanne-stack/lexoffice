@@ -54,3 +54,28 @@ html:root:root body .app.app.app.app.app.app :where(.secondary):disabled{
 .sf-guardian-walker-btn .sf-guardian-walker {
   pointer-events: none;
 }
+
+/* Painéis, cartões e caixas: borda nítida, sem sombra, sem degradê e sem "degrau" de relevo. */
+html:root:root body .app.app.app.app.app.app :where(.card,.dashboard-kpi,.dashboard-panel,.module-box,.table-panel,.smart-panel,.smart-card,.agent-item,.agent-console,.ac-surface,.ac-metrics>div,.service-panel,.service-card,.settings-card,.integration-panel,.integration-card,.rule-modal),
+html:root:root body .vision-dock {
+  box-shadow: none;
+  background-image: none;
+  border: 2px solid var(--lx-border);
+}
+/* Barra lateral e barra superior: cor sólida com contorno dourado. */
+html:root:root body .app.app.app.app.app.app>aside {
+  background-image: none;
+  background-color: var(--lx-brand-shell);
+  box-shadow: none;
+  border-right: 2px solid var(--lx-brand-gold);
+}
+html:root:root body .app.app.app.app.app.app .lex2-topbar {
+  background-image: none;
+  background-color: var(--lx-brand-shell);
+  box-shadow: none;
+  border: 2px solid var(--lx-brand-gold);
+}
+html:root:root body .app.app.app.app.app.app :where(.workspace-submenu-link.is-current-page,.workspace-area-toggle.is-current-area) {
+  box-shadow: none;
+  background-image: none;
+}
