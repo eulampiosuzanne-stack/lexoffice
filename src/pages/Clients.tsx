@@ -340,6 +340,16 @@ export default function Clients() {
       });
       if (error) throw error;
       const found = Array.isArray(data) ? data[0] : null;
+      if (found && selected) {
+        if (found.id !== selected.id) {
+          setCpfLookup({
+            loading: false,
+            notice:
+              "Este CPF já está cadastrado em outro cliente ("+String(found.name || "sem nome")+"). Nada foi alterado neste cadastro.",
+          });
+        } else setCpfLookup({ loading: false, notice: "" });
+        return;
+      }
       if (found) {
         const existing = { ...found, created_at: "" } as Client;
         const v = { ...found, address: found.address || {} };
