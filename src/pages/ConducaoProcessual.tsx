@@ -22,6 +22,7 @@ import {
   History,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { normalizeProcessPole, persistProcessRepresentation } from "../lib/processRepresentation";
 import "./integrations.css";
 import "./document-library.css";
 import "./petition-assistant.css";
@@ -445,13 +446,18 @@ export default function ConducaoProcessual() {
   async function updateRepresentation(patch: {client_id?:string|null;pole?:string}) {
     if(!supabase||!proc||!orgId) return;
     setBusy("representation");
-    const {data,error}=await supabase.from("processes").update(patch).eq("id",proc.id).eq("org_id",orgId).select("id,client_id,pole,clients(name)").single();
-    if(error||!data) setNotice({kind:"error",text:"Não foi possível salvar: "+(error?.message||"sem permissão")});
-    else {
-      setProcs(prev=>prev.map(p=>p.id===proc.id?{...p,client_id:data.client_id,pole:data.pole,clients:data.clients as Proc["clients"]}:p));
+    setNotice(null);
+    try {
+      const data = await persistProcessRepresentation(supabase, proc.id, orgId, patch);
+      const client = clients.find(c => c.id === data.client_id);
+      setProcs(prev=>prev.map(p=>p.id===proc.id?{...p,client_id:data.client_id,pole:data.pole,clients:client?{name:client.name}:data.client_id===p.client_id?p.clients:null}:p));
       setNotice({kind:"ok",text:"Vínculo e polo atualizados."});
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : (error as {message?:string})?.message || "Falha ao salvar o processo.";
+      setNotice({kind:"error",text:"Não foi possível salvar: "+message});
+    } finally {
+      setBusy("");
     }
-    setBusy("");
   }
 
   async function loadProcess(id: string) {
@@ -543,8 +549,8 @@ export default function ConducaoProcessual() {
   // Detecção textual é um alerta preliminar, não substitui leitura do inteiro teor.
   // Diretrizes universais: nenhuma estratégia sem polo confirmado e fonte verificável.
   const polo = norm(String(proc?.pole || "").trim());
-  const poloReu = /^(reu|requerido|demandado|executado|polo passivo|passivo|defendant|respondent)$/.test(polo);
-  const poloAutor = /^(autor|autora|requerente|demandante|exequente|polo ativo|ativo|plaintiff|claimant)$/.test(polo);
+  const poloReu = normalizeProcessPole(polo) === "defendant";
+  const poloAutor = normalizeProcessPole(polo) === "author";
   const decisoes = useMemo(() => movs.filter((m) =>
     /decisao|despacho|sentenca|liminar|tutela|intimacao/.test(norm(`${m.title || ""} ${m.description || ""}`))
   ), [movs]);
@@ -1104,14 +1110,14 @@ export default function ConducaoProcessual() {
             <label><span>Cliente vinculado</span>
               <select value={proc.client_id||""} disabled={busy!==""} onChange={e=>updateRepresentation({client_id:e.target.value||null})}>
                 <option value="">Selecione o cliente</option>
-                {clients.filter(c=>c.id===proc.client_id||norm(c.name).includes(norm(clientSearch))).slice(0,100).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                {clients.filter(c=>c.id===proc.client_id||norm(c.name).includes(norm(clientSearch))).sort((a,b)=>Number(b.id===proc.client_id)-Number(a.id===proc.client_id)).slice(0,100).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </label>
             <label><span>Polo representado pelo escritório</span>
-              <select value={/^(defendant|respondent|reu|requerido|demandado|executado|polo passivo|passivo)$/i.test(proc.pole||"")?"reu":/^(plaintiff|claimant|autor|autora|requerente|demandante|exequente|polo ativo|ativo)$/i.test(proc.pole||"")?"autor":""} disabled={busy!==""} onChange={e=>updateRepresentation({pole:e.target.value})}>
+              <select value={normalizeProcessPole(proc.pole)||""} disabled={busy!==""} onChange={e=>updateRepresentation({pole:e.target.value})}>
                 <option value="">Selecione o polo</option>
-                <option value="autor">Autor(a) / Requerente / Exequente</option>
-                <option value="reu">Réu / Ré / Requerido(a) / Executado(a)</option>
+                <option value="author">Autor(a) / Requerente / Exequente</option>
+                <option value="defendant">Réu / Ré / Requerido(a) / Executado(a)</option>
               </select>
             </label>
           </div>
