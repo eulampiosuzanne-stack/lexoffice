@@ -91,7 +91,7 @@ return <main className="sf-care-page" aria-label="Painel SF Care">
 </header>
 <section className="ac-surface" style={{marginBottom:20}}>
 <h2>Preparar comunicação</h2>
-<p><strong>Acompanhamento periódico:</strong> prepara até 20 propostas por dia para clientes ativos com WhatsApp, sem comunicações nos últimos sete dias e sem recusa registrada. Todas ficam aguardando sua aprovação.</p>
+<p><strong>Acompanhamento periódico:</strong> prepara até 20 propostas por dia só para clientes com ação já ajuizada e WhatsApp cadastrado, sem comunicações nos últimos sete dias e sem recusa registrada. Todas ficam aguardando sua aprovação.</p>
 <button className="secondary" disabled={busy} onClick={()=>void prepareWeekly()}>Preparar acompanhamentos da semana</button>
 <p>Escolha para quem e o que será feito. Depois clique em criar. As propostas aparecem abaixo para você aprovar.</p>
 <label>Para quem
