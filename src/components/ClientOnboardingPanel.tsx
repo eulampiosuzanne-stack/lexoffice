@@ -123,6 +123,49 @@ export default function ClientOnboardingPanel({ client }: { client: any }) {
       });
     }
 
+    if (!failure) {
+      try {
+        const cur = await supabase
+          .from("client_app_access")
+          .select("login_cpf,access_code,status,revoked_at")
+          .eq("client_id", client.id)
+          .maybeSingle();
+        let acc: any = cur.data;
+        if (!acc?.access_code || acc.revoked_at || acc.status === "revoked") {
+          const g = await supabase.rpc("client_app_generate_access", {
+            p_client_id: client.id,
+          });
+          if (g.error) throw g.error;
+          acc = Array.isArray(g.data) ? g.data[0] : g.data;
+        }
+        if (!acc?.access_code || !acc?.login_cpf) {
+          throw new Error("login ou código de acesso indisponível");
+        }
+        const linkMsg =
+          "*Seu acesso ao aplicativo do escritório* 📲\n\n" +
+          "🔗 *Acesse pelo link:*\nhttps://lexoffice.univittagroup.com.br/cliente\n\n" +
+          "👤 *Login (CPF):* " + acc.login_cpf + "\n" +
+          "🔑 *Código de acesso:* " + acc.access_code + "\n\n" +
+          "Não precisa baixar nada: abra o link e, no menu do navegador, escolha *Adicionar à tela inicial*.";
+        const linkRes = await supabase.functions.invoke("whatsapp-operator-send", {
+          body: {
+            message: linkMsg,
+            targets: [{ phone: number, name: client.name }],
+            agent_key: "client_schedule_relationship",
+            next_agent_key: "client_schedule_relationship",
+            keep_ai_active: true,
+            mirror_to_app: false,
+          },
+        });
+        if (linkRes.error || !linkRes.data?.ok || Number(linkRes.data?.failed || 0) > 0) {
+          throw new Error(linkRes.data?.error || linkRes.error?.message || "envio recusado");
+        }
+        delivered.push({ step: 9, title: "Link de acesso ao app", sent_at: new Date().toISOString() });
+      } catch (e: any) {
+        failure = "cartilhas enviadas, mas o link de acesso ao app falhou: " + (e?.message || e);
+      }
+    }
+
     const finalStatus = failure ? "draft" : "sent";
     const finalContent = {
       ...form,
