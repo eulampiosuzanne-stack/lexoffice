@@ -56,6 +56,7 @@ const Marketing = lazy(() => import("./pages/Marketing"));
 const Planejamento = lazy(() => import("./pages/Planejamento"));
 const Afazeres = lazy(() => import("./pages/Afazeres"));
 const Donna = lazy(() => import("./pages/Donna"));
+const SFCare = lazy(() => import('./pages/SFCare'));
 const Hearings = lazy(() => import("./pages/Hearings"));
 const PRODUCTION_URL = "https://lexoffice-ashy.vercel.app";
 const dashboardStages = [
@@ -836,6 +837,7 @@ export default function App() {
     <Route path="/documentos/adicionar" element={<Documents mode="adicionar"/>}/>
     <Route path="/ferramentas" element={<ToolHub />}/>
     <Route path="/atendimento/programacoes" element={<ScheduledMessages />}/>
+    <Route path="/sf-care" element={<SFCare />}/>
     <Route path="/configuracoes/fluxo-atendimento" element={<WhatsAppFlow />}/>
     <Route path="/financeiro/recebimentos" element={financeBlocked ? <Navigate to="/" replace/> : <Finance section="recebimentos"/>}/>
     <Route path="/financeiro/contratos" element={financeBlocked ? <Navigate to="/" replace/> : <Finance section="contratos"/>}/>

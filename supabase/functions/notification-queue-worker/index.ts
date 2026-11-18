@@ -31,6 +31,21 @@ Deno.serve(async(req)=>{
     if(!text)throw new Error("Mensagem vazia");
     const payload=item.payload&&typeof item.payload==="object"?item.payload:{};
     const agent=String(payload.agent_key||(/cobran|pagamento|parcela|honor/i.test(String(item.template_key||"")+" "+text)?"billing":"system"));
+    if(item.template_key==="sf_care_reviewed"){
+      const outboxId=String(payload.sf_outbox_id||"");
+      const {data:care,error:careError}=await a.from("sf_care_outbox")
+        .select("id,status,lawyer_approved,source_verified,client_id,org_id,event_kind")
+        .eq("id",outboxId).eq("org_id",item.org_id).eq("client_id",item.client_id).maybeSingle();
+      const {data:pref,error:prefError}=await a.from("client_notification_preferences")
+        .select("whatsapp_enabled,proactive_process_updates")
+        .eq("org_id",item.org_id).eq("client_id",item.client_id).maybeSingle();
+      if(careError||prefError)throw careError||prefError;
+      if(!care||care.status!=="queued"||!care.lawyer_approved||!care.source_verified||(care.event_kind==="process_distributed"||care.event_kind==="post_filing_checkin"?(pref&&(pref.whatsapp_enabled===false||pref.proactive_process_updates===false)):(!pref?.whatsapp_enabled||!pref?.proactive_process_updates))){
+        await a.from("notification_queue").update({status:"cancelled",last_error:"sf_care_approval_or_consent_revoked",updated_at:new Date().toISOString()}).eq("id",item.id).eq("status","processing");
+        results.push({id:item.id,ok:false,blocked:"sf_care_approval_or_consent_revoked"});
+        continue;
+      }
+    }
     if(isProcessFollowup(item)){
      const process=await a.from("processes").select("status,client_id")
        .eq("org_id",item.org_id).eq("id",item.process_id).maybeSingle();
@@ -53,6 +68,11 @@ Deno.serve(async(req)=>{
     const d=await r.json().catch(()=>null);
     if(d?.reason==="outside_business_hours"&&d?.retryable===true){await a.from("notification_queue").update({status:"pending",scheduled_at:new Date(Date.now()+60*60000).toISOString(),last_error:"Aguardando horário comercial",updated_at:new Date().toISOString()}).eq("id",item.id).eq("status","processing");results.push({id:item.id,ok:false,deferred:true});continue;} if(!r.ok||d?.ok!==true||d?.allowed!==true)throw new Error(d?.error||d?.reason||"Envio não confirmado");
     await a.from("notification_queue").update({status:"sent",sent_at:new Date().toISOString(),last_error:null,provider_message_id:String(d?.provider_response?.messages?.[0]?.id||d?.provider_response?.messageId||d?.provider_response?.id||"")||null,attempts:Number(item.attempts||0)+1,updated_at:new Date().toISOString()}).eq("id",item.id);
+    if(item.template_key==="sf_care_reviewed"&&item.payload?.sf_outbox_id){
+      const {error:statusError}=await a.from("sf_care_outbox").update({status:"sent",updated_at:new Date().toISOString()})
+        .eq("id",item.payload.sf_outbox_id).eq("org_id",item.org_id).eq("notification_id",item.id).eq("status","queued");
+      if(statusError)console.error("sf_care_status_sync",statusError);
+    }
     results.push({id:item.id,ok:true,provider:d.provider});
    }catch(e){
     const reason=e instanceof Error?e.message:String(e);
