@@ -74,7 +74,7 @@
   .app > .sf-guardian:not(.sf-guardian-force-motion) .sf-guardian-dog,
   .app > .sf-guardian:not(.sf-guardian-force-motion) .sf-guardian-hearts > svg,
   .app > .sf-guardian:not(.sf-guardian-force-motion) .sf-guardian-bowl,
-  .sf-guardian-paws:not(.sf-guardian-force-motion) .sf-guardian-paw { animation: none !important; }
+  .sf-guardian-paws.sf-guardian-paws:not(.sf-guardian-force-motion) .sf-guardian-paw { animation: none; }
 }
 
 /* ===== Guardiã viva (10/11/2026): passeio, patinhas, pedir atenção, comer ===== */
@@ -101,7 +101,7 @@
 /* Pedindo atenção: pulinhos e abana. */
 .sf-guardian-asking .sf-guardian-dog, .sf-guardian-hungry.sf-guardian-animated .sf-guardian-dog { animation: sf-guardian-beg 1.1s ease-in-out infinite; }
 @keyframes sf-guardian-beg { 0%, 100% { transform: none; } 30% { transform: translateY(-7px) rotate(-6deg); } 60% { transform: translateY(-2px) rotate(6deg); } }
-.sf-guardian-asking .sf-guardian-trigger, .sf-guardian-hungry .sf-guardian-trigger { box-shadow: 0 0 0 4px color-mix(in srgb, var(--lx-brand-gold, #D4AF37) 35%, transparent), 0 6px 12px var(--lx-shadow-color); }
+.sf-guardian-asking .sf-guardian-trigger, .sf-guardian-hungry .sf-guardian-trigger { box-shadow: 0 0 0 4px color-mix(in srgb, var(--lx-brand-gold, var(--lx-accent)) 35%, transparent), 0 6px 12px var(--lx-shadow-color); }
 /* Comendo e feliz. */
 .sf-guardian-eating .sf-guardian-dog { animation: sf-guardian-munch .3s ease-in-out infinite; }
 @keyframes sf-guardian-munch { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px) scale(.98); } }
@@ -117,14 +117,14 @@
 @keyframes sf-guardian-bowl { 0% { transform: scale(.6); opacity: 0; } 12% { transform: scale(1); opacity: 1; } 85% { opacity: 1; } 100% { transform: scale(.4); opacity: 0; } }
 .sf-guardian-hearts { position: absolute; left: 50%; bottom: 60px; width: 0; height: 0; pointer-events: none; }
 .sf-guardian-hearts > svg {
-  position: absolute; width: 18px; height: 18px; fill: #b0274a; color: #b0274a;
+  position: absolute; width: 18px; height: 18px; fill: var(--lx-danger); color: var(--lx-danger);
   animation: sf-guardian-heart 1.8s ease-out forwards;
 }
 .sf-guardian-hearts > svg:nth-child(1) { left: -22px; }
 .sf-guardian-hearts > svg:nth-child(2) { left: -8px; animation-delay: .2s; }
 .sf-guardian-hearts > svg:nth-child(3) { left: 8px; animation-delay: .4s; }
 @keyframes sf-guardian-heart { 0% { transform: translateY(0) scale(.6); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-46px) scale(1.1); opacity: 0; } }
-.sf-guardian-hunger-badge { color: #b0274a !important; }
+.sf-guardian-hunger-badge.sf-guardian-hunger-badge.sf-guardian-hunger-badge { color: var(--lx-danger); }
 /* Balão: texto + botão de ação. */
 .sf-guardian-greeting { display: grid; gap: 8px; }
 .sf-guardian-menu, .sf-guardian-greeting { box-sizing: border-box; }
@@ -155,24 +155,24 @@
   box-shadow: none;
   overflow: visible;
 }
-.sf-guardian-walker { display: block; width: 140px; height: 100px; overflow: visible; filter: drop-shadow(0 2px 1px rgba(0, 0, 0, .12)); }
-.sf-guardian-out .sf-guardian-trigger.sf-guardian-walker-btn:focus-visible { outline: 2px solid var(--lx-brand-gold, #D4AF37); outline-offset: 2px; border-radius: 12px; }
+.sf-guardian-walker { display: block; width: 140px; height: 100px; overflow: visible; filter: drop-shadow(0 2px 1px var(--lx-shadow-color)); }
+.sf-guardian-out .sf-guardian-trigger.sf-guardian-walker-btn:focus-visible { outline: 2px solid var(--lx-brand-gold, var(--lx-accent)); outline-offset: 2px; border-radius: 12px; }
 /* O CSS geral do sistema corta animações quando o Windows/celular pede "reduzir movimento".
    A Guardiã segue a escolha do menu dela ("Silenciar animações"), então as animações dela voltam aqui. */
 @media (prefers-reduced-motion: reduce) {
-  .app > .sf-guardian.sf-guardian-force-motion:not(.sf-guardian-out) .sf-guardian-dog { animation: sf-guardian-wave 7s ease-in-out infinite !important; }
-  .app > .sf-guardian.sf-guardian-force-motion.sf-guardian-hungry:not(.sf-guardian-out) .sf-guardian-dog { animation: sf-guardian-beg 1.1s ease-in-out infinite !important; }
-  .app > .sf-guardian.sf-guardian-force-motion.sf-guardian-eating .sf-guardian-dog { animation: sf-guardian-munch .3s ease-in-out infinite !important; }
-  .app > .sf-guardian.sf-guardian-force-motion.sf-guardian-happy:not(.sf-guardian-out) .sf-guardian-dog { animation: sf-guardian-wave .8s ease-in-out 3 !important; }
-  .app > .sf-guardian.sf-guardian-force-motion .sf-guardian-bowl { animation: sf-guardian-bowl 2.6s ease-in forwards !important; }
-  .app > .sf-guardian.sf-guardian-force-motion .sf-guardian-hearts > svg { animation: sf-guardian-heart 1.8s ease-out forwards !important; }
-  .app > .sf-guardian.sf-guardian-force-motion .sf-guardian-hearts > svg:nth-child(2) { animation-delay: .2s !important; }
-  .app > .sf-guardian.sf-guardian-force-motion .sf-guardian-hearts > svg:nth-child(3) { animation-delay: .4s !important; }
+  .app > .sf-guardian.sf-guardian-force-motion.sf-guardian-force-motion:not(.sf-guardian-out) .sf-guardian-dog { animation: sf-guardian-wave 7s ease-in-out infinite; }
+  .app > .sf-guardian.sf-guardian-force-motion.sf-guardian-force-motion.sf-guardian-hungry:not(.sf-guardian-out) .sf-guardian-dog { animation: sf-guardian-beg 1.1s ease-in-out infinite; }
+  .app > .sf-guardian.sf-guardian-force-motion.sf-guardian-force-motion.sf-guardian-eating .sf-guardian-dog { animation: sf-guardian-munch .3s ease-in-out infinite; }
+  .app > .sf-guardian.sf-guardian-force-motion.sf-guardian-force-motion.sf-guardian-happy:not(.sf-guardian-out) .sf-guardian-dog { animation: sf-guardian-wave .8s ease-in-out 3; }
+  .app > .sf-guardian.sf-guardian-force-motion.sf-guardian-force-motion .sf-guardian-bowl { animation: sf-guardian-bowl 2.6s ease-in forwards; }
+  .app > .sf-guardian.sf-guardian-force-motion.sf-guardian-force-motion .sf-guardian-hearts > svg { animation: sf-guardian-heart 1.8s ease-out forwards; }
+  .app > .sf-guardian.sf-guardian-force-motion.sf-guardian-force-motion .sf-guardian-hearts > svg:nth-child(2) { animation-delay: .2s; }
+  .app > .sf-guardian.sf-guardian-force-motion.sf-guardian-force-motion .sf-guardian-hearts > svg:nth-child(3) { animation-delay: .4s; }
 }
 .sf-guardian-menu > strong.sf-guardian-menu-title { display: flex; align-items: center; gap: 8px; }
 .sf-guardian-menu-title > img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--lx-brand-line, var(--lx-border-strong)); }
 /* Caixinha 3D com que a Guardiã está brincando: balança e pula um pouquinho. */
-.app .sf-guardian-toy { animation: sf-guardian-toy-wiggle .45s ease-in-out infinite !important; transform-origin: 50% 100%; }
+.app .sf-guardian-toy { animation: sf-guardian-toy-wiggle .45s ease-in-out infinite; transform-origin: 50% 100%; }
 @keyframes sf-guardian-toy-wiggle {
   0%, 100% { transform: rotate(0deg) translateY(0); }
   25% { transform: rotate(-4deg) translateY(-3px); }
@@ -180,10 +180,10 @@
 }
 /* Botão do balão sempre legível (o tema geral pintava o fundo de vinho com texto escuro). */
 .app > .sf-guardian .sf-guardian-greeting .sf-guardian-bubble-action {
-  background: var(--lx-brand-gold, #D4AF37) !important;
-  border: 1px solid #9C7A1C !important;
-  color: #2A1A0C !important;
-  box-shadow: 0 2px 0 #9C7A1C !important;
+  background: var(--lx-brand-gold, var(--lx-accent));
+  border: 1px solid var(--lx-brand-gold-ink);
+  color: var(--lx-brand-gold-ink);
+  box-shadow: 0 2px 0 var(--lx-brand-gold-ink);
 }
-.app > .sf-guardian .sf-guardian-greeting .sf-guardian-bubble-action svg { color: #2A1A0C !important; stroke: currentColor; }
-.app > .sf-guardian .sf-guardian-greeting > span { color: var(--lx-text, #2A1A0C); font-size: 1rem; }
+.app > .sf-guardian .sf-guardian-greeting .sf-guardian-bubble-action svg { color: var(--lx-brand-gold-ink); stroke: currentColor; }
+.app > .sf-guardian .sf-guardian-greeting > span { color: var(--lx-text); font-size: 1rem; }
