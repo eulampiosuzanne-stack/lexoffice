@@ -18,11 +18,11 @@ export default function CommunicationsSupervisor() {
     setError('');
     try {
       const response = await supabase?.functions.invoke('sf-care-review', { body: { action: 'list' } });
-      if (response?.error || !response?.data?.ok) throw new Error();
+      if (response?.error || !response?.data?.ok) throw new Error(String(response?.data?.error || response?.error?.message || 'Falha ao consultar a fila'));
       setQueue(response.data.queue);
       setAudit(response.data.audit);
-    } catch {
-      setError('Não foi possível consultar as comunicações. Confira se sua sessão tem permissão para revisão.');
+    } catch (err) {
+      setError('Não foi possível consultar as comunicações: ' + (err instanceof Error ? err.message : 'verifique suas permissões.'));
     } finally {
       setBusy(false);
     }
@@ -39,11 +39,11 @@ export default function CommunicationsSupervisor() {
       const response = await supabase?.functions.invoke('sf-care-review', {
         body: { id: item.id, decision, ...(decision === 'approve' && edited !== undefined ? { message: edited } : {}) },
       });
-      if (response?.error || !response?.data?.ok) throw new Error();
+      if (response?.error || !response?.data?.ok) throw new Error(String(response?.data?.error || response?.error?.message || 'Falha na aprovação'));
       setQueue(items => items.filter(entry => entry.id !== item.id));
       setNotice(decision === 'approve' ? 'Comunicação aprovada para a fila de envio.' : 'Comunicação rejeitada.');
-    } catch {
-      setError('Não foi possível registrar a decisão. Atualize a fila antes de tentar novamente.');
+    } catch (err) {
+      setError('Não foi possível registrar a decisão: ' + (err instanceof Error ? err.message : 'atualize a fila e tente novamente.'));
     } finally {
       setBusy(false);
     }
@@ -61,14 +61,14 @@ export default function CommunicationsSupervisor() {
       {!queue.length && !busy && !error && <p>Nenhuma comunicação pendente nesta fila.</p>}
       {queue.map(item => <details key={item.id} className="ac-disclosure">
         <summary>{item.event_kind.replace(/_/g, ' ')} · {new Date(item.created_at).toLocaleDateString('pt-BR')}</summary>
-        <p>{item.source_verified ? 'Fonte verificada' : 'Fonte pendente de verificação'}</p>
+        <p>{item.source_verified ? 'Fonte verificada' : 'Aprovação bloqueada: a origem desta comunicação ainda não foi verificada. É necessário validar a fonte antes de autorizar.'}</p>
         <p>Cliente {item.client_id}{item.process_id && <> · Processo {item.process_id}</>}</p>
         <label>Mensagem<textarea rows={4} maxLength={2000} value={drafts[item.id] ?? item.message}
           onChange={event => setDrafts(previous => ({ ...previous, [item.id]: event.target.value }))} /></label>
         <div className="ac-section-head">
           <button className="secondary" disabled={busy} onClick={() => void review(item, 'reject')}>Rejeitar</button>
           <button className="primary" disabled={busy || !item.source_verified || !(drafts[item.id] ?? item.message).trim()}
-            onClick={() => void review(item, 'approve')}>Aprovar comunicação</button>
+            onClick={() => void review(item, 'approve')}>{item.source_verified ? 'Autorizar comunicação' : 'Aguardando verificação'}</button>
         </div>
       </details>)}
     </section>
