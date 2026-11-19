@@ -1,0 +1,23 @@
+// node --experimental-strip-types tests/whatsappChannel.test.mts
+import {isOfficeChannelConnected} from '../src/lib/whatsappChannel.ts';
+let ok = 0, bad = 0;
+const t = (name: string, cond: boolean) => { if (cond) { ok++; console.log('PASSOU', name); } else { bad++; console.log('FALHOU', name); } };
+const waha = (status: string, enabled: unknown = 'true') => ({provider: 'whatsapp', status, settings: {provider: 'waha', channel_enabled: enabled}});
+t('WAHA conectado e habilitado', isOfficeChannelConnected([waha('connected')]) === true);
+t('WAHA habilitado com booleano', isOfficeChannelConnected([waha('connected', true)]) === true);
+t('WAHA desconectado', isOfficeChannelConnected([waha('disconnected')]) === false);
+t('WAHA conectado mas canal desabilitado', isOfficeChannelConnected([waha('connected', 'false')]) === false);
+t('WAHA sem channel_enabled', isOfficeChannelConnected([{provider: 'whatsapp', status: 'connected', settings: {provider: 'waha'}}]) === false);
+t('registro antigo desconectado não esconde o conectado', isOfficeChannelConnected([waha('disconnected'), waha('connected')]) === true);
+t('ordem inversa também', isOfficeChannelConnected([waha('connected'), waha('disconnected')]) === true);
+t('Evolution conectada (regra antiga)', isOfficeChannelConnected([{provider: 'evolution', status: 'active', settings: {}}]) === true);
+t('Hub conectado (regra antiga)', isOfficeChannelConnected([{provider: 'univitta_hub', status: 'connected'}]) === true);
+t('Evolution desconectada', isOfficeChannelConnected([{provider: 'evolution', status: 'disconnected'}]) === false);
+t('outro provedor qualquer não conta', isOfficeChannelConnected([{provider: 'google_calendar', status: 'connected'}]) === false);
+t('lista vazia', isOfficeChannelConnected([]) === false);
+t('null', isOfficeChannelConnected(null) === false);
+t('undefined', isOfficeChannelConnected(undefined) === false);
+t('status em maiúsculas', isOfficeChannelConnected([{provider: 'whatsapp', status: 'CONNECTED', settings: {provider: 'waha', channel_enabled: 'true'}}]) === true);
+t('registro nulo na lista não quebra', isOfficeChannelConnected([null as any, waha('connected')]) === true);
+console.log(`\n${ok} passaram, ${bad} falharam`);
+if (bad) process.exit(1);
