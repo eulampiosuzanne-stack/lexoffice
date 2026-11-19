@@ -407,7 +407,7 @@ Deno.serve(async (req) => {
       const pieceType = String(b.piece_type || "Petição").slice(0, 80);
       const instructions = String(b.instructions || "").trim().slice(0, 6000);
       if (!path.startsWith(`${orgId}/tipografia-entrada/`) || !/\.docx$/i.test(fileName)) return json({ ok: false, error: "Arquivo Word inválido para este escritório." }, 400);
-      const { data: input, error: inputError } = await a.storage.from(BUCKET).download(path);
+      const { data: input, error: inputError } = await a.storage.from("legal-review-files").download(path);
       if (inputError || !input) return json({ ok: false, error: "Não foi possível abrir a peça enviada." }, 404);
       const original = new Uint8Array(await input.arrayBuffer());
       if (!original.length || original.length > 20 * 1024 * 1024) return json({ ok: false, error: "A peça está vazia ou excede 20 MB." }, 400);
@@ -437,9 +437,9 @@ Deno.serve(async (req) => {
       if (!improved.applied) return json({ ok: true, unchanged: true, resumo: review?.resumo || "Nenhuma alteração aplicável foi encontrada.", alteracoes: [], modelos: references.map((r: any) => r.nome), model: generated.model });
       const stem = fileName.replace(/\.docx$/i, "").replace(/[^a-zA-Z0-9._-]/g, "_");
       const outputPath = `${orgId}/tipografia-saida/${crypto.randomUUID()}-${stem}-REVISADA.docx`;
-      const { error: outputError } = await a.storage.from(BUCKET).upload(outputPath, improved.bytes, { contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", upsert: false });
+      const { error: outputError } = await a.storage.from("legal-review-files").upload(outputPath, improved.bytes, { contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", upsert: false });
       if (outputError) throw new Error(`A revisão foi concluída, mas o Word não pôde ser salvo: ${outputError.message}`);
-      const { data: signed } = await a.storage.from(BUCKET).createSignedUrl(outputPath, 900, { download: `${stem}-REVISADA.docx` });
+      const { data: signed } = await a.storage.from("legal-review-files").createSignedUrl(outputPath, 900, { download: `${stem}-REVISADA.docx` });
       return json({ ok: true, unchanged: false, url: signed?.signedUrl || null, resumo: review?.resumo || "Peça revisada conforme os modelos do escritório.", alteracoes: changes.slice(0, improved.applied), alteracoes_aplicadas: improved.applied, modelos: references.map((r: any) => r.nome), model: generated.model });
     }
 
