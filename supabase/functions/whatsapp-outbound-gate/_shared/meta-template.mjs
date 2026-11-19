@@ -63,7 +63,19 @@ export function buildInteractivePayload(to, message, interactive) {
 export function interactiveAsText(message, interactive) {
   const items = interactive?.type === 'button' ? interactive.buttons : interactive?.type === 'list' ? interactive.rows : null;
   if (!Array.isArray(items) || !items.length) return message;
-  return `${message}\n\n${items.map((x, i) => `${i + 1}) ${x.title}`).join('\n')}`;
+  // Horários de agenda (slot:) seguem numerados: a escolha por número é tratada pela agenda.
+  if (items.some((x) => String(x?.id ?? '').startsWith('slot:'))) {
+    return `${message}\n\n${items.map((x, i) => `${i + 1}) ${x.title}`).join('\n')}`;
+  }
+  // Sem número solto (pedido da Dra., 13/11): emoji + título em negrito + descrição curta; o cliente responde pelo nome ou escreve livremente.
+  const lines = items.map((x) => {
+    const title = String(x?.title ?? '').trim();
+    const hasEmoji = /^\p{Extended_Pictographic}/u.test(title);
+    const head = hasEmoji ? title.replace(/^(\p{Extended_Pictographic}️?)\s*(.*)$/u, '$1 *$2*') : `▫️ *${title}*`;
+    const desc = String(x?.description ?? '').trim();
+    return desc ? `${head}\n${desc}` : head;
+  });
+  return `${message}\n\n${lines.join('\n\n')}\n\nÉ só responder com o nome da opção ou escrever do seu jeito. 💬`;
 }
 
 // v85 (12/11/2026) — modelo com espaçamento (pedido da Dra.: o aviso num parágrafo só ficava "frio").
