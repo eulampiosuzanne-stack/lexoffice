@@ -1,5 +1,5 @@
 // node --experimental-strip-types tests/wahaStatus.test.mts
-import {mapWahaStatus, normalizeWahaUrl, pickWahaSession} from '../supabase/functions/whatsapp-waha-status/state.ts';
+import {mapWahaStatus, normalizeWahaUrl, pickEngine, pickWahaSession} from '../supabase/functions/whatsapp-waha-status/state.ts';
 let ok = 0, bad = 0;
 const t = (name: string, cond: boolean, got?: unknown) => { if (cond) { ok++; console.log('PASSOU', name); } else { bad++; console.log('FALHOU', name, JSON.stringify(got)); } };
 
@@ -37,6 +37,16 @@ t('sessão em branco ignorada', pickWahaSession([{status: 'connected', settings:
 t('settings nulo ignorado', pickWahaSession([{status: 'connected', settings: null}]) === null);
 t('sessão não-texto ignorada', pickWahaSession([{status: 'connected', settings: {waha_session: 123 as unknown as string}}]) === null);
 t('aparas na sessão', pickWahaSession([{status: 'connected', settings: {waha_session: ' lexoffice '}}]) === 'lexoffice');
+
+// Motor
+t('engine objeto GOWS', pickEngine({engine: {engine: 'GOWS'}}) === 'GOWS');
+t('engine texto minúsculo', pickEngine({engine: ' noweb '}) === 'NOWEB');
+t('engine WEBJS', pickEngine({engine: {engine: 'WEBJS'}}) === 'WEBJS');
+t('engine desconhecido -> null', pickEngine({engine: {engine: 'OUTRO'}}) === null);
+t('sem engine -> null', pickEngine({}) === null);
+t('null -> null', pickEngine(null) === null);
+t('undefined -> null', pickEngine(undefined) === null);
+t('engine número -> null', pickEngine({engine: 5}) === null);
 
 console.log(`\n${ok} passaram, ${bad} falharam`);
 if (bad) process.exit(1);

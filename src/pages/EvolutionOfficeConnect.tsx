@@ -5,7 +5,7 @@ import './office-whatsapp.css';
 
 // WhatsApp do escritório (número 4141). O provedor real é escolhido no backend
 // (system_runtime_secrets.whatsapp_provider); a tela só pede estado, QR Code ou código.
-type Result={ok?:boolean;error?:string;state?:string|null;connected?:boolean;instance_name?:string;qr_code?:string;pairing_code?:string;http_status?:number};
+type Result={ok?:boolean;error?:string;state?:string|null;connected?:boolean;instance_name?:string;qr_code?:string;pairing_code?:string;http_status?:number;engine?:string|null};
 const NUMBER='5531992984141';
 const labels:Record<string,string>={connected:'Conectado',open:'Conectado',connecting:'Conectando…',qr_pending:'Aguardando leitura do QR Code',disconnected:'Desconectado',close:'Desconectado',unknown:'Estado não confirmado'};
 const errors:Record<string,string>={qr_code_unavailable:'O servidor do WhatsApp não devolveu o QR Code. Tente de novo em alguns segundos.',pairing_code_unavailable:'O servidor do WhatsApp não devolveu o código. Tente de novo em alguns segundos.',administrator_required:'Só a administradora do escritório pode conectar o WhatsApp.',office_instance_missing:'A conexão do escritório não está cadastrada.',uazapi_server_configuration_invalid:'O servidor do WhatsApp não está configurado.',evolution_server_configuration_invalid:'O servidor do WhatsApp não está configurado.',uazapi_request_failed:'O servidor do WhatsApp não respondeu.',evolution_request_failed:'O servidor Evolution não respondeu.',evolution_status_unavailable:'Não foi possível confirmar a conexão com a Evolution. A conexão não foi desfeita; tente atualizar o estado.',waha_status_unavailable:'Não foi possível confirmar a conexão com o WAHA. A conexão não foi desfeita; tente atualizar o estado.'};
@@ -18,6 +18,7 @@ export default function EvolutionOfficeConnect(){
  const [code,setCode]=useState('');
  const [message,setMessage]=useState('');
  const [provider,setProvider]=useState<'waha'|'evolution'>('evolution');
+ const [engine,setEngine]=useState('');
  const mounted=useRef(true);
  const renewals=useRef(0);
 
@@ -30,11 +31,11 @@ export default function EvolutionOfficeConnect(){
  }
 
  // Se o escritório usa WAHA, é o WAHA que diz se o 4141 está no ar. 401/403/404 (sem WAHA cadastrado) caem no fluxo da Evolution.
- async function callWaha():Promise<{kind:'ok';state:string;connected:boolean}|{kind:'error'}|{kind:'none'}>{
+ async function callWaha():Promise<{kind:'ok';state:string;connected:boolean;engine:string}|{kind:'error'}|{kind:'none'}>{
   if(!supabase)return {kind:'none'};
   const {data,error}=await supabase.functions.invoke<Result&{provider?:string}>('whatsapp-waha-status',{body:{}});
   if(error){const st=(error as {context?:Response}).context?.status;return st===401||st===403||st===404?{kind:'none'}:{kind:'error'};}
-  if(data?.ok===true&&data.provider==='waha')return {kind:'ok',state:String(data.state||'unknown'),connected:!!data.connected};
+  if(data?.ok===true&&data.provider==='waha')return {kind:'ok',state:String(data.state||'unknown'),connected:!!data.connected,engine:String(data.engine||'')};
   return {kind:'error'};
  }
 
@@ -43,7 +44,7 @@ export default function EvolutionOfficeConnect(){
   try{
    const w=await callWaha();
    if(!mounted.current)return;
-   if(w.kind==='ok'){setProvider('waha');setState(w.state);setQr('');setCode('');return;}
+   if(w.kind==='ok'){setProvider('waha');setEngine(w.engine);setState(w.state);setQr('');setCode('');return;}
    if(w.kind==='error'){setProvider('waha');setState('unknown');if(!silent)setMessage(errors.waha_status_unavailable);return;}
    setProvider('evolution');
    const r=await call({action:'status'});
@@ -84,7 +85,7 @@ export default function EvolutionOfficeConnect(){
    <div className="owa-id"><h3 id="owa-title">WhatsApp do escritório</h3><span>+55 31 99298-4141</span></div>
    <span className={'owa-badge owa-'+tone} role="status">{connected&&<CheckCircle2 size={15}/>}{busy&&!state?'Consultando…':labels[state]||state||'Não consultado'}</span>
   </header>
-  <p className="owa-note">{provider==='waha'?(connected?'WAHA conectado segundo o servidor. O envio e recebimento de mensagens precisam de validação separada.':state==='unknown'?'Não foi possível verificar o servidor WAHA. Isso não significa que o WhatsApp esteja desconectado.':'A sessão do WAHA não está ativa. Reconecte pelo painel do WAHA.'):connected?'Evolution conectada segundo o servidor. O envio e recebimento de mensagens precisam de validação separada.':state==='unknown'?'Não foi possível verificar o servidor Evolution. Isso não significa que o WhatsApp esteja desconectado.':'Conexão Evolution não confirmada. Para conectar, use o WhatsApp Business do número 4141 em Aparelhos conectados.'}</p>
+  <p className="owa-note">{provider==='waha'?(connected?'WAHA conectado segundo o servidor'+(engine?' (motor '+engine+')':'')+'. O envio e recebimento de mensagens precisam de validação separada.':state==='unknown'?'Não foi possível verificar o servidor WAHA. Isso não significa que o WhatsApp esteja desconectado.':'A sessão do WAHA não está ativa. Reconecte pelo painel do WAHA.'):connected?'Evolution conectada segundo o servidor. O envio e recebimento de mensagens precisam de validação separada.':state==='unknown'?'Não foi possível verificar o servidor Evolution. Isso não significa que o WhatsApp esteja desconectado.':'Conexão Evolution não confirmada. Para conectar, use o WhatsApp Business do número 4141 em Aparelhos conectados.'}</p>
   <div className="owa-actions">
    {!connected&&provider!=='waha'&&<button type="button" className="integration-action" disabled={busy} onClick={()=>void connectQr()}><QrCode size={16}/>Conectar por QR Code</button>}
    {!connected&&provider!=='waha'&&<button type="button" className="secondary" disabled={busy} onClick={()=>void connectCode()}>Conectar por código</button>}

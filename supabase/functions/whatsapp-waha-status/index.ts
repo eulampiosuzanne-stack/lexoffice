@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "jsr:@supabase/supabase-js@2";
-import {mapWahaStatus, normalizeWahaUrl, pickWahaSession} from "./state.ts";
+import {mapWahaStatus, normalizeWahaUrl, pickEngine, pickWahaSession} from "./state.ts";
 
 // Somente leitura: pergunta ao WAHA se a sessão do WhatsApp do escritório (4141) está no ar.
 // Não altera banco, não envia mensagem e não devolve chaves.
@@ -36,7 +36,7 @@ Deno.serve(async req => {
     if (!r.ok) return J({ok: false, error: "waha_request_failed", http_status: r.status}, 502);
     const d = await r.json().catch(() => null);
     const state = mapWahaStatus(d?.status);
-    return J({ok: true, provider: "waha", state, connected: state === "connected", session_name: session});
+    return J({ok: true, provider: "waha", state, connected: state === "connected", session_name: session, engine: pickEngine(d)});
   } catch {
     return J({ok: false, error: "waha_request_failed"}, 502);
   }

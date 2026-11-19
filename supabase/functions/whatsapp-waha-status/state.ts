@@ -28,3 +28,11 @@ export function pickWahaSession(rows: Array<{ status?: string; settings?: Record
   const chosen = valid.find(r => r.status === 'connected') || valid[0];
   return chosen ? String(chosen.settings!.waha_session).trim() : null;
 }
+
+// Motor da sessão (o WAHA devolve "engine" como texto ou como objeto { engine }). Só aceita os motores conhecidos.
+export function pickEngine(d: unknown): string | null {
+  const raw = (d as { engine?: unknown } | null)?.engine;
+  const name = typeof raw === 'string' ? raw : (raw as { engine?: unknown } | null)?.engine;
+  const e = typeof name === 'string' ? name.trim().toUpperCase() : '';
+  return ['WEBJS', 'NOWEB', 'GOWS', 'WPP'].includes(e) ? e : null;
+}
