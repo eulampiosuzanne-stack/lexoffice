@@ -33,7 +33,9 @@ export const receptionMessages = Object.freeze({
   human_registered: 'Seu pedido de atendimento humano foi registrado.',
   partnership: 'Conte um pouco sobre a proposta de parceria e como podemos entrar em contato.',
   administrative: 'Qual informação sobre o escritório você gostaria de consultar?',
-  clarify: 'Pode me contar em poucas palavras como posso ajudar?',
+  clarify: 'Para orientar você corretamente, poderia me dizer a qual assunto se refere?',
+  identify: 'Para localizar seu atendimento corretamente, poderia informar seu nome completo?',
+  ignore_menu: 'Sem problema. Pode me contar o que precisa.',
   thanks: 'Imagina! 💛 Precisando, é só chamar.',
   understood: 'Se surgir qualquer dúvida, é só chamar por aqui.',
 });

@@ -1,6 +1,8 @@
 import { receptionMessages } from './reception-messages.mjs';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "jsr:@supabase/supabase-js@2.57.4";
+// v64 (20/11/2026) — catálogo bloco A: botões "Já sou cliente / Busco atendimento / Outros assuntos"; "prefiro não usar o menu" responde 03.
+// v63 (20/11/2026) — digitar "menu" reabre a recepção e solta o agente anterior.
 // v52 (13/11/2026) — MENU ELEGANTE: cada nó sai como LISTA interativa (emoji + título curto + descrição curta),
 // sem números soltos. Se o WhatsApp/WAHA não aceitar a lista, o gate manda texto com o mesmo visual.
 // Resposta aceita: toque na lista, o nome da opção escrito, ou número (compatibilidade). Texto livre segue para a Helena.
@@ -128,8 +130,8 @@ async function loadNodes(a:any,orgId:string):Promise<{nodes:Record<string,N>,ena
       {id:'professional',label:'👨‍⚖️ Sou advogado(a)',description:'Contato entre colegas e correspondência.',agent:T,ctx:{contact_type:'advogado'}}
     ]};
     nodes.start={message:receptionMessages.welcome,section:'Atendimento',button:'Opções de atendimento',options:[
-      {id:'existing',label:'👩‍💼 Sou cliente',description:'Processos, financeiro, documentos e agenda.',next:'reception_client'},
-      {id:'prospect',label:'✨ Não sou cliente',description:'Quero atendimento jurídico.',next:'new'},
+      {id:'existing',label:'👤 Já sou cliente',description:'Processos, financeiro, documentos e agenda.',next:'reception_client'},
+      {id:'prospect',label:'⚖️ Busco atendimento',description:'Quero atendimento jurídico.',next:'new'},
       {id:'other',label:'💬 Outros assuntos',description:'Parcerias, imprensa e administrativo.',next:'reception_other'}
     ]};
     nodes.advogada={message:receptionMessages.busy,options:[
@@ -147,7 +149,7 @@ function resolve(nodes:Record<string,N>,node:string,choice:string,text:string):{
   if(c){const o=cur.options.find(x=>x.id===c);if(o)return {node,opt:o}}
   const t=norm(text||c);if(!t)return null;
   if(/^\d{1,2}$/.test(t)){const o=cur.options[Number(t)-1];if(o)return {node,opt:o}}
-  let o=cur.options.find(x=>norm(x.label)===t||(node==='start'&&x.id==='existing'&&t==='sou cliente'));
+  let o=cur.options.find(x=>norm(x.label)===t||(node==='start'&&((x.id==='existing'&&t==='sou cliente')||(x.id==='prospect'&&t==='nao sou cliente'))));
   // Nome da opção dentro de uma frase curta ("quero meus processos"); frases longas ficam com a Helena.
   if(!o&&node!=='start'&&t.length<=40)o=cur.options.find(x=>{const l=norm(x.label);return l.length>=5&&t.includes(l)});
   return o?{node,opt:o}:null;
@@ -184,7 +186,11 @@ Deno.serve(async req=>{if(req.method!=='POST')return J({ok:false},405);try{
   const why=await blocked(a,o,id,p);if(why)return J({ok:true,blocked:true,reason:why,path});
   if(ch||tx){
     const r=resolve(nodes,k,ch,tx);
-    if(!r)return J({ok:true,matched:false,node:k,known_node:Boolean(nodes[k])});
+    if(!r){
+      // Catálogo 03: só quando a pessoa diz que prefere não usar o menu.
+      if(!ch&&/\b(nao (quero|gosto|consigo|precisa)( de)?( usar)?( o| os| a| as| desse| desses| dessa| dessas)? (menu|botao|botoes|opcoes)|prefiro (nao usar|escrever|digitar|falar|conversar)|sem (menu|botao|botoes)|(chega|para) de (menu|botoes|opcoes))\b/.test(norm(tx))){const resp=await sendNode(a,o,id,p,'ignore_menu',{message:receptionMessages.ignore_menu,options:[]},render);await logOut(a,o,id,receptionMessages.ignore_menu,'ignore_menu',resp);return J({ok:true,matched:true,replied:true,node:'agent_conversation',path})}
+      return J({ok:true,matched:false,node:k,known_node:Boolean(nodes[k])});
+    }
     const z=r.opt;
     // Caminho sem repetições: volta ao menu zera; a mesma escolha seguida não se acumula.
     if(z.id==='menu'||z.next==='start')path=[];else{const last=path[path.length-1];if(!(last&&last.node===r.node&&last.choice===z.id))path=[...path,{node:r.node,choice:z.id,label:z.label}].slice(-6)}
@@ -193,7 +199,7 @@ Deno.serve(async req=>{if(req.method!=='POST')return J({ok:false},405);try{
     if(z.next){const x=nodes[z.next];if(!x)return J({ok:false,error:`nó inexistente: ${z.next}`},400);const resp=await sendNode(a,o,id,p,z.next,x,render);return J({ok:true,matched:true,node:z.next,path,provider_response:resp})}
     return J({ok:true,matched:false,node:k});
   }
-  if(k==='start'&&id){const {data:st0}=await a.from('whatsapp_chatbot_flow_state').select('updated_at').eq('conversation_id',id).maybeSingle();if(st0?.updated_at&&Date.now()-new Date(st0.updated_at).getTime()<6*3600000)return J({ok:true,blocked:true,reason:'already_presented',path});}
+  if(k==='start'&&id){const {data:st0}=await a.from('whatsapp_chatbot_flow_state').select('updated_at').eq('conversation_id',id).maybeSingle();if(st0?.updated_at&&Date.now()-new Date(st0.updated_at).getTime()<6*3600000){const {data:lm}=await a.from('whatsapp_messages').select('body').eq('conversation_id',id).eq('direction','inbound').order('created_at',{ascending:false}).limit(1).maybeSingle();if(!/^(menu|inicio|opcoes)$/.test(norm(lm?.body||'')))return J({ok:true,blocked:true,reason:'already_presented',path});await a.from('whatsapp_conversations').update({owner_agent_key:null}).eq('id',id);}}
   const x=nodes[k];if(!x)return J({ok:false,error:`nó inexistente: ${k}`},400);
   const resp=await sendNode(a,o,id,p,k,x,render);
   return J({ok:true,node:k,path,provider_response:resp});
