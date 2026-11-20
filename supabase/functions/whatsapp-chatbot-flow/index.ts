@@ -104,7 +104,7 @@ async function loadNodes(a:any,orgId:string):Promise<{nodes:Record<string,N>,ena
       {id:'pending',label:'📋 Pendências',agent:T,ctx:{docs_action:'pending'}}]};
     nodes.financeiro={message:'Sobre o financeiro, o que você precisa?',options:[
       {id:'installments',label:'🧾 Minhas parcelas',agent:'billing'},
-      {id:'pix',label:'💠 Chave Pix',agent:'billing',ctx:{collection_action:'pix'}},
+      {id:'pix',label:'💠 Chave Pix',reply:receptionMessages.pix_team},
       {id:'paid',label:'✅ Enviar comprovante',agent:'billing',ctx:{collection_action:'paid'}}]};
     nodes.agendamentos={message:'Como podemos ajudar com a agenda?',options:[
       {id:'book',label:'🗓️ Agendar reunião',agent:'client_schedule_relationship'},
