@@ -12,7 +12,7 @@ import {createClient} from "jsr:@supabase/supabase-js@2.57.4";
 const J=(x:any,s=200)=>new Response(JSON.stringify(x),{status:s,headers:{"Content-Type":"application/json","Cache-Control":"no-store"}});
 const D=(v:any)=>String(v??'').replace(/\D/g,'');
 const A=()=>createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false}});
-const norm=(s:string)=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^\p{L}\p{N} ]+/gu,' ').replace(/\s+/g,' ').trim();
+const norm=(s:string)=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^\p{L}\p{N} ]+/gu,' ').replace(/\s+/g,' ').trim();
 async function secret(a:any,k:string){const {data}=await a.from('system_runtime_secrets').select('secret').eq('key',k).maybeSingle();return String(data?.secret||'').trim()}
 type O={id:string,label:string,description?:string,next?:string,agent?:string,reply?:string,ctx?:Record<string,unknown>};type N={message:string,options:O[],image?:string,section?:string,button?:string};
 const back:O={id:'menu',label:'↩️ Menu inicial',description:'Voltar às opções principais',next:'start'};
@@ -157,6 +157,8 @@ function resolve(nodes:Record<string,N>,node:string,choice:string,text:string):{
   if(!o&&node!=='start'&&t.length<=40)o=cur.options.find(x=>{const l=norm(x.label);return l.length>=5&&t.includes(l)});
   return o?{node,opt:o}:null;
 }
+const AI_REFUSAL_RE=/(nao quero (mais )?(falar|conversar|ser atendid[ao]|atendimento)( com| por)? ?(um |uma |o |a )?(robo|bot|ia|maquina|inteligencia artificial|automatic\w*)|nao quero (um |o )?(robo|bot)\b|(quero|prefiro|preciso|queria|gostaria)( de)? (falar com |conversar com |ser atendid[ao] por |atendimento (com |de )?)?(uma |um )?(pessoa|humano|gente de verdade|ser humano)|prefiro (atendimento )?humano|pessoa de verdade|atendimento humano)/;
+const DRA_RE=/(\bdra\b|doutora|suzanne|advogad[ao])/;
 async function blocked(a:any,o:string,id:string|null,p:string){if(id){const {data:v}=await a.from('whatsapp_conversations').select('bot_ativo,conversation_owner,last_human_outbound_at,human_takeover_at').eq('org_id',o).eq('id',id).maybeSingle();if(v?.bot_ativo===false||v?.conversation_owner==='HUMAN')return 'human_owner';const ts=v?.last_human_outbound_at;if(ts&&Date.now()-new Date(ts).getTime()<20*60000)return 'human_cooldown'}const {data:c}=await a.from('ai_conversation_controls').select('ai_enabled,human_takeover,resume_at').eq('org_id',o).eq('contact_key',D(p)).maybeSingle();if(c?.human_takeover===true||c?.ai_enabled===false){if(c?.resume_at&&Date.now()>=new Date(c.resume_at).getTime())return null;return 'human_takeover'}return null}
 function menuInteractive(key:string,x:N,render:string){
   return {type:'list',style:'menu',prefer:render,header:'',body:x.message,button:x.button||'Ver opções',section:x.section||'Opções',footer:'Ou escreva sua mensagem',
@@ -187,6 +189,17 @@ Deno.serve(async req=>{if(req.method!=='POST')return J({ok:false},405);try{
 
   if(!enabled){const allow=(await secret(a,'ai_test_allowlist')).split(/[,;\s]+/).map(D).filter(Boolean);if(o!=='b3dd3ed0-2a05-4087-8220-307a44352cec'||!allow.includes(D(p)))return J({ok:true,blocked:true,reason:'flow_disabled',path});}
   const why=await blocked(a,o,id,p);if(why)return J({ok:true,blocked:true,reason:why,path});
+  if(!ch&&tx&&id){
+    // Pedido de atendimento humano / recusa de robô (sem citar a Dra.): confirma, pausa a Helena e marca 'Aguardando humano'. Sem alerta imediato.
+    const tn=norm(tx);
+    if(AI_REFUSAL_RE.test(tn)&&!DRA_RE.test(tn)){
+      const m='Compreendo. Vou direcionar seu atendimento à equipe.';
+      const resp=await sendNode(a,o,id,p,'human_requested',{message:m,options:[]},render);await logOut(a,o,id,m,'human_requested',resp);
+      const now=new Date().toISOString();
+      await a.from('whatsapp_conversations').update({bot_ativo:false,conversation_owner:'HUMAN',owner_agent_key:null,human_takeover_at:now,human_takeover_reason:'human_requested',updated_at:now}).eq('org_id',o).eq('id',id);
+      return J({ok:true,matched:true,replied:true,node:'human_requested',path});
+    }
+  }
   if(ch||tx){
     const r=resolve(nodes,k,ch,tx);
     if(!r){
