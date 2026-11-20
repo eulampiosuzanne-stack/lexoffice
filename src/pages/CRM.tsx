@@ -22,7 +22,22 @@ const stages = [
   ["contratado", "Contratado"],
   ["cliente", "Cliente"],
   ["perdido", "Perdido"],
+  // Funil do catálogo de atendimento (aditivo): só aparecem no quadro quando houver lead nelas.
+  ["em_triagem", "Em triagem"],
+  ["consulta_apresentada", "Consulta apresentada"],
+  ["aguardando_pagamento", "Aguardando pagamento"],
+  ["pagamento_conferencia", "Pagamento em conferência"],
+  ["consulta_paga", "Consulta paga"],
+  ["agendamento_solicitado", "Agendamento solicitado"],
+  ["agendado", "Agendado"],
+  ["consulta_realizada", "Consulta realizada"],
+  ["contratacao_formalizacao", "Contratação em formalização"],
+  ["aguardando_interessado", "Aguardando interessado"],
+  ["encaminhado_avaliacao", "Encaminhado p/ avaliação humana"],
+  ["desistiu", "Desistiu"],
+  ["nao_convertido", "Não convertido"],
 ] as const;
+const legacyStageKeys = new Set<string>(["novo_lead", "contato_iniciado", "qualificacao", "consultoria", "proposta", "negociacao", "contratado", "cliente", "perdido"]);
 const stageAgent: Record<string, string> = {
   novo_lead: "Triagem",
   contato_iniciado: "Triagem",
@@ -33,6 +48,19 @@ const stageAgent: Record<string, string> = {
   contratado: "Triagem pós-contrato",
   cliente: "Relacionamento / Processo",
   perdido: "Comercial — recuperação",
+  em_triagem: "Triagem",
+  consulta_apresentada: "Comercial",
+  aguardando_pagamento: "Financeiro / Comercial",
+  pagamento_conferencia: "Financeiro",
+  consulta_paga: "Agenda / Comercial",
+  agendamento_solicitado: "Agenda",
+  agendado: "Agenda",
+  consulta_realizada: "Comercial",
+  contratacao_formalizacao: "Comercial",
+  aguardando_interessado: "Comercial",
+  encaminhado_avaliacao: "Equipe humana",
+  desistiu: "Comercial — recuperação",
+  nao_convertido: "Comercial — recuperação",
 };
 type Lead = {
   id: string;
@@ -128,6 +156,7 @@ export default function CRM() {
         .includes(term),
     );
   }, [leads, search]);
+  const boardStages = stages.filter(([k]) => legacyStageKeys.has(k) || leads.some((l) => l.stage_key === k));
   async function createLead() {
     if (!supabase || !orgId) return;
     setError("");
@@ -287,7 +316,7 @@ export default function CRM() {
         <span className="online">● PIPELINE AUTOMÁTICO</span>
       </div>
       <div className="crm-ruler" aria-label="Etapas do pipeline">
-        {stages.map(([key, label]) => {
+        {boardStages.map(([key, label]) => {
           const count = visibleLeads.filter((l) => l.stage_key === key).length;
           return (
             <button
@@ -349,7 +378,7 @@ export default function CRM() {
           value={mobileStage}
           onChange={(e) => setMobileStage(e.target.value)}
         >
-          {stages.map(([k, l]) => (
+          {boardStages.map(([k, l]) => (
             <option key={k} value={k}>
               {l} ({visibleLeads.filter((x) => x.stage_key === k).length})
             </option>
@@ -560,7 +589,7 @@ export default function CRM() {
         </div>
       )}
       <div className="crm-kanban ux-stage-filtered">
-        {stages.map(([key, label]) => {
+        {boardStages.map(([key, label]) => {
           const rows = visibleLeads.filter((l) => l.stage_key === key);
           return (
             <section
