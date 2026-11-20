@@ -1,6 +1,7 @@
 import { receptionMessages } from './reception-messages.mjs';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "jsr:@supabase/supabase-js@2.57.4";
+// v65 (20/11/2026) — etiquetas internas de assunto/prioridade pelos botões (catálogo §20/22).
 // v64 (20/11/2026) — catálogo bloco A: botões "Já sou cliente / Busco atendimento / Outros assuntos"; "prefiro não usar o menu" responde 03.
 // v63 (20/11/2026) — digitar "menu" reabre a recepção e solta o agente anterior.
 // v52 (13/11/2026) — MENU ELEGANTE: cada nó sai como LISTA interativa (emoji + título curto + descrição curta),
@@ -80,6 +81,8 @@ export const DEFAULT_NODES:Record<string,N>={
     {id:'counter',label:'💬 Fazer proposta',agent:'billing',ctx:{collection_action:'counter',negotiation_stage:'awaiting_proposal',negotiation_kind:'amount'}},
     {id:'human',label:'👩‍⚖️ Responsável',description:'Falar com o escritório',agent:'billing',ctx:{collection_action:'human'}}]},
 };
+const LABEL_BY_NODE:Record<string,string>={processos:'assunto:processual',documentos:'assunto:documentos',financeiro:'assunto:financeiro',agendamentos:'assunto:agendamento',urgent:'prioridade:urgencia_triagem'};
+const LABEL_BY_OPTION:Record<string,string>={'agendamentos:note':'assunto:recado_advogada','advogada:note':'assunto:recado_advogada','advogada:book':'assunto:agendamento','reception_other:partnership':'assunto:parceria','reception_other:administrative':'assunto:administrativo'};
 const oUsesReceptionMenu=(orgId:string)=>orgId==='b3dd3ed0-2a05-4087-8220-307a44352cec';
 async function loadNodes(a:any,orgId:string):Promise<{nodes:Record<string,N>,enabled:boolean,render:string}>{
   const {data}=await a.from('whatsapp_chatbot_flow_config').select('enabled,flow').eq('org_id',orgId).maybeSingle();
@@ -194,6 +197,8 @@ Deno.serve(async req=>{if(req.method!=='POST')return J({ok:false},405);try{
     const z=r.opt;
     // Caminho sem repetições: volta ao menu zera; a mesma escolha seguida não se acumula.
     if(z.id==='menu'||z.next==='start')path=[];else{const last=path[path.length-1];if(!(last&&last.node===r.node&&last.choice===z.id))path=[...path,{node:r.node,choice:z.id,label:z.label}].slice(-6)}
+    // Catálogo §20/22: etiqueta interna de assunto/prioridade conforme o botão escolhido (sem repetir, sem tocar nas demais).
+    const lab=LABEL_BY_OPTION[r.node+':'+z.id]||LABEL_BY_NODE[r.node];if(lab&&id&&!z.next){try{await a.rpc('conversation_add_label',{p_conversation:id,p_label:lab})}catch{}}
     if(z.reply){const resp=await sendNode(a,o,id,p,'reply_'+r.node,{message:z.reply,options:[]},render);await logOut(a,o,id,z.reply,r.node,resp);return J({ok:true,matched:true,replied:true,node:'agent_conversation',path})}
     if(z.agent){const urgent=path.some((s:any)=>s.node==='urgent');return J({ok:true,matched:true,handoff:true,agent_key:z.agent,selected:{node:r.node,choice:z.id,label:z.label},next_node:'agent_conversation',path,context:{path,summary:path.map((s:any)=>String(s.label).replace(/^[^\p{L}\p{N}]+/u,'').trim()).join(' → '),profile:path[0]?.choice||null,urgent,...(z.ctx||{})}})}
     if(z.next){const x=nodes[z.next];if(!x)return J({ok:false,error:`nó inexistente: ${z.next}`},400);const resp=await sendNode(a,o,id,p,z.next,x,render);return J({ok:true,matched:true,node:z.next,path,provider_response:resp})}
