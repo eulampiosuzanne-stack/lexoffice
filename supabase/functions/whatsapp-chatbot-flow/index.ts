@@ -11,11 +11,11 @@ const D=(v:any)=>String(v??'').replace(/\D/g,'');
 const A=()=>createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false}});
 const norm=(s:string)=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^\p{L}\p{N} ]+/gu,' ').replace(/\s+/g,' ').trim();
 async function secret(a:any,k:string){const {data}=await a.from('system_runtime_secrets').select('secret').eq('key',k).maybeSingle();return String(data?.secret||'').trim()}
-type O={id:string,label:string,description?:string,next?:string,agent?:string,reply?:string,ctx?:Record<string,unknown>};type N={message:string,options:O[],image?:string,section?:string};
+type O={id:string,label:string,description?:string,next?:string,agent?:string,reply?:string,ctx?:Record<string,unknown>};type N={message:string,options:O[],image?:string,section?:string,button?:string};
 const back:O={id:'menu',label:'↩️ Menu inicial',description:'Voltar às opções principais',next:'start'};
 const T='client_service_triage';
 export const DEFAULT_NODES:Record<string,N>={
-  start:{message:'*Suzanne Figueiredo Advocacia* ⚖️\n\nOlá! Como podemos ajudar?\nToque em *Ver opções* ou, se preferir, escreva sua mensagem.',section:'Como podemos ajudar',options:[
+  start:{message:'Seja bem-vindo ao Suzanne Figueiredo Advocacia e Soluções Jurídicas.\n\nSou Helena. Como posso ajudar você hoje?',button:'Opções de atendimento',section:'Como podemos ajudar',options:[
     {id:'process',label:'📂 Meus processos',description:'Andamento, audiências e próximos passos',next:'processos'},
     {id:'docs',label:'📄 Documentos',description:'Enviar, receber ou consultar documentos',next:'documentos'},
     {id:'finance',label:'💳 Financeiro',description:'Parcelas, Pix e comprovantes',next:'financeiro'},
@@ -85,18 +85,52 @@ async function loadNodes(a:any,orgId:string):Promise<{nodes:Record<string,N>,ena
   const nodes:Record<string,N>={...DEFAULT_NODES,...saved};
   if(oUsesReceptionMenu(orgId)){
     const previous=nodes.start;
-    nodes.reception_client={...previous,message:'Como podemos ajudar com seu atendimento?',options:[
-      ...previous.options.filter(option=>option.id!=='new'&&option.id!=='menu'),back
-    ]};
+    // Modo botão (WhatsApp: até 3 botões, só título): cada tela com no máximo 3 opções, sem "Mais opções".
+    nodes.reception_client={message:'Como podemos ajudar com seu atendimento?',options:[
+      {id:'process',label:'📂 Meus processos',description:'Andamento e audiências',next:'processos'},
+      {id:'finance',label:'💳 Financeiro',description:'Parcelas, Pix e comprovantes',next:'financeiro'},
+      {id:'more',label:'➕ Outros pedidos',description:'Documentos, agenda e urgência',next:'client_more'}]};
+    nodes.client_more={message:'O que você precisa?',options:[
+      {id:'docs',label:'📄 Documentos',description:'Enviar, receber ou consultar',next:'documentos'},
+      {id:'schedule',label:'📅 Agenda e recado',description:'Agendar ou deixar recado',next:'agendamentos'},
+      {id:'urgent',label:'🚨 Urgência',description:'Situação que não pode esperar',next:'urgent'}]};
+    nodes.processos={message:'Sobre o seu processo, o que você precisa?',options:[
+      {id:'last',label:'🔔 Último andamento',agent:'client_process_updates'},
+      {id:'hearing',label:'🗓️ Próxima audiência',agent:'client_process_updates'},
+      {id:'question',label:'💬 Tirar uma dúvida',agent:'client_process_updates'}]};
+    nodes.documentos={message:'O que você precisa sobre documentos?',options:[
+      {id:'send',label:'📤 Enviar documento',agent:T,ctx:{docs_action:'send'}},
+      {id:'receive',label:'📥 Receber documento',agent:T,ctx:{docs_action:'receive'}},
+      {id:'pending',label:'📋 Pendências',agent:T,ctx:{docs_action:'pending'}}]};
+    nodes.financeiro={message:'Sobre o financeiro, o que você precisa?',options:[
+      {id:'installments',label:'🧾 Minhas parcelas',agent:'billing'},
+      {id:'pix',label:'💠 Chave Pix',agent:'billing',ctx:{collection_action:'pix'}},
+      {id:'paid',label:'✅ Enviar comprovante',agent:'billing',ctx:{collection_action:'paid'}}]};
+    nodes.agendamentos={message:'Como podemos ajudar com a agenda?',options:[
+      {id:'book',label:'🗓️ Agendar reunião',agent:'client_schedule_relationship'},
+      {id:'change',label:'🔄 Remarcar/cancelar',agent:'client_schedule_relationship'},
+      {id:'note',label:'📝 Recado pelo app',reply:receptionMessages.app_note}]};
+    nodes.new={message:'Qual assunto mais se aproxima do que você precisa?',options:[
+      {id:'health',label:'🏥 Saúde',agent:T},
+      {id:'consumer',label:'🛒 Consumidor',agent:T},
+      {id:'more',label:'➕ Outras áreas',next:'new_more'}]};
+    nodes.new_more={message:'Qual área mais se aproxima?',options:[
+      {id:'family',label:'👨‍👩‍👧 Família',agent:T},
+      {id:'labor',label:'💼 Trabalho e INSS',agent:T},
+      {id:'other',label:'📄 Outro assunto',agent:T}]};
+    nodes.urgent={message:'🚨 Qual é a situação? Se houver risco imediato à vida, ligue 190.',options:[
+      {id:'risk',label:'🛡️ Risco à pessoa',agent:T},
+      {id:'custody',label:'🚔 Prisão ou despejo',agent:T},
+      {id:'deadline',label:'⏰ Prazo ou outra',agent:T}]};
     nodes.reception_other={message:'Qual assunto você gostaria de tratar?',options:[
       {id:'partnership',label:'🤝 Parcerias',description:'Apresentar uma proposta de parceria',agent:T},
-      {id:'administrative',label:'🏢 Assuntos administrativos',description:'Informações sobre o escritório',agent:T},
-      {id:'general',label:'💬 Atendimento geral',description:'Conte como podemos ajudar',agent:T},back
+      {id:'administrative',label:'🏢 Administrativo',description:'Informações sobre o escritório',agent:T},
+      {id:'professional',label:'👨‍⚖️ Sou advogado(a)',description:'Contato entre colegas e correspondência.',agent:T,ctx:{contact_type:'advogado'}}
     ]};
-    nodes.start={message:receptionMessages.welcome,section:'Atendimento',options:[
-      {id:'existing',label:'👩‍💼 Já sou cliente',description:'Já tenho atendimento com o escritório.',next:'reception_client'},
-      {id:'prospect',label:'⚖️ Não sou cliente',description:'Quero atendimento jurídico.',next:'new'},
-      {id:'other',label:'💬 Outros assuntos',description:'Informações, parcerias e assuntos administrativos.',next:'reception_other'}
+    nodes.start={message:receptionMessages.welcome,section:'Atendimento',button:'Opções de atendimento',options:[
+      {id:'existing',label:'👩‍💼 Sou cliente',description:'Processos, financeiro, documentos e agenda.',next:'reception_client'},
+      {id:'prospect',label:'✨ Não sou cliente',description:'Quero atendimento jurídico.',next:'new'},
+      {id:'other',label:'💬 Outros assuntos',description:'Parcerias, imprensa e administrativo.',next:'reception_other'}
     ]};
     nodes.advogada={message:receptionMessages.busy,options:[
       {id:'book',label:'📅 Ver horários',description:'Verificar disponibilidade para o próximo dia útil',agent:'client_schedule_relationship',ctx:{lawyer_talk:true}},
@@ -120,8 +154,8 @@ function resolve(nodes:Record<string,N>,node:string,choice:string,text:string):{
 }
 async function blocked(a:any,o:string,id:string|null,p:string){if(id){const {data:v}=await a.from('whatsapp_conversations').select('bot_ativo,conversation_owner,last_human_outbound_at,human_takeover_at').eq('org_id',o).eq('id',id).maybeSingle();if(v?.bot_ativo===false||v?.conversation_owner==='HUMAN')return 'human_owner';const ts=v?.last_human_outbound_at;if(ts&&Date.now()-new Date(ts).getTime()<20*60000)return 'human_cooldown'}const {data:c}=await a.from('ai_conversation_controls').select('ai_enabled,human_takeover,resume_at').eq('org_id',o).eq('contact_key',D(p)).maybeSingle();if(c?.human_takeover===true||c?.ai_enabled===false){if(c?.resume_at&&Date.now()>=new Date(c.resume_at).getTime())return null;return 'human_takeover'}return null}
 function menuInteractive(key:string,x:N,render:string){
-  return {type:'list',style:'menu',prefer:render,header:'',body:x.message,button:'Ver opções',section:x.section||'Opções',footer:'Ou escreva sua mensagem',
-    rows:x.options.slice(0,10).map(v=>({id:key+':'+v.id,title:v.label,description:v.description||''}))};
+  return {type:'list',style:'menu',prefer:render,header:'',body:x.message,button:x.button||'Ver opções',section:x.section||'Opções',footer:'Ou escreva sua mensagem',
+    rows:x.options.slice(0,10).map(v=>({id:key+':'+v.id,title:v.label,description:render==='text'?'':(v.description||'')}))};
 }
 async function sendNode(a:any,o:string,id:string|null,p:string,key:string,x:N,render='list'){
  const interactive=x.options.length?menuInteractive(key,x,render):null;
@@ -159,6 +193,7 @@ Deno.serve(async req=>{if(req.method!=='POST')return J({ok:false},405);try{
     if(z.next){const x=nodes[z.next];if(!x)return J({ok:false,error:`nó inexistente: ${z.next}`},400);const resp=await sendNode(a,o,id,p,z.next,x,render);return J({ok:true,matched:true,node:z.next,path,provider_response:resp})}
     return J({ok:true,matched:false,node:k});
   }
+  if(k==='start'&&id){const {data:st0}=await a.from('whatsapp_chatbot_flow_state').select('updated_at').eq('conversation_id',id).maybeSingle();if(st0?.updated_at&&Date.now()-new Date(st0.updated_at).getTime()<6*3600000)return J({ok:true,blocked:true,reason:'already_presented',path});}
   const x=nodes[k];if(!x)return J({ok:false,error:`nó inexistente: ${k}`},400);
   const resp=await sendNode(a,o,id,p,k,x,render);
   return J({ok:true,node:k,path,provider_response:resp});

@@ -1,5 +1,5 @@
 export const receptionMessages = Object.freeze({
-  welcome: 'Olá! 😊 Como podemos ajudar?',
+  welcome: 'Seja bem-vindo ao Suzanne Figueiredo Advocacia e Soluções Jurídicas.\n\nSou Helena. Como posso ajudar você hoje?',
   away: 'Olá! Recebemos sua mensagem. Nossa equipe dará continuidade no próximo expediente.',
   busy: 'A Dra. Suzanne está em atendimento agora. 😊 Como prefere seguir?',
   app_note: 'Você pode enviar seu recado pela área de mensagens do Aplicativo do Cliente. 💛',
