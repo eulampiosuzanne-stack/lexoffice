@@ -70,6 +70,7 @@ type Run = {
   calculation?: string | null;
   petition?: string | null;
   created_at: string;
+  deleted_at?: string | null;
 };
 
 const AREAS = [
@@ -284,6 +285,9 @@ export default function PetitionAssistant() {
   const [processes, setProcesses] = useState<Proc[]>([]);
   const [docs, setDocs] = useState<Doc[]>([]);
   const [runs, setRuns] = useState<Run[]>([]);
+  const [showTrash, setShowTrash] = useState(false);
+  const [runSelection, setRunSelection] = useState<string[]>([]);
+  const [trashBusy, setTrashBusy] = useState(false);
   const [clientId, setClientId] = useState("");
   const [prospectName, setProspectName] = useState("");
   const [processId, setProcessId] = useState("");
@@ -345,10 +349,10 @@ export default function PetitionAssistant() {
       supabase
         .from("petition_assistant_runs")
         .select(
-          "id,area,status,client_id,process_id,notes,instructions,document_ids,dossier,calculation,petition,opinion,created_at",
+          "id,area,status,client_id,process_id,notes,instructions,document_ids,dossier,calculation,petition,opinion,created_at,deleted_at",
         )
         .order("created_at", { ascending: false })
-        .limit(20),
+        .limit(200),
     ]);
     setClients((c || []) as Client[]);
     setProcesses((p || []) as Proc[]);
@@ -988,6 +992,32 @@ export default function PetitionAssistant() {
       });
     } finally {
       setBusy("");
+    }
+  }
+
+  async function moveRunsToTrash(ids: string[], restore = false) {
+    if (!supabase || !ids.length || trashBusy) return;
+    if (!restore && !window.confirm(`Mover ${ids.length} análise(s) para a lixeira? Clientes, processos e documentos serão preservados.`)) return;
+    setTrashBusy(true);
+    setNotice(null);
+    try {
+      const { error } = await supabase.from("petition_assistant_runs")
+        .update({ deleted_at: restore ? null : new Date().toISOString() })
+        .in("id", ids);
+      if (error) throw error;
+      if (!restore && runId && ids.includes(runId)) {
+        setRunId(null);
+        setDossier(null);
+        setPetition("");
+        setOpinion("");
+      }
+      setRunSelection([]);
+      await loadBase();
+      setNotice({ kind: "ok", text: restore ? "Análise(s) restaurada(s)." : "Análise(s) movida(s) para a lixeira. Análise recuperável pela lixeira." });
+    } catch (e: any) {
+      setNotice({ kind: "error", text: e.message || "Não foi possível alterar as análises." });
+    } finally {
+      setTrashBusy(false);
     }
   }
 
@@ -2244,23 +2274,37 @@ export default function PetitionAssistant() {
             <p>Clique para reabrir um caso.</p>
           </div>
         </div>
-        {runs.length === 0 ? (
-          <div className="doc-empty">
-            <b>Nenhum caso ainda</b>
-            <span>Os casos analisados aparecem aqui.</span>
-          </div>
+        <div className="pa-trash-controls" style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
+          <button type="button" onClick={() => { setShowTrash(!showTrash); setRunSelection([]); }}>
+            {showTrash ? "Voltar às análises" : "Lixeira"}
+          </button>
+          {!showTrash && runs.some(r => !r.deleted_at) && (
+            <button type="button" onClick={() => setRunSelection(runs.filter(r => !r.deleted_at).map(r => r.id))}>Selecionar todas</button>
+          )}
+          {runSelection.length > 0 && (
+            <button type="button" disabled={trashBusy} onClick={() => moveRunsToTrash(runSelection, showTrash)}>
+              {showTrash ? "Restaurar selecionadas" : "Excluir selecionadas"} ({runSelection.length})
+            </button>
+          )}
+        </div>
+        {runs.filter(r => showTrash ? !!r.deleted_at : !r.deleted_at).length === 0 ? (
+          <div className="doc-empty"><b>{showTrash ? "Lixeira vazia" : "Nenhum caso ainda"}</b></div>
         ) : (
           <div className="pa-runs">
-            {runs.map((r) => (
-              <button key={r.id} onClick={() => reopen(r)}>
-                <b>{r.dossier?.tipo_acao || areaLabel(r.area)}</b>
-                <span>
-                  {clients.find((c) => c.id === r.client_id)?.name ||
-                    "Sem cliente"}{" "}
-                  · {areaLabel(r.area)} · {r.status}
-                </span>
-                <small>{dt(r.created_at)}</small>
-              </button>
+            {runs.filter(r => showTrash ? !!r.deleted_at : !r.deleted_at).map(r => (
+              <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <input type="checkbox" aria-label="Selecionar análise" checked={runSelection.includes(r.id)}
+                  onChange={() => setRunSelection(old => old.includes(r.id) ? old.filter(id => id !== r.id) : [...old, r.id])} />
+                <button type="button" disabled={showTrash} onClick={() => reopen(r)} style={{ flex: 1 }}>
+                  <b>{r.dossier?.tipo_acao || areaLabel(r.area)}</b>
+                  <span>{clients.find(c => c.id === r.client_id)?.name || "Sem cliente"} · {areaLabel(r.area)} · {r.status}</span>
+                  <small>{dt(r.created_at)}</small>
+                </button>
+                <button type="button" disabled={trashBusy} onClick={() => moveRunsToTrash([r.id], showTrash)}
+                  aria-label={showTrash ? "Restaurar análise" : "Excluir análise"}>
+                  {showTrash ? "Restaurar" : "Excluir"}
+                </button>
+              </div>
             ))}
           </div>
         )}
