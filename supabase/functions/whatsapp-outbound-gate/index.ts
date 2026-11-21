@@ -68,7 +68,7 @@ async function activeProvider(a: any) {
   const p = (await runtimeSecret(a, "whatsapp_provider")).toLowerCase();
   return p === "waha" ? "waha" : p === "meta" ? "meta" : p === "uazapi" ? "uazapi" : "evolution";
 }
-async function wahaSend(a: any, orgId: string, conversationId: string | null, target: string, text: string, image: string | null, caption: string | null, document: string | null, fileName: string | null) {
+async function wahaSend(a: any, orgId: string, conversationId: string | null, target: string, text: string, image: string | null, caption: string | null, document: string | null, fileName: string | null, interactive: any = null) {
   const configuredUrl = (Deno.env.get("WAHA_API_URL") || "https://lexoffice-waha-production.up.railway.app").trim();
   const apiKey = (Deno.env.get("WAHA_API_KEY") || "").trim();
   if (!configuredUrl || !apiKey) throw new Error("WAHA não configurado no servidor");
@@ -117,6 +117,37 @@ async function wahaSend(a: any, orgId: string, conversationId: string | null, ta
     if (contactId) await a.from("whatsapp_contacts").update({ whatsapp_id: chatId }).eq("org_id", orgId).eq("id", contactId);
   }
   const media = document || image;
+  const menu = !media && interactive?.style === "menu" && interactive?.type === "list" && Array.isArray(interactive.rows) && interactive.rows.length > 0;
+  if (menu && interactive.prefer !== "text") {
+    const cut = (value: unknown, limit: number) => Array.from(String(value ?? "").trim()).slice(0, limit).join("");
+    const payload = { session, chatId, message: {
+      title: cut(interactive.header || "Suzanne Figueiredo Advocacia", 60),
+      description: cut(interactive.body || text, 1024),
+      footer: cut(interactive.footer || "Ou escreva sua mensagem", 60),
+      button: cut(interactive.button || "Ver opções", 20),
+      sections: [{ title: cut(interactive.section || "Opções", 24),
+        rows: interactive.rows.slice(0, 10).map((row: any) => ({
+          title: cut(row.title, 24), rowId: cut(row.id, 200),
+          description: row.description ? cut(row.description, 72) : null,
+        })) }],
+    } };
+    try {
+      const result = await fetch(base + "/api/sendList", {
+        method: "POST", headers, body: JSON.stringify(payload),
+        redirect: "error", signal: AbortSignal.timeout(20000),
+      });
+      if (result.ok) {
+        const data = await result.json().catch(() => null);
+        const sentId = typeof data?.id === "string" ? data.id : data?.id?._serialized || data?.key?.id || data?.message?.id;
+        if (sentId) return { id: String(sentId), format: "list" };
+      }
+      console.error("WAHA sendList recusado", result.status);
+    } catch (error) {
+      console.error("WAHA sendList erro", error instanceof Error ? error.message : String(error));
+    }
+  }
+  // Somente no erro do WAHA ou no modo texto, mantém as alternativas de escolha por escrito.
+  if (menu) text = interactiveAsText(interactive.body || text, interactive);
   const endpoint = document ? "sendFile" : image ? "sendImage" : "sendText";
   const body = media ? { session, chatId, caption: caption || text,
     file: { url: media, ...(fileName ? { filename: fileName } : {}) }
@@ -533,8 +564,8 @@ Deno.serve(async (req) => {
       if (providerName === "waha") {
         const agendaAlreadyListsSlots = interactive?.type === "list" && Array.isArray(interactive.rows)
           && interactive.rows.length > 0 && interactive.rows.every(row => String(row.id).startsWith("slot:"));
-        const wahaText = agendaAlreadyListsSlots ? message : interactiveAsText(message, interactive);
-        provider = await wahaSend(a, orgId, conversationId, target, wahaText, image, caption, document, fileName);
+        const wahaText = interactive?.style === "menu" ? message : (agendaAlreadyListsSlots ? message : interactiveAsText(message, interactive));
+        provider = await wahaSend(a, orgId, conversationId, target, wahaText, image, caption, document, fileName, interactive);
       } else if (providerName === "meta") {
         // v82: aviso automático (não é resposta a quem acabou de escrever) e cliente fora da janela de 24 h -> modelo aprovado.
         let template: { name: string } | null = null;
