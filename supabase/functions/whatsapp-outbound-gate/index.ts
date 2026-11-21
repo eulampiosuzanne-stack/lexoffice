@@ -6,6 +6,7 @@ import {
   previewForLog,
 } from "./_shared/whatsapp-reply-format.mjs";
 import { buildTemplatePayload, buildTemplatePayloadV2, buildInteractivePayload, interactiveAsText, interactiveAsMenuText } from "./_shared/meta-template.mjs";
+// v116 (21/11/2026) — a voz não lê mais o cabeçalho "Helena | Concierge Jurídica" / "Helena | Secretária".
 // v115 (21/11/2026) — pausas do "digitando" e da voz voltam ao padrão do v113 (1,2–4s; até 2,5s).
 // v114 (21/11/2026) — pausa do "digitando" e da voz mais curtas (0,8–2,2s e até 1,5s).
 // v113 (20/11/2026) — voz também nas respostas do agente de andamentos a quem escreveu agora (só números liberados); preferência aprendida mesmo em resposta citada; nunca fala "não consigo enviar áudio".
@@ -285,7 +286,7 @@ async function contactPreference(a:any,orgId:string,phone:string){
 function speakable(text:string){
  // Não lê links, códigos longos nem chave Pix em voz alta; se houver, a resposta segue só em texto.
  if(/https?:\/\/|www\.|\bpix\b|\d{6,}|@\w+\.\w+/i.test(text))return "";
- const t=String(text||"").replace(/[*_~`]/g,"").replace(/\p{Extended_Pictographic}/gu,"").replace(/\s*\n+\s*/g,". ").replace(/\s{2,}/g," ").trim();
+ const t=String(text||"").replace(/^\s*\*{0,2}Helena\*{0,2}\s*\|\s*(?:Concierge Jur[ií]dica|Secret[aá]ria)\*{0,2}\s*[:\-–—]?\s*/i,"").replace(/[*_~`]/g,"").replace(/\p{Extended_Pictographic}/gu,"").replace(/\s*\n+\s*/g,". ").replace(/\s{2,}/g," ").trim();
  return t.length>=2&&t.length<=900?t:"";
 }
 // v111: resposta em áudio com a voz já escolhida (Azure pt-BR Francisca) só para quem prefere áudio. Devolve null se não der.
