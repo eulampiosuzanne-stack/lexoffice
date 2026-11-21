@@ -6,6 +6,7 @@ import {
   previewForLog,
 } from "./_shared/whatsapp-reply-format.mjs";
 import { buildTemplatePayload, buildTemplatePayloadV2, buildInteractivePayload, interactiveAsText, interactiveAsMenuText } from "./_shared/meta-template.mjs";
+// v114 (21/11/2026) — pausa do "digitando" e da voz mais curtas (0,8–2,2s e até 1,5s).
 // v113 (20/11/2026) — voz também nas respostas do agente de andamentos a quem escreveu agora (só números liberados); preferência aprendida mesmo em resposta citada; nunca fala "não consigo enviar áudio".
 // v112 (20/11/2026) — pedido "me mande um áudio" também registra a preferência por áudio.
 // v111 (20/11/2026) — "digitando…" curto, voz da Helena (Azure) para quem prefere áudio ("gravando…") e preferência aprendida só quando a pessoa pede.
@@ -298,7 +299,7 @@ async function uazapiVoice(a:any,orgId:string,phone:string,text:string){
   const bytes=new Uint8Array(await tr.arrayBuffer());
   if(bytes.length<500||bytes.length>2_500_000)return null;
   let bin="";for(let i=0;i<bytes.length;i+=32768)bin+=String.fromCharCode(...bytes.subarray(i,i+32768));
-  await rec;await sleepMs(Math.min(2500,600+say.length*12));
+  await rec;await sleepMs(Math.min(1500,400+say.length*8));
   const r=await fetch(base+"/send/media",{method:"POST",headers:{token,"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({number:digits(phone),type:"ptt",file:btoa(bin)}),signal:AbortSignal.timeout(30000)});
   const raw=await r.text();if(!r.ok){console.error("uazapi voz recusada",r.status,raw.slice(0,200));return null}
   try{return JSON.parse(raw)}catch{return {}}
@@ -777,7 +778,7 @@ Deno.serve(async (req) => {
         else {
           let dl = delay;
           if (reactiveU) {
-            const typingMs = Math.max(1200, Math.min(4000, String(textOut).length * 25));
+            const typingMs = Math.max(800, Math.min(2200, String(textOut).length * 14));
             await uazapiPresence(a, target, "composing", typingMs);
             await sleepMs(typingMs);
             dl = 0;
