@@ -1,4 +1,5 @@
 import './ProcessUpdateAutomationPanel.visual.css';
+import SfCareOperationalPanel from './SfCareOperationalPanel';
 import {useEffect,useState,useId} from 'react';
 import {BellRing,Clock3,MessageSquare,Save,ShieldCheck,Sparkles,Workflow,Activity,UserRoundCheck,RefreshCw} from 'lucide-react';
 import {supabase} from '../lib/supabase';
@@ -38,6 +39,7 @@ export default function ProcessUpdateAutomationPanel({orgId,onDirtyChange}:Props
 
   <div className="proc-auto-card proc-prompt"><div className="proc-auto-title"><div><h3><Sparkles size={18}/> Prompt usado no envio de andamento</h3><p>Este texto é a regra oficial do agente para explicar movimentações ao cliente.</p></div></div><div className="agent-form"><label className="wide">Prompt<textarea className="instructions" value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="Defina como o agente deve interpretar e explicar os andamentos..."/></label></div><div className="integration-notice proc-warning"><ShieldCheck size={15}/> Defina orientações claras para os envios e considere sempre a data real do andamento.</div></div>
 
+  <SfCareOperationalPanel orgId={orgId}/>
   <div className="proc-save">{dirty&&<span role="status">Alterações das réguas não salvas</span>}<button className="primary" disabled={saving} onClick={save}><Save size={15}/>{saving?'Salvando...':'Salvar as duas réguas'}</button></div>
  </div></section>
 }
