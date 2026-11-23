@@ -1,0 +1,4 @@
+-- Aplicada no Supabase em 23/11/2026. Andamento novo com "audiência designada" vira item na fila de revisão
+-- (human_review_queue, source_type=hearing_suggestion). Não cria evento nem envia mensagem ao cliente.
+-- Função lex_suggest_hearings(p_hours) + cron lexoffice-hearing-suggestions (*/15).
+-- Texto completo da função: ver pg_get_functiondef('public.lex_suggest_hearings(integer)'::regprocedure).
