@@ -6,7 +6,7 @@ import { bodyFingerprint, buildBody, classify, mergeRoles, numberingPatch, origi
 // Tipografia → "Formatar peça": recebe o Word da peça e devolve o MESMO texto já no layout oficial do escritório
 // (estilos de tipografia, timbrado, quadros e tabelas). A IA só classifica a estrutura e, se pedido, sugere
 // quadro-síntese e linha do tempo a partir do próprio texto; ela nunca reescreve a peça.
-// v1 (23/11/2026)
+// v2 (23/11/2026)
 
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" } });
@@ -36,7 +36,7 @@ async function geminiKey(a: any, orgId: string) {
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-async function gemini(key: string, models: string[], payload: unknown, deadline = Date.now() + 100000) {
+async function gemini(key: string, models: string[], payload: unknown, deadline = Date.now() + 60000) {
   let last: any = null;
   for (const model of models) {
     for (let attempt = 0; attempt < 2; attempt++) {
