@@ -121,7 +121,7 @@ export function mergeRoles(heur, ai) {
 
 // ---------- montagem do corpo ----------
 const rStyled = (r, plainStyle) => {
-  const props = (!plainStyle && r.b ? '<w:rStyle w:val="Strong"/>' : "") + (!plainStyle && r.i ? "<w:i/><w:iCs/>" : "");
+  const props = (!plainStyle && r.b ? '<w:rStyle w:val="Destaque"/>' : "") + (!plainStyle && r.i ? "<w:i/><w:iCs/>" : "");
   const parts = r.t.split("\n").map((ln, k) => (k ? "<w:br/>" : "") + (ln ? `<w:t xml:space="preserve">${xe(ln)}</w:t>` : ""));
   return `<w:r>${props ? `<w:rPr>${props}</w:rPr>` : ""}${parts.join("")}</w:r>`;
 };
@@ -164,6 +164,10 @@ export function buildBody(items, roles, extras = {}) {
     if (!quadroDone && k === firstH1) { out.push(quadroXml()); quadroDone = true; }
     if (!linhaDone && k === factsEnd) { out.push(linhaXml()); linhaDone = true; }
     if (it.type === "img") { out.push(T("Normal", `[IMAGEM ${it.n} — inserir aqui a imagem do documento original]`)); return; }
+    if (it.type === "tbl" && it.rows.length === 1 && it.rows[0].length === 1) {
+      // caixa de uma célula = destaque: Aptos SemiBold 10, cores suaves
+      out.push(table("CaixaDestaque", "0480", [MAIN_W], [[it.rows[0][0]]], false, true).replace(/<w:p><w:pPr><w:pStyle w:val="RotuloTabela"\/>/g, '<w:p><w:pPr><w:pStyle w:val="DestaqueCentral"/>') + sp()); rendered++; return;
+    }
     if (it.type === "tbl") {
       const n = Math.max(...it.rows.map((r) => r.length)); const w = evenWidths(Math.min(n, 8));
       out.push(table("TabelaPeca", "0420", w, it.rows.map((r) => w.map((_, c) => r[c] || "")), true, false) + sp()); rendered++; return;
