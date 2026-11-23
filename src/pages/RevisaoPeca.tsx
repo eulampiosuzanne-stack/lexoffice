@@ -120,7 +120,7 @@ export default function RevisaoPeca() {
         }
         if (response.status === 401) return setNotice("Sua sessão expirou. Entre novamente na LexOffice.");
         if (response.status === 403) return setNotice("A revisão não está disponível para esta conta ou espaço de trabalho.");
-        if ([400, 404, 422].includes(response.status) && typeof body?.error === "string") {
+        if ([400, 404, 422, 502, 503].includes(response.status) && typeof body?.error === "string") {
           return setNotice(body.error);
         }
         return setNotice(`A revisão não pôde ser concluída agora (HTTP ${response.status}). A peça foi guardada de forma privada.`);
