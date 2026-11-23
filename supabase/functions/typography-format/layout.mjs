@@ -36,7 +36,7 @@ function parseRuns(pxml) {
       if (t[0].startsWith("<w:tab")) text += " ";
       else if (t[0].startsWith("<w:br")) text += "\n";
       else if (t[0].startsWith("<w:noBreakHyphen")) text += "-";
-      else text += xd(t[1]);
+      else text += xd(t[1]).replace(/\s*[\r\n]+\s*/g, " ");
     }
     if (!text) continue;
     const b = flag(rpr, "b"), i = flag(rpr, "i");
@@ -186,7 +186,10 @@ export function buildBody(items, roles, extras = {}) {
       case "SO": out.push(P("AssinaturaOAB", runs.map((r) => rStyled(r, true)).join(""))); break;
       case "DS": out.push(table("CaixaDestaque", "0480", [MAIN_W], [[txt]].map((r) => r), false, true).replace(/<w:p><w:pPr><w:pStyle w:val="RotuloTabela"\/>/g, '<w:p><w:pPr><w:pStyle w:val="DestaqueCentral"/>') + sp()); break;
       case "PED": {
-        if (!inPed) { listCount++; pedList = listCount - 1; inPed = true; }
+        // nova lista só quando a letra recomeça em "a)"; c), d)... continuam a lista anterior (mesmo após tabelas/títulos)
+        const letter = (txt.match(/^([a-zç])\)/) || [, "a"])[1];
+        if (listCount === 0 || letter === "a") { listCount++; pedList = listCount - 1; }
+        inPed = true;
         const first = runs.map((r) => ({ ...r })); first[0].t = first[0].t.replace(/^[a-zç]\)\s+/, "");
         const num = pedList === 0 ? "" : `<w:numPr><w:ilvl w:val="0"/><w:numId w:val="${10 + pedList}"/></w:numPr>`;
         out.push(P("Pedido", first.map((r) => rStyled(r, false)).join(""), num)); break;

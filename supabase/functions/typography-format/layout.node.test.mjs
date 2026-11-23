@@ -97,3 +97,17 @@ test("casos-limite: documento vazio, só uma linha, tabela sem texto, numeraçã
   assert.equal(numberingPatch(2).match(/<w:num /g).length, 2);
   assert.equal(numberingPatch(0), "");
 });
+
+test("quebra de linha literal dentro de <w:t> vira espaço (não quebra a frase)", () => {
+  const { items } = parseDocument(DOC(p(`<w:r><w:t xml:space="preserve">AGRAVO\nDE INSTRUMENTO com\n  pedido</w:t></w:r>`) + p(run("segundo parágrafo de teste do documento")) + p(run("terceiro parágrafo de teste do documento"))));
+  assert.equal(items[0].text, "AGRAVO DE INSTRUMENTO com pedido");
+});
+
+test("pedidos c), d) continuam a lista mesmo após tabela; a) reinicia", () => {
+  const items = parseDocument(DOC([p(run("a) um;")), p(run("b) dois;")), tbl([["X", "Y"], ["1", "2"]]), p(run("c) três;")), p(run("d) quatro.")), p(run("a) outro;"))].join(""))).items;
+  const roles = ["PED", "PED", "PED", "PED", "PED"];
+  const { body, extraLists } = buildBody(items, roles);
+  assert.equal(extraLists, 1);
+  const ids = [...body.matchAll(/w:numId w:val="(\d+)"/g)].map((m) => m[1]);
+  assert.deepEqual(ids, ["11"]);
+});
