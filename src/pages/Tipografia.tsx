@@ -140,6 +140,35 @@ export default function Tipografia() {
   }
 
   // ---- Revisar minha peça: a IA compara com os modelos e devolve o mesmo Word melhorado ----
+  const [fmtFile, setFmtFile] = useState<File | null>(null);
+  const [fmtKind, setFmtKind] = useState(TYPES[0]);
+  const [fmtExtras, setFmtExtras] = useState(true);
+  const [fmtBusy, setFmtBusy] = useState(false);
+  const [fmtNotice, setFmtNotice] = useState("");
+  const [fmtResult, setFmtResult] = useState<any>(null);
+
+  // Devolve a peça já no layout oficial (tipografia, timbrado, quadros e tabelas), pronta para peticionar.
+  async function formatPiece() {
+    if (!supabase) return;
+    if (!fmtFile) return setFmtNotice("Escolha a peça em Word (.docx).");
+    if (fmtFile.name.split(".").pop()?.toLowerCase() !== "docx") return setFmtNotice("Envie a peça em Word (.docx).");
+    if (!fmtFile.size) return setFmtNotice("O arquivo está vazio.");
+    if (fmtFile.size > MAX) return setFmtNotice("O arquivo excede o limite de 20 MB.");
+    setFmtBusy(true); setFmtResult(null); setFmtNotice("Enviando a peça...");
+    const { data: orgId } = await supabase.rpc("current_org_id");
+    const safe = fmtFile.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `${orgId}/tipografia-entrada/${crypto.randomUUID()}-${safe}`;
+    const up = await supabase.storage.from(BUCKET).upload(path, fmtFile, { upsert: false, contentType: fmtFile.type || undefined });
+    if (up.error) { setFmtBusy(false); return setFmtNotice("Não foi possível enviar a peça: " + up.error.message); }
+    setFmtNotice("Organizando a peça no layout do escritório. Leva de 20 segundos a 1 minuto...");
+    const { data, error } = await supabase.functions.invoke("typography-format", { body: { path, file_name: fmtFile.name, piece_type: fmtKind, extras: fmtExtras } });
+    setFmtBusy(false);
+    const err = (data as any)?.error || (error ? (await (error as any)?.context?.json?.().catch(() => null))?.error || error.message : "");
+    if (err || !(data as any)?.ok || !(data as any)?.url) return setFmtNotice("Não foi possível formatar: " + (err || "tente novamente."));
+    setFmtResult(data);
+    setFmtNotice("Peça formatada. Baixe o Word abaixo.");
+  }
+
   const [revFile, setRevFile] = useState<File | null>(null);
   const [revKind, setRevKind] = useState(TYPES[0]);
   const [revNotes, setRevNotes] = useState("");
@@ -180,6 +209,27 @@ export default function Tipografia() {
           <p>Peças-modelo do escritório. A IA usa estas peças só para aprender o seu estilo de escrita — nunca copia fatos, nomes ou números. Uso interno: clientes não veem.</p>
         </div>
       </div>
+
+      <section className="integration-panel">
+        <h2>Formatar peça — layout pronto para peticionar</h2>
+        <p>Anexe a peça em Word. O texto não é alterado: a Tipografia organiza títulos, parágrafos, citações e pedidos (a, b, c), monta quadros e tabelas e devolve o Word com o timbrado e a tipografia oficial do escritório.</p>
+        <label>Tipo da peça
+          <select value={fmtKind} onChange={(e) => setFmtKind(e.target.value)} disabled={fmtBusy}>{TYPES.map((t) => <option key={t}>{t}</option>)}</select>
+        </label>
+        <label>Peça (.docx)
+          <input type="file" accept=".docx" disabled={fmtBusy} onChange={(e) => { setFmtFile(e.target.files?.[0] || null); setFmtResult(null); setFmtNotice(""); }} />
+        </label>
+        <label><input type="checkbox" checked={fmtExtras} disabled={fmtBusy} onChange={(e) => setFmtExtras(e.target.checked)} /> Montar quadro-síntese e linha do tempo a partir do texto da peça</label>
+        <button type="button" disabled={fmtBusy || !fmtFile} onClick={formatPiece}>{fmtBusy ? "Formatando..." : "Formatar peça"}</button>
+        {fmtNotice && <p role="status">{fmtNotice}</p>}
+        {fmtResult?.url && (
+          <div>
+            <p><a href={fmtResult.url}>Baixar a peça formatada (Word)</a></p>
+            <small>{fmtResult.paragrafos} blocos · {fmtResult.titulos} títulos · {fmtResult.pedidos} pedidos · {fmtResult.tabelas} tabela(s) do original{fmtResult.gerados?.length ? ` · gerados: ${fmtResult.gerados.join(" e ")}` : ""}</small>
+            {(fmtResult.avisos || []).map((a: string, k: number) => <p key={k} role="alert">⚠ {a}</p>)}
+          </div>
+        )}
+      </section>
 
       <section className="integration-panel">
         <h2>Revisar minha peça</h2>
