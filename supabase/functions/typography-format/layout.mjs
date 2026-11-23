@@ -66,7 +66,11 @@ export function parseDocument(documentXml) {
       const rows = [...t.matchAll(/<w:tr(?:\s[^>]*)?>([\s\S]*?)<\/w:tr>/g)].map((r) =>
         [...r[1].matchAll(/<w:tc>([\s\S]*?)<\/w:tc>/g)].map((c) =>
           [...c[1].matchAll(/<w:p(?:\s[^>]*)?>([\s\S]*?)<\/w:p>/g)].map((p) => plain(cleanRuns(parseRuns(p[1])))).filter(Boolean).join("\n")));
-      const real = rows.filter((r) => r.length && r.some((c) => c.trim()));
+      let real = rows.filter((r) => r.length && r.some((c) => c.trim()));
+      // descarta colunas que estão vazias em todas as linhas (sobras do Word)
+      const nc = Math.max(0, ...real.map((r) => r.length));
+      const keep = Array.from({ length: nc }, (_, c) => c).filter((c) => real.some((r) => String(r[c] || "").trim()));
+      real = real.map((r) => keep.map((c) => r[c] || ""));
       if (real.length) items.push({ type: "tbl", rows: real });
       i = end; continue;
     }
@@ -214,6 +218,10 @@ export function buildBody(items, roles, extras = {}) {
     if (it.type === "tbl" && it.rows.length === 1 && it.rows[0].length === 1) {
       // caixa de uma célula = destaque: Aptos SemiBold 10, cores suaves
       out.push(table("CaixaDestaque", "0480", [MAIN_W], [[it.rows[0][0]]], false, true).replace(/<w:p><w:pPr><w:pStyle w:val="RotuloTabela"\/>/g, '<w:p><w:pPr><w:pStyle w:val="DestaqueCentral"/>') + sp()); rendered++; return;
+    }
+    if (it.type === "tbl" && it.rows.every((r) => r.length === 2) && it.rows.length <= 12 && it.rows.length >= 2 && it.rows.every((r) => r[0].length <= 40 && !/[\n\d]/.test(r[0])) && !it.rows.slice(1).some((r) => /^(Fato|Ocorr|Prova|Valor|Descri)/i.test(r[0]))) {
+      // tabela de dois campos (rótulo e valor): quadro com rótulo em destaque, sem linha de cabeçalho
+      out.push(table("QuadroSintese", "0480", [2520, 6551], it.rows, false, true) + sp()); rendered++; return;
     }
     if (it.type === "tbl") {
       const n = Math.max(...it.rows.map((r) => r.length)); const w = evenWidths(Math.min(n, 8));

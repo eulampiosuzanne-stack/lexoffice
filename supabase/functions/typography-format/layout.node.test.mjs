@@ -127,3 +127,14 @@ test("gráfico: monta o bloco e a impressão digital do texto continua igual", (
   assert.equal(charts, 1); assert.ok(body.includes("Representação gráfica"));
   assert.equal(bodyFingerprint(body), originalFingerprint(items));
 });
+
+test("tabela: descarta coluna vazia e trata rótulo/valor como quadro", () => {
+  const cell = (t) => `<w:tc><w:p><w:r><w:t>${t}</w:t></w:r></w:p></w:tc>`;
+  const row = (a, b) => `<w:tr>${cell(a)}${cell(b)}${cell("")}</w:tr>`;
+  const xml = `<w:document><w:body><w:tbl>${row("Juízo", "Vara Única")}${row("Processo", "0004383-30.2022.8.19.0072")}</w:tbl><w:p><w:r><w:t>Texto qualquer da peça.</w:t></w:r></w:p></w:body></w:document>`;
+  const { items } = parseDocument(xml);
+  assert.equal(items[0].rows[0].length, 2);
+  const { body } = buildBody(items, ["P"], {});
+  assert.ok(body.includes("QuadroSintese"));
+  assert.equal(bodyFingerprint(body), originalFingerprint(items));
+});
