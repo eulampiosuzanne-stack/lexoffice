@@ -25,6 +25,29 @@ export default function RevisaoPeca() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [result, setResult] = useState<any>(null);
+  const [fmtResult, setFmtResult] = useState<any>(null);
+
+  // Aba Tipografia: devolve o Word da peça já formatado no layout oficial (sem análise).
+  async function formatPiece() {
+    if (!file || !supabase) return setNotice("Escolha a peça em Word (.docx).");
+    if (file.name.split(".").pop()?.toLowerCase() !== "docx") return setNotice("Para formatar, envie a peça em Word (.docx).");
+    if (!file.size) return setNotice("O arquivo está vazio.");
+    if (file.size > max) return setNotice("O arquivo excede o limite de 20 MB.");
+    setBusy(true); setFmtResult(null);
+    setNotice("Enviando a peça...");
+    const { data: orgId } = await supabase.rpc("current_org_id");
+    const safe = file.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `${orgId}/tipografia-entrada/${crypto.randomUUID()}-${safe}`;
+    const up = await supabase.storage.from("legal-review-files").upload(path, file, { upsert: false });
+    if (up.error) { setBusy(false); return setNotice("Não foi possível enviar a peça: " + up.error.message); }
+    setNotice("Organizando a peça no layout do escritório. Leva de 20 segundos a 2 minutos...");
+    const { data, error } = await supabase.functions.invoke("typography-format", { body: { path, file_name: file.name, piece_type: "Petição", extras: true } });
+    setBusy(false);
+    const err = (data as any)?.error || (error ? (await (error as any)?.context?.json?.().catch(() => null))?.error || error.message : "");
+    if (err || !(data as any)?.ok || !(data as any)?.url) return setNotice("Não foi possível formatar: " + (err || "tente novamente."));
+    setFmtResult(data);
+    setNotice("Peça formatada. Baixe o Word abaixo.");
+  }
 
   async function analyze() {
     if (!file || !supabase)
@@ -161,6 +184,7 @@ export default function RevisaoPeca() {
             onChange={(e) => {
               setFile(e.target.files?.[0] || null);
               setResult(null);
+              setFmtResult(null);
               setNotice("");
             }}
           />
@@ -170,10 +194,17 @@ export default function RevisaoPeca() {
               : "O conteúdo jurídico não é alterado automaticamente."}
           </small>
         </label>
-        <button className="primary" disabled={busy || !file} onClick={analyze}>
+        <button className="primary" disabled={busy || !file} onClick={tab === "Tipografia" ? formatPiece : analyze}>
           <SearchCheck size={16} />
-          {busy ? "Processando..." : "Iniciar análise segura"}
+          {busy ? "Processando..." : tab === "Tipografia" ? "Formatar peça (devolve o Word pronto)" : "Iniciar análise segura"}
         </button>
+        {fmtResult?.url && tab === "Tipografia" && (
+          <div className="integration-card">
+            <a className="primary" href={fmtResult.url}>Baixar a peça formatada (Word)</a>
+            <p>{fmtResult.paragrafos} blocos · {fmtResult.titulos} títulos · {fmtResult.pedidos} pedidos · {fmtResult.tabelas} tabela(s) do original</p>
+            {(fmtResult.avisos || []).map((a: string, i: number) => <small key={i} style={{ display: "block" }}>⚠ {a}</small>)}
+          </div>
+        )}
         {notice && (
           <div className="integration-notice" role="status">
             {notice}
