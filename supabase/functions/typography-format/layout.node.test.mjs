@@ -111,3 +111,19 @@ test("pedidos c), d) continuam a lista mesmo após tabela; a) reinicia", () => {
   const ids = [...body.matchAll(/w:numId w:val="(\d+)"/g)].map((m) => m[1]);
   assert.deepEqual(ids, ["11"]);
 });
+
+import { validateCharts } from "./layout.mjs";
+test("gráfico: só aceita valores que estão no texto e na mesma unidade", () => {
+  const { items } = parseDocument(`<w:body><w:p><w:r><w:t>O Banco indicou R$ 86.757,84, mas a memória aponta R$ 73.575,13 e a parcela é R$ 66.400,00.</w:t></w:r></w:p><w:p><w:r><w:t>Outro parágrafo.</w:t></w:r></w:p><w:p><w:r><w:t>Terceiro.</w:t></w:r></w:p><w:sectPr/></w:body>`);
+  const ok = validateCharts(items, [{ titulo: "Débito", barras: [["Banco", "R$ 86.757,84"], ["Defesa", "R$ 73.575,13"]] }]);
+  assert.equal(ok.length, 1); assert.equal(ok[0].bars.length, 2); assert.equal(ok[0].after, 0);
+  assert.equal(validateCharts(items, [{ titulo: "x", barras: [["A", "R$ 999,00"], ["B", "R$ 73.575,13"]] }]).length, 0, "valor inventado derruba a barra e o gráfico");
+  assert.equal(validateCharts(items, [{ titulo: "x", barras: [["A", "R$ 86.757,84"], ["B", "30%"]] }]).length, 0, "unidades misturadas");
+  assert.equal(validateCharts(items, "lixo").length, 0);
+});
+test("gráfico: monta o bloco e a impressão digital do texto continua igual", () => {
+  const { items } = parseDocument(`<w:body><w:p><w:r><w:t>O Banco indicou R$ 86.757,84 e a defesa R$ 73.575,13.</w:t></w:r></w:p><w:p><w:r><w:t>Segundo.</w:t></w:r></w:p><w:p><w:r><w:t>Terceiro.</w:t></w:r></w:p><w:sectPr/></w:body>`);
+  const { body, charts } = buildBody(items, classify(items), { graficos: [{ titulo: "Débito", barras: [["Banco", "R$ 86.757,84"], ["Defesa", "R$ 73.575,13"]] }] });
+  assert.equal(charts, 1); assert.ok(body.includes("Representação gráfica"));
+  assert.equal(bodyFingerprint(body), originalFingerprint(items));
+});

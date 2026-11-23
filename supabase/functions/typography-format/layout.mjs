@@ -145,6 +145,50 @@ function table(style, hdr, widths, rows, headRow, firstColLabel) {
 }
 const evenWidths = (n) => { const b = Math.floor(MAIN_W / n); return Array.from({ length: n }, (_, i) => (i === n - 1 ? MAIN_W - b * (n - 1) : b)); };
 
+// ---------- gráfico comparativo (barras em tabela do Word, editável) ----------
+const parseBR = (t) => { const m = String(t).match(/\d[\d.]*(?:,\d+)?/); if (!m) return NaN; return Number(m[0].replace(/\./g, "").replace(",", ".")); };
+const unitOf = (t) => (/R\$/.test(t) ? "R$" : /%/.test(t) ? "%" : "");
+const squash = (s) => String(s || "").replace(/\s+/g, " ").replace(/R\$\s*/g, "R$ ");
+// Aceita só barras cujo valor aparece EXPRESSAMENTE no texto da peça; a IA nunca inventa número.
+export function validateCharts(items, graficos) {
+  if (!Array.isArray(graficos)) return [];
+  const out = [];
+  for (const g of graficos.slice(0, 2)) {
+    const bars = [];
+    for (const b of Array.isArray(g?.barras) ? g.barras : []) {
+      if (!Array.isArray(b) || !b[0] || !b[1]) continue;
+      const text = squash(String(b[1]).trim()); const value = parseBR(text);
+      if (!Number.isFinite(value) || value <= 0) continue;
+      bars.push({ label: String(b[0]).slice(0, 60), value, text, unit: unitOf(text) });
+    }
+    const unit = bars[0]?.unit; const same = bars.filter((b) => b.unit === unit).slice(0, 6);
+    const hit = items.map((it, k) => ({ it, k })).filter((x) => x.it.type === "p");
+    const ok = same.filter((b) => hit.some((x) => squash(x.it.text).includes(b.text)));
+    if (ok.length < 2) continue;
+    let best = -1, bestN = 0;
+    hit.forEach((x) => { const n = ok.filter((b) => squash(x.it.text).includes(b.text)).length; if (n > bestN) { bestN = n; best = x.k; } });
+    if (best < 0) { best = hit[hit.length - 1].k; }
+    out.push({ after: best, title: String(g.titulo || "Comparativo").slice(0, 90), bars: ok });
+  }
+  return out;
+}
+const BAR_COLORS = ["5C3D1D", "906937", "D4AF37", "7A6F61", "C9B79C", "B08D57"];
+function chartXml(c) {
+  // colunas verticais feitas com células sombreadas de altura fixa: editável no Word, sem imagem
+  const n = c.bars.length, ROWS = 12, H = 300, max = Math.max(...c.bars.map((b) => b.value));
+  const cw = Math.floor(MAIN_W / n), widths = Array.from({ length: n }, (_, i) => (i === n - 1 ? MAIN_W - cw * (n - 1) : cw));
+  const hs = c.bars.map((b) => Math.max(1, Math.round((b.value / max) * ROWS)));
+  const gap = '<w:tcBorders><w:left w:val="single" w:sz="48" w:space="0" w:color="FFFFFF"/><w:right w:val="single" w:sz="48" w:space="0" w:color="FFFFFF"/></w:tcBorders>';
+  const cell = (w, inner, fill) => `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${gap}${fill ? `<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/>` : ""}<w:vAlign w:val="center"/></w:tcPr>${inner}</w:tc>`;
+  const centered = (style, text) => P(style, rStyled({ t: text, b: false, i: false }, true), '<w:jc w:val="center"/>');
+  const row = (cells, h, rule) => `<w:tr><w:trPr><w:cantSplit/><w:trHeight w:val="${h}" w:hRule="${rule}"/></w:trPr>${cells}</w:tr>`;
+  let rows = row(c.bars.map((b, i) => cell(widths[i], centered("RotuloTabela", b.text), null)).join(""), 400, "atLeast");
+  for (let r = 0; r < ROWS; r++) rows += row(c.bars.map((b, i) => cell(widths[i], P("EspacoTabela", ""), r >= ROWS - hs[i] ? BAR_COLORS[i % BAR_COLORS.length] : null)).join(""), H, "exact");
+  rows += row(c.bars.map((b, i) => cell(widths[i], centered("TextoTabela", b.label), null)).join(""), 400, "atLeast");
+  const tbl = `<w:tbl><w:tblPr><w:tblW w:w="${MAIN_W}" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${widths.map((w) => `<w:gridCol w:w="${w}"/>`).join("")}</w:tblGrid>${rows}</w:tbl>`;
+  return P("Heading3", rStyled({ t: `Representação gráfica — ${c.title}`, b: false, i: false }, true)) + tbl + sp();
+}
+
 export function buildBody(items, roles, extras = {}) {
   const out = []; let pi = 0, pedList = -1, inPed = false, listCount = 0, rendered = 0;
   const qs = Array.isArray(extras.quadro) ? extras.quadro.filter((r) => Array.isArray(r) && r[0] && r[1]).slice(0, 8) : [];
@@ -159,8 +203,11 @@ export function buildBody(items, roles, extras = {}) {
   const quadroXml = () => P("Heading1", rStyled({ t: "Quadro-síntese da demanda", b: false, i: false }, true)) + table("QuadroSintese", "0480", [2520, 6551], qs.map((r) => [String(r[0]).slice(0, 60), String(r[1]).slice(0, 400)]), false, true) + sp();
   const linhaXml = () => P("Heading2", rStyled({ t: "Linha do tempo documentada", b: false, i: false }, true)) + table("TabelaPeca", "0420", [1814, 3628, 3629], [["Marco", "Ocorrência", "Prova / Efeito"], ...tl.map((r) => [String(r[0] || "").slice(0, 30), String(r[1]).slice(0, 300), String(r[2] || "").slice(0, 200)])], true, false) + sp();
   let quadroDone = !qs.length, linhaDone = !tl.length || factsStart < 0;
+  const charts = validateCharts(items, extras.graficos); const chartAt = new Map(); charts.forEach((c) => chartAt.set(c.after, [...(chartAt.get(c.after) || []), c]));
+  const flush = (k) => { for (const c of chartAt.get(k) || []) out.push(chartXml(c)); chartAt.delete(k); };
 
   items.forEach((it, k) => {
+    if (k > 0) flush(k - 1);
     if (!quadroDone && k === firstH1) { out.push(quadroXml()); quadroDone = true; }
     if (!linhaDone && k === factsEnd) { out.push(linhaXml()); linhaDone = true; }
     if (it.type === "img") { out.push(T("Normal", `[IMAGEM ${it.n} — inserir aqui a imagem do documento original]`)); return; }
@@ -201,8 +248,9 @@ export function buildBody(items, roles, extras = {}) {
       default: out.push(P("Normal", runs.map((r) => rStyled(r, false)).join(""))); break;
     }
   });
+  flush(items.length - 1);
   if (!quadroDone && qs.length) out.splice(Math.min(3, out.length), 0, quadroXml());
-  return { body: out.join(""), extraLists: Math.max(0, listCount - 1), rendered };
+  return { body: out.join(""), extraLists: Math.max(0, listCount - 1), rendered, charts: charts.length };
 }
 
 // <w:num> adicionais para reiniciar a contagem a), b), c) em cada lista de pedidos.
@@ -222,6 +270,7 @@ export function bodyFingerprint(bodyXml, skipGenerated = true) {
   if (skipGenerated) {
     x = x.replace(/<w:p><w:pPr><w:pStyle w:val="Heading1"\/><\/w:pPr><w:r><w:t xml:space="preserve">Quadro-síntese da demanda<\/w:t><\/w:r><\/w:p>[\s\S]*?<\/w:tbl>/, "")
       .replace(/<w:p><w:pPr><w:pStyle w:val="Heading2"\/><\/w:pPr><w:r><w:t xml:space="preserve">Linha do tempo documentada<\/w:t><\/w:r><\/w:p>[\s\S]*?<\/w:tbl>/, "")
+      .replace(/<w:p><w:pPr><w:pStyle w:val="Heading3"\/><\/w:pPr><w:r><w:t xml:space="preserve">Representação gráfica —[^<]*<\/w:t><\/w:r><\/w:p>[\s\S]*?<\/w:tbl>/g, "")
       .replace(/<w:p><w:pPr><w:pStyle w:val="Normal"\/><\/w:pPr><w:r><w:t xml:space="preserve">\[IMAGEM[^<]*<\/w:t><\/w:r><\/w:p>/g, "");
   }
   return norm(xd([...x.matchAll(/<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g)].map((m) => m[1]).join(" ")));

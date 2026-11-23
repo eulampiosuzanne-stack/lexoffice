@@ -6,7 +6,7 @@ import { bodyFingerprint, buildBody, classify, mergeRoles, numberingPatch, origi
 // Tipografia → "Formatar peça": recebe o Word da peça e devolve o MESMO texto já no layout oficial do escritório
 // (estilos de tipografia, timbrado, quadros e tabelas). A IA só classifica a estrutura e, se pedido, sugere
 // quadro-síntese e linha do tempo a partir do próprio texto; ela nunca reescreve a peça.
-// v2 (23/11/2026)
+// v3 (23/11/2026): + gráfico comparativo de valores
 
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" } });
@@ -81,9 +81,10 @@ ${wantRoles ? `1) "roles": uma lista com exatamente ${paragraphs.length} código
 E=endereçamento ao juízo/tribunal; PR=linha "Processo nº"; TP=título da peça (ex.: AÇÃO..., CONTESTAÇÃO...); H1=título de seção principal (ex.: "1. DOS FATOS", "II – DO DIREITO"); H2=subtítulo (ex.: "1.1."); H3=sub-subtítulo; P=parágrafo comum (inclui a qualificação das partes); CIT=citação/ementa/jurisprudência transcrita; PED=item de pedido iniciado por "a)", "b)"...; FE=fecho ("Nestes termos, pede deferimento"); DT=local e data; SL=linha de assinatura; SN=nome de quem assina; SO=linha da OAB.
 Na dúvida use P.` : ""}
 ${wantExtras ? `2) "quadro": síntese da demanda com até 5 linhas [rótulo, texto curto], usando só estes rótulos quando houver base no texto: Objeto, Fato central, Conduta questionada, Prova prioritária, Providências. Cada texto com no máximo 220 caracteres, escrito SOMENTE com o que está no texto. Se faltar base, omita a linha.
-3) "linha": linha do tempo com até 10 itens [data, ocorrência, prova ou efeito], em ordem cronológica, usando APENAS datas que aparecem expressamente no texto (formato dd/mm/aaaa quando a peça trouxer assim). Prova/efeito só se o texto citar um documento ou ID; senão deixe "". Se houver menos de 2 datas claras, devolva lista vazia.` : ""}
+3) "linha": linha do tempo com até 10 itens [data, ocorrência, prova ou efeito], em ordem cronológica, usando APENAS datas que aparecem expressamente no texto (formato dd/mm/aaaa quando a peça trouxer assim). Prova/efeito só se o texto citar um documento ou ID; senão deixe "". Se houver menos de 2 datas claras, devolva lista vazia.
+4) "graficos": até 2 gráficos comparativos que ajudem o juiz a entender valores em disputa (ex.: valor cobrado x valor apurado pela defesa, composição de um débito). Cada gráfico: {"titulo":"...","barras":[["rótulo curto","valor EXATAMENTE como escrito no texto, ex.: R$ 66.400,00"]]}, com 2 a 6 barras, todas na mesma unidade (R$ ou %). Use SOMENTE valores que aparecem expressamente no texto, copiados com a mesma grafia; não some, não calcule, não arredonde. Se não houver comparação numérica clara, devolva lista vazia.` : ""}
 Regras: não invente fatos, datas, valores, nomes nem números; não use informação externa.
-Responda SOMENTE JSON: {${wantRoles ? '"roles":[...],' : ""}${wantExtras ? '"quadro":[["Objeto","..."]],"linha":[["dd/mm/aaaa","...","..."]]' : ""}}
+Responda SOMENTE JSON: {${wantRoles ? '"roles":[...],' : ""}${wantExtras ? '"quadro":[["Objeto","..."]],"linha":[["dd/mm/aaaa","...","..."]],"graficos":[{"titulo":"...","barras":[["...","R$ 0,00"]]}]' : ""}}
 
 PARÁGRAFOS:
 ${list}`;
@@ -132,14 +133,14 @@ Deno.serve(async (req) => {
           try {
             const out = parseJson(g.text); model = g.model;
             if (wantRoles) roles = mergeRoles(roles, Array.isArray(out.roles) ? out.roles.map((r: any) => (ROLES.includes(String(r).toUpperCase()) && String(r).toUpperCase() !== "DS" ? String(r).toUpperCase() : "")) : null);
-            if (extrasOn) extras = { quadro: out.quadro, linha: out.linha };
+            if (extrasOn) extras = { quadro: out.quadro, linha: out.linha, graficos: out.graficos };
           } catch { avisos.push("A IA devolveu a estrutura em formato incompleto; formatei só pelas regras do escritório."); }
         } else avisos.push("A IA não respondeu agora; formatei só pelas regras do escritório (sem quadro-síntese e linha do tempo).");
       } else avisos.push("Gemini não está configurado; formatei só pelas regras do escritório.");
     }
 
     // 2) monta o Word no modelo oficial
-    const { body, extraLists, rendered } = buildBody(items, roles, extras);
+    const { body, extraLists, rendered, charts } = buildBody(items, roles, extras);
     if (bodyFingerprint(body) !== originalFingerprint(items)) return json({ ok: false, error: "Por segurança, interrompi a formatação: o texto da peça não ficou idêntico ao original. Nada foi entregue. Tente novamente." }, 500);
     const tpl = await JSZip.loadAsync(await loadModel());
     const docFile = tpl.file("word/document.xml"); const numFile = tpl.file("word/numbering.xml");
@@ -160,6 +161,7 @@ Deno.serve(async (req) => {
     const gerados: string[] = [];
     if (Array.isArray(extras.quadro) && extras.quadro.length) gerados.push("quadro-síntese");
     if (Array.isArray(extras.linha) && extras.linha.length >= 2 && body.includes("Linha do tempo documentada")) gerados.push("linha do tempo");
+    if (charts) gerados.push(charts > 1 ? "gráficos comparativos" : "gráfico comparativo");
     if (gerados.length) avisos.push(`Confira o que a IA montou a partir do texto: ${gerados.join(" e ")}. Se algo não estiver certo, apague o bloco no Word.`);
     return json({ ok: true, url: signed?.signedUrl || null, avisos, gerados, imagens: images, tabelas: items.filter((i: any) => i.type === "tbl").length, paragrafos: rendered, titulos: count("H1") + count("H2") + count("H3"), pedidos: count("PED"), model: model || null });
   } catch (e) {
