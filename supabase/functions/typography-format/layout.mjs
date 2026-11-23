@@ -121,7 +121,7 @@ export function mergeRoles(heur, ai) {
 
 // ---------- montagem do corpo ----------
 const rStyled = (r, plainStyle) => {
-  const props = (!plainStyle && r.b ? '<w:rStyle w:val="Destaque"/>' : "") + (!plainStyle && r.i ? "<w:i/><w:iCs/>" : "");
+  const props = (!plainStyle && r.b ? '<w:rStyle w:val="Strong"/>' : "") + (!plainStyle && r.i ? "<w:i/><w:iCs/>" : "");
   const parts = r.t.split("\n").map((ln, k) => (k ? "<w:br/>" : "") + (ln ? `<w:t xml:space="preserve">${xe(ln)}</w:t>` : ""));
   return `<w:r>${props ? `<w:rPr>${props}</w:rPr>` : ""}${parts.join("")}</w:r>`;
 };
