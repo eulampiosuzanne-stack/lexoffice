@@ -95,10 +95,9 @@ export default function RevisaoPeca() {
       );
     }
     const { data, error } = await supabase.functions.invoke(
-      "petition-assistant",
+      "legal-review",
       {
         body: {
-          action: "legal_review",
           review_id: saved.data.id,
           file_path: path,
           file_name: file.name,
