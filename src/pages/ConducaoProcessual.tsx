@@ -389,7 +389,7 @@ export default function ConducaoProcessual() {
   const [draftProvider, setDraftProvider] = useState("");
   const [draftExtra, setDraftExtra] = useState("");
   const [caseNote, setCaseNote] = useState("");
-  const [caseDocs, setCaseDocs] = useState<{id:string;name:string;created_at:string}[]>([]);
+  const [caseDocs, setCaseDocs] = useState<{id:string;name:string;created_at:string;file_path?:string|null}[]>([]);
   const [newItem, setNewItem] = useState("");
   const [newDl, setNewDl] = useState({ title: "", due: "" });
   const [busy, setBusy] = useState("");
@@ -436,11 +436,13 @@ export default function ConducaoProcessual() {
       (p) => (p.cnj_number || "").replace(/\D/g, "").length === 20,
     );
     if (!f) return base.slice(0, 80);
+    const digits = f.replace(/\D/g, "");
     return base
       .filter((p) =>
         norm(
           `${p.cnj_number} ${p.internal_number} ${p.clients?.name} ${p.subject} ${p.opposing_party}`,
-        ).includes(f),
+        ).includes(f) ||
+        (digits.length >= 4 && (p.cnj_number || "").replace(/\D/g, "").includes(digits)),
       )
       .slice(0, 80);
   }, [procs, filter]);
@@ -530,8 +532,23 @@ export default function ConducaoProcessual() {
   }
   async function loadCaseDocs(id: string) {
     if (!supabase) return;
-    const { data } = await supabase.from("documents").select("id,name,created_at").eq("process_id", id).order("created_at", { ascending: false }).limit(41);
+    const { data } = await supabase.from("documents").select("id,name,created_at,file_path").eq("process_id", id).order("created_at", { ascending: false }).limit(41);
     setCaseDocs((data as any) || []);
+  }
+  // Remove um documento anexado por engano (arquivo e registro).
+  async function removeCaseDoc(d: {id:string;name:string;file_path?:string|null}) {
+    if (!supabase || !proc || busy) return;
+    if (!window.confirm(`Excluir "${d.name}" deste processo? Ele também some da aba Documentos e não dá para desfazer.`)) return;
+    setBusy("attach");
+    try {
+      const del = await supabase.from("documents").delete().eq("id", d.id).eq("process_id", proc.id);
+      if (del.error) throw del.error;
+      if (d.file_path) await supabase.storage.from("lexoffice-documents").remove([d.file_path]);
+      await loadCaseDocs(proc.id);
+      setNotice({ kind: "ok", text: "Documento excluído." });
+    } catch (error) {
+      setNotice({ kind: "error", text: "Não foi possível excluir. " + ((error as { message?: string })?.message || "") });
+    } finally { setBusy(""); }
   }
   // Anexa a decisão (ou outro documento) ao processo: a leitura dos autos pela IA usa os documentos vinculados.
   async function attachDecision(file: File | undefined) {
@@ -1213,7 +1230,8 @@ export default function ConducaoProcessual() {
               <label><span>Anexar decisão ou documento (PDF, imagem ou texto)</span>
                 <input type="file" accept="application/pdf,image/png,image/jpeg,image/webp,text/plain" disabled={busy!==""} onChange={e=>{const f=e.target.files?.[0];e.target.value="";void attachDecision(f);}}/>
               </label>
-              {caseDocs.length>0 && <p className="pa-muted"><b>Anexados a este processo ({caseDocs.length}):</b> {caseDocs.slice(0,6).map(d=>d.name).join(" · ")}{caseDocs.length>6?" …":""}</p>}
+              {caseDocs.length>0 && <div className="pa-muted case-docs"><b>Anexados a este processo ({caseDocs.length}):</b>
+                <ul>{caseDocs.slice(0,40).map(d=><li key={d.id}><span>{d.name}</span><button type="button" className="doc-remove" disabled={busy!==""} onClick={()=>void removeCaseDoc(d)}>Excluir</button></li>)}</ul></div>}
               <label><span>O que aconteceu no processo (decisões, fatos novos, o que a peça deve considerar)</span>
                 <textarea rows={5} value={caseNote} onChange={e=>setCaseNote(e.target.value)} placeholder="Ex.: decisão de saneamento fixou os pontos controvertidos e deferiu a perícia; prazo de 15 dias para especificar provas."/>
               </label>

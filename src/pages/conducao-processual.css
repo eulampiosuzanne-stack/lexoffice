@@ -55,3 +55,12 @@
 .conducao-page button.doc-primary:active:not(:disabled){transform:translateY(2px);box-shadow:inset 0 3px 6px rgba(0,0,0,.4),0 1px 0 #2a0713}
 .conducao-page :is(.pa-row,.doc-upload-grid) button:disabled,.conducao-page button.doc-primary:disabled{opacity:.55;cursor:not-allowed;transform:none}
 @media (prefers-reduced-motion:reduce){.conducao-page button{transition:none}}
+
+/* Lista de anexos do processo com botão Excluir (vinho, efeito 3D). */
+.conducao-page .case-docs ul{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.conducao-page .case-docs li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 12px;border:1px solid #d4af37;border-radius:12px;background:rgba(255,255,255,.45)}
+.conducao-page .case-docs li>span{min-width:0;overflow-wrap:anywhere}
+.conducao-page .case-docs button.doc-remove{flex:none;cursor:pointer;border:0;border-radius:10px;padding:6px 14px;font-weight:600;color:#fff;background:linear-gradient(160deg,#b04869 0%,#7a1f3d 50%,#3f0d20 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),inset 0 -2px 0 rgba(0,0,0,.35),0 3px 0 #2a0713,0 6px 10px -4px rgba(0,0,0,.5);text-shadow:0 1px 1px rgba(0,0,0,.4);transition:transform .14s ease,box-shadow .14s ease}
+.conducao-page .case-docs button.doc-remove:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.08)}
+.conducao-page .case-docs button.doc-remove:active:not(:disabled){transform:translateY(2px);box-shadow:inset 0 3px 6px rgba(0,0,0,.4),0 1px 0 #2a0713}
+.conducao-page .case-docs button.doc-remove:disabled{opacity:.55;cursor:not-allowed}
