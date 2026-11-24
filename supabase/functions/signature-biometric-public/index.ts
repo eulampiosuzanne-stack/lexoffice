@@ -149,7 +149,10 @@ async function fonts(a: any) {
 }
 
 async function buildSigned(a: any, row: any, original: Uint8Array, ev: any, selfie: Uint8Array, idPhoto: Uint8Array) {
-  const pdf = await PDFDocument.load(original, { ignoreEncryption: true });
+  let pdf = await PDFDocument.load(original, { ignoreEncryption: true });
+  // PDF atualizado em camadas, com objeto de geração ≠ 0 (ex.: "8 1 obj"): o pdf-lib grava a tabela de referências
+  // deslocada e o arquivo assinado não abre. Nesse caso recria o documento só com as páginas.
+  if (/(^|[\r\n])\d+ [1-9]\d* obj/.test(new TextDecoder("latin1").decode(original))) { const fresh = await PDFDocument.create(); (await fresh.copyPages(pdf, pdf.getPageIndices())).forEach((p) => fresh.addPage(p)); pdf = fresh; }
   const fb = await fonts(a);
   let R: any, B: any, I: any;
   if (fb) { pdf.registerFontkit(fontkit); R = await pdf.embedFont(fb.r, { subset: true }); B = await pdf.embedFont(fb.b, { subset: true }); I = await pdf.embedFont(fb.i, { subset: true }); }
