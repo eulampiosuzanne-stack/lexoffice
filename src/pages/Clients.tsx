@@ -857,16 +857,52 @@ function sendAppInvite() {
   }
   async function openDoc(d: Doc, download = false) {
     if (!supabase) return;
+    setDocNotice("");
     const { data, error } = await supabase.storage
       .from("lexoffice-documents")
-      .createSignedUrl(d.file_path, 300, {
-        download: download ? d.name : undefined,
-      });
+      .createSignedUrl(d.file_path, 300);
     if (error || !data?.signedUrl)
       return setDocNotice(
         error?.message || "Não foi possível abrir o documento.",
       );
-    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    if (!download) {
+      window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    try {
+      const r = await fetch(data.signedUrl);
+      if (!r.ok) throw new Error(`Falha ao baixar o arquivo (${r.status}).`);
+      const blob = await r.blob();
+      if (!blob.size) throw new Error("O arquivo recebido está vazio.");
+      const isPdfDoc =
+        d.mime_type === "application/pdf" ||
+        /\.pdf$/i.test(d.file_path) ||
+        /\.pdf$/i.test(d.name);
+      const base = d.name.replace(/\s*\(\d+\)(?=\.[^.]+$|$)/g, "").replace(/\s+/g, " ").trim();
+      const fileName = isPdfDoc
+        ? `${base.replace(/\.pdf$/i, "")}.pdf`
+        : /\.[A-Za-z0-9]{2,5}$/.test(base)
+          ? base
+          : `${base}.${(d.file_path.split(".").pop() || "bin").toLowerCase()}`;
+      const url = URL.createObjectURL(
+        isPdfDoc && blob.type !== "application/pdf"
+          ? new Blob([blob], { type: "application/pdf" })
+          : blob,
+      );
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      if (!isPdfDoc)
+        setDocNotice(
+          "Este arquivo foi enviado em Word e não tem versão PDF; baixei o original.",
+        );
+    } catch (e: any) {
+      setDocNotice(e?.message || "Não foi possível baixar o documento.");
+    }
   }
   async function deleteClient(c: Client) {
     if (!supabase) return;
