@@ -388,6 +388,8 @@ export default function ConducaoProcessual() {
   const [draftStudy, setDraftStudy] = useState("");
   const [draftProvider, setDraftProvider] = useState("");
   const [draftExtra, setDraftExtra] = useState("");
+  const [caseNote, setCaseNote] = useState("");
+  const [caseDocs, setCaseDocs] = useState<{id:string;name:string;created_at:string}[]>([]);
   const [newItem, setNewItem] = useState("");
   const [newDl, setNewDl] = useState({ title: "", due: "" });
   const [busy, setBusy] = useState("");
@@ -526,8 +528,48 @@ export default function ConducaoProcessual() {
     setDrafts((dr.data as any) || []);
     setBusy("");
   }
+  async function loadCaseDocs(id: string) {
+    if (!supabase) return;
+    const { data } = await supabase.from("documents").select("id,name,created_at").eq("process_id", id).order("created_at", { ascending: false }).limit(41);
+    setCaseDocs((data as any) || []);
+  }
+  // Anexa a decisão (ou outro documento) ao processo: a leitura dos autos pela IA usa os documentos vinculados.
+  async function attachDecision(file: File | undefined) {
+    if (!supabase || !proc || !file || busy) return;
+    if (!/^(application\/pdf|image\/(png|jpeg|webp)|text\/plain)$/.test(file.type)) {
+      setNotice({ kind: "error", text: "Anexe a decisão em PDF, imagem (PNG, JPG ou WEBP) ou texto. Arquivo Word precisa ser salvo como PDF antes." });
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) { setNotice({ kind: "error", text: "O arquivo passa de 15 MB. Envie uma versão menor." }); return; }
+    if (caseDocs.length >= 40) { setNotice({ kind: "error", text: "Este processo já tem 40 documentos anexados, o limite para a leitura pela IA." }); return; }
+    setBusy("attach");
+    setNotice({ kind: "info", text: "Anexando " + file.name + "…" });
+    let path = "";
+    try {
+      const { data: org, error: oe } = await supabase.rpc("current_org_id");
+      if (oe || !org) throw new Error("Não foi possível identificar o escritório desta sessão.");
+      const { data: u } = await supabase.auth.getUser();
+      if (!u?.user) throw new Error("Sua sessão expirou. Entre novamente.");
+      const ext = file.name.includes(".") ? "." + file.name.split(".").pop() : "";
+      path = `${org}/documents/${crypto.randomUUID()}-${safeName(file.name.replace(/\.[^.]+$/, ""))}${ext}`;
+      const up = await supabase.storage.from("lexoffice-documents").upload(path, file, { contentType: file.type, upsert: false });
+      if (up.error) throw up.error;
+      const ins = await supabase.from("documents").insert({
+        org_id: org, client_id: proc.client_id || null, process_id: proc.id, name: file.name, file_path: path,
+        mime_type: file.type, size_bytes: file.size, category: "Outros",
+        notes: JSON.stringify({ origem: "analise_dos_autos" }), uploaded_by: u.user.id,
+      });
+      if (ins.error) { await supabase.storage.from("lexoffice-documents").remove([path]); throw ins.error; }
+      await loadCaseDocs(proc.id);
+      setNotice({ kind: "ok", text: "Documento anexado. A manifestação passa a considerá-lo." });
+    } catch (error) {
+      setNotice({ kind: "error", text: "Não foi possível anexar. " + ((error as { message?: string })?.message || "") });
+    } finally { setBusy(""); }
+  }
   useEffect(() => {
     if (procId) {
+      setCaseNote("");
+      loadCaseDocs(procId);
       loadProcess(procId);
       const u = new URL(window.location.href);
       u.searchParams.set("processo", procId);
@@ -743,7 +785,7 @@ export default function ConducaoProcessual() {
     setDraftProvider("");
     let result;
     try {
-      result = {data:await runLegalJob({process_id:proc.id,kind,title:DRAFTS[kind],instructions:draftExtra}),error:null};
+      result = {data:await runLegalJob({process_id:proc.id,kind,title:DRAFTS[kind],instructions:[caseNote.trim()?"FATOS E DECISÕES INFORMADOS PELA ADVOGADA (confirmar nos documentos anexados):\n"+caseNote.trim():"",draftExtra].filter(Boolean).join("\n\n")}),error:null};
     } catch (error) {
       setBusy("");
       setNotice({kind:"error",text:error instanceof Error?error.message:"Não foi possível confirmar a geração."});
@@ -839,7 +881,7 @@ export default function ConducaoProcessual() {
     setBusy("client-report");
     setNotice({kind:"info",text:"Lendo os autos para preparar o relatório ao cliente…"});
     try {
-      const data=await runLegalJob({process_id:proc.id,mode:"client_report",title:"Relatório ao cliente"});
+      const data=await runLegalJob({process_id:proc.id,mode:"client_report",title:"Relatório ao cliente",...(caseNote.trim()?{instructions:"FATOS E DECISÕES INFORMADOS PELA ADVOGADA (confirmar nos documentos anexados):\n"+caseNote.trim()}:{})});
       setClientReportText(data.text);
       setClientReportId(proc.id);
       setClientReportAt(new Date().toISOString());
@@ -1164,6 +1206,17 @@ export default function ConducaoProcessual() {
             </div>
             <h3>Últimas movimentações registradas</h3>
             {processSummary.recent.length ? <ul className="cp-steps">{processSummary.recent.map(m=><li key={m.id}><b>{brD(m.movement_date)} · {m.title || "Movimentação"}</b>{m.description ? <p>{String(m.description).slice(0,700)}</p> : null}</li>)}</ul> : <p className="pa-muted">Nenhum andamento cadastrado. Importe os autos ou consulte a intimação oficial antes de definir providências.</p>}
+            <div className="cp-focus">
+              <h3>Complementar a análise</h3>
+              <p className="pa-muted">Os andamentos acima vêm do sistema e podem estar desatualizados (por exemplo, uma decisão recente ainda não importada). Anexe a decisão e conte o que aconteceu: a manifestação passa a considerar os dois.</p>
+              <label><span>Anexar decisão ou documento (PDF, imagem ou texto)</span>
+                <input type="file" accept="application/pdf,image/png,image/jpeg,image/webp,text/plain" disabled={busy!==""} onChange={e=>{const f=e.target.files?.[0];e.target.value="";void attachDecision(f);}}/>
+              </label>
+              {caseDocs.length>0 && <p className="pa-muted"><b>Anexados a este processo ({caseDocs.length}):</b> {caseDocs.slice(0,6).map(d=>d.name).join(" · ")}{caseDocs.length>6?" …":""}</p>}
+              <label><span>O que aconteceu no processo (decisões, fatos novos, o que a peça deve considerar)</span>
+                <textarea rows={5} value={caseNote} onChange={e=>setCaseNote(e.target.value)} placeholder="Ex.: decisão de saneamento fixou os pontos controvertidos e deferiu a perícia; prazo de 15 dias para especificar provas."/>
+              </label>
+            </div>
             <div className="pa-row">
               <button type="button" className="doc-primary" onClick={()=>setStrategySection('minutas')}>Preparar manifestação</button>
               <button type="button" onClick={()=>setStrategySection('estrategia')}>Consultar perfil do juízo (opcional)</button>
