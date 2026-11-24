@@ -1,3 +1,4 @@
+import { receptionMessages } from './reception-messages.mjs';
 // Ferramentas reais da Helena (06/11/2026): período excepcional (taxas) e agenda (horários reais + registro).
 // Brasil sem horário de verão desde 2019: America/Sao_Paulo = UTC-3 fixo.
 const SP_OFFSET_MS = 3 * 3600000;
@@ -113,7 +114,7 @@ export const SLOT_ICON = '\u{1F4C6}';
 export function slotButtonTitle(s: Slot): string { return (SLOT_ICON + ' ' + `${DOW_SHORT[s.dow] || ''} ${s.date.slice(8, 10)}/${s.date.slice(5, 7)} às ${s.hour}h`.trim()).slice(0, 24); }
 
 export async function agendaTool(a: any, o: { orgId: string; conversationId: string; message: string; ctx: any; clientId: string | null; leadId: string | null; name: string; phone: string; policyId: string; dryRun: boolean; lastOutbound?: string }): Promise<string | AgendaReply> {
-  const unavailable = { reply: 'Não consegui consultar a agenda agora. O horário ainda não foi confirmado.' };
+  const unavailable = { reply: receptionMessages.schedule_failed };
   try {
     const offeredAt = Number(o.ctx?.offered_at || 0);
     const offered: Slot[] = Array.isArray(o.ctx?.offered_slots) && Date.now() - offeredAt < 72 * 3600000 ? o.ctx.offered_slots : [];
@@ -145,7 +146,13 @@ export async function agendaTool(a: any, o: { orgId: string; conversationId: str
       if (error || !data) { console.error('agenda_booking_failed', error?.code); return unavailable; }
       if (data.status === 'booked' && data.id) {
         const who = data.who === 'dra' ? 'Dra. Suzanne' : 'assessora Gláucia';
-        return { reply: `Sua reunião online com a ${who} está confirmada para ${data.label}, no horário de Brasília.`, idempotencyKey: `helena-booking:${data.id}` };
+        const label = typeof data.label === 'string' ? data.label : '';
+        const confirmed = /^(.+), às (\d{1,2}h(?:\d{2})?)$/.exec(label);
+        if (!confirmed) return unavailable;
+        const reply = receptionMessages.schedule_confirmed
+          .replace('{date}', () => confirmed[1])
+          .replace('{time}', () => confirmed[2]);
+        return { reply: `${reply}\nReunião online com a ${who}.`, idempotencyKey: `helena-booking:${data.id}` };
       }
       if (!['unavailable', 'expired'].includes(data.status)) return unavailable;
     }
@@ -160,7 +167,7 @@ export async function agendaTool(a: any, o: { orgId: string; conversationId: str
     if (calendarError || (busy || []).length >= 500) return unavailable;
     const who = wantsAssessor(o.message) ? 'glaucia' : offered[0]?.who || 'dra';
     const slots = computeSlots(now, who, busy || [], hol);
-    if (!slots.length) return { reply: 'Não encontrei horários livres nos próximos dias. Seu agendamento ainda não foi confirmado.' };
+    if (!slots.length) return { reply: receptionMessages.schedule_unavailable };
     if (!o.dryRun) {
       const { error: saveError } = await a.from('whatsapp_conversations')
         .update({ chatbot_context: { ...(o.ctx || {}), offered_slots: slots, offered_at: now.getTime() }, updated_at: now.toISOString() })

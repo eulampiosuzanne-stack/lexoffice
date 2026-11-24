@@ -1,4 +1,6 @@
-import { resolveMenuChoice } from './menu-choice.mjs';
+import { weekendNotice, requestsLawyerContact, isSuzanneOffice } from './office-availability.mjs';
+import { receptionReply } from './reception-reply.mjs';
+import { receptionMessages } from './reception-messages.mjs';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "jsr:@supabase/supabase-js@2.57.4";
 import { planOfficeModules, guardOfficeExecution } from "./office-modules.ts";
@@ -84,14 +86,6 @@ function withinBusinessHours(p:any):boolean{
   const now=toM(hm),a=toM(s),b=toM(e);
   return a<b?(now>=a&&now<b):(now>=a||now<b);
 }
-const SECTOR:Record<string,string>={billing:'Nosso setor financeiro',client_process_updates:'Nosso setor de acompanhamento processual',client_schedule_relationship:'Nosso setor de agendamento',client_service_triage:'Nosso atendimento',sales:'Nosso atendimento comercial',helena_chatbot:'Nosso atendimento'};
-function outOfHoursText(p:any,agentKey:string){
-  const bh=p?.business_hours||{};
-  const s=String(bh.start||'08:00').slice(0,5).replace(':00','h').replace(':','h'),e=String(bh.end||'18:00').slice(0,5).replace(':00','h').replace(':','h');
-  const wk=Array.isArray(bh.weekdays)&&bh.weekdays.map(Number).sort().join(',')==='1,2,3,4,5'?'de segunda a sexta-feira, ':'';
-  return `${SECTOR[agentKey]||'Nosso atendimento'} funciona ${wk}das ${s} às ${e}. Sua mensagem ficou registrada e retornaremos no próximo horário de atendimento.\n\nEm caso de urgência (risco à vida ou à integridade física, prisão ou prazo que vence hoje), descreva a situação aqui que a Dra. Suzanne será avisada.`;
-}
-
 const CRITICAL_RE=/(violencia|medida protetiva|agress|apanh|me bateu|bateu em|prisao|\bpres[oa]\b|delegacia|flagrante|ameac|risco de vida|suicid|sequestr|abuso|estupr|despejo hoje|audiencia hoje|prazo vence hoje)/;
 const HUMAN_REQ_RE=/(falar com (a |o )?(dra|doutora|dr|doutor|advogad[ao]|suzanne|humano|atendente|pessoa|alguem|equipe)|quero (um |uma )?(humano|atendente|pessoa)|atendimento humano|me liga|me ligue|liga (pra|para) mim|ligar (pra|para) mim|pode me ligar|me telefona|outro numero)/;
 const COMPLAINT_RE=/(procon|reclame aqui|denunciar|vou processar|processar voces|reclamacao formal|\boab\b)/;
@@ -270,25 +264,15 @@ Deno.serve(async req=>{
     const svc=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
     if(!await authenticateOfficeCaller(req,svc,Deno.env.get('SUPABASE_URL')||''))return J({ok:false},401);
     const b=await req.json().catch(()=>({}));
-    const orgId=String(b.org_id||''),conversationId=String(b.conversation_id||''),phone=String(b.phone||''),agentKey=String(b.agent_key||''),interactionMode=String(b.interaction_mode||'');
-    let message=String(b.message||'').trim();
+    const orgId=String(b.org_id||''),conversationId=String(b.conversation_id||''),phone=String(b.phone||''),agentKey=String(b.agent_key||''),interactionMode=String(b.interaction_mode||''),message=String(b.message||'').trim();
     const dryRun=b.dry_run===true;
     // v27 — retomada automática de lead parado (conversation-inactivity-worker): a "message" é a TAREFA, não fala do cliente.
     const followup=b.kind==='inactivity_followup';
+    const officePlan=planOfficeModules(message,agentKey);
     if(!orgId||!conversationId||!phone||!agentKey||!message)return J({ok:false,error:'org_id, conversation_id, phone, agent_key e message são obrigatórios'},400);
     if(agentKey==='human')return J({ok:true,skipped:'human_owner'});
     const a=A();
     const url=Deno.env.get('SUPABASE_URL')!,sk=svc;
-
-    if (!followup && /^(?:(?:op[cç][aã]o\s+)?(?:10|[1-9])[.!)]?|[a-z]+_[a-z_]+)$/i.test(message)) {
-      const { data: lastReply } = await a.from('whatsapp_messages')
-        .select('metadata,created_at').eq('org_id',orgId).eq('conversation_id',conversationId)
-        .eq('direction','outbound').order('created_at',{ascending:false}).limit(1).maybeSingle();
-      if (lastReply && Date.now() - Date.parse(lastReply.created_at) < 24 * 3600000) {
-        message = resolveMenuChoice(message, lastReply.metadata?.decision_menu);
-      }
-    }
-    const officePlan=planOfficeModules(message,agentKey);
 
     const {data:pols}=await a.from('ai_agent_policies').select('*').eq('org_id',orgId).in('agent_key',[agentKey,'helena_chatbot']);
     const own=(pols||[]).find((p:any)=>p.agent_key===agentKey),base=(pols||[]).find((p:any)=>p.agent_key==='helena_chatbot');
@@ -301,10 +285,10 @@ Deno.serve(async req=>{
     const q=policy.policy||{};
     const gp=gateParams(policy);
 
-    const send=async(text:string,idem:string,interactive:any=null)=>{
+    const send=async(text:string,idem:string,metaOnly=false,interactive:any=null)=>{
       if(dryRun)return {ok:true,allowed:true,dry_run:true};
-      const r=await fetch(`${url}/functions/v1/whatsapp-outbound-gate`,{method:'POST',headers:{Authorization:`Bearer ${sk}`,apikey:sk,'Content-Type':'application/json'},body:JSON.stringify({org_id:orgId,conversation_id:conversationId,phone,agent_key:agentKey,message:text,format_agent_reply:true,idempotency_key:idem,...gp,...(interactive?{interactive}:{})})});
-      const d=await r.json().catch(()=>null);return {ok:r.ok&&d?.allowed===true,allowed:d?.allowed,reason:d?.reason||d?.error};
+      const r=await fetch(`${url}/functions/v1/whatsapp-outbound-gate`,{method:'POST',headers:{Authorization:`Bearer ${sk}`,apikey:sk,'Content-Type':'application/json'},body:JSON.stringify({org_id:orgId,conversation_id:conversationId,phone,agent_key:agentKey,message:text,format_agent_reply:true,idempotency_key:idem,...gp,...(interactive?{interactive}:{}),...(metaOnly?{force_provider:'meta',allow_provider_fallback:false}:{})})});
+      const d=await r.json().catch(()=>null);return {ok:r.ok&&(metaOnly?d?.allowed===true:d?.allowed!==false),allowed:d?.allowed,reason:d?.reason||d?.error};
     };
 
     if(!dryRun){const why=await blocked(a,orgId,conversationId,q.pause_ai_during_human_takeover===false?0:gp.human_silence_minutes);if(why)return J({ok:true,skipped:why});}
@@ -325,6 +309,8 @@ Deno.serve(async req=>{
     }
     if(verifiedClientId&&!conv?.client_id&&!dryRun)await a.from('whatsapp_conversations').update({client_id:verifiedClientId}).eq('org_id',orgId).eq('id',conversationId);
     const ctx=conv?.chatbot_context||null;
+    const needsCaseVerification = !verifiedClientId &&
+      /^(?:meu processo|consultar meu processo|quero saber do meu processo|ultimo andamento)[.!?]*$/.test(norm(message).trim());
     const summary=String(ctx?.summary||'').trim();
     const dossier=await clientDossier(a,orgId,verifiedClientId);
 
@@ -347,12 +333,17 @@ Deno.serve(async req=>{
     };
     // Urgência real nunca espera o horário comercial.
     if(hand?.critical)return await doHandoff(hand);
+    const notice = !followup && requestsLawyerContact(message) ? weekendNotice(orgId) : '';
+    if (notice) {
+      const result = await send(notice, `ooh:${conversationId}:2026-11-16`);
+      return J({ok:true,notice_sent:result.ok && result.allowed===true,reason:result.reason,dry_run:dryRun, ...(dryRun?{reply:notice}:{})});
+    }
 
     // v28 — cobrança da CONSULTA para lead não fica presa ao horário do financeiro (PIX pode ser pago a qualquer hora).
     const leadConsult=agentKey==='billing'&&!conv?.client_id;
-    if(!dryRun&&!followup&&!leadConsult&&!withinBusinessHours(policy)){
+    if(!dryRun&&!followup&&!leadConsult&&!isSuzanneOffice(orgId)&&!withinBusinessHours(policy)){
       const day=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo'}).format(new Date());
-      const r=await send(outOfHoursText(policy,agentKey),`ooh:${conversationId}:${agentKey}:${day}`);
+      const r=await send(receptionMessages.away,`ooh:${conversationId}:${day}`);
       return J({ok:true,skipped:'outside_business_hours',notice_sent:!!r.ok});
     }
     if(hand)return await doHandoff(hand);
@@ -374,6 +365,7 @@ Deno.serve(async req=>{
 
     const talksProcess=/^a cliente selecionou:/i.test(message)||PROCESS_TOPIC_RE.test(norm(message));
     let processUpdateContext='';
+    let noVerifiedMovement=false;
     // v75: processo escolhido na lista de botões (ou digitando o número da opção / o número do processo).
     const offeredProcs:any[]=Array.isArray(ctx?.offered_processes)&&Date.now()-Number(ctx?.offered_processes_at||0)<48*3600000?ctx.offered_processes:[];
     // v76: compara sem emoji/pontuação (o título do botão vem com \u{1F4C2} na frente).
@@ -385,8 +377,8 @@ Deno.serve(async req=>{
       let selectedProcess:any=null;
       if(pickedProc&&verifiedClientId){
         const {data:p}=await a.from('processes').select('id,cnj_number,subject,status').eq('org_id',orgId).eq('id',pickedProc.id).eq('client_id',verifiedClientId).maybeSingle();selectedProcess=p;
-      }else if(conv?.process_id){
-        const {data:p}=await a.from('processes').select('id,cnj_number,subject,status').eq('org_id',orgId).eq('id',conv.process_id).maybeSingle();selectedProcess=p;
+      }else if(conv?.process_id&&verifiedClientId){
+        const {data:p}=await a.from('processes').select('id,cnj_number,subject,status').eq('org_id',orgId).eq('id',conv.process_id).eq('client_id',verifiedClientId).maybeSingle();selectedProcess=p;
       }else if(verifiedClientId){
         const {data:ps}=await a.from('processes').select('id,cnj_number,subject,status,updated_at').eq('org_id',orgId).eq('client_id',verifiedClientId).neq('status','archived').order('updated_at',{ascending:false}).limit(10);
         if((ps||[]).length===1)selectedProcess=ps![0];
@@ -399,12 +391,13 @@ Deno.serve(async req=>{
         else processUpdateContext='NENHUM PROCESSO FOI LOCALIZADO PARA ESTE CLIENTE. Informe isso com cuidado e peça o número do processo para conferência.';
       }
       if(selectedProcess){
-        const {data:mv}=await a.from('process_movements').select('movement_date,title,description,client_message').eq('org_id',orgId).eq('process_id',selectedProcess.id).eq('approved_for_client',true).eq('is_sensitive',false).order('movement_date',{ascending:false}).limit(1).maybeSingle();
+        const {data:mv,error:movementError}=await a.from('process_movements').select('movement_date,title,description,client_message').eq('org_id',orgId).eq('process_id',selectedProcess.id).eq('approved_for_client',true).eq('is_sensitive',false).order('movement_date',{ascending:false}).limit(1).maybeSingle();
         if(mv){
           processUpdateContext='PROCESSO '+String(selectedProcess.cnj_number||selectedProcess.id)+'. ANDAMENTO MAIS RECENTE, EM '+String(mv.movement_date||'')+': '+String(mv.title||'')+'. TEXTO: '+String(mv.client_message||mv.description||mv.title||'').trim()+'. Primeiro informe o andamento e depois explique em linguagem simples, sem inventar informação, prazo ou providência ausente.';
         }else{
           const cnjDigits=String(selectedProcess.cnj_number||'').replace(/\\D/g,'');
-          const {data:pub}=await a.from('djen_publications').select('publication_date,availability_date,communication_type,organ,text_content').eq('org_id',orgId).or(`process_id.eq.${selectedProcess.id},process_number.eq.${selectedProcess.cnj_number||cnjDigits}`).order('publication_date',{ascending:false,nullsFirst:false}).limit(1).maybeSingle();
+          const {data:pub,error:publicationError}=await a.from('djen_publications').select('publication_date,availability_date,communication_type,organ,text_content').eq('org_id',orgId).or(`process_id.eq.${selectedProcess.id},process_number.eq.${selectedProcess.cnj_number||cnjDigits}`).order('publication_date',{ascending:false,nullsFirst:false}).limit(1).maybeSingle();
+          noVerifiedMovement=!movementError&&!publicationError&&!pub;
           processUpdateContext=pub
             ?'PROCESSO '+String(selectedProcess.cnj_number||selectedProcess.id)+'. FONTE ALTERNATIVA OFICIAL DJEN. PUBLICAÇÃO MAIS RECENTE EM '+String(pub.publication_date||pub.availability_date||'')+': '+String(pub.communication_type||'Publicação')+' — '+String(pub.organ||'órgão não informado')+'. TEXTO: '+String(pub.text_content||'').slice(0,1800)+'. Explique somente o conteúdo objetivo desta publicação. Não invente prazo, estratégia ou consequência jurídica.'
             :'PROCESSO '+String(selectedProcess.cnj_number||selectedProcess.id)+'. A sincronização automática não encontrou movimentação disponível nem publicação DJEN vinculada. Informe objetivamente que o sistema não localizou novo andamento disponível neste momento e que será feita nova conferência, SEM transferir automaticamente a conversa para atendimento humano e SEM inventar movimentação.';
@@ -428,11 +421,10 @@ Deno.serve(async req=>{
     const hist=(histRaw||[]).filter((m:any)=>!isInternalNotice(m.body)).slice(0,18);
     const hasHistory=(hist||[]).some((m:any)=>m.direction==='outbound');
     // v75: número que não é de cliente e escreve pela primeira vez — a Helena pergunta, com botões, se já é cliente.
+    const askIdentity=!followup&&!hasHistory&&!lawyerTalkRequest(message);
     const normalizedChoice=norm(message);
-    const showOtherMenu=!followup&&normalizedChoice==='outros assuntos';
-    const showClientMenu=!followup&&/^(sou cliente|ja sou cliente|cliente)$/.test(normalizedChoice);
-    const showLeadMenu=!followup&&/^(nao sou cliente|nao sou cliente mesmo|novo atendimento)$/.test(normalizedChoice);
-    const askIdentity=!followup&&!hasHistory&&!showClientMenu&&!showLeadMenu&&!showOtherMenu&&!lawyerTalkRequest(message);
+    const showClientMenu=!followup&&!!verifiedClientId&&/^(sou cliente|ja sou cliente|cliente)$/.test(normalizedChoice);
+    const showLeadMenu=!followup&&!verifiedClientId&&/^(nao sou cliente|nao sou cliente mesmo|novo atendimento)$/.test(normalizedChoice);
     // v77: cliente pediu para falar com a Dra. -> "está em atendimento" + botões (mensagem pelo app / agendar reunião).
     const wantsLawyer=!followup&&!!verifiedClientId&&agentKey!=='billing'&&lawyerTalkRequest(message);
     const pickedApp=!followup&&!!verifiedClientId&&isAppChoice(message);
@@ -458,7 +450,7 @@ Deno.serve(async req=>{
     const hotBlock=hotLead?'A PESSOA DEMONSTROU INTENÇÃO DE CONTRATAR OU PERGUNTOU SOBRE HONORÁRIOS: siga a seção HONORÁRIOS DO CONTRATO e o MÉTODO MARÇAL (sondar antes, valor só da tabela OAB/MG e só depois de duas respostas de diagnóstico; nunca entrada, número de parcelas ou desconto). Não diga que houve alerta, transferência ou mudança de setor.':'';
 
     const lexHumanRules='ATENDIMENTO HELENA: converse naturalmente em português brasileiro, sem menu numerico, assinatura repetida, linguagem de chatbot ou respostas genericas. Reaja primeiro ao que a pessoa disse e depois avance. Uma pergunta por vez, nao repita dados do CRM. Não anuncie espontaneamente automação, IA, robô ou assistente virtual; se houver pergunta direta sobre isso, responda com transparência e volte ao atendimento. Nunca diga que consultou ficha sem consultar. Traduza somente movimentacoes judiciais confirmadas em linguagem simples, com linha do tempo compacta quando pertinente; nunca invente fase, decisao ou prazo. Evite risadas em temas sensiveis. Nao prometa retorno pessoal da advogada sem confirmacao. Pedidos para falar com a advogada, reclamações e insistências sem urgência real não autorizam transferência automática: responda com firmeza, registre o pedido e ofereça agendamento conforme as regras. Nunca afirme que avisou a advogada se não houver confirmação. Para interessados ainda não contratados, explique a consulta paga e não confirme horário antes da validação do pagamento. Questões jurídicas de mérito devem seguir para revisão profissional, sem resposta conclusiva.';
-    const brazilianToneRules='TOM: português brasileiro natural, caloroso e elegante, com a personalidade da Helena (Donna). Humor leve só quando o clima permitir; nunca em cobrança, urgência, luto ou conflito. Use emojis com moderação quando combinarem com a conversa. Evite risadas em assuntos sensíveis.';
+    const brazilianToneRules='TOM: português brasileiro natural, caloroso e elegante, com a personalidade da Helena (Donna). Humor leve só quando o clima permitir; nunca em cobrança, urgência, luto ou conflito. Sem emojis e sem kkk ou rsrs.';
     const rules=policyRules(policy,agentKey,hasHistory);
     // A module is a plan, never a claim that an external engine has executed.
     // Record legal work for professional review without messaging the lawyer or another client.
@@ -500,7 +492,7 @@ Deno.serve(async req=>{
       askIdentity?'PRIMEIRO CONTATO DA CONVERSA: responda naturalmente ao que a pessoa escreveu, pergunte se já é cliente e apresente três opções curtas: "Sou cliente", "Não sou cliente" e "Outros assuntos". O canal pode exibir botões ou opções numeradas; a pessoa também pode ignorá-los e escrever livremente.':'',
        showClientMenu?'A PESSOA CONFIRMOU QUE É CLIENTE: pergunte o que precisa e apresente as opções de processo, documentos, financeiro, urgência, recado pelo aplicativo ou reunião com a Dra. Suzanne. As opções podem aparecer como lista interativa ou numerada; aceite resposta livre.':'',
        showLeadMenu?'A PESSOA INFORMOU QUE AINDA NÃO É CLIENTE: pergunte qual assunto busca e apresente opções de Família e Sucessões, Consumidor/Bancário, Saúde, Trabalhista, Imóveis, Criminal ou Outro. As opções podem aparecer como lista interativa ou numerada; aceite resposta livre.':'' ,
-      wantsLawyer?'A PESSOA PEDIU PARA FALAR COM A DRA. SUZANNE: responda com acolhimento, em no máximo duas frases curtas, que a Dra. Suzanne está em atendimento neste momento e que há dois caminhos: deixar a mensagem para ela pelo aplicativo do escritório ou solicitar uma reunião online para o próximo dia útil. Logo abaixo da sua mensagem aparecerão os botões "Mensagem pelo app" e "Agendar reunião"; não os repita no texto. NÃO escreva link, datas nem horários, NÃO prometa retorno nem ligação e NÃO diga que avisou a Dra.':'',
+      wantsLawyer?'A PESSOA PEDIU PARA FALAR COM A DRA. SUZANNE: responda com acolhimento, em no máximo duas frases curtas, que a Dra. Suzanne está em atendimento neste momento e que há dois caminhos: deixar a mensagem para ela pelo aplicativo do escritório ou agendar uma reunião online com ela. Logo abaixo da sua mensagem aparecerão os botões "Mensagem pelo app" e "Agendar reunião"; não os repita no texto. NÃO escreva link, datas nem horários, NÃO prometa retorno nem ligação e NÃO diga que avisou a Dra.':'',
       pickedApp?`A PESSOA ESCOLHEU DEIXAR A MENSAGEM PELO APLICATIVO: em até duas frases curtas, diga que é só abrir o aplicativo do cliente e escrever o recado na área de mensagens, que ele chega direto à Dra. Suzanne. Coloque exatamente este link sozinho em uma linha: ${CLIENT_APP_URL} . Não prometa prazo de resposta e não ofereça horários agora.`:'',contextBlock,dossier,processUpdateContext,billingRules,hotBlock,periodCtx,agendaCtx,
     ].filter(Boolean).join('\n\n');
 
@@ -518,6 +510,20 @@ Deno.serve(async req=>{
         showCollectionConfirmation=true;newCollectionContext={...ctx,negotiation_stage:'offered',proposed_text:message,projected_amount:projected,projected_extra_days:extraDays};
         if(!dryRun)await a.from('whatsapp_conversations').update({chatbot_context:newCollectionContext,updated_at:new Date().toISOString()}).eq('id',conversationId);
       }
+    }
+    if (!followup && !deterministic && !agendaReply && !officePlan.review_required) {
+      if (!processRows.length && needsCaseVerification) deterministic = receptionMessages.case_unverified + '\n\n' + CLIENT_APP_URL;
+      else if (noVerifiedMovement) deterministic = receptionMessages.case_no_update + '\n\n' + CLIENT_APP_URL;
+    }
+    if (!followup && !deterministic && !agendaReply && officeReview.status === 'pending_review' && officeReview.id) {
+      deterministic = receptionMessages.request_received + ' ' + receptionMessages.request_review;
+    }
+    if (!followup && !deterministic && !agendaReply && !wantsLawyer && !askIdentity && !showClientMenu && !showLeadMenu) {
+      deterministic = receptionReply(message, CLIENT_APP_URL);
+    }
+    if (!followup && !deterministic && !agendaReply) {
+      const thanks=norm(message).trim();
+      if (/^(?:muito )?(?:obrigad[ao]|valeu)(?:[, ]+helena)?[\s\p{P}\p{S}\uFE0F]*$/u.test(thanks)) deterministic=receptionMessages.thanks;
     }
     let gwRes:Response|null=null;
     const agendaIntroMode=!!agendaReply?.slots?.length;
@@ -542,11 +548,6 @@ Deno.serve(async req=>{
       {id:'client_app_note',title:'Mensagem pelo app',description:'Enviar recado diretamente à Dra. Suzanne'},
       {id:'client_meeting',title:'Solicitar reunião',description:'Reunião online em dia útil'}
     ]};
-    else if(showOtherMenu)interactive={type:'list',button:'Como posso ajudar?',rows:[
-      {id:'other_docs',title:'Documentos',description:'Enviar ou solicitar documentos'},
-      {id:'other_urgent',title:'Urgência',description:'Informar risco imediato'},
-      {id:'other_message',title:'Deixar um recado',description:'Explique em poucas palavras'}
-    ]};
     else if(showLeadMenu)interactive={type:'list',button:'Escolha o assunto',rows:[
       {id:'lead_family',title:'Família e Sucessões',description:'Família, guarda e inventário'},
       {id:'lead_consumer',title:'Consumidor e Bancário',description:'Contratos, banco e cobranças'},
@@ -564,7 +565,7 @@ Deno.serve(async req=>{
       return J({ok:true,queued_for_approval:true,office_modules:officePlan.modules,office_review:officeReview,agent_key:agentKey,hot_lead:hotLead||undefined});
     }
 
-    const gate=await send(reply,agendaReply?.idempotencyKey||String(b.idempotency_key||'')||`helena:${conversationId}:${Date.now()}`,interactive);
+    const gate=await send(reply,agendaReply?.idempotencyKey||String(b.idempotency_key||'')||`helena:${conversationId}:${Date.now()}`,!!agendaReply,interactive);
     if(!gate.ok)return J({ok:true,sent:false,gate_reason:gate.reason||'gate_blocked',hot_lead:hotLead||undefined});
 
     // v26 — prometeu que a Dra. seria avisada → avisa de verdade, com resumo.
