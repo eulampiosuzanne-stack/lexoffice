@@ -97,20 +97,24 @@ async function sendWhatsApp(orgId: string, phone: string, message: string, key: 
 // Cartilha (guia rápido com desenhos) enviada logo depois do link + código, só em "create"/"resend".
 // Mesmo canal de WhatsApp (whatsapp-outbound-gate, que aceita image+caption). Falha aqui NUNCA trava a assinatura:
 // link e código já foram enviados; a falha é só registrada. Não é usada nos lembretes automáticos.
-const GUIDE_URL = "https://lexoffice-ashy.vercel.app/cartilhas/assinatura-biometrica.png";
-const GUIDE_CAPTION = "Guia rápido para assinar pelo celular";
+// 17/11/2026 — pedido da Dra. Suzanne: junto com o link vão o Guia de Assinatura Digital (PDF) e o vídeo explicativo.
+const GUIDE_FILES = [
+  { url: "https://dcpwcuototomxoiszukt.supabase.co/storage/v1/object/public/client-guides/guia-assinatura-digital.pdf", name: "Guia de Assinatura Digital.pdf", caption: "Guia de Assinatura Digital: passo a passo para assinar pelo celular" },
+  { url: "https://dcpwcuototomxoiszukt.supabase.co/storage/v1/object/public/client-guides/video-assinatura-digital.mp4", name: "Como assinar pelo celular.mp4", caption: "Vídeo: como assinar pelo celular" },
+];
 async function sendGuide(orgId: string, phone: string, key: string) {
-  try {
-    // Só envia se a cartilha já estiver publicada (o site devolve index.html para caminhos que não existem).
-    const head = await fetch(GUIDE_URL, { method: "HEAD", signal: AbortSignal.timeout(8000) });
-    if (!head.ok || !/image\/png/i.test(head.headers.get("content-type") || "")) { console.error("signature guide skipped: image not published", head.status); return false; }
-    const u = Deno.env.get("SUPABASE_URL")!, sk = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const r = await fetch(`${u}/functions/v1/whatsapp-outbound-gate`, { method: "POST", headers: { Authorization: `Bearer ${sk}`, apikey: sk, "Content-Type": "application/json" }, body: JSON.stringify({ org_id: orgId, conversation_id: null, phone, agent_key: "system", idempotency_key: key, message: GUIDE_CAPTION, image: GUIDE_URL, caption: GUIDE_CAPTION, format_agent_reply: false, operator_send: true }), signal: AbortSignal.timeout(20000) });
-    const d = await r.json().catch(() => ({}));
-    const sent = r.ok && d?.allowed !== false && !d?.error;
-    if (!sent) console.error("signature guide not sent", r.status, String(d?.error || d?.reason || "").slice(0, 200));
-    return sent;
-  } catch (e) { console.error("signature guide failed", e instanceof Error ? e.message : e); return false; }
+  let ok = 0;
+  for (let i = 0; i < GUIDE_FILES.length; i++) {
+    const f = GUIDE_FILES[i];
+    try {
+      const u = Deno.env.get("SUPABASE_URL")!, sk = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const r = await fetch(`${u}/functions/v1/whatsapp-outbound-gate`, { method: "POST", headers: { Authorization: `Bearer ${sk}`, apikey: sk, "Content-Type": "application/json" }, body: JSON.stringify({ org_id: orgId, conversation_id: null, phone, agent_key: "system", idempotency_key: `${key}-${i}`, message: f.caption, document: f.url, file_name: f.name, caption: f.caption, format_agent_reply: false, operator_send: true }), signal: AbortSignal.timeout(45000) });
+      const d = await r.json().catch(() => ({}));
+      const sent = r.ok && d?.allowed !== false && !d?.error;
+      if (sent) ok++; else console.error("signature guide not sent", f.name, r.status, String(d?.error || d?.reason || "").slice(0, 200));
+    } catch (e) { console.error("signature guide failed", f.name, e instanceof Error ? e.message : e); }
+  }
+  return ok === GUIDE_FILES.length;
 }
 
 // v26 (13/10/2026) — pedido da Dra. Suzanne: envio do link e lembretes de assinatura também aparecem no aplicativo do cliente.
@@ -157,7 +161,15 @@ async function buildSigned(a: any, row: any, original: Uint8Array, ev: any, self
   for (const p of pdf.getPages()) {
     const { width } = p.getSize();
     let size = 6.6; while (R.widthOfTextAtSize(stamp, size) > width - 40 && size > 4.5) size -= 0.2;
-    p.drawText(stamp, { x: (width - R.widthOfTextAtSize(stamp, size)) / 2, y: 10, size, font: R, color: brand });
+    const sx = (width - R.widthOfTextAtSize(stamp, size)) / 2;
+    p.drawText(stamp, { x: sx, y: 10, size, font: R, color: brand });
+    // 06/11/2026: selinho verde de "assinado" ao lado da linha de assinatura (se falhar, a assinatura segue normal).
+    try {
+      const g = rgb(0.09, 0.5, 0.24), cx = sx - 7, cy = 12.2;
+      p.drawCircle({ x: cx, y: cy, size: 4.2, color: g });
+      p.drawLine({ start: { x: cx - 2.1, y: cy + 0.1 }, end: { x: cx - 0.6, y: cy - 1.5 }, thickness: 0.9, color: rgb(1, 1, 1) });
+      p.drawLine({ start: { x: cx - 0.6, y: cy - 1.5 }, end: { x: cx + 2.3, y: cy + 1.8 }, thickness: 0.9, color: rgb(1, 1, 1) });
+    } catch (e) { console.error("mini-selo", e); }
   }
   const page = pdf.addPage([595.28, 841.89]);
   const W = 595.28, ML = 56, CW = W - ML * 2;
@@ -178,6 +190,19 @@ async function buildSigned(a: any, row: any, original: Uint8Array, ev: any, self
     const cap = "Verifique a autenticidade";
     page.drawText(cap, { x: qx + (size - R.widthOfTextAtSize(cap, 6.5)) / 2, y: qy - size - 11, size: 6.5, font: R, color: muted });
   } catch (e) { console.error("qr", e); }
+  // 06/11/2026: selo verde próprio do escritório "Assinatura verificada" ao lado do QR Code.
+  // Não é selo ICP-Brasil (a assinatura não usa certificado ICP); se falhar, a assinatura segue normal.
+  try {
+    const green = rgb(0.09, 0.5, 0.24), light = rgb(0.9, 0.97, 0.92);
+    const qs = 74, rr = 34, cx = W - ML - qs - 52, cy = y + 30 - qs / 2;
+    page.drawCircle({ x: cx, y: cy, size: rr, color: light, borderColor: green, borderWidth: 2 });
+    page.drawCircle({ x: cx, y: cy, size: rr - 4, borderColor: green, borderWidth: 0.6 });
+    page.drawLine({ start: { x: cx - 10, y: cy + 9 }, end: { x: cx - 3, y: cy + 2 }, thickness: 3, color: green });
+    page.drawLine({ start: { x: cx - 3, y: cy + 2 }, end: { x: cx + 11, y: cy + 17 }, thickness: 3, color: green });
+    const t1 = "ASSINATURA", t2 = "VERIFICADA";
+    page.drawText(t1, { x: cx - B.widthOfTextAtSize(t1, 6.4) / 2, y: cy - 9, size: 6.4, font: B, color: green });
+    page.drawText(t2, { x: cx - B.widthOfTextAtSize(t2, 6.4) / 2, y: cy - 17, size: 6.4, font: B, color: green });
+  } catch (e) { console.error("selo", e); }
   y -= 54;
   const title = "CERTIFICADO DE ASSINATURA ELETRÔNICA";
   page.drawText(title, { x: (W - B.widthOfTextAtSize(title, 14)) / 2, y, size: 14, font: B, color: ink });
@@ -242,8 +267,6 @@ async function buildSigned(a: any, row: any, original: Uint8Array, ev: any, self
   for (const ln of wrap(legal, R, 7.8, CW)) { if (y < 52) break; page.drawText(ln, { x: ML, y, size: 7.8, font: R, color: muted }); y -= 10; }
   page.drawLine({ start: { x: ML, y: 40 }, end: { x: W - ML, y: 40 }, thickness: 0.5, color: gold });
   page.drawText("Suzanne Eulâmpio da Silva Figueiredo • OAB/MG 131.880 • (31) 99298-4141 • eulampiosuzanne@gmail.com", { x: ML, y: 28, size: 7.5, font: I, color: muted });
-  // Sem object streams: o pdf-lib 1.17.1 gerou tabela de referências deslocada em PDFs de origem atípicos
-  // (ex.: procuração do Admilson), e o arquivo assinado não abria. Tabela clássica é aceita por qualquer leitor.
   return await pdf.save({ useObjectStreams: false });
 }
 
@@ -516,6 +539,25 @@ async function adminHandler(req: Request, body: any) {
         members.push(ins.data);
       }
       row = members[0];
+      // 17/11/2026 — pedido da Dra. Suzanne: LINK ÚNICO. Se o cliente já tem um link de assinatura aberto
+      // (enviado e ainda não iniciado), os documentos novos entram nesse mesmo lote e o link é reenviado com a lista completa.
+      if (body.merge_open !== false) {
+        const newIds = members.map((m: any) => m.id);
+        const { data: open } = await db.from("lex_signature_requests").select("*").eq("org_id", org).eq("client_id", cl.id)
+          .in("status", ["sent", "viewed"]).is("signed_at", null).gt("expires_at", new Date().toISOString())
+          .order("created_at", { ascending: true }).limit(60);
+        const prev = (open || []).filter((m: any) => !newIds.includes(m.id));
+        const busy = prev.some((m: any) => m.otp_verified_at || Number(m.face_attempts || 0) > 0); // cliente já começou a assinar: não mexe no link dele
+        if (prev.length && !busy) {
+          const keep = await primaryOf(db, prev[0]);
+          const primary = prev.some((m: any) => m.id === keep.id) ? keep : prev[0];
+          const all = [...prev, ...members];
+          const mv = await db.from("lex_signature_requests").update({ batch_id: primary.id }).in("id", all.map((m: any) => m.id));
+          if (mv.error) throw mv.error;
+          members = all.map((m: any) => ({ ...m, batch_id: primary.id }));
+          row = members.find((m: any) => m.id === primary.id) || primary;
+        }
+      }
     } else return J({ error: "Ação inválida." }, 400);
 
     const token = newToken();
