@@ -242,7 +242,9 @@ async function buildSigned(a: any, row: any, original: Uint8Array, ev: any, self
   for (const ln of wrap(legal, R, 7.8, CW)) { if (y < 52) break; page.drawText(ln, { x: ML, y, size: 7.8, font: R, color: muted }); y -= 10; }
   page.drawLine({ start: { x: ML, y: 40 }, end: { x: W - ML, y: 40 }, thickness: 0.5, color: gold });
   page.drawText("Suzanne Eulâmpio da Silva Figueiredo • OAB/MG 131.880 • (31) 99298-4141 • eulampiosuzanne@gmail.com", { x: ML, y: 28, size: 7.5, font: I, color: muted });
-  return await pdf.save();
+  // Sem object streams: o pdf-lib 1.17.1 gerou tabela de referências deslocada em PDFs de origem atípicos
+  // (ex.: procuração do Admilson), e o arquivo assinado não abria. Tabela clássica é aceita por qualquer leitor.
+  return await pdf.save({ useObjectStreams: false });
 }
 
 // Gera o PDF final de UM documento, arquiva na ficha do cliente e conclui a solicitação.
