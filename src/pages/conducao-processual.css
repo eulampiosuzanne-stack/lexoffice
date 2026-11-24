@@ -34,3 +34,24 @@
 .conducao-page .cp-small-sample{display:inline-block;margin:4px 0;padding:4px 8px;border:1px solid var(--lx-accent);border-radius:999px;color:var(--lx-accent);font-weight:800}
 .conducao-page .cp-judge-disclaimer{margin:12px 0 0;padding:12px 12px;border-left:4px solid var(--lx-accent);background:var(--lx-danger-soft);color:var(--lx-text);font-size:var(--lx-font-md);line-height:1.5}
 @media(max-width:720px){.conducao-page .cp-judge-tips{padding:12px}.conducao-page .cp-insight-card{padding:12px}}
+
+/* Condução Processual: bloco "Complementar a análise" organizado e botões nas cores da LEX (vinho e dourado) com efeito 3D. */
+.conducao-page .cp-focus label{display:flex;flex-direction:column;align-items:stretch;gap:6px;margin:14px 0 0;font-weight:600}
+.conducao-page .cp-focus label>span{font-weight:600}
+.conducao-page .cp-focus textarea{width:100%;box-sizing:border-box;min-height:120px;padding:12px;border:1px solid #d4af37;border-radius:12px;background:rgba(255,255,255,.55);box-shadow:inset 0 2px 5px rgba(0,0,0,.12);font:inherit;resize:vertical}
+.conducao-page .cp-focus input[type=file]{width:100%;box-sizing:border-box;padding:10px;border:1px dashed #d4af37;border-radius:12px;background:rgba(255,255,255,.45);font:inherit;font-weight:400}
+.conducao-page .cp-focus input[type=file]::file-selector-button,
+.conducao-page :is(.pa-row,.doc-upload-grid) button,
+.conducao-page button.doc-primary,
+.conducao-page button.secondary{cursor:pointer;border:0;border-radius:12px;padding:9px 16px;font-weight:600;color:#2a1f00;background:linear-gradient(160deg,#f6dc7e 0%,#d4af37 48%,#8a6d12 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -2px 0 rgba(0,0,0,.2),0 3px 0 #6b520a,0 8px 12px -4px rgba(0,0,0,.4);transition:transform .14s ease,box-shadow .14s ease}
+.conducao-page .cp-focus input[type=file]::file-selector-button{margin-right:12px}
+.conducao-page button.doc-primary,
+.conducao-page .pa-row button.doc-primary{color:#fff;background:linear-gradient(160deg,#b04869 0%,#7a1f3d 50%,#3f0d20 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),inset 0 -2px 0 rgba(0,0,0,.35),0 3px 0 #2a0713,0 8px 12px -4px rgba(0,0,0,.5);text-shadow:0 1px 1px rgba(0,0,0,.4)}
+.conducao-page :is(.pa-row,.doc-upload-grid) button:hover:not(:disabled),
+.conducao-page button.doc-primary:hover:not(:disabled),
+.conducao-page button.secondary:hover:not(:disabled),
+.conducao-page .cp-focus input[type=file]::file-selector-button:hover{transform:translateY(-2px);filter:brightness(1.06)}
+.conducao-page :is(.pa-row,.doc-upload-grid) button:active:not(:disabled),
+.conducao-page button.doc-primary:active:not(:disabled){transform:translateY(2px);box-shadow:inset 0 3px 6px rgba(0,0,0,.4),0 1px 0 #2a0713}
+.conducao-page :is(.pa-row,.doc-upload-grid) button:disabled,.conducao-page button.doc-primary:disabled{opacity:.55;cursor:not-allowed;transform:none}
+@media (prefers-reduced-motion:reduce){.conducao-page button{transition:none}}
