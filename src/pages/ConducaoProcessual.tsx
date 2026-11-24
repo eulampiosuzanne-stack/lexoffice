@@ -1145,6 +1145,7 @@ export default function ConducaoProcessual() {
             </select>
           </label>
         </div>
+        {proc && <button type="button" className="secondary" style={{margin:"4px 0 12px"}} onClick={()=>document.getElementById("complementar-analise")?.scrollIntoView({behavior:"smooth",block:"center"})}>Anexar decisão / informar o que aconteceu no processo</button>}
         {proc && <div className="doc-library-card">
           <h3>Cliente e polo representado</h3>
           <div className="doc-upload-grid">
@@ -1206,7 +1207,7 @@ export default function ConducaoProcessual() {
             </div>
             <h3>Últimas movimentações registradas</h3>
             {processSummary.recent.length ? <ul className="cp-steps">{processSummary.recent.map(m=><li key={m.id}><b>{brD(m.movement_date)} · {m.title || "Movimentação"}</b>{m.description ? <p>{String(m.description).slice(0,700)}</p> : null}</li>)}</ul> : <p className="pa-muted">Nenhum andamento cadastrado. Importe os autos ou consulte a intimação oficial antes de definir providências.</p>}
-            <div className="cp-focus">
+            <div className="cp-focus" id="complementar-analise">
               <h3>Complementar a análise</h3>
               <p className="pa-muted">Os andamentos acima vêm do sistema e podem estar desatualizados (por exemplo, uma decisão recente ainda não importada). Anexe a decisão e conte o que aconteceu: a manifestação passa a considerar os dois.</p>
               <label><span>Anexar decisão ou documento (PDF, imagem ou texto)</span>
