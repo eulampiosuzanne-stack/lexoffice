@@ -859,10 +859,14 @@ export default function ConducaoProcessual() {
     let blob: Blob = new Blob([]),
       ext = "docx";
     try {
-      const { data, error } = await supabase.functions.invoke(
-        "document-generate",
-        { body: { action: "timbrado_docx", text: draftText } },
-      );
+      const { data, error } = await Promise.race([
+        supabase.functions.invoke("document-generate", {
+          body: { action: "timbrado_docx", text: draftText },
+        }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("timeout")), 25000),
+        ),
+      ]);
       if (error || !(data instanceof Blob) || data.size < 2000)
         throw new Error("fallback");
       blob = new Blob([data], {
@@ -889,8 +893,18 @@ export default function ConducaoProcessual() {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `${safeName(title)}.${ext}`;
+    a.style.display = "none";
+    document.body.appendChild(a);
     a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    setTimeout(() => {
+      URL.revokeObjectURL(a.href);
+      a.remove();
+    }, 10000);
+    setNotice(
+      ext === "docx"
+        ? { kind: "ok", text: "Word (timbrado) gerado. Confira a pasta de downloads." }
+        : { kind: "info", text: "O timbrado não ficou disponível agora; baixei uma versão simples em Word (.doc)." },
+    );
   }
 
   async function prepareClientReport() {
@@ -989,7 +1003,17 @@ export default function ConducaoProcessual() {
       }).select("id").single();
       if(publication.error)throw publication.error;
       setReportPublished(true);
-      setNotice({kind:"ok",text:"Relatório disponível no App de "+proc.clients.name+"."});
+      // Aviso ao cliente: o push e o "Recados" do app saem de client_office_messages (texto genérico, sem dados do processo).
+      const recado=await supabase.from("client_office_messages").insert({
+        org_id:orgId,client_id:proc.client_id,title:"Atualização do seu processo",
+        body:"Há uma nova atualização do seu processo disponível no aplicativo. Toque para conferir.",
+        category:"processo",priority:"normal",requires_ack:false,attachment_document_id:document.data.id,sent_by:user.id,
+        source_channel:"manual_app",source_table:"client_document_requests",source_id:publication.data.id,
+        metadata:{report:true,process_id:proc.id,manual:true},
+      });
+      setNotice(recado.error
+        ?{kind:"error",text:"Relatório disponível no App de "+proc.clients.name+", mas o aviso ao cliente não foi criado: "+recado.error.message}
+        :{kind:"ok",text:"Relatório disponível no App de "+proc.clients.name+" e aviso enviado ao cliente."});
     }catch(error){setNotice({kind:"error",text:"Não foi possível confirmar a publicação. "+((error as {message?:string})?.message||"")});}
     finally{setBusy("");}
   }
@@ -1356,7 +1380,7 @@ export default function ConducaoProcessual() {
               </label>
               <div className="pa-row">
                 <button className="doc-refresh" disabled={busy!==""||!clientReportText.trim()} onClick={downloadClientJudgePdf}>Baixar PDF</button>
-                <button className="doc-primary" disabled={busy!==""||!proc.client_id||!proc.clients?.name||reportPublished||!clientReportText.trim()} onClick={sendClientReport}>{reportPublished?"Disponível no App":"Enviar ao App do Cliente"}</button>
+                <button className="doc-primary" disabled={busy!==""||!proc.client_id||!proc.clients?.name||reportPublished||!clientReportText.trim()} onClick={sendClientReport}>{busy==="publish-report"?"Enviando…":reportPublished?"Disponível no App":"Enviar ao App do Cliente"}</button>
               </div>
             </section>}
             {analysis && (
