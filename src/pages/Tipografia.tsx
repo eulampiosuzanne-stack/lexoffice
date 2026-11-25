@@ -191,7 +191,7 @@ export default function Tipografia() {
     const up = await supabase.storage.from(BUCKET).upload(path, revFile, { upsert: false, contentType: revFile.type || undefined });
     if (up.error) { setRevBusy(false); return setRevNotice("Não foi possível enviar a peça: " + up.error.message); }
     setRevNotice("A IA está comparando com os modelos e melhorando a peça. Isso leva de 30 segundos a 2 minutos...");
-    const { data, error } = await supabase.functions.invoke("petition-assistant", { body: { action: "typography_improve", path, file_name: revFile.name, piece_type: revKind, instructions: revNotes, highlight: revHighlight } });
+    const { data, error } = await supabase.functions.invoke("petition-revise", { body: { action: "typography_improve", path, file_name: revFile.name, piece_type: revKind, instructions: revNotes, highlight: revHighlight } });
     setRevBusy(false);
     const err = (data as any)?.error || (error ? (await (error as any)?.context?.json?.().catch(() => null))?.error || error.message : "");
     if (err || !(data as any)?.ok) return setRevNotice("Não foi possível revisar: " + (err || "tente novamente."));
