@@ -4,7 +4,7 @@ import { hearingsToSync } from "./hearings.mjs";
 // Envia ao Google Agenda, sozinha, as reuniões, consultas e audiências da LEX (não envia prazos).
 // Chamada pelo agendamento do banco com o cabeçalho x-sync-token (segredo google_calendar_sync_token).
 const ORG = "b3dd3ed0-2a05-4087-8220-307a44352cec";
-const TYPES = ["meeting", "appointment", "hearing"];
+const TYPES = ["meeting", "appointment", "hearing", "consultation", "consultation_online", "client_consultation"];
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { "Content-Type": "application/json" } });
 const gf = (url: string, token: string, init: RequestInit = {}) =>
   fetch(url, { ...init, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...(init.headers || {}) } });
@@ -51,7 +51,9 @@ Deno.serve(async (req) => {
     const gtoken = await accessToken(admin, userId);
     const ids: Record<string, string> = { ...(conn.settings?.google_event_ids || {}) };
     const from = new Date(Date.now() - 86400000).toISOString(), to = new Date(Date.now() + 365 * 86400000).toISOString();
-    const { data: local } = await admin.from("calendar_events").select("*").eq("org_id", ORG).eq("owner_user_id", userId).in("event_type", TYPES).gte("starts_at", from).lte("starts_at", to).order("starts_at").limit(300);
+    // Agendamento de cliente (inclusive os da Helena em nome da assessora) também vai para a agenda conectada.
+    const { data: local, error: localError } = await admin.from("calendar_events").select("*").eq("org_id", ORG).or(`owner_user_id.eq.${userId},client_id.not.is.null,ai_agent_policy_id.not.is.null`).in("event_type", TYPES).gte("starts_at", from).lte("starts_at", to).order("starts_at").limit(300);
+    if (localError) throw new Error(`Falha ao ler a agenda: ${localError.message}`);
     // Audiências importadas do tribunal ficam em process_hearings e também precisam ir ao Google.
     const { data: hearings, error: hearingError } = await admin.from("process_hearings").select("*").eq("org_id", ORG).eq("owner_user_id", userId).gte("starts_at", from).lte("starts_at", to).order("starts_at").limit(200);
     if (hearingError) throw new Error(`Falha ao ler audiências: ${hearingError.message}`);
