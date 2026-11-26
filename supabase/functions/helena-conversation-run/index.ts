@@ -4,7 +4,7 @@ import { receptionMessages } from './reception-messages.mjs';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "jsr:@supabase/supabase-js@2.57.4";
 import { planOfficeModules, guardOfficeExecution } from "./office-modules.ts";
-import { agendaTool, exceptionalContext, slotButtonTitle, lawyerTalkRequest, isAppChoice, LAWYER_BUTTONS, LAWYER_BUSY_FALLBACK, CLIENT_APP_URL, type AgendaReply } from './helena-tools.ts';
+import { agendaTool, promisesAgendaCheck, AGENDA_ASK_PREFERENCE, exceptionalContext, slotButtonTitle, lawyerTalkRequest, isAppChoice, LAWYER_BUTTONS, LAWYER_BUSY_FALLBACK, CLIENT_APP_URL, type AgendaReply } from './helena-tools.ts';
 // v75 (12/11/2026): botões nos momentos de decisão (horários, escolha do processo, já sou cliente/não sou cliente),
 // com a Helena escrevendo a mensagem a partir da conversa; quem digita em vez de clicar continua sendo entendido pela Helena.
 import { authenticateOfficeCaller } from "./caller-auth.ts";
@@ -128,7 +128,6 @@ async function promiseAlert(a:any,url:string,sk:string,orgId:string,agentKey:str
   const tipo=cv?.client_id?'Cliente':'Lead (ainda não é cliente)';
   const ctx=`${tipo}: ${name||'nome não informado'} — ${phone}\n\nA Helena respondeu: "${reply.replace(/\s+/g,' ').slice(0,220)}"\n\nResumo da conversa:\n${resumo}`.slice(0,1400);
   await alertOwner(a,url,sk,orgId,agentKey,policy,conversationId,phone,'Helena disse que a Dra. seria avisada — precisa do seu retorno',ctx);
-  try{const {data:owners}=await a.from('profiles').select('id').eq('org_id',orgId).eq('status','active').limit(10);if(owners?.length)await a.from('notifications').insert(owners.map((u:any)=>({org_id:orgId,user_id:u.id,type:'service',title:`Retorno pendente: ${name||phone}`,body:ctx.slice(0,700),link:'/atendimento',read:false})))}catch(e){console.error('promiseAlert notify',e)}
   return true;
 }
 
@@ -228,6 +227,14 @@ async function alertOwner(a:any,url:string,sk:string,orgId:string,agentKey:strin
   const pol=policy?.policy||{};
   if(s?.alerts_enabled===false)return false;
   if(critical?pol.alert_on_urgency===false:(pol.alert_on_handoff===false||s?.alert_on_handoff===false))return false;
+  // 26/11/2026 — pedido da Dra.: no WhatsApp dela só urgência (e agendamento, avisado pelo banco). O restante fica no painel.
+  if(!critical){
+    const {data:owners}=await a.from('profiles').select('id').eq('org_id',orgId).eq('status','active').limit(10);
+    if(!owners?.length)return false;
+    const {error}=await a.from('notifications').insert(owners.map((u:any)=>({org_id:orgId,user_id:u.id,type:'service',title:reason.slice(0,120),body:`Contato: ${phone}\n${context}`.slice(0,700),link:'/atendimento',read:false})));
+    if(error)console.error('panel_alert_failed',error.code);
+    return !error;
+  }
   const alertTargets=Array.from(new Set([
     String(policy?.alert_phone||s?.alert_phone||'').trim(),
     String(s?.commercial_alert_phone||'').trim(),
@@ -433,10 +440,10 @@ Deno.serve(async req=>{
     const periodCtx=followup?'':await exceptionalContext(a,orgId);
     let agendaCtx='';
     let agendaReply:AgendaReply|undefined;
-    if(!followup&&policy.appointment_booking===true&&q.calendar_approval_required!==true&&q.approval_required!==true&&agentKey!=='billing'&&agentKey!=='client_process_updates'&&!wantsLawyer&&!pickedApp){
+    if(!followup&&policy.appointment_booking===true&&q.calendar_approval_required!==true&&q.approval_required!==true&&agentKey!=='billing'&&!wantsLawyer&&!pickedApp){
       let leadIdA:any=null,nameA='';
       if(conv?.contact_id){const {data:ct}=await a.from('whatsapp_contacts').select('name,profile_name,lead_id').eq('id',conv.contact_id).maybeSingle();leadIdA=ct?.lead_id||null;nameA=String(ct?.name||ct?.profile_name||'');}
-      const schedule=await agendaTool(a,{orgId,conversationId,message,ctx,clientId:verifiedClientId,leadId:leadIdA,name:nameA,phone,policyId:policy.id,dryRun,lastOutbound});
+      const schedule=await agendaTool(a,{orgId,conversationId,message,ctx,clientId:verifiedClientId,leadId:leadIdA,name:nameA,phone,policyId:policy.id,dryRun,lastOutbound,strict:agentKey==='client_process_updates',recentInbound:(hist||[]).filter((m:any)=>m.direction==='inbound').map((m:any)=>String(m.body||'')).slice(0,6)});
       if(typeof schedule==='string')agendaCtx=schedule;else agendaReply=schedule;
     }
     const recent=(hist||[]).reverse().map((m:any)=>(m.direction==='inbound'?'Cliente: ':'Escritório: ')+String(m.body||'').replace(/^(Suporte|Dra\. Suzanne Figueiredo):\s*/,'')).join('\n');
@@ -533,7 +540,8 @@ Deno.serve(async req=>{
     const candidate=agendaReply?.reply||deterministic||cleanReply(gwRes?.ok&&gwData?.ok?String(gwData.text||''):'')||(wantsLawyer?LAWYER_BUSY_FALLBACK:pickedApp?`Você pode deixar sua mensagem para a Dra. Suzanne pelo aplicativo do cliente:\n\n${CLIENT_APP_URL}`:'Não consegui consultar as informações agora. Pode tentar novamente em instantes?');
     const aiIntro=agendaIntroMode&&gwRes?.ok&&gwData?.ok?String(cleanReply(String(gwData.text||''))||'').split('\n').map((x:string)=>x.trim()).filter(Boolean)[0]||'':'';
     const safeIntro=aiIntro&&aiIntro.length<=240&&!/\d{1,2}\/\d{1,2}|\b\d{1,2}\s*h\b|\b\d{1,2}:\d{2}\b|segunda|terça|terca|quarta|quinta|sexta|sábado|sabado|domingo/i.test(aiIntro)?aiIntro:'';
-    const reply=agendaReply?.reply?(safeIntro?safeIntro+'\n\n'+agendaReply.reply:agendaReply.reply):(candidate?guardOfficeExecution(candidate,officeReview.status):'');
+    const rawReply=agendaReply?.reply?(safeIntro?safeIntro+'\n\n'+agendaReply.reply:agendaReply.reply):(candidate?guardOfficeExecution(candidate,officeReview.status):'');
+    const reply=!agendaReply&&!followup&&promisesAgendaCheck(rawReply)?AGENDA_ASK_PREFERENCE:rawReply;
     // v75: botões só nos momentos de decisão.
     let interactive:any=null;
     if(agendaReply?.slots?.length)interactive={type:'list',button:'Ver horários',rows:agendaReply.slots.slice(0,10).map((sl:any,i:number)=>({id:'slot:'+(i+1),title:slotButtonTitle(sl),description:String(sl.label||'').slice(0,72)}))};

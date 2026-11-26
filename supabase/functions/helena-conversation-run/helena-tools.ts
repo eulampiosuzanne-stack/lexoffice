@@ -6,6 +6,7 @@ const LAWYER_ID = '0e98483f-a464-422b-bf3e-68f454cdd405';
 const ASSESSOR_ID = 'dea3f3a2-9c41-4d5d-b781-3b5140d2c7ec';
 const DOW = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
 
+export const LOOKAHEAD_DAYS = 60;
 export type Slot = { iso: string; label: string; who: 'dra' | 'glaucia'; dow: number; hour: number; date: string };
 
 const norm = (s: string) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -40,10 +41,32 @@ function slotFrom(c: Date, hour: number, who: 'dra' | 'glaucia'): Slot {
   return { iso, who, dow: c.getUTCDay(), hour, date: ymd(c), label: `${DOW[c.getUTCDay()]}, ${dd}/${mm}, às ${hour}h` };
 }
 
-export function wantsAssessor(message: string) { return /\bglaucia\b|\bmanha\b|\bassessora\b/.test(norm(message)); }
+// Preferência de data/horário dita pela pessoa. Trechos com recusa ("à tarde não consigo") são ignorados.
+export type Pref = { weekday?: number; weeksAhead?: number; day?: number; month?: number; minHour?: number; hour?: number };
+const affirmedPart = (m: string) => norm(m).split(/[,.;!?\n]+|\bmas\b|\bporem\b/).filter(p => !/\b(?:nao|nunca|menos|exceto)\b/.test(p)).join(' , ');
+export function parsePreference(message: string): Pref | null {
+  const t = affirmedPart(message), p: Pref = {};
+  if (/\b(?:daqui a|em) (?:duas|2) semanas\b|\bdaqui a 15 dias\b/.test(t)) p.weeksAhead = 2;
+  else if (/\b(?:semana que vem|proxima semana|outra semana|semana seguinte)\b/.test(t)) p.weeksAhead = 1;
+  const wd = t.match(/\b(domingo|segunda|terca|quarta|quinta|sexta|sabado)(?:s)?\b(?![ -]*(?:vara|instancia|via|parcela|opcao|camara|turma|fase|vez))/);
+  if (wd) p.weekday = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'].indexOf(wd[1]);
+  const dm = t.match(/\b(\d{1,2})\/(\d{1,2})\b/), dd = t.match(/\bdia (\d{1,2})\b/);
+  const MONTHS = ['janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  const named = t.match(new RegExp(`\\b(\\d{1,2}) de (${MONTHS.join('|')})\\b`));
+  if (named && +named[1] >= 1 && +named[1] <= 31) { p.day = +named[1]; p.month = MONTHS.indexOf(named[2]) + 1; }
+  else if (dm && +dm[1] >= 1 && +dm[1] <= 31 && +dm[2] >= 1 && +dm[2] <= 12) { p.day = +dm[1]; p.month = +dm[2]; }
+  else if (dd && +dd[1] >= 1 && +dd[1] <= 31) p.day = +dd[1];
+  const min = t.match(/\b(?:a partir d[ae]s?|depois d[ae]s?|apos (?:as )?)\s*(\d{1,2})(?!\d)/);
+  const exact = t.match(/\b(?:as|às)\s+(\d{1,2})\b|\b(\d{1,2})\s*(?:h\b|h\d{2}|:\d{2}|horas?\b)/);
+  if (min && +min[1] < 24) p.minHour = +min[1];
+  else if (exact && +(exact[1] || exact[2]) < 24) p.hour = +(exact[1] || exact[2]);
+  return Object.keys(p).length ? p : null;
+}
+
+export function wantsAssessor(message: string) { return /\bglaucia\b|\bmanha\b|\bassessora\b/.test(affirmedPart(message)); }
 
 // busy: [{starts_at, ends_at, all_day, event_type}]
-export function computeSlots(now: Date, who: 'dra' | 'glaucia', busy: any[], holidays: Set<string>, count = 3): Slot[] {
+export function computeSlots(now: Date, who: 'dra' | 'glaucia', busy: any[], holidays: Set<string>, count = 3, pref: Pref | null = null): Slot[] {
   const [h0, h1] = who === 'dra' ? [14, 18] : [8, 14];
   const hearingDays = new Set(busy.filter((e: any) => e.event_type === 'hearing').map((e: any) => ymd(spClock(new Date(e.starts_at)))));
   const blocks = busy.filter((e: any) => e.event_type !== 'deadline' && !e.all_day).map((e: any) => {
@@ -51,15 +74,24 @@ export function computeSlots(now: Date, who: 'dra' | 'glaucia', busy: any[], hol
   });
   const out: Slot[] = [];
   const base = spClock(now);
-  for (let i = 1; i <= 21 && out.length < count; i++) { // a partir do próximo dia útil
+  // "semana que vem" começa na segunda-feira daquela semana.
+  const toMonday = ((8 - base.getUTCDay()) % 7) || 7;
+  const first = pref?.weeksAhead ? toMonday + 7 * (pref.weeksAhead - 1) : 1;
+  for (let i = first; i <= LOOKAHEAD_DAYS && out.length < count; i++) { // a partir do próximo dia útil
     const c = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate() + i));
     const dow = c.getUTCDay();
     if (dow === 0 || dow === 6 || holidays.has(ymd(c)) || hearingDays.has(ymd(c))) continue;
+    if (pref?.weekday !== undefined && dow !== pref.weekday) continue;
+    if (pref?.day !== undefined && c.getUTCDate() !== pref.day) continue;
+    if (pref?.month !== undefined && c.getUTCMonth() + 1 !== pref.month) continue;
     for (let h = h0; h < h1; h++) {
+      if (pref?.hour !== undefined && h !== pref.hour) continue;
+      if (pref?.minHour !== undefined && h < pref.minHour) continue;
       const s = slotFrom(c, h, who), st = new Date(s.iso).getTime(), en = st + 3600000;
       if (blocks.some(([bs, be]) => st < be && en > bs)) continue;
       out.push(s); break; // um horário por dia: três dias diferentes
     }
+    if (pref?.day !== undefined && out.length) break;
   }
   return out;
 }
@@ -69,6 +101,8 @@ export function pickSlot(message: string, offered: Slot[]): Slot | null {
   if (!offered?.length) return null;
   const t = norm(message).trim();
   if (t.includes('?') || /\b(?:nao|talvez|cancelar|desmarcar)\b/.test(t)) return null;
+  // Pedido de outra semana ou de faixa de horário não é escolha de um horário já oferecido.
+  if (/\b(?:que vem|proxim[ao]|outra semana|semana seguinte|a partir|depois|apos|daqui)\b/.test(t)) return null;
   // "segunda" fica de fora dos ordinais: em português é quase sempre o dia da semana.
   const ord: Array<[RegExp, number]> = [[/\b(primeiro|primeira)\b/, 0], [/\b(segundo|segunda opcao)\b/, 1], [/\b(terceiro|terceira)\b/, 2], [/\b(ultimo|ultima)\b/, offered.length - 1]];
   if (/^(?:opcao\s*)?[1-3](?:\s+(?:por favor|obrigad[oa]))?[.!)]?$/.test(t)) { const i = Number(t.match(/[1-3]/)![0]) - 1; return offered[i] || null; }
@@ -89,6 +123,21 @@ export function pickSlot(message: string, offered: Slot[]): Slot | null {
 
 const AGENDA_RE = /\b(agendar|agendamento|agenda|marcar|marca|reuniao|horario|horarios|consulta|remarcar|falar com (a )?(dra|doutora|suzanne|glaucia|advogada)|me liga|ligacao)\b/;
 export const asksAgenda = (m: string) => AGENDA_RE.test(norm(m));
+// Em conversa sobre andamento, só um pedido claro de reunião abre a agenda ("que horário é a audiência?" não abre).
+const STRONG_AGENDA_RE = /\b(agendar|agendamento|marcar|marca|remarcar|reuniao)\b/;
+const OFFERING_RE = /(agend|marcar|reuniao|horario)/;
+const YES_RE = /^(?:(?:sim|ok|claro|quero|pode|pode ser|pode sim|sim por favor|por favor|quero sim|pode marcar|pode agendar|isso|combinado)[\s,.!]*)+$/;
+export function shouldOpenAgenda(message: string, lastOutbound: string, strict = false): boolean {
+  const t = norm(message).trim(), last = norm(lastOutbound || '');
+  if (strict ? STRONG_AGENDA_RE.test(t) : AGENDA_RE.test(t)) return true;
+  if (!OFFERING_RE.test(last)) return false;
+  if (parsePreference(message)) return !/\b(audiencia|pagamento|parcela|boleto|prazo)\b/.test(t);
+  return last.includes('?') && YES_RE.test(t);
+}
+// Resposta que promete "vou olhar a agenda e te aviso": ninguém volta depois, então não pode ser enviada.
+const AGENDA_PROMISE_RE = /(vou (verificar|conferir|olhar|checar|consultar|ver)\b[^.!?]{0,90}(agenda|horario|disponibilidade|segunda|terca|quarta|quinta|sexta|semana))|(confirmacao do horario)|((confirmo|te aviso|retorno)\b[^.!?]{0,60}(horario|agenda))/;
+export const promisesAgendaCheck = (reply: string) => AGENDA_PROMISE_RE.test(norm(reply));
+export const AGENDA_ASK_PREFERENCE = 'Para eu te mostrar os horários livres agora, qual dia da semana e horário ficam melhores para você?';
 
 async function holidaySet(a: any, orgId: string): Promise<Set<string>> {
   const { data, error } = await a.from('office_holidays').select('holiday_date').eq('org_id', orgId).gte('holiday_date', new Date(Date.now() - 86400000 * 2).toISOString().slice(0, 10)).limit(60);
@@ -113,7 +162,7 @@ const DOW_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 export const SLOT_ICON = '\u{1F4C6}';
 export function slotButtonTitle(s: Slot): string { return (SLOT_ICON + ' ' + `${DOW_SHORT[s.dow] || ''} ${s.date.slice(8, 10)}/${s.date.slice(5, 7)} às ${s.hour}h`.trim()).slice(0, 24); }
 
-export async function agendaTool(a: any, o: { orgId: string; conversationId: string; message: string; ctx: any; clientId: string | null; leadId: string | null; name: string; phone: string; policyId: string; dryRun: boolean; lastOutbound?: string }): Promise<string | AgendaReply> {
+export async function agendaTool(a: any, o: { orgId: string; conversationId: string; message: string; ctx: any; clientId: string | null; leadId: string | null; name: string; phone: string; policyId: string; dryRun: boolean; lastOutbound?: string; recentInbound?: string[]; strict?: boolean }): Promise<string | AgendaReply> {
   const unavailable = { reply: receptionMessages.schedule_failed };
   try {
     const offeredAt = Number(o.ctx?.offered_at || 0);
@@ -123,7 +172,7 @@ export async function agendaTool(a: any, o: { orgId: string; conversationId: str
     const numbered = /^(?:opcao\s*)?[1-3](?:\s+(?:por favor|obrigad[oa]))?[.!)]?$/.test(norm(o.message).trim());
     const acceptsSingle = shown.length === 1 && offered.length === 1 && last.includes('qual opcao voce prefere?') && /^(?:sim|confirmo|pode ser|combinado|fechado)[.!]?$/.test(norm(o.message).trim());
     const choice = acceptsSingle ? shown[0] : numbered && shown.length !== offered.length ? null : pickSlot(o.message, shown);
-    if (!choice && !asksAgenda(o.message)) {
+    if (!choice && !shouldOpenAgenda(o.message, o.lastOutbound || '', !!o.strict)) {
       if (shown.length && numbered) return { reply: 'Qual data e horário da lista você prefere?' };
       return '';
     }
@@ -159,14 +208,25 @@ export async function agendaTool(a: any, o: { orgId: string; conversationId: str
     if (choice && o.dryRun) return { reply: `Simulação de agendamento para ${choice.label}. Nenhum horário foi reservado.` };
 
     const hol = await holidaySet(a, o.orgId);
-    const now = new Date(), to = new Date(now.getTime() + 25 * 86400000).toISOString();
+    const now = new Date(), to = new Date(now.getTime() + (LOOKAHEAD_DAYS + 2) * 86400000).toISOString();
     const { data: busy, error: calendarError } = await a.from('calendar_events')
       .select('starts_at,ends_at,all_day,event_type').eq('org_id', o.orgId)
-      .neq('status', 'cancelled').lt('starts_at', to)
-      .or(`ends_at.gt.${now.toISOString()},and(ends_at.is.null,starts_at.gte.${new Date(now.getTime() - 3600000).toISOString()})`).limit(500);
-    if (calendarError || (busy || []).length >= 500) return unavailable;
-    const who = wantsAssessor(o.message) ? 'glaucia' : offered[0]?.who || 'dra';
-    const slots = computeSlots(now, who, busy || [], hol);
+      .neq('status', 'cancelled').neq('event_type', 'deadline').lt('starts_at', to)
+      .or(`ends_at.gt.${now.toISOString()},and(ends_at.is.null,starts_at.gte.${new Date(now.getTime() - 3600000).toISOString()})`).limit(1000);
+    if (calendarError || (busy || []).length >= 1000) return unavailable;
+    // Audiências importadas do tribunal também bloqueiam o dia.
+    const { data: hearings, error: hearingError } = await a.from('process_hearings')
+      .select('starts_at').eq('org_id', o.orgId).eq('status', 'scheduled').gte('starts_at', now.toISOString()).lt('starts_at', to).limit(300);
+    if (hearingError) return unavailable;
+    const allBusy = [...(busy || []), ...(hearings || []).map((h: any) => ({ starts_at: h.starts_at, event_type: 'hearing' }))];
+    // "Pode sim" depois de a pessoa já ter dito o dia: vale a última preferência informada.
+    const pref = parsePreference(o.message) || (YES_RE.test(norm(o.message).trim())
+      ? (o.recentInbound || []).map(parsePreference).find(Boolean) || null : null);
+    const early = pref?.minHour === undefined && pref?.hour !== undefined && pref.hour < 14;
+    const who = wantsAssessor(o.message) || early ? 'glaucia' : pref?.hour !== undefined || (pref?.minHour ?? 0) >= 14 ? 'dra' : offered[0]?.who || 'dra';
+    let slots = computeSlots(now, who, allBusy, hol, 3, pref);
+    let notFound = false;
+    if (!slots.length && pref) { slots = computeSlots(now, who, allBusy, hol); notFound = slots.length > 0; }
     if (!slots.length) return { reply: receptionMessages.schedule_unavailable };
     if (!o.dryRun) {
       const { error: saveError } = await a.from('whatsapp_conversations')
@@ -175,7 +235,7 @@ export async function agendaTool(a: any, o: { orgId: string; conversationId: str
       if (saveError) return unavailable;
     }
     const person = who === 'dra' ? 'Dra. Suzanne' : 'assessora Gláucia';
-    const intro = choice ? 'O horário escolhido não está mais disponível.\n\n' : '';
+    const intro = choice ? 'O horário escolhido não está mais disponível.\n\n' : notFound ? 'Nesse dia ou horário não há vaga. Estes são os mais próximos.\n\n' : '';
     return { reply: `${intro}Horários para reunião online com a ${person} (horário de Brasília):\n\n${slots.map((slot, n) => `${n + 1}) ${slot.label}`).join('\n')}\n\nQual opção você prefere?`, slots };
   } catch (error) { console.error('agenda_tool_failed', error instanceof Error ? error.name : 'unknown'); return unavailable; }
 }
