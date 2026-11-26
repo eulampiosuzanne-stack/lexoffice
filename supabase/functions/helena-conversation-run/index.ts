@@ -1,5 +1,6 @@
 import { weekendNotice, requestsLawyerContact, isSuzanneOffice } from './office-availability.mjs';
 import { afterHours, afterHoursNotice, saysUrgent } from './after-hours.mjs';
+import { leadFlowRules, lawyerBusyRule, TONE_RULES } from './lead-flow.mjs';
 import { receptionReply } from './reception-reply.mjs';
 import { receptionMessages } from './reception-messages.mjs';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -434,7 +435,7 @@ Deno.serve(async req=>{
       }
     }
     let pixInfo='';
-    if(agentKey==='billing'||agentKey==='sales'){const {data:fs}=await a.from('financial_settings').select('pix_key,pix_key_type,beneficiary_name').eq('org_id',orgId).maybeSingle();if(fs?.pix_key)pixInfo=`Chave PIX cadastrada: ${fs.pix_key}; tipo: ${fs.pix_key_type||'não informado'}; favorecido: ${fs.beneficiary_name||'escritório'}.`;else{const {data:ws}=await a.from('whatsapp_settings').select('consultation_pix_key,consultation_pix_owner_name').eq('org_id',orgId).maybeSingle();if(ws?.consultation_pix_key)pixInfo=`Chave PIX cadastrada: ${ws.consultation_pix_key} (CPF); favorecido: ${ws.consultation_pix_owner_name||'Suzanne Figueiredo'}. O PIX pode ser pago a qualquer dia, inclusive fins de semana.`}}
+    if(agentKey==='billing'||agentKey==='sales'||!verifiedClientId){const {data:fs}=await a.from('financial_settings').select('pix_key,pix_key_type,beneficiary_name').eq('org_id',orgId).maybeSingle();if(fs?.pix_key)pixInfo=`Chave PIX cadastrada: ${fs.pix_key}; tipo: ${fs.pix_key_type||'não informado'}; favorecido: ${fs.beneficiary_name||'escritório'}.`;else{const {data:ws}=await a.from('whatsapp_settings').select('consultation_pix_key,consultation_pix_owner_name').eq('org_id',orgId).maybeSingle();if(ws?.consultation_pix_key)pixInfo=`Chave PIX cadastrada: ${ws.consultation_pix_key} (CPF); favorecido: ${ws.consultation_pix_owner_name||'Suzanne Figueiredo'}. O PIX pode ser pago a qualquer dia, inclusive fins de semana.`}}
 
     // v26 — LEAD (não é cliente) no financeiro: a cobrança é da CONSULTA, não de parcelas.
     let leadConsultBlock='';
@@ -442,6 +443,13 @@ Deno.serve(async req=>{
       const {data:wsc}=await a.from('whatsapp_settings').select('consultation_fee_amount').eq('org_id',orgId).maybeSingle();
       const fee=Number(wsc?.consultation_fee_amount||0)||Number((own?.policy||{}).consultation_price||0)||300;
       leadConsultBlock=`ESTA PESSOA AINDA NÃO É CLIENTE: ela quer a consulta com a Dra. Suzanne. Valor da consulta: ${brl(fee)}. Informe o valor e a chave PIX abaixo e peça para enviar o comprovante aqui mesmo. Só depois do pagamento os horários são liberados: NÃO ofereça nem confirme horários agora. Quando ela disser que pagou ou mandar o comprovante, agradeça e diga que o pagamento será conferido para liberar os horários. NÃO fale de parcelas, juros, multa ou débitos. Não conceda desconto. ${pixInfo}`;
+    }
+
+    // 26/11/2026 — fluxo de quem não é cliente (triagem → consulta → pagamento → dias).
+    let leadFlow='';
+    if(!followup&&!verifiedClientId&&isSuzanneOffice(orgId)&&!leadConsultBlock){
+      const {data:wsf}=await a.from('whatsapp_settings').select('consultation_fee_amount').eq('org_id',orgId).maybeSingle();
+      leadFlow=leadFlowRules({isClient:false,agentKey,fee:Number(wsf?.consultation_fee_amount||0),pixInfo});
     }
 
     // v72 — avisos internos da LEX que caem na mesma conversa (ex.: o número da Dra. é também destino de alertas) não entram no histórico,
@@ -475,11 +483,11 @@ Deno.serve(async req=>{
     const office=String(q.customer_facing_office||'Suzanne Figueiredo Advocacia e Soluções Jurídicas').trim();
     const urgentMinor=ctx?.urgent===true&&(ctx?.path||[]).some((x:any)=>x?.choice==='minor');
     const contextBlock=summary?`CONTEXTO JÁ COLETADO PELO MENU (não pergunte de novo, continue daqui): ${summary}.${urgentMinor?' URGÊNCIA ENVOLVENDO CRIANÇA/ADOLESCENTE: pergunte objetivamente qual é o risco atual; não fale de consulta ou honorários.':''}`:'';
-    const billingRules=(verifiedClientId?'CLIENTE IDENTIFICADO NO CADASTRO: jamais cobre consultoria automaticamente. Se pedir chave Pix, esclareça a finalidade do pagamento e forneça somente dados verificados, sem presumir consulta. ':!leadConsultBlock?'VÍNCULO NÃO CONFIRMADO: não cobre consultoria nem presuma que é lead. Primeiro confirme se já é cliente. ':'')+ (leadConsultBlock||(agentKey==='billing'?[openDebts||(collection?`DÉBITO CALCULADO PARA HOJE (${brDate(todaySP())}): saldo ${brl(collection.principal)}, multa ${Number(collection.late_fee_percent||0)}%, juros ${Number(collection.monthly_interest_percent||0)}% ao mês, ${Number(collection.days_overdue||0)} dias de atraso, total atualizado ${brl(collection.updated_amount)}.`:''),pixInfo,'Informe que o saldo continua aumentando pelos juros até o pagamento.'].filter(Boolean).join(' '):pixInfo));
+    const billingRules=(verifiedClientId?'CLIENTE IDENTIFICADO NO CADASTRO: jamais cobre consultoria automaticamente. Se pedir chave Pix, esclareça a finalidade do pagamento e forneça somente dados verificados, sem presumir consulta. ':!leadConsultBlock&&!leadFlow?'VÍNCULO NÃO CONFIRMADO: não cobre consultoria nem presuma que é lead. Primeiro confirme se já é cliente. ':'')+ (leadConsultBlock||(agentKey==='billing'?[openDebts||(collection?`DÉBITO CALCULADO PARA HOJE (${brDate(todaySP())}): saldo ${brl(collection.principal)}, multa ${Number(collection.late_fee_percent||0)}%, juros ${Number(collection.monthly_interest_percent||0)}% ao mês, ${Number(collection.days_overdue||0)} dias de atraso, total atualizado ${brl(collection.updated_amount)}.`:''),pixInfo,'Informe que o saldo continua aumentando pelos juros até o pagamento.'].filter(Boolean).join(' '):pixInfo));
     const hotBlock=hotLead?'A PESSOA DEMONSTROU INTENÇÃO DE CONTRATAR OU PERGUNTOU SOBRE HONORÁRIOS: siga a seção HONORÁRIOS DO CONTRATO e o MÉTODO MARÇAL (sondar antes, valor só da tabela OAB/MG e só depois de duas respostas de diagnóstico; nunca entrada, número de parcelas ou desconto). Não diga que houve alerta, transferência ou mudança de setor.':'';
 
     const lexHumanRules='ATENDIMENTO HELENA: converse naturalmente em português brasileiro, sem menu numerico, assinatura repetida, linguagem de chatbot ou respostas genericas. Reaja primeiro ao que a pessoa disse e depois avance. Uma pergunta por vez, nao repita dados do CRM. Não anuncie espontaneamente automação, IA, robô ou assistente virtual; se houver pergunta direta sobre isso, responda com transparência e volte ao atendimento. Nunca diga que consultou ficha sem consultar. Traduza somente movimentacoes judiciais confirmadas em linguagem simples, com linha do tempo compacta quando pertinente; nunca invente fase, decisao ou prazo. Evite risadas em temas sensiveis. Nao prometa retorno pessoal da advogada sem confirmacao. Pedidos para falar com a advogada, reclamações e insistências sem urgência real não autorizam transferência automática: responda com firmeza, registre o pedido e ofereça agendamento conforme as regras. Nunca afirme que avisou a advogada se não houver confirmação. Para interessados ainda não contratados, explique a consulta paga e não confirme horário antes da validação do pagamento. Questões jurídicas de mérito devem seguir para revisão profissional, sem resposta conclusiva.';
-    const brazilianToneRules='TOM: português brasileiro natural, caloroso e elegante, com a personalidade da Helena (Donna). Humor leve só quando o clima permitir; nunca em cobrança, urgência, luto ou conflito. Sem emojis e sem kkk ou rsrs.';
+    const brazilianToneRules=TONE_RULES;
     const rules=policyRules(policy,agentKey,hasHistory);
     // A module is a plan, never a claim that an external engine has executed.
     // Record legal work for professional review without messaging the lawyer or another client.
@@ -522,7 +530,7 @@ Deno.serve(async req=>{
        showClientMenu?'A PESSOA CONFIRMOU QUE É CLIENTE: pergunte o que precisa e apresente as opções de processo, documentos, financeiro, urgência, recado pelo aplicativo ou reunião com a Dra. Suzanne. As opções podem aparecer como lista interativa ou numerada; aceite resposta livre.':'',
        showLeadMenu?'A PESSOA INFORMOU QUE AINDA NÃO É CLIENTE: pergunte qual assunto busca e apresente opções de Família e Sucessões, Consumidor/Bancário, Saúde, Trabalhista, Imóveis, Criminal ou Outro. As opções podem aparecer como lista interativa ou numerada; aceite resposta livre.':'' ,
       wantsLawyer?'A PESSOA PEDIU PARA FALAR COM A DRA. SUZANNE: responda com acolhimento, em no máximo duas frases curtas, que a Dra. Suzanne está em atendimento neste momento e que há dois caminhos: deixar a mensagem para ela pelo aplicativo do escritório ou agendar uma reunião online com ela. Logo abaixo da sua mensagem aparecerão os botões "Mensagem pelo app" e "Agendar reunião"; não os repita no texto. NÃO escreva link, datas nem horários, NÃO prometa retorno nem ligação e NÃO diga que avisou a Dra.':'',
-      pickedApp?`A PESSOA ESCOLHEU DEIXAR A MENSAGEM PELO APLICATIVO: em até duas frases curtas, diga que é só abrir o aplicativo do cliente e escrever o recado na área de mensagens, que ele chega direto à Dra. Suzanne. Coloque exatamente este link sozinho em uma linha: ${CLIENT_APP_URL} . Não prometa prazo de resposta e não ofereça horários agora.`:'',contextBlock,dossier,processUpdateContext,billingRules,hotBlock,periodCtx,agendaCtx,
+      pickedApp?`A PESSOA ESCOLHEU DEIXAR A MENSAGEM PELO APLICATIVO: em até duas frases curtas, diga que é só abrir o aplicativo do cliente e escrever o recado na área de mensagens, que ele chega direto à Dra. Suzanne. Coloque exatamente este link sozinho em uma linha: ${CLIENT_APP_URL} . Não prometa prazo de resposta e não ofereça horários agora.`:'',contextBlock,dossier,processUpdateContext,billingRules,leadFlow,wantsLawyer?lawyerBusyRule(afterHours()?.when||''):'',hotBlock,periodCtx,agendaCtx,
     ].filter(Boolean).join('\n\n');
 
     let deterministic='',showCollectionConfirmation=false,newCollectionContext:any=null;
