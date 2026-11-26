@@ -118,6 +118,9 @@ async function promiseAlert(a:any,url:string,sk:string,orgId:string,agentKey:str
   const since=new Date(Date.now()-2*3600000).toISOString();
   const {data:prev}=await a.from('ai_agent_alerts').select('id').eq('org_id',orgId).eq('contact_phone',phone).like('reason','Helena disse que a Dra. seria avisada%').gt('created_at',since).limit(1).maybeSingle();
   if(prev)return false;
+  // Avisos não urgentes ficam só no painel (notifications): sem esta checagem o mesmo aviso se repetiria.
+  const {data:panel}=await a.from('notifications').select('id').eq('org_id',orgId).like('title','Helena disse que a Dra. seria avisada%').like('body',`Contato: ${phone}\n%`).gt('created_at',since).limit(1).maybeSingle();
+  if(panel)return false;
   const {data:cv}=await a.from('whatsapp_conversations').select('client_id,contact_id,lead_id').eq('id',conversationId).maybeSingle();
   let name='';
   if(cv?.client_id){const {data:cl}=await a.from('clients').select('name').eq('id',cv.client_id).maybeSingle();name=String(cl?.name||'')}
