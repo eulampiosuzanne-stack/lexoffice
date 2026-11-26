@@ -1,4 +1,5 @@
 import { weekendNotice, requestsLawyerContact, isSuzanneOffice } from './office-availability.mjs';
+import { afterHours, afterHoursNotice, saysUrgent } from './after-hours.mjs';
 import { receptionReply } from './reception-reply.mjs';
 import { receptionMessages } from './reception-messages.mjs';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -343,6 +344,24 @@ Deno.serve(async req=>{
     };
     // Urgência real nunca espera o horário comercial.
     if(hand?.critical)return await doHandoff(hand);
+    // 26/11/2026 — cliente fora do expediente: avisa uma vez por período, pergunta se é urgência e só então alerta.
+    const closed=!followup&&verifiedClientId&&isSuzanneOffice(orgId)?afterHours():null;
+    if(closed){
+      const prev=ctx?.after_hours?.period===closed.period?ctx.after_hours:null;
+      const urgent=saysUrgent(message,!!prev);
+      const save=async(v:any)=>{if(!dryRun)await a.from('whatsapp_conversations').update({chatbot_context:{...(ctx||{}),after_hours:v}}).eq('org_id',orgId).eq('id',conversationId)};
+      if(urgent&&!prev?.alerted){
+        const alerted=dryRun?false:await alertOwner(a,url,sk,orgId,agentKey,policy,conversationId,phone,'URGÊNCIA informada por cliente fora do horário',message,true);
+        await save({period:closed.period,alerted});
+        const r=await send(alerted?'Certo, avisei a Dra. Suzanne que é urgente. Se puder, conte em poucas palavras o que aconteceu.':`Entendi que é urgente. Sua mensagem está registrada e a equipe volta ${closed.when}. Se houver risco à sua segurança, ligue 190.`,`ooh-urgent:${conversationId}:${closed.period}`);
+        return J({ok:true,after_hours:true,urgent:true,alerted,notice_sent:!!r.ok&&r.allowed!==false,dry_run:dryRun||undefined});
+      }
+      if(!prev&&!urgent){
+        const r=await send(afterHoursNotice(closed.when),`ooh:${conversationId}:${closed.period}`);
+        if(r.ok&&r.allowed!==false)await save({period:closed.period});
+        return J({ok:true,after_hours:true,notice_sent:!!r.ok&&r.allowed!==false,reason:r.reason,...(dryRun?{dry_run:true,reply:afterHoursNotice(closed.when)}:{})});
+      }
+    }
     const notice = !followup && requestsLawyerContact(message) ? weekendNotice(orgId) : '';
     if (notice) {
       const result = await send(notice, `ooh:${conversationId}:2026-11-16`);
