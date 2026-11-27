@@ -21,6 +21,14 @@ export default function DashboardOverview({ financeBlocked = false }: { financeB
   const [data, setData] = useState<Row | null>(null);
   const [savingTask, setSavingTask] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
+  const [refresh, setRefresh] = useState(0);
+  // Atualiza a rotina e o resumo sozinhos: ao voltar para a tela e a cada 5 minutos.
+  useEffect(() => {
+    const again = () => { if (document.visibilityState === "visible") setRefresh((n) => n + 1); };
+    document.addEventListener("visibilitychange", again);
+    const timer = window.setInterval(again, 5 * 60 * 1000);
+    return () => { document.removeEventListener("visibilitychange", again); window.clearInterval(timer); };
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -72,7 +80,7 @@ export default function DashboardOverview({ financeBlocked = false }: { financeB
       });
     })().catch((error) => { console.error("Falha ao carregar o painel SF", error); if (alive) setData({ error: true }); });
     return () => { alive = false; };
-  }, [financeBlocked]);
+  }, [financeBlocked, refresh]);
 
   const today = dateKey(new Date().toISOString());
   const hearingsToday = useMemo(() => {
@@ -90,7 +98,7 @@ export default function DashboardOverview({ financeBlocked = false }: { financeB
     if (!data) return [];
     const rows: Row[] = [];
     (data.events || []).filter((x: Row) => dateKey(x.starts_at) === today).forEach((x: Row) => rows.push({ id: "event-" + x.id, type: "event", icon: isHearing(x) ? Gavel : CalendarDays, title: x.title || "Compromisso", meta: hour(x.starts_at) + (x.location ? " · " + x.location : ""), path: "/agenda", at: x.starts_at }));
-    (data.deadlines || []).filter((x: Row) => dateKey(x.due_at) <= today).forEach((x: Row) => rows.push({ id: "deadline-" + x.id, type: "deadline", icon: Scale, title: x.title || "Prazo processual", meta: "Vence " + shortDate(x.due_at), path: "/processos", at: x.due_at }));
+    (data.deadlines || []).filter((x: Row) => dateKey(x.due_at) <= today).forEach((x: Row) => rows.push({ id: "deadline-" + x.id, type: "deadline", deadline: x, icon: Scale, title: x.title || "Prazo processual", meta: "Vence " + shortDate(x.due_at), path: "/processos", at: x.due_at }));
     (data.tasks || []).filter((x: Row) => !x.due_date || x.due_date <= today).forEach((x: Row) => rows.push({ id: "task-" + x.id, type: "task", task: x, icon: FileText, title: x.title || "Afazer", meta: x.due_date ? "Até " + shortDate(x.due_date) : (x.notes || "Sem prazo definido"), path: "/afazeres", at: x.due_date || x.created_at }));
     return rows.sort((a, b) => String(a.at || "").localeCompare(String(b.at || ""))).slice(0, 4);
   }, [data, today]);
@@ -117,6 +125,16 @@ export default function DashboardOverview({ financeBlocked = false }: { financeB
     const { data: updated, error } = await supabase.from("office_tasks").update({ done_at: completedAt }).eq("id", task.id).eq("org_id", profile.org_id).eq("scope", "geral").is("done_at", null).select("id");
     if (error || !updated?.length) setActionError(error?.message || "A tarefa não foi atualizada. Confira a lista de afazeres.");
     else setData((previous: Row) => previous ? { ...previous, tasks: (previous.tasks || []).map((row: Row) => row.id === task.id ? { ...row, done_at: completedAt } : row) } : previous);
+    setSavingTask(null);
+  };
+
+  const completeDeadline = async (deadline: Row) => {
+    if (!supabase || !profile.org_id || savingTask) return;
+    if (!window.confirm("Confirmar que este prazo foi efetivamente cumprido?\n\n" + (deadline.title || "Prazo processual") + "\nVence " + shortDate(deadline.due_at))) return;
+    setSavingTask(deadline.id); setActionError("");
+    const { data: updated, error } = await supabase.from("process_deadlines").update({ status: "completed", completed_at: new Date().toISOString() }).eq("id", deadline.id).eq("org_id", profile.org_id).in("status", ["pending", "overdue"]).select("id");
+    if (error || !updated?.length) setActionError(error?.message || "O prazo não foi atualizado. Confira a situação dele no processo.");
+    else setData((previous: Row) => previous ? { ...previous, deadlines: (previous.deadlines || []).filter((row: Row) => row.id !== deadline.id) } : previous);
     setSavingTask(null);
   };
 
@@ -155,7 +173,7 @@ export default function DashboardOverview({ financeBlocked = false }: { financeB
         {!data ? <div className="hc-skeleton" aria-label="Carregando rotina" /> : routineRows.length ? <ul className="hc-routine-list">{routineRows.map((row: Row) => {
           const Icon = row.icon;
           return <li key={row.id} className={row.type === "task" && row.task.done_at ? "is-complete" : ""}>
-            {row.type === "task" ? <button type="button" className={"hc-task-check" + (row.task.done_at ? " done" : "")} aria-label={row.task.done_at ? "Tarefa concluída" : "Marcar tarefa como concluída"} disabled={Boolean(row.task.done_at) || savingTask === row.task.id} onClick={() => void completeTask(row.task)}>{row.task.done_at ? <Check size={14} /> : null}</button> : <span className="hc-routine-check" aria-hidden="true" />}
+            {row.type === "task" ? <button type="button" className={"hc-task-check" + (row.task.done_at ? " done" : "")} aria-label={row.task.done_at ? "Tarefa concluída" : "Marcar tarefa como concluída"} disabled={Boolean(row.task.done_at) || savingTask === row.task.id} onClick={() => void completeTask(row.task)}>{row.task.done_at ? <Check size={14} /> : null}</button> : row.type === "deadline" ? <button type="button" className="hc-task-check" aria-label="Marcar prazo como cumprido" title="Marcar prazo como cumprido" disabled={savingTask === row.deadline.id} onClick={() => void completeDeadline(row.deadline)} /> : <span aria-hidden="true" />}
             <button type="button" className="hc-routine-item" onClick={() => go(row.path)}><Icon size={19} aria-hidden="true" /><span><strong>{row.title}</strong><small>{row.meta}</small></span><ChevronRight size={16} aria-hidden="true" /></button>
           </li>;
         })}</ul> : <div className="hc-calm"><CheckSquare size={24} /><strong>Nenhuma tarefa, audiência ou prazo para hoje foi encontrado nas fontes consultadas.</strong><button type="button" onClick={() => go("/afazeres")}>Abrir Afazeres</button></div>}

@@ -51,7 +51,6 @@ const ServiceConfiguration = lazy(() => import("./pages/ServiceConfiguration"));
 const ProcessProviderSettings = lazy(() => import("./pages/ProcessProviderSettings"));
 const ClientArea = lazy(() => import("./pages/ClientArea"));
 const PerfilCliente = lazy(() => import("./pages/PerfilCliente"));
-const Marketing = lazy(() => import("./pages/Marketing"));
 const Planejamento = lazy(() => import("./pages/Planejamento"));
 const Afazeres = lazy(() => import("./pages/Afazeres"));
 const Donna = lazy(() => import("./pages/Donna"));
@@ -847,7 +846,7 @@ export default function App() {
             <Route path="/cobranca" element={financeBlocked ? (<Navigate to="/" replace/>) : (<Finance view="cobranca"/>)}/>
             <Route path="/prospeccao" element={isPlatformAdmin ? (<ProspectCenter />) : (<Navigate to="/" replace/>)}/>
             <Route path="/prospeccao-atual" element={<Navigate to="/prospeccao" replace/>}/>
-            <Route path="/marketing" element={<Marketing />}/>
+            <Route path="/marketing" element={<Navigate to="/" replace />}/>
             <Route path="/atendimento" element={<Navigate to="/whatsapp" replace/>}/>
             <Route path="/seguranca" element={<Security />}/>
             <Route path="/auditoria" element={canAccessAudit ? <Audit /> : <Navigate to="/" replace/>}/>

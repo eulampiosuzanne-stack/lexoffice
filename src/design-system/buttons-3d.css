@@ -33,3 +33,27 @@ html:root:root body .app.app.app.app.app.app.app :is(button.app-message-button,b
 html:root:root body .app.app.app.app.app.app.app button.app-message-button.app-message-primary{background:linear-gradient(160deg,#b04869 0%,#7a1f3d 50%,#3f0d20 100%) !important;color:#fff !important;border-color:#d4af37 !important}
 html:root:root body .app.app.app.app.app.app.app :is(button.app-message-button,button.app-message-text-button,button.side-event,button.side-done) *{color:inherit !important}
 html:root:root body .app.app.app.app.app.app.app :is(button.app-inbox-message,button.hc-summary-tile){border:1px solid #a8861d !important;border-radius:12px !important;box-shadow:0 4px 0 #a8861d,0 8px 12px -5px rgba(0,0,0,.4) !important;margin-bottom:4px;cursor:pointer}
+/* 27/11: Minha Rotina, Resumo do Escritório e lista de Processos em tela estreita. */
+html body .app .hc-routine-list button.hc-task-check{width:28px !important;height:28px !important;min-height:28px !important;border:2px solid #7a1f3d !important;border-radius:8px !important;background:#fffdf8 !important;cursor:pointer}
+html body .app .hc-routine-list button.hc-task-check:hover{background:#f3e7c9 !important}
+html body .app .hc-routine-list button.hc-task-check.done{background:#7a1f3d !important}
+html body .app .hc-routine-item :is(strong,small){white-space:normal !important;overflow:visible !important}
+html body .app .hc-summary{container-type:inline-size}
+html body .app .hc-summary-grid{grid-template-columns:repeat(auto-fit,minmax(130px,1fr)) !important}
+html body .app .hc-summary-tile{align-items:center !important;text-align:center}
+@media(max-width:1100px){
+ html body .app .process-workspace .process-table-wrap{overflow:visible !important}
+ html body .app .process-workspace .process-table-wrap :is(table,tbody,tr,td){display:block !important;width:100% !important;min-width:0 !important;box-sizing:border-box}
+ html body .app .process-workspace .process-table-wrap thead{display:none !important}
+ html body .app .process-workspace .process-table-wrap tr{margin:0 0 16px;padding:6px 4px;border:1px solid #c9a94e !important;border-radius:16px;background:#fffdf8;box-shadow:0 4px 0 #d9c38a}
+ html body .app .process-workspace .process-table-wrap td{border:0 !important;padding:6px 14px !important;color:#2a1a1f}
+ html body .app .process-workspace .process-table-wrap td:nth-child(n+2)::before{display:block;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#7a1f3d}
+ html body .app .process-workspace .process-table-wrap td:nth-child(2)::before{content:'Cliente'}
+ html body .app .process-workspace .process-table-wrap td:nth-child(3)::before{content:'Tribunal'}
+ html body .app .process-workspace .process-table-wrap td:nth-child(4)::before{content:'Situação'}
+ html body .app .process-workspace .process-table-wrap td:nth-child(5)::before{content:'Consulta externa'}
+}
+/* Cachorrinho menor em todas as telas. */
+body .sf-guardian-trigger.sf-guardian-walker-btn{scale:.55;transform-origin:bottom right}
+html body .app .hc-routine-list>li{grid-template-columns:30px minmax(0,1fr) !important}
+html body .app .process-workspace details>summary{padding:10px 18px !important}
