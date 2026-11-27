@@ -1,7 +1,8 @@
 // 26/11/2026 (Dra. Suzanne): quem NÃO é cliente passa por triagem → importância da consulta → cobrança → dias só após pagamento.
 // Cliente cadastrado nunca é cobrado por este fluxo.
-export function leadFlowRules({ isClient, agentKey, fee, pixInfo = '' }) {
+export function leadFlowRules({ isClient, agentKey, fee, pixInfo = '', paid = false }) {
   if (isClient || agentKey === 'support_n1') return '';
+  if (paid) return 'PAGAMENTO DA CONSULTA JÁ CONFIRMADO pelo escritório: não cobre de novo, não envie Pix e não repita a triagem. Ajude a pessoa a marcar o dia, usando somente os horários informados pela agenda; se não houver horários na instrução, diga que vai verificar a agenda, sem inventar.';
   const price = 'R$ ' + Number(fee || 300).toFixed(2).replace('.', ',');
   return [
     'FLUXO PARA QUEM NÃO É CLIENTE (siga na ordem, uma mensagem curta por vez, olhando o que já foi respondido na conversa):',

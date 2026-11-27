@@ -439,7 +439,7 @@ Deno.serve(async req=>{
 
     // v26 — LEAD (não é cliente) no financeiro: a cobrança é da CONSULTA, não de parcelas.
     let leadConsultBlock='';
-    if(agentKey==='billing'&&!verifiedClientId&&/\b(agendar|marcar|contratar|consulta|consultoria)\b/i.test(norm(message))&&!/\b(chave|pix|transferencia|deposito)\b/i.test(norm(message))){
+    if(!isSuzanneOffice(orgId)&&agentKey==='billing'&&!verifiedClientId&&/\b(agendar|marcar|contratar|consulta|consultoria)\b/i.test(norm(message))&&!/\b(chave|pix|transferencia|deposito)\b/i.test(norm(message))){
       const {data:wsc}=await a.from('whatsapp_settings').select('consultation_fee_amount').eq('org_id',orgId).maybeSingle();
       const fee=Number(wsc?.consultation_fee_amount||0)||Number((own?.policy||{}).consultation_price||0)||300;
       leadConsultBlock=`ESTA PESSOA AINDA NÃO É CLIENTE: ela quer a consulta com a Dra. Suzanne. Valor da consulta: ${brl(fee)}. Informe o valor e a chave PIX abaixo e peça para enviar o comprovante aqui mesmo. Só depois do pagamento os horários são liberados: NÃO ofereça nem confirme horários agora. Quando ela disser que pagou ou mandar o comprovante, agradeça e diga que o pagamento será conferido para liberar os horários. NÃO fale de parcelas, juros, multa ou débitos. Não conceda desconto. ${pixInfo}`;
@@ -449,7 +449,13 @@ Deno.serve(async req=>{
     let leadFlow='';
     if(!followup&&!verifiedClientId&&isSuzanneOffice(orgId)&&!leadConsultBlock){
       const {data:wsf}=await a.from('whatsapp_settings').select('consultation_fee_amount').eq('org_id',orgId).maybeSingle();
-      leadFlow=leadFlowRules({isClient:false,agentKey,fee:Number(wsf?.consultation_fee_amount||0),pixInfo});
+      // pagamento confirmado no painel (botão) libera os dias; sem registro, segue a triagem.
+      const {data:cvl}=await a.from('whatsapp_conversations').select('lead_id,contact_id').eq('id',conversationId).maybeSingle();
+      let flowLead:any=cvl?.lead_id||null;
+      if(!flowLead&&cvl?.contact_id){const {data:ctl}=await a.from('whatsapp_contacts').select('lead_id').eq('id',cvl.contact_id).maybeSingle();flowLead=ctl?.lead_id||null}
+      let paid=false;
+      if(flowLead){const {count}=await a.from('payment_receipts').select('id',{count:'exact',head:true}).eq('org_id',orgId).eq('lead_id',flowLead);paid=(count||0)>0}
+      leadFlow=leadFlowRules({isClient:false,agentKey,fee:Number(wsf?.consultation_fee_amount||0),pixInfo,paid});
     }
 
     // v72 — avisos internos da LEX que caem na mesma conversa (ex.: o número da Dra. é também destino de alertas) não entram no histórico,

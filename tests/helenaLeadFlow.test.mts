@@ -20,3 +20,8 @@ test('tom e fora do expediente', () => {
   assert.equal(lawyerBusyRule(''), '');
   assert.match(lawyerBusyRule('amanhã'), /volta amanhã/);
 });
+test('pagamento confirmado: não cobra de novo', () => {
+  const r = leadFlowRules({ isClient: false, agentKey: 'client_service_triage', fee: 300, pixInfo: 'Chave PIX X', paid: true });
+  assert.match(r, /JÁ CONFIRMADO/);
+  assert.doesNotMatch(r, /COBRANÇA|Chave PIX X/);
+});
