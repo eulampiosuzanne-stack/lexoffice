@@ -2,7 +2,7 @@
 html[data-lex-vision="enhanced"] #root :is(button, input:not([type=hidden]), select, textarea, [role=button]) {
   border: 2px solid var(--lx-border);
   box-shadow: var(--lx-control-shadow);
-  font-size: max(1rem, 16px);
+  font-size: max(1rem, 15px);
 }
 html[data-lex-vision="enhanced"] #root :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]), select, textarea) {
   min-height: var(--lx-control-height);
