@@ -84,3 +84,7 @@ html[data-lex-theme] body .app.menu-mini>aside:not(:hover):not(:has(:focus-visib
 html[data-lex-theme] body .app.menu-mini>aside:not(:hover):not(:has(:focus-visible)) nav .workspace-area-toggle *:not(svg:first-child):not(svg:first-child *){display:none !important}
 html[data-lex-theme] body .app.menu-mini>aside:not(:hover):not(:has(:focus-visible)) nav .workspace-area-toggle~*{display:none !important}
 }
+@media(min-width:761px){
+html[data-lex-theme] body .app.menu-mini>aside:not(:hover):not(:has(:focus-visible)) button.menu-mini-toggle.menu-mini-toggle{font-size:0 !important;line-height:1}
+html[data-lex-theme] body .app.menu-mini>aside:not(:hover):not(:has(:focus-visible)) button.menu-mini-toggle.menu-mini-toggle::after{font-size:18px !important}
+}
