@@ -98,3 +98,21 @@ html[data-lex-theme] body .service-chat-page .service-shell:not(.has-selection),
 @media(max-width:1050px){html[data-lex-theme] body .service-chat-page .service-shell.has-selection{grid-template-columns:minmax(220px,32%) minmax(0,1fr)}.service-chat-page .service-details{display:none}.service-chat-page .service-details-toggle{display:none}}
 @media(max-width:760px){html[data-lex-theme] body .service-chat-page{height:calc(100dvh - 80px);min-height:460px;gap:4px}.service-chat-page .page-title{display:none}.service-chat-page .service-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.service-chat-page .service-metric{min-height:46px;padding:4px 8px}.service-chat-page .service-metric em{font-size:var(--lx-font-md)}html[data-lex-theme] body .service-chat-page .service-shell,html[data-lex-theme] body .service-chat-page .service-shell.has-selection{display:flex;flex-direction:row;border-radius:var(--lx-radius-md)}.service-chat-page .service-sidebar,.service-chat-page .service-main{width:100%;flex:0 0 100%}.service-chat-page .service-shell.has-selection .service-sidebar{display:none}.service-chat-page .service-shell:not(.has-selection) .service-main{display:none}.service-chat-page .service-mobile-back{display:inline-flex;align-items:center;justify-content:center;border:0;background:transparent;color:var(--lx-text)}.service-chat-page .service-chat-head{padding:8px}.service-chat-page .service-actions{margin-left:0}.service-chat-page .service-messages{padding:12px}.service-chat-page .service-bubble{max-width:92%}}
 @media(prefers-reduced-motion:reduce){.service-chat-page *{transition:none;animation:none}}
+
+/* 27/11/2026: lista de conversas visível em telas baixas ou com painel lateral, e botões 3D da Caixa de Entrada. */
+@media(min-width:761px){
+html[data-lex-theme] body .app .service-chat-page{height:auto !important;min-height:0 !important;gap:8px}
+html[data-lex-theme] body .app .service-chat-page .page-title :is(p,.service-breadcrumb){display:none}
+html[data-lex-theme] body .app .service-chat-page .page-title h1{margin:0}
+html[data-lex-theme] body .app .service-chat-page .service-metrics .service-metric{min-height:44px !important;padding:6px 10px !important;gap:8px}
+html[data-lex-theme] body .app .service-chat-page .service-shell{flex:0 0 auto !important;height:max(640px,calc(100dvh - 20px)) !important}
+html[data-lex-theme] body .app .service-chat-page .service-sidebar-head{padding:8px}
+html[data-lex-theme] body .app .service-chat-page .service-filters{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+html[data-lex-theme] body .app .service-chat-page .service-filters button{min-height:32px !important;padding:4px 6px !important}
+}
+html[data-lex-theme] body .app .service-chat-page :is(.service-filters button,.service-action,.service-quick,.service-side-btn){background:linear-gradient(180deg,#fffdf6 0%,#f3e7c9 100%) !important;color:#5a0a22 !important;border:1px solid #a8861d !important;border-radius:12px !important;font-weight:800 !important;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 4px 0 #a8861d,0 8px 12px -5px rgba(0,0,0,.45) !important;margin-bottom:4px;cursor:pointer}
+html[data-lex-theme] body .app .service-chat-page :is(.service-filters button.selected,.service-action.primary,.service-action[aria-pressed="true"]){background:linear-gradient(160deg,#b04869 0%,#7a1f3d 50%,#3f0d20 100%) !important;color:#fff !important;border-color:#d4af37 !important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 4px 0 #2a0713,0 8px 12px -5px rgba(0,0,0,.45) !important}
+html[data-lex-theme] body .app .service-chat-page :is(.service-filters button,.service-action,.service-quick,.service-side-btn) *{color:inherit !important}
+html[data-lex-theme] body .app .service-chat-page :is(.service-filters button,.service-action,.service-quick,.service-side-btn):active:not(:disabled){transform:translateY(3px)}
+html[data-lex-theme] body .app .service-chat-page :is(.service-action,.service-quick,.service-side-btn):disabled{opacity:.55;cursor:not-allowed}
+html[data-lex-theme] body .app .service-chat-page span.service-conv-state{color:#5a0a22 !important}
