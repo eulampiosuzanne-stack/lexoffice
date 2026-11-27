@@ -447,6 +447,7 @@ Deno.serve(async req=>{
 
     // 26/11/2026 — fluxo de quem não é cliente (triagem → consulta → pagamento → dias).
     let leadFlow='';
+    let paidLead:any=null;
     if(!followup&&!verifiedClientId&&isSuzanneOffice(orgId)&&!leadConsultBlock){
       const {data:wsf}=await a.from('whatsapp_settings').select('consultation_fee_amount').eq('org_id',orgId).maybeSingle();
       // pagamento confirmado no painel (botão) libera os dias; sem registro, segue a triagem.
@@ -455,6 +456,7 @@ Deno.serve(async req=>{
       if(!flowLead&&cvl?.contact_id){const {data:ctl}=await a.from('whatsapp_contacts').select('lead_id').eq('id',cvl.contact_id).maybeSingle();flowLead=ctl?.lead_id||null}
       let paid=false;
       if(flowLead){const {count}=await a.from('payment_receipts').select('id',{count:'exact',head:true}).eq('org_id',orgId).eq('lead_id',flowLead);paid=(count||0)>0}
+      if(paid)paidLead=flowLead;
       leadFlow=leadFlowRules({isClient:false,agentKey,fee:Number(wsf?.consultation_fee_amount||0),pixInfo,paid});
     }
 
@@ -476,9 +478,9 @@ Deno.serve(async req=>{
     const periodCtx=followup?'':await exceptionalContext(a,orgId);
     let agendaCtx='';
     let agendaReply:AgendaReply|undefined;
-    if(!followup&&policy.appointment_booking===true&&q.calendar_approval_required!==true&&q.approval_required!==true&&agentKey!=='billing'&&!wantsLawyer&&!pickedApp){
+    if(!followup&&policy.appointment_booking===true&&q.calendar_approval_required!==true&&q.approval_required!==true&&(agentKey!=='billing'||!!paidLead)&&!wantsLawyer&&!pickedApp){
       let leadIdA:any=null,nameA='';
-      if(conv?.contact_id){const {data:ct}=await a.from('whatsapp_contacts').select('name,profile_name,lead_id').eq('id',conv.contact_id).maybeSingle();leadIdA=ct?.lead_id||null;nameA=String(ct?.name||ct?.profile_name||'');}
+      if(conv?.contact_id){const {data:ct}=await a.from('whatsapp_contacts').select('name,profile_name,lead_id').eq('id',conv.contact_id).maybeSingle();leadIdA=paidLead||ct?.lead_id||null;nameA=String(ct?.name||ct?.profile_name||'');}
       const schedule=await agendaTool(a,{orgId,conversationId,message,ctx,clientId:verifiedClientId,leadId:leadIdA,name:nameA,phone,policyId:policy.id,dryRun,lastOutbound,strict:agentKey==='client_process_updates',recentInbound:(hist||[]).filter((m:any)=>m.direction==='inbound').map((m:any)=>String(m.body||'')).slice(0,6)});
       if(typeof schedule==='string')agendaCtx=schedule;else agendaReply=schedule;
     }

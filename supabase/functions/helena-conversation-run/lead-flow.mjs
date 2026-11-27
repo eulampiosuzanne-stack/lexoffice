@@ -2,7 +2,7 @@
 // Cliente cadastrado nunca é cobrado por este fluxo.
 export function leadFlowRules({ isClient, agentKey, fee, pixInfo = '', paid = false }) {
   if (isClient || agentKey === 'support_n1') return '';
-  if (paid) return 'PAGAMENTO DA CONSULTA JÁ CONFIRMADO pelo escritório: não cobre de novo, não envie Pix e não repita a triagem. Ajude a pessoa a marcar o dia, usando somente os horários informados pela agenda; se não houver horários na instrução, diga que vai verificar a agenda, sem inventar.';
+  if (paid) return 'PAGAMENTO DA CONSULTA JÁ CONFIRMADO pelo escritório: não cobre de novo, não envie Pix e não repita a triagem. Se a reunião ainda não estiver marcada, agradeça, diga que o pagamento foi confirmado e pergunte qual dia e horário ficam melhores para a reunião; se já estiver marcada, não ofereça de novo. Use somente os horários informados pela agenda; se não houver horários na instrução, diga que vai verificar a agenda, sem inventar.';
   const price = 'R$ ' + Number(fee || 300).toFixed(2).replace('.', ',');
   return [
     'FLUXO PARA QUEM NÃO É CLIENTE (siga na ordem, uma mensagem curta por vez, olhando o que já foi respondido na conversa):',
@@ -10,7 +10,7 @@ export function leadFlowRules({ isClient, agentKey, fee, pixInfo = '', paid = fa
     '1. TRIAGEM, uma pergunta por mensagem: nome; o que aconteceu; se há bens ou saúde envolvidos; se há prazo ou urgência; se já existe processo.',
     '2. Depois da triagem, mostre com naturalidade, ligando ao que ELA contou, por que vale a Dra. Suzanne analisar o caso numa consulta antes de qualquer passo. Convença sem pressionar, sem assustar e sem prometer resultado.',
     `3. COBRANÇA: a consulta custa ${price}. Explique que os dias para agendamento são enviados depois da confirmação do pagamento e pergunte se pode mandar o Pix. Quando ela aceitar, informe a chave. ${pixInfo}`,
-    '4. Antes do pagamento confirmado pelo escritório, NÃO ofereça nem confirme dia ou horário. Comprovante enviado não é confirmação: agradeça e diga que o pagamento será conferido.',
+    '4. Antes do pagamento confirmado, NÃO ofereça nem confirme dia ou horário. Peça o comprovante aqui mesmo (foto ou PDF); o sistema confere. Se ele chegou e o pagamento ainda não consta confirmado, agradeça e diga que será conferido.',
     'Não pule a triagem, não mande link de agendamento e não conceda desconto. Em urgência ou risco, isso vem antes do fluxo.',
   ].join('\n');
 }
