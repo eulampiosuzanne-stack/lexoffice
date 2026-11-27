@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2.57.4";
-import { parts, step } from "./menu.ts";
+import { isOpen, parts, reminder, step, type Result } from "./menu.ts";
 
 // Chamada somente pelo gatilho do banco (cabeçalho x-bot-token). Responde com o menu aos contatos marcados "Só chatbot".
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
@@ -13,10 +13,15 @@ Deno.serve(async (req) => {
   const { data: secret } = await db.from("chatbot_only_secret").select("token").eq("id", true).maybeSingle();
   if (!secret?.token || req.headers.get("x-bot-token") !== secret.token) return json({ ok: false, error: "Não autorizado" }, 401);
   const b = await req.json().catch(() => ({}));
+  const remind = b.action === "remind";
   try {
-    const { data: m } = await db.from("whatsapp_messages").select("id,org_id,conversation_id,direction,body,message_type,created_at").eq("id", String(b.message_id || "")).maybeSingle();
+    // No lembrete, a referência é a última mensagem recebida do contato.
+    const query = db.from("whatsapp_messages").select("id,org_id,conversation_id,direction,body,message_type,created_at");
+    const { data: m } = remind
+      ? await query.eq("conversation_id", String(b.conversation_id || "")).eq("direction", "inbound").order("created_at", { ascending: false }).limit(1).maybeSingle()
+      : await query.eq("id", String(b.message_id || "")).maybeSingle();
     if (!m || m.direction !== "inbound") return json({ ok: true, ignored: "not_inbound" });
-    if (Date.now() - new Date(m.created_at).getTime() > 5 * 60000) return json({ ok: true, ignored: "old_message" });
+    if (!remind && Date.now() - new Date(m.created_at).getTime() > 5 * 60000) return json({ ok: true, ignored: "old_message" });
     const { data: cv } = await db.from("whatsapp_conversations").select("id,org_id,contact_id,owner_user_id,last_human_outbound_at").eq("id", m.conversation_id).eq("org_id", m.org_id).maybeSingle();
     if (!cv?.contact_id) return json({ ok: true, ignored: "no_conversation" });
     const { data: ct } = await db.from("whatsapp_contacts").select("name,phone,is_blocked").eq("id", cv.contact_id).maybeSingle();
@@ -27,23 +32,34 @@ Deno.serve(async (req) => {
     // A Dra. respondeu à mão há pouco: o robô fica calado.
     if (cv.last_human_outbound_at && Date.now() - new Date(cv.last_human_outbound_at).getTime() < HUMAN_SILENCE_MS) return json({ ok: true, ignored: "human_replied" });
 
-    const type = String(m.message_type || "text");
-    const first = String(ct?.name || "").trim().split(/\s+/)[0] || "";
-    const r = step({ node: row.node, tries: row.tries, lastAt: row.last_inbound_at ? new Date(row.last_inbound_at) : null, name: /^[\p{L}'-]{2,}$/u.test(first) ? first : "", input: String(m.body || ""), attachment: ["image", "document", "video"].includes(type), now: new Date() });
-    if (b.dry_run === true) return json({ ok: true, dry_run: true, result: r });
+    let r: Result;
+    if (remind) {
+      const again = reminder(row.node);
+      const idle = row.last_inbound_at ? Date.now() - new Date(row.last_inbound_at).getTime() : 0;
+      if (!again || row.reminded_at || idle < 10 * 60000 || idle > 2 * 3600000 || !isOpen(new Date())) return json({ ok: true, ignored: "no_reminder" });
+      const { data: claimed } = await db.from("chatbot_only_contacts").update({ reminded_at: new Date().toISOString(), version: row.version + 1 })
+        .eq("org_id", m.org_id).eq("contact_key", phone).eq("version", row.version).select("version");
+      if (!claimed?.length) return json({ ok: true, duplicate: true });
+      r = { node: row.node, tries: row.tries, replies: [again] };
+    } else {
+      const type = String(m.message_type || "text");
+      const first = String(ct?.name || "").trim().split(/\s+/)[0] || "";
+      r = step({ node: row.node, tries: row.tries, lastAt: row.last_inbound_at ? new Date(row.last_inbound_at) : null, name: /^[\p{L}'-]{2,}$/u.test(first) ? first : "", input: String(m.body || ""), attachment: ["image", "document", "video"].includes(type), now: new Date() });
+      if (b.dry_run === true) return json({ ok: true, dry_run: true, result: r });
 
-    // Trava otimista: duas mensagens simultâneas não geram resposta dupla.
-    if (row.last_message_id === m.id) return json({ ok: true, duplicate: true });
-    const { data: claimed } = await db.from("chatbot_only_contacts").update({ node: r.node, tries: r.tries, last_inbound_at: new Date().toISOString(), last_message_id: m.id, version: row.version + 1 })
-      .eq("org_id", m.org_id).eq("contact_key", phone).eq("version", row.version).select("version");
-    if (!claimed?.length) return json({ ok: true, duplicate: true });
+      // Trava otimista: duas mensagens simultâneas não geram resposta dupla.
+      if (row.last_message_id === m.id) return json({ ok: true, duplicate: true });
+      const { data: claimed } = await db.from("chatbot_only_contacts").update({ node: r.node, tries: r.tries, last_inbound_at: new Date().toISOString(), last_message_id: m.id, reminded_at: null, version: row.version + 1 })
+        .eq("org_id", m.org_id).eq("contact_key", phone).eq("version", row.version).select("version");
+      if (!claimed?.length) return json({ ok: true, duplicate: true });
+    }
 
     const messages = r.replies.flatMap(parts);
     for (let i = 0; i < messages.length; i++) {
       const reply = messages[i];
       const gate = await fetch(url + "/functions/v1/whatsapp-outbound-gate", {
         method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + service },
-        body: JSON.stringify({ org_id: m.org_id, conversation_id: cv.id, phone, agent_key: "system", message: reply.text, format_agent_reply: false, human_silence_minutes: 0, idempotency_key: `chatbot-botoes:${m.id}:${i}`,
+        body: JSON.stringify({ org_id: m.org_id, conversation_id: cv.id, phone, agent_key: "system", message: reply.text, format_agent_reply: false, human_silence_minutes: 0, idempotency_key: `chatbot-botoes:${remind ? "lembrete:" : ""}${m.id}:${i}`,
           interactive: reply.buttons ? { type: "button", buttons: reply.buttons } : undefined }),
       });
       const sent = await gate.json().catch(() => ({}));
