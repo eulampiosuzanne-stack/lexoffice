@@ -653,11 +653,16 @@ export default function App() {
         (String(profile?.email || "").toLowerCase() === "eulampiosuzanne@gmail.com");
     const financeBlocked = String(profile?.email || session.user.email || "").toLowerCase() ===
         "glauciaadv15@gmail.com";
+    // Equipe (perfil Assistente): sem valores, cobranças nem faturamento. O banco também bloqueia.
+    const staffNoFinance = profile?.role_key === "assistant";
+    const moneyPath = (p: string) => ["/financeiro", "/cobranca", "/perfil-cliente", "/jornada-comercial", "/relatorios", "/painel", "/donna"].some((r) => p === r || p.startsWith(r + "/"));
     const canSee = (i: NavItem) => (!i.adminOnly || canAccessAdminModules) &&
         (!i.superAdminOnly || isPlatformAdmin) &&
         (!i.ownerOnly || canAccessAudit) &&
-        !(financeBlocked && (i.path.startsWith("/financeiro") || i.path.startsWith("/cobranca")));
+        !(financeBlocked && (i.path.startsWith("/financeiro") || i.path.startsWith("/cobranca"))) &&
+        !(staffNoFinance && moneyPath(i.path));
     const changeTheme = () => { const next = lexTheme === "dark" ? "light" : "dark"; setLexTheme(next); applyLexTheme(next); };
+    if (staffNoFinance && moneyPath(loc.pathname)) return <Navigate to="/" replace/>;
     const area = areaOf(loc.pathname);
     const areaTabs = area.tabs.filter(canSee);
     return (<div className={`app ${navOpen ? "nav-open" : ""} ${loc.pathname === "/" ? "home-route" : ""} ${loc.pathname === "/whatsapp" ? "inbox-route" : ""} ${menuMini ? "menu-mini" : ""}`}>
