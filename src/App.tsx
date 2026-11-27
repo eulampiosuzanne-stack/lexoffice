@@ -733,9 +733,9 @@ export default function App() {
           <button className="mobile-menu-btn" type="button" onClick={() => setNavOpen(!navOpen)} aria-label="Abrir menu completo">
             <Menu size={21}/>
           </button>
-          <div className="topbar-context" aria-label="LexOffice SF – Superadvogadas">
-            <span className="topbar-brand-mark" aria-hidden="true">SF</span>
-            <span className="topbar-brand-copy"><strong>LexOffice SF – Superadvogadas</strong><small>Gestão Jurídica · Inteligência · Produtividade</small></span>
+          <div className="topbar-context" aria-label="Suzanne Figueiredo – Advocacia e Soluções Jurídicas">
+            <img className="topbar-brand-logo" src="/brand/sf-monogram.png" alt="" aria-hidden="true"/>
+            <span className="topbar-brand-copy"><strong>Suzanne Figueiredo</strong><small>Advocacia e Soluções Jurídicas</small></span>
             <span className="topbar-route" aria-label="Localização atual">
               <span className="workspace-breadcrumb-area">{area.label}</span>
               <ChevronRight size={13} aria-hidden="true"/>
