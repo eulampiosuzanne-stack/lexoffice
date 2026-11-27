@@ -1,4 +1,5 @@
 import InternalNavigation from '../components/InternalNavigation';
+import ProcessDocumentRequests from '../components/ProcessDocumentRequests';
 import { useEffect, useMemo, useState } from "react";
 import {
   Compass,
@@ -1224,7 +1225,7 @@ export default function ConducaoProcessual() {
         </div>
       )}
 
-      {proc&&<InternalNavigation variant="underline" aria-label="Área do processo">{[['providencias','Fase e providências'],['estrategia','Estratégia e juízo'],['catalogo','Todas as peças'],['minutas','Minutas']].map(([key,label])=><button key={key} type="button" aria-current={strategySection===key?'page':undefined} onClick={()=>setStrategySection(key)}>{label}</button>)}</InternalNavigation>}
+      {proc&&<InternalNavigation variant="underline" aria-label="Área do processo">{[['providencias','Fase e providências'],['documentos','Pedir documentos'],['estrategia','Estratégia e juízo'],['catalogo','Todas as peças'],['minutas','Minutas']].map(([key,label])=><button key={key} type="button" aria-current={strategySection===key?'page':undefined} onClick={()=>setStrategySection(key)}>{label}</button>)}</InternalNavigation>}
       {proc && busy !== "load" && (
         <>
           {strategySection==='providencias' && <><section className="doc-library-card">
@@ -1286,7 +1287,13 @@ export default function ConducaoProcessual() {
                     i < phaseIdx ? "done" : i === phaseIdx ? "now" : ""
                   }
                 >
-                  {p.label}
+                  <button
+                    type="button"
+                    aria-pressed={i === phaseIdx}
+                    onClick={() => saveState({ ...state, phase_override: p.key })}
+                  >
+                    {i + 1}. {p.label}
+                  </button>
                 </li>
               ))}
             </ol>
@@ -1329,6 +1336,8 @@ export default function ConducaoProcessual() {
               </div>
             )}
           </section></>}
+
+          {strategySection==='documentos' && <ProcessDocumentRequests key={proc.id} orgId={orgId} processId={proc.id} clientId={proc.client_id} clientName={proc.clients?.name} cnj={proc.cnj_number} />}
 
           {strategySection==='estrategia' && <><section className="doc-library-card">
             <div className="doc-section-title">

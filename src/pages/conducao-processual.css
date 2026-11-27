@@ -1,10 +1,11 @@
 /* Condução Processual — usa a base da Estratégia Processual (petition-assistant.css) e acrescenta só o necessário. */
 .conducao-page .cp-procline{display:flex;align-items:center;gap:4px;margin:4px 0 0}
-.conducao-page .cp-phases{display:flex;flex-wrap:wrap;gap:4px;list-style:none;padding:0;margin:4px 0 12px;counter-reset:fase}
-.conducao-page .cp-phases li{counter-increment:fase;padding:8px 12px;border:1px solid var(--lx-surface-hover);border-radius:999px;background:var(--lx-canvas);color:var(--lx-text-muted);font-size:var(--lx-font-sm);font-weight:700}
-.conducao-page .cp-phases li::before{content:counter(fase) ". "}
-.conducao-page .cp-phases li.done{color:var(--lx-text);border-color:var(--lx-accent)}
-.conducao-page .cp-phases li.now{color:var(--lx-text);border-color:var(--lx-accent);background:var(--lx-surface);box-shadow:var(--lx-shadow)}
+.conducao-page .cp-phases{display:flex;flex-wrap:wrap;gap:10px;list-style:none;padding:0;margin:4px 0 16px}
+.conducao-page .cp-phases button{cursor:pointer;border:1px solid #d4af37;border-radius:999px;padding:9px 16px;font:inherit;font-size:var(--lx-font-sm);font-weight:700;color:#3f0d20;background:linear-gradient(160deg,#fffdf6 0%,#f1e6cc 100%);box-shadow:inset 0 1px 0 #fff,0 3px 0 #b8952c,0 7px 10px -4px rgba(0,0,0,.35);transition:transform .14s ease,box-shadow .14s ease}
+.conducao-page .cp-phases li.done button{color:#2a1f00;border-color:#8a6d12;background:linear-gradient(160deg,#f6dc7e 0%,#d4af37 52%,#a98a1f 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 3px 0 #6b520a,0 7px 10px -4px rgba(0,0,0,.4)}
+.conducao-page .cp-phases li.now button{color:#fff;background:linear-gradient(160deg,#b04869 0%,#7a1f3d 50%,#3f0d20 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 3px 0 #2a0713,0 8px 12px -4px rgba(0,0,0,.5);text-shadow:0 1px 1px rgba(0,0,0,.4)}
+.conducao-page .cp-phases button:hover{transform:translateY(-2px);filter:brightness(1.05)}
+.conducao-page .cp-phases button:active{transform:translateY(2px);box-shadow:inset 0 3px 6px rgba(0,0,0,.35)}
 .conducao-page .cp-inline{display:flex;align-items:center;gap:8px;color:var(--lx-text);font-size:var(--lx-font-sm);font-weight:700}
 .conducao-page select,.conducao-page .cp-input{border:1px solid var(--lx-surface-hover);border-radius:var(--lx-radius-md);background:var(--lx-canvas);color:var(--lx-text);padding:8px 12px;font:inherit;font-size:var(--lx-font-md);box-sizing:border-box}
 .conducao-page .cp-input{min-width:180px}
@@ -64,3 +65,13 @@
 .conducao-page .case-docs button.doc-remove:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.08)}
 .conducao-page .case-docs button.doc-remove:active:not(:disabled){transform:translateY(2px);box-shadow:inset 0 3px 6px rgba(0,0,0,.4),0 1px 0 #2a0713}
 .conducao-page .case-docs button.doc-remove:disabled{opacity:.55;cursor:not-allowed}
+
+/* Abas do processo, seletores e checklist em 3D, vinho e dourado. */
+.conducao-page .lx-navigation-strip{gap:10px;flex-wrap:wrap;padding:4px 2px 8px}
+.conducao-page .lx-navigation-strip .lx-navigation-item{cursor:pointer;border:1px solid #d4af37;border-radius:12px;padding:10px 18px;font-weight:700;color:#3f0d20;background:linear-gradient(160deg,#fffdf6 0%,#f1e6cc 100%);box-shadow:inset 0 1px 0 #fff,0 3px 0 #b8952c,0 7px 10px -4px rgba(0,0,0,.35)}
+.conducao-page .lx-navigation-strip .lx-navigation-item.is-current{color:#fff;background:linear-gradient(160deg,#b04869 0%,#7a1f3d 50%,#3f0d20 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 3px 0 #2a0713,0 8px 12px -4px rgba(0,0,0,.5)}
+.conducao-page select,.conducao-page .cp-input{border:1px solid #d4af37;box-shadow:0 3px 0 #b8952c}
+.conducao-page .pa-docs{grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))}
+.conducao-page .pa-docs label{border:1px solid #d4af37;box-shadow:0 3px 0 #b8952c,0 7px 10px -4px rgba(0,0,0,.3)}
+.conducao-page .pa-docs b{white-space:normal;overflow:visible}
+.conducao-page .pa-docs input{accent-color:#7a1f3d;width:20px;height:20px;flex:none}
