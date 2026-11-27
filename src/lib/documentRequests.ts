@@ -32,3 +32,10 @@ export function documentRequestMessage(name: string, titles: string[], due: stri
     'Pode enviar pelo app:\n👉 https://lexoffice.univittagroup.com.br/cliente',
   ].filter(Boolean).join('\n\n');
 }
+
+/** Modelo pronto do "Novo recado": a Dra. só preenche os espaços marcados com ____. */
+export function documentRequestTemplate(name: string): string {
+  return documentRequestMessage(name, ['____', '____'], '', '')
+    .replace('Precisamos destes documentos para o seu processo:', 'O juiz pediu estes documentos para ____:')
+    .replace('\n\nPode enviar pelo app:', '\n\n📅 Envie até ____.\n\nPode enviar pelo app:');
+}

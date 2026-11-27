@@ -1,6 +1,7 @@
 import {Link,useSearchParams} from 'react-router-dom';
 import ClientAppInbox from '../components/ClientAppInbox';
 import WhatsappRecados from '../components/WhatsappRecados';
+import { documentRequestTemplate } from '../lib/documentRequests';
 import ClientAppDialog from '../components/ClientAppDialog';
 import {useConfirmNavigation} from '../lib/useConfirmNavigation';
 import './client-app-workspace.css';
@@ -539,6 +540,8 @@ export default function ClientArea() {
   async function send() {
     if (!supabase || !clientId || !title.trim() || !body.trim())
       return setNotice("Selecione o cliente e preencha título e mensagem.");
+    if (body.includes("____"))
+      return window.alert("Preencha ou apague os espaços ____ do modelo antes de publicar.");
     if (busy) return;
     setBusy(true);
     setNotice("Publicando recado...");
@@ -944,6 +947,18 @@ export default function ClientArea() {
                 {selected.whatsapp || selected.phone || "não informado"}
               </small>
             )}
+            <button
+              type="button"
+              className="app-message-button"
+              onClick={() => {
+                if (body.trim() && !window.confirm("Substituir o texto já escrito pelo modelo?")) return;
+                setTitle("Documento solicitado");
+                setCategory("documentos");
+                setBody(documentRequestTemplate(clients.find((c) => c.id === clientId)?.name || ""));
+              }}
+            >
+              <FileText size={16} /> Usar modelo: pedido de documentos
+            </button>
             <label>
               Título
               <input
