@@ -9,12 +9,6 @@
 
 /* Faixa do topo no padrão da marca: preto, vinho e dourado. */
 html[data-lex-theme] body .app>main>header.lex2-topbar{background:radial-gradient(120% 90% at 0% 0%,rgba(150,18,40,.85),transparent 55%),linear-gradient(100deg,#2a0309 0%,#12060a 45%,#0b0b0b 70%,#410305 100%) !important;border:1px solid #d4af37 !important;box-shadow:inset 0 -3px 0 -1px rgba(212,175,55,.75),0 8px 18px -12px rgba(0,0,0,.7)}
-html[data-lex-theme] body .app>main>header.lex2-topbar .topbar-brand-logo{width:46px;height:54px;object-fit:contain;flex:0 0 auto;padding-right:10px;border-right:1px solid rgba(212,175,55,.7);box-sizing:content-box}
-html[data-lex-theme] body .app>main>header.lex2-topbar .topbar-brand-copy strong{font-family:"Cormorant Garamond",Cinzel,Georgia,"Times New Roman",serif;font-size:22px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#e9c766 !important;line-height:1.15}
-html[data-lex-theme] body .app>main>header.lex2-topbar .topbar-brand-copy small{font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:#d4af37 !important}
 /* Mesmo degradê da faixa no menu lateral. */
 html[data-lex-theme] body .app>aside{background:radial-gradient(130% 45% at 0% 0%,rgba(150,18,40,.9),transparent 65%),linear-gradient(180deg,#3a0408 0%,#12060a 45%,#0b0b0b 68%,#4a0610 100%) !important}
 html[data-lex-theme] body .app>aside :is(.brand,.profile,nav,.workspace-sidebar){background:transparent !important}
-/* Faixa oficial (imagem enviada pela Dra.) no topo. */
-html[data-lex-theme] body .app>main>header.lex2-topbar .topbar-context{grid-column:1/-1 !important;order:-1;display:flex !important;flex-direction:column;align-items:flex-start;gap:6px;width:100% !important;max-width:100% !important;min-width:0}
-html[data-lex-theme] body .app>main>header.lex2-topbar img.topbar-banner{display:block;width:100%;height:auto;border-radius:6px}
