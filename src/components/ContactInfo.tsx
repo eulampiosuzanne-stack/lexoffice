@@ -77,7 +77,7 @@ export default function ContactInfo({ orgId, conversationId, name, phone, tags, 
       <label>Anotações
         <textarea rows={3} value={notes} onChange={e => setNotes(e.target.value)} onBlur={async () => { if (notes !== saved && await save({ internal_notes: notes })) setSaved(notes); }} placeholder="Só a equipe vê" />
       </label>
-      <div className="ci-row"><span>Aparelho de origem</span><b>{office || '—'}</b></div>
+      {office && <div className="ci-row"><span>Aparelho de origem</span><b>{office}</b></div>}
       <div className="ci-row"><span>Data de cadastro</span><b>{since || '—'}</b></div>
       {notice && <small role="status">{notice}</small>}
     </div>

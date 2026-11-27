@@ -162,3 +162,12 @@ html[data-lex-theme] body .app .service-chat-page .service-details-toggle{displa
 html[data-lex-theme] body .app .service-chat-page .service-shell.has-selection{position:relative}
 html[data-lex-theme] body .app .service-chat-page .service-shell.has-selection:not(.details-collapsed) .service-details{display:block !important;position:absolute;top:0;right:0;bottom:0;width:280px;z-index:5;box-shadow:-12px 0 24px -12px rgba(63,13,32,.55)}
 }
+/* A conversa ocupa a janela inteira, sem faixa vazia embaixo. */
+html[data-lex-theme] body .app.inbox-route>main::after{content:none !important;display:none !important}
+@media(min-width:761px){
+html[data-lex-theme] body .app .service-chat-page .service-shell{height:max(500px,calc(100dvh - 8px)) !important;min-height:0 !important}
+html[data-lex-theme] body .app .service-chat-page .service-chat-head .service-actions{display:flex;flex-wrap:nowrap !important;overflow-x:auto;max-width:100%;min-width:0;padding-bottom:5px}
+html[data-lex-theme] body .app .service-chat-page .service-chat-head .service-actions>*{flex:0 0 auto}
+html[data-lex-theme] body .app .service-chat-page .service-chat-head{flex-wrap:wrap}
+}
+@media(min-width:761px) and (max-width:1050px){html[data-lex-theme] body .app .service-chat-page .service-shell.has-selection:not(.details-collapsed) .service-details{z-index:1000}}
