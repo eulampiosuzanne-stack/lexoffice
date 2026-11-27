@@ -78,4 +78,4 @@
 /* Textos de andamentos com links muito longos não podem alargar a tela. */
 .conducao-page :is(.doc-library-card,.cp-steps,.cp-steps li,.cp-focus){min-width:0;max-width:100%;overflow-wrap:anywhere}
 /* "Cliente e polo" fica dentro do cartão do processo, sem segunda caixa. */
-.conducao-page .doc-upload-card .doc-library-card{border:0!important;border-top:1px solid rgba(212,175,55,.45)!important;border-radius:0!important;background:none!important;box-shadow:none!important;padding:12px 0 0!important;margin:8px 0 0!important}
+html[data-lex-theme] body .app .conducao-page .doc-upload-card.doc-upload-card .doc-library-card.doc-library-card{border:0!important;border-top:1px solid rgba(212,175,55,.45)!important;border-radius:0!important;background:none!important;box-shadow:none!important;padding:12px 0 0!important;margin:8px 0 0!important}
