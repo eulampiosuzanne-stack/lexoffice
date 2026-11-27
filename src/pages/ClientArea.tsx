@@ -1,5 +1,6 @@
 import {Link,useSearchParams} from 'react-router-dom';
 import ClientAppInbox from '../components/ClientAppInbox';
+import WhatsappRecados from '../components/WhatsappRecados';
 import ClientAppDialog from '../components/ClientAppDialog';
 import {useConfirmNavigation} from '../lib/useConfirmNavigation';
 import './client-app-workspace.css';
@@ -668,6 +669,7 @@ export default function ClientArea() {
     {notice&&<div className="app-message-notice" role="status" aria-live="polite">{notice}</div>}
     {failedNotice&&<div className="app-message-retry"><AlertTriangle size={18}/><p><strong>Um aviso por WhatsApp com falha.</strong> O conteúdo já está salvo no aplicativo. Pendente para {failedNotice.name} neste navegador.</p><button className="app-message-button" disabled={retryBusy||busy} onClick={()=>void retryWhatsappNotice()}><RefreshCw size={16}/>{retryBusy?'Reenviando…':'Reenviar aviso'}</button></div>}
     <div className="app-message-navigation"><InternalNavigation label="Seções das mensagens do aplicativo">{([['recebidos','Recebidos'],['recados','Enviados'],['documentos','Documentos e autorizações']] as const).map(([key,label])=><button key={key} aria-pressed={sec===key} disabled={busy||aiBusy} onClick={()=>setSec(key)}>{label}</button>)}</InternalNavigation><button className="app-message-text-button" disabled={busy||aiBusy} onClick={()=>setSec('acessos')}>Controle do aplicativo ↗</button></div>
+    {sec==='recebidos'&&<WhatsappRecados orgId={orgId}/>}
     {sec==='recebidos'&&<ClientAppInbox items={inbox} selected={selectedMessage} reply={reply} busy={busy} aiBusy={aiBusy} loading={loadBusy} error={failedSections.includes('inbox')?loadError:''} onSelect={item=>void openInboxMessage(item)} onClose={()=>setActiveInbox(null)} onReply={updateReply} onSuggest={()=>void suggestReply()} onSend={()=>void sendReply()}/>}
     {sec==='recados'&&<div className="app-message-secondary client-area">
         <section className="panel" style={{ marginTop: 20 }}>
