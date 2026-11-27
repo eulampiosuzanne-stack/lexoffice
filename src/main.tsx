@@ -43,6 +43,7 @@ import "./design-system/accessibility.css";
 import "./design-system/classic-depth.css";
 import "./design-system/superadvogadas-dashboard.css";
 import "./design-system/flat-controls.css";
+import "./design-system/buttons-3d.css";
 applyVisibility(readVisibility());
 // Migrate existing installations to the requested light institutional theme.
 try {

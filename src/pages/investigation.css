@@ -1,6 +1,4 @@
 /* A antiga rota /consultas agora é a central de Investigação de dados. */
-.app aside nav a[href="/consultas"]{font-size:0}
-.app aside nav a[href="/consultas"]::after{content:'Investigação';font-size:var(--lx-font-md);line-height:1.2;letter-spacing:.02em}
 
 /* Cards sem fonte de dados ficam recolhidos em "Em breve". */
 .investigation-soon{margin-top:16px}
