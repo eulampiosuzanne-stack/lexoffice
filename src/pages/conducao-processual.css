@@ -75,3 +75,5 @@
 .conducao-page .pa-docs label{border:1px solid #d4af37;box-shadow:0 3px 0 #b8952c,0 7px 10px -4px rgba(0,0,0,.3)}
 .conducao-page .pa-docs b{white-space:normal;overflow:visible}
 .conducao-page .pa-docs input{accent-color:#7a1f3d;width:20px;height:20px;flex:none}
+/* Textos de andamentos com links muito longos não podem alargar a tela. */
+.conducao-page :is(.doc-library-card,.cp-steps,.cp-steps li,.cp-focus){min-width:0;max-width:100%;overflow-wrap:anywhere}
