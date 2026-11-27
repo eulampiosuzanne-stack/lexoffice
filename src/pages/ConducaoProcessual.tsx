@@ -1289,6 +1289,7 @@ export default function ConducaoProcessual() {
                 >
                   <button
                     type="button"
+                    className="cp-phase"
                     aria-pressed={i === phaseIdx}
                     onClick={() => saveState({ ...state, phase_override: p.key })}
                   >
