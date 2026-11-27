@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useEffect, useMemo, useState } from "react";
-import { Activity, AlertTriangle, BarChart3, Bell, CalendarDays, Check, CheckSquare, ChevronRight, CircleDollarSign, ClipboardList, Clock3, FileText, FolderOpen, Gavel, Megaphone, MessageCircle, Scale, Search, Users, Wallet } from "lucide-react";
+import { MessageSquare, Activity, AlertTriangle, BarChart3, Bell, CalendarDays, Check, CheckSquare, ChevronRight, CircleDollarSign, ClipboardList, Clock3, FileText, FolderOpen, Gavel, MessageCircle, Scale, Search, Users, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import DebtorsBoard from "../components/DebtorsBoard";
@@ -126,7 +126,7 @@ export default function DashboardOverview({ financeBlocked = false }: { financeB
     { name: "Honorários", desc: "Com tabela OAB", path: "/perfil-cliente/honorarios", icon: Scale, variant: "wine" },
     { name: "Agenda", desc: "Audiências e prazos", path: "/agenda", icon: CalendarDays, variant: "gold" },
     { name: "Documentos", desc: "Dossiês e anexos", path: "/documentos", icon: FolderOpen, variant: "wine" },
-    { name: "Marketing", desc: "Conteúdo e redes", path: "/marketing", icon: Megaphone, variant: "gold" },
+    { name: "Recados", desc: "Mensagens de clientes", path: "/atendimento/aplicativo", icon: MessageSquare, variant: "gold" },
     { name: "Relatórios", desc: "Gestão do escritório", path: "/relatorios", icon: BarChart3, variant: "wine" },
   ];
   const todayTasks = (data?.tasks || []).filter((x: Row) => !x.due_date || x.due_date <= today).length;
