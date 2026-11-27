@@ -22,7 +22,7 @@ type View = keyof typeof views;
 type Row = Record<string, string | null>;
 
 const panel = { background: '#fff', color: '#242321', padding: 'clamp(1rem, 4vw, 2rem)', maxWidth: '58rem', margin: '2rem auto', borderRadius: '1rem' };
-const button = { background: '#4c0821', color: '#fff', minHeight: '3rem', padding: '0.6rem 1rem', borderRadius: '0.5rem', fontSize: '1rem' };
+const button = { background: '#550406', color: '#fff', minHeight: '3rem', padding: '0.6rem 1rem', borderRadius: '0.5rem', fontSize: '1rem' };
 
 function display(key: string, value: string | null) {
   if (!value) return '—';
