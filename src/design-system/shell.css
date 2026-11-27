@@ -12,3 +12,6 @@ html[data-lex-theme] body .app>main>header.lex2-topbar{background:radial-gradien
 /* Mesmo degradê da faixa no menu lateral. */
 html[data-lex-theme] body .app>aside{background:radial-gradient(130% 45% at 0% 0%,rgba(150,18,40,.9),transparent 65%),linear-gradient(180deg,#3a0408 0%,#12060a 45%,#0b0b0b 68%,#4a0610 100%) !important}
 html[data-lex-theme] body .app>aside :is(.brand,.profile,nav,.workspace-sidebar){background:transparent !important}
+/* Topo com o vermelho da própria faixa enviada pela Dra.; menu no mesmo tom. */
+html[data-lex-theme] body .app>main>header.lex2-topbar{background:#030101 url(/brand/topo-vermelho.jpg) center/100% 100% no-repeat !important;box-shadow:0 8px 18px -12px rgba(0,0,0,.7)}
+html[data-lex-theme] body .app>aside{background:radial-gradient(130% 40% at 0% 0%,#b00a1c,rgba(90,0,8,.85) 45%,transparent 75%),linear-gradient(180deg,#4a0006 0%,#120203 45%,#060202 66%,#8f0715 100%) !important}
