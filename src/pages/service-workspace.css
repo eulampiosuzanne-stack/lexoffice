@@ -110,26 +110,26 @@ html[data-lex-theme] body .app .service-chat-page .service-sidebar-head{padding:
 html[data-lex-theme] body .app .service-chat-page .service-filters{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
 html[data-lex-theme] body .app .service-chat-page .service-filters button{min-height:32px !important;padding:4px 6px !important}
 }
-html[data-lex-theme] body .app .service-chat-page :is(.service-filters button,.service-action,.service-quick,.service-side-btn){background:linear-gradient(180deg,#fffdf6 0%,#f3e7c9 100%) !important;color:#5a0a22 !important;border:1px solid #a8861d !important;border-radius:12px !important;font-weight:800 !important;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 4px 0 #a8861d,0 8px 12px -5px rgba(0,0,0,.45) !important;margin-bottom:4px;cursor:pointer}
-html[data-lex-theme] body .app .service-chat-page :is(.service-filters button.selected,.service-action.primary,.service-action[aria-pressed="true"]){background:linear-gradient(160deg,#b04869 0%,#7a1f3d 50%,#3f0d20 100%) !important;color:#fff !important;border-color:#d4af37 !important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 4px 0 #2a0713,0 8px 12px -5px rgba(0,0,0,.45) !important}
+html[data-lex-theme] body .app .service-chat-page :is(.service-filters button,.service-action,.service-quick,.service-side-btn){background:linear-gradient(180deg,#fffdf6 0%,#f3e7c9 100%) !important;color:#3d071b !important;border:1px solid #a8861d !important;border-radius:12px !important;font-weight:800 !important;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 4px 0 #a8861d,0 8px 12px -5px rgba(0,0,0,.45) !important;margin-bottom:4px;cursor:pointer}
+html[data-lex-theme] body .app .service-chat-page :is(.service-filters button.selected,.service-action.primary,.service-action[aria-pressed="true"]){background:linear-gradient(160deg,#78314b 0%,#53152c 50%,#2b0915 100%) !important;color:#fff !important;border-color:#d4af37 !important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 4px 0 #2a0713,0 8px 12px -5px rgba(0,0,0,.45) !important}
 html[data-lex-theme] body .app .service-chat-page :is(.service-filters button,.service-action,.service-quick,.service-side-btn) *{color:inherit !important}
 html[data-lex-theme] body .app .service-chat-page :is(.service-filters button,.service-action,.service-quick,.service-side-btn):active:not(:disabled){transform:translateY(3px)}
 html[data-lex-theme] body .app .service-chat-page :is(.service-action,.service-quick,.service-side-btn):disabled{opacity:.55;cursor:not-allowed}
-html[data-lex-theme] body .app .service-chat-page span.service-conv-state{color:#5a0a22 !important}
+html[data-lex-theme] body .app .service-chat-page span.service-conv-state{color:#3d071b !important}
 
 /* 27/11/2026: conversa mais bonita, com o nome de quem respondeu. */
-html[data-lex-theme] body .app .service-chat-page .service-bubble{border-radius:18px !important;box-shadow:0 4px 12px -6px rgba(63,13,32,.45);padding:10px 14px}
+html[data-lex-theme] body .app .service-chat-page .service-bubble{border-radius:18px !important;box-shadow:0 4px 12px -6px rgba(43,9,21,.45);padding:10px 14px}
 html[data-lex-theme] body .app .service-chat-page .service-bubble>b{display:block;margin-bottom:4px;font-size:var(--lx-font-xs);letter-spacing:.02em}
 html[data-lex-theme] body .app .service-chat-page .service-bubble.in{align-self:flex-start;background:#fffdf8 !important;border:1px solid #d4af37 !important;border-bottom-left-radius:4px !important}
 html[data-lex-theme] body .app .service-chat-page .service-bubble.in :is(.service-message-text,small){color:#2a1a1f !important}
-html[data-lex-theme] body .app .service-chat-page .service-bubble.in>b{color:#7a1f3d !important}
+html[data-lex-theme] body .app .service-chat-page .service-bubble.in>b{color:#53152c !important}
 html[data-lex-theme] body .app .service-chat-page .service-bubble.out{align-self:flex-end;background:#f3e7c9 !important;border:1px solid #a8861d !important;border-bottom-right-radius:4px !important}
-html[data-lex-theme] body .app .service-chat-page .service-bubble.out :is(b,.service-message-text,small){color:#3f0d20 !important}
-html[data-lex-theme] body .app .service-chat-page .service-bubble.out.dra{background:linear-gradient(160deg,#8c2a4a 0%,#6b1832 55%,#3f0d20 100%) !important;border:1px solid #d4af37 !important}
+html[data-lex-theme] body .app .service-chat-page .service-bubble.out :is(b,.service-message-text,small){color:#2b0915 !important}
+html[data-lex-theme] body .app .service-chat-page .service-bubble.out.dra{background:linear-gradient(160deg,#5f1d35 0%,#491025 55%,#2b0915 100%) !important;border:1px solid #d4af37 !important}
 html[data-lex-theme] body .app .service-chat-page .service-bubble.out.dra :is(.service-message-text,.service-message-text *,small){color:#fff !important}
 html[data-lex-theme] body .app .service-chat-page .service-bubble.out.dra>b{color:#f6dc7e !important}
 html[data-lex-theme] body .app .service-chat-page .service-conv{border-radius:14px !important;border:1px solid #d9c38a !important;box-shadow:0 3px 0 #d9c38a}
-html[data-lex-theme] body .app .service-chat-page .service-avatar{background:linear-gradient(160deg,#f6dc7e,#a8861d) !important;color:#3f0d20 !important}
+html[data-lex-theme] body .app .service-chat-page .service-avatar{background:linear-gradient(160deg,#f6dc7e,#a8861d) !important;color:#2b0915 !important}
 /* Cachorrinho menor na Caixa de Entrada, para não cobrir a conversa. */
 body:has(.service-chat-page) .sf-guardian-trigger.sf-guardian-walker-btn{scale:.55;transform-origin:bottom right}
 
@@ -141,9 +141,9 @@ html[data-lex-theme] body .app .service-chat-page .service-main>*{width:100% !im
 html[data-lex-theme] body .app .service-chat-page .service-chat-head{padding:6px 10px;min-height:0;gap:6px}
 html[data-lex-theme] body .app .service-chat-page .service-action{min-height:28px !important;padding:3px 8px !important;font-size:13px !important}
 }
-html[data-lex-theme] body .app .service-chat-page .service-conv{background:linear-gradient(180deg,#fffdf8,#f6edd6) !important;box-shadow:0 3px 0 #d9c38a,0 8px 14px -10px rgba(63,13,32,.55);transition:transform .15s,box-shadow .15s}
-html[data-lex-theme] body .app .service-chat-page .service-conv:hover{transform:translateY(-2px);box-shadow:0 5px 0 #a8861d,0 14px 18px -10px rgba(63,13,32,.6)}
-html[data-lex-theme] body .app .service-chat-page .service-conv.active{border:2px solid #7a1f3d !important;box-shadow:0 3px 0 #7a1f3d,0 10px 16px -10px rgba(63,13,32,.6)}
+html[data-lex-theme] body .app .service-chat-page .service-conv{background:linear-gradient(180deg,#fffdf8,#f6edd6) !important;box-shadow:0 3px 0 #d9c38a,0 8px 14px -10px rgba(43,9,21,.55);transition:transform .15s,box-shadow .15s}
+html[data-lex-theme] body .app .service-chat-page .service-conv:hover{transform:translateY(-2px);box-shadow:0 5px 0 #a8861d,0 14px 18px -10px rgba(43,9,21,.6)}
+html[data-lex-theme] body .app .service-chat-page .service-conv.active{border:2px solid #53152c !important;box-shadow:0 3px 0 #53152c,0 10px 16px -10px rgba(43,9,21,.6)}
 html[data-lex-theme] body .app .service-chat-page .service-conv :is(strong,.service-conv-name){color:#2a1a1f !important}
 html[data-lex-theme] body .app .service-chat-page .service-conv small{color:#5c4a50 !important}
 .service-chat-page .service-more-filters{display:flex;flex-wrap:wrap;gap:4px;padding:6px 8px}
@@ -155,12 +155,12 @@ html[data-lex-theme] body .app .service-chat-page .service-conv small{color:#5c4
 .service-chat-page .contact-info :is(select,input,textarea){width:100%;min-width:0;font:inherit;font-weight:400;padding:6px 8px;border:1px solid var(--lx-border);border-radius:8px;background:var(--lx-surface-raised);color:var(--lx-text)}
 .service-chat-page .contact-info .ci-add{display:flex;gap:4px}
 .service-chat-page .contact-info .ci-tags{display:flex;flex-wrap:wrap;gap:4px}
-html[data-lex-theme] body .app .service-chat-page .contact-info button{min-height:28px;padding:3px 10px;border-radius:999px;border:1px solid #a8861d !important;background:#f3e7c9 !important;color:#5a0a22 !important;font-weight:800;cursor:pointer}
+html[data-lex-theme] body .app .service-chat-page .contact-info button{min-height:28px;padding:3px 10px;border-radius:999px;border:1px solid #a8861d !important;background:#f3e7c9 !important;color:#3d071b !important;font-weight:800;cursor:pointer}
 html[data-lex-theme] body .app .service-chat-page .contact-info button.ci-switch.on{background:#1f7a3d !important;border-color:#145a2c !important;color:#fff !important}
 @media(min-width:761px) and (max-width:1050px){
 html[data-lex-theme] body .app .service-chat-page .service-details-toggle{display:inline-flex !important}
 html[data-lex-theme] body .app .service-chat-page .service-shell.has-selection{position:relative}
-html[data-lex-theme] body .app .service-chat-page .service-shell.has-selection:not(.details-collapsed) .service-details{display:block !important;position:absolute;top:0;right:0;bottom:0;width:280px;z-index:5;box-shadow:-12px 0 24px -12px rgba(63,13,32,.55)}
+html[data-lex-theme] body .app .service-chat-page .service-shell.has-selection:not(.details-collapsed) .service-details{display:block !important;position:absolute;top:0;right:0;bottom:0;width:280px;z-index:5;box-shadow:-12px 0 24px -12px rgba(43,9,21,.55)}
 }
 /* A conversa ocupa a janela inteira, sem faixa vazia embaixo. */
 html[data-lex-theme] body .app.inbox-route>main::after{content:none !important;display:none !important}
