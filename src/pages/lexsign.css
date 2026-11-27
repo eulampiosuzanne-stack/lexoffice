@@ -1,7 +1,7 @@
 /* Aba Assinaturas: vinho e dourado, botões em 3D (pedido de 27/11/2026). */
 .lxs{display:flex;flex-direction:column;gap:16px;min-width:0}
-html body .app .lxs button.lxs-btn,html body .app .lxs label.lxs-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:11px 18px;border:1px solid #a8861d !important;border-radius:12px;background:linear-gradient(180deg,#fffdf6 0%,#f3e7c9 100%) !important;color:#3d071b !important;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -2px 0 rgba(0,0,0,.22),0 4px 0 #a8861d,0 9px 14px -5px rgba(0,0,0,.45) !important;font:inherit;font-weight:800;cursor:pointer;text-shadow:none;transition:transform .12s ease,box-shadow .12s ease;text-align:center}
-html body .app .lxs button.lxs-btn.wine,html body .app .lxs label.lxs-btn.wine,html body .app .lxs button.lxs-btn[aria-pressed="true"]{background:linear-gradient(160deg,#78314b 0%,#53152c 50%,#2b0915 100%) !important;color:#fff !important;border-color:#d4af37 !important;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -2px 0 rgba(0,0,0,.22),0 4px 0 #2a0713,0 9px 14px -5px rgba(0,0,0,.45) !important}
+html body .app .lxs button.lxs-btn,html body .app .lxs label.lxs-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:11px 18px;border:1px solid #a8861d !important;border-radius:12px;background:linear-gradient(180deg,#fffdf6 0%,#f3e7c9 100%) !important;color:#4c0821 !important;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -2px 0 rgba(0,0,0,.22),0 4px 0 #a8861d,0 9px 14px -5px rgba(0,0,0,.45) !important;font:inherit;font-weight:800;cursor:pointer;text-shadow:none;transition:transform .12s ease,box-shadow .12s ease;text-align:center}
+html body .app .lxs button.lxs-btn.wine,html body .app .lxs label.lxs-btn.wine,html body .app .lxs button.lxs-btn[aria-pressed="true"]{background:linear-gradient(160deg,#943c5d 0%,#661a36 50%,#350b1a 100%) !important;color:#fff !important;border-color:#d4af37 !important;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -2px 0 rgba(0,0,0,.22),0 4px 0 #2a0713,0 9px 14px -5px rgba(0,0,0,.45) !important}
 html body .app .lxs button.lxs-btn.gold,html body .app .lxs label.lxs-btn.gold{background:linear-gradient(160deg,#f6dc7e 0%,#d4af37 48%,#a8861d 100%) !important;color:#2a1500 !important;border-color:#8a6d12 !important;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -2px 0 rgba(0,0,0,.22),0 4px 0 #6b520a,0 9px 14px -5px rgba(0,0,0,.45) !important}
 html body .app .lxs button.lxs-btn:hover:not(:disabled),html body .app .lxs label.lxs-btn:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.05)}
 html body .app .lxs button.lxs-btn:active:not(:disabled),html body .app .lxs label.lxs-btn:active:not(:disabled){transform:translateY(3px);box-shadow:inset 0 3px 6px rgba(0,0,0,.3),0 1px 0 #2a0713 !important}
@@ -10,28 +10,28 @@ html body .app .lxs button.lxs-btn:focus-visible,html body .app .lxs label.lxs-b
 html body .app .lxs button.lxs-btn.small{min-height:36px;padding:6px 12px}
 .lxs-tabs,.lxs-row{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:center;padding-bottom:5px}
 .lxs-tabs>button{flex:1 1 200px}
-.lxs-card{display:flex;flex-direction:column;gap:12px;padding:18px;border:2px solid #d4af37;border-radius:16px;background:var(--lx-surface);box-shadow:0 5px 0 rgba(73,13,35,.25),0 12px 22px -12px rgba(0,0,0,.4);min-width:0}
+.lxs-card{display:flex;flex-direction:column;gap:12px;padding:18px;border:2px solid #d4af37;border-radius:16px;background:var(--lx-surface);box-shadow:0 5px 0 rgba(90,16,43,.25),0 12px 22px -12px rgba(0,0,0,.4);min-width:0}
 .lxs-card h2{display:flex;align-items:center;gap:10px;margin:0;font-size:var(--lx-section-size)}
-.lxs-card h2>span{display:inline-grid;place-items:center;flex:none;width:34px;height:34px;border-radius:50%;background:linear-gradient(160deg,#78314b 0%,#53152c 50%,#2b0915 100%);color:#f6dc7e;border:2px solid #d4af37;font-size:1rem}
+.lxs-card h2>span{display:inline-grid;place-items:center;flex:none;width:34px;height:34px;border-radius:50%;background:linear-gradient(160deg,#943c5d 0%,#661a36 50%,#350b1a 100%);color:#f6dc7e;border:2px solid #d4af37;font-size:1rem}
 .lxs p{margin:0;line-height:1.55}
 .lxs form{display:flex;flex-direction:column;align-items:flex-start;gap:12px}
 .lxs-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;width:100%}
 .lxs-fields label{display:flex;flex-direction:column;gap:6px;font-weight:700;min-width:0}
 .lxs input:not([type=checkbox]),.lxs select,.lxs textarea{width:100%;box-sizing:border-box;min-height:46px;padding:10px 12px;border:1px solid #a8861d;border-radius:10px;background:var(--lx-canvas);color:var(--lx-text);font:inherit}
 .lxs-hint,.lxs small{font-size:var(--lx-font-sm);color:var(--lx-text)}
-.lxs-chosen{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px;border-left:5px solid #53152c;background:var(--lx-canvas);border-radius:8px}
-.lxs-error,.lxs-notice{padding:12px 14px;border-radius:10px;border:2px solid #53152c;background:var(--lx-canvas);font-weight:700}
+.lxs-chosen{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px;border-left:5px solid #661a36;background:var(--lx-canvas);border-radius:8px}
+.lxs-error,.lxs-notice{padding:12px 14px;border-radius:10px;border:2px solid #661a36;background:var(--lx-canvas);font-weight:700}
 .lxs-docs{display:grid;gap:8px;max-height:300px;overflow-y:auto;padding:2px}
 .lxs-docs label{display:flex;gap:10px;align-items:center;padding:10px 12px;border:1px solid #d4af37;border-radius:10px;cursor:pointer;background:var(--lx-canvas)}
-.lxs-docs label.on{border:2px solid #53152c}
-.lxs-docs input{width:20px;height:20px;flex:none;accent-color:#53152c}
+.lxs-docs label.on{border:2px solid #661a36}
+.lxs-docs input{width:20px;height:20px;flex:none;accent-color:#661a36}
 .lxs-docs span{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}
 .lxs summary{cursor:pointer;font-weight:700;margin-bottom:10px}
 .lxs-link{display:flex;flex-direction:column;gap:10px}
 .lxs-item{gap:8px}
 .lxs-item-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:center}
-.lxs-status{color:#3d071b;padding:4px 12px;border-radius:999px;font-weight:800;font-size:var(--lx-font-xs);background:#f3e7c9;color:#3d071b;border:1px solid #a8861d}
-.lxs-status.signed{background:#53152c;color:#f6dc7e}
+.lxs-status{color:#4c0821;padding:4px 12px;border-radius:999px;font-weight:800;font-size:var(--lx-font-xs);background:#f3e7c9;color:#4c0821;border:1px solid #a8861d}
+.lxs-status.signed{background:#661a36;color:#f6dc7e}
 .lxs-status.pending_review{background:#d4af37;color:#2a1500}
 .lxs-item ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
 .lxs-item li{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:6px 0;border-top:1px solid #d4af37}
@@ -40,7 +40,7 @@ html body .app .lxs button.lxs-btn.small{min-height:36px;padding:6px 12px}
 .lxs-modal{width:100%;max-width:640px;max-height:92vh;overflow:auto;padding:20px;border:2px solid #d4af37;border-radius:16px;background:var(--lx-surface)}
 @media(prefers-reduced-motion:reduce){.lxs .lxs-btn{transition:none}}
 /* Estilos globais pintavam os quadros com formulário de escuro: aqui o fundo e o texto seguem o tema. */
-html body .app .lxs div.lxs-card{background:var(--lx-surface) !important;color:var(--lx-text) !important;border:2px solid #d4af37 !important;box-shadow:0 5px 0 #53152c,0 12px 22px -12px rgba(0,0,0,.4) !important}
+html body .app .lxs div.lxs-card{background:var(--lx-surface) !important;color:var(--lx-text) !important;border:2px solid #d4af37 !important;box-shadow:0 5px 0 #661a36,0 12px 22px -12px rgba(0,0,0,.4) !important}
 html body .app .lxs div.lxs-card :is(h2,label:not(.lxs-btn),p,summary,b,span:not(.lxs-status):not(h2>span),small){color:var(--lx-text) !important}
 html body .app .lxs div.lxs-card h2>span{color:#f6dc7e !important}
 html body .app .lxs div.lxs-card :is(input:not([type=checkbox]),select){background:var(--lx-canvas) !important;color:var(--lx-text) !important;border:1px solid #a8861d !important}

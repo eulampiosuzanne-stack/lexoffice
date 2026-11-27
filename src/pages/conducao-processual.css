@@ -1,9 +1,9 @@
 /* Condução Processual — usa a base da Estratégia Processual (petition-assistant.css) e acrescenta só o necessário. */
 .conducao-page .cp-procline{display:flex;align-items:center;gap:4px;margin:4px 0 0}
 .conducao-page .cp-phases{display:flex;flex-wrap:wrap;gap:10px;list-style:none;padding:0;margin:4px 0 16px}
-.conducao-page .cp-phases button{cursor:pointer;border:1px solid #d4af37;border-radius:999px;padding:9px 16px;font:inherit;font-size:var(--lx-font-sm);font-weight:700;color:#2b0915;background:linear-gradient(160deg,#fffdf6 0%,#f1e6cc 100%);box-shadow:inset 0 1px 0 #fff,0 3px 0 #b8952c,0 7px 10px -4px rgba(0,0,0,.35);transition:transform .14s ease,box-shadow .14s ease}
+.conducao-page .cp-phases button{cursor:pointer;border:1px solid #d4af37;border-radius:999px;padding:9px 16px;font:inherit;font-size:var(--lx-font-sm);font-weight:700;color:#350b1a;background:linear-gradient(160deg,#fffdf6 0%,#f1e6cc 100%);box-shadow:inset 0 1px 0 #fff,0 3px 0 #b8952c,0 7px 10px -4px rgba(0,0,0,.35);transition:transform .14s ease,box-shadow .14s ease}
 .conducao-page .cp-phases li.done button{color:#2a1f00;border-color:#8a6d12;background:linear-gradient(160deg,#f6dc7e 0%,#d4af37 52%,#a98a1f 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 3px 0 #6b520a,0 7px 10px -4px rgba(0,0,0,.4)}
-.conducao-page .cp-phases li.now button{color:#fff;background:linear-gradient(160deg,#78314b 0%,#53152c 50%,#2b0915 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 3px 0 #2a0713,0 8px 12px -4px rgba(0,0,0,.5);text-shadow:0 1px 1px rgba(0,0,0,.4)}
+.conducao-page .cp-phases li.now button{color:#fff;background:linear-gradient(160deg,#943c5d 0%,#661a36 50%,#350b1a 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 3px 0 #2a0713,0 8px 12px -4px rgba(0,0,0,.5);text-shadow:0 1px 1px rgba(0,0,0,.4)}
 .conducao-page .cp-phases button:hover{transform:translateY(-2px);filter:brightness(1.05)}
 .conducao-page .cp-phases button:active{transform:translateY(2px);box-shadow:inset 0 3px 6px rgba(0,0,0,.35)}
 .conducao-page .cp-inline{display:flex;align-items:center;gap:8px;color:var(--lx-text);font-size:var(--lx-font-sm);font-weight:700}
@@ -47,7 +47,7 @@
 .conducao-page button.secondary{cursor:pointer;border:0;border-radius:12px;padding:9px 16px;font-weight:600;color:#2a1f00;background:linear-gradient(160deg,#f6dc7e 0%,#d4af37 48%,#8a6d12 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -2px 0 rgba(0,0,0,.2),0 3px 0 #6b520a,0 8px 12px -4px rgba(0,0,0,.4);transition:transform .14s ease,box-shadow .14s ease}
 .conducao-page .cp-focus input[type=file]::file-selector-button{margin-right:12px}
 .conducao-page button.doc-primary,
-.conducao-page .pa-row button.doc-primary{color:#fff;background:linear-gradient(160deg,#78314b 0%,#53152c 50%,#2b0915 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),inset 0 -2px 0 rgba(0,0,0,.35),0 3px 0 #2a0713,0 8px 12px -4px rgba(0,0,0,.5);text-shadow:0 1px 1px rgba(0,0,0,.4)}
+.conducao-page .pa-row button.doc-primary{color:#fff;background:linear-gradient(160deg,#943c5d 0%,#661a36 50%,#350b1a 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),inset 0 -2px 0 rgba(0,0,0,.35),0 3px 0 #2a0713,0 8px 12px -4px rgba(0,0,0,.5);text-shadow:0 1px 1px rgba(0,0,0,.4)}
 .conducao-page :is(.pa-row,.doc-upload-grid) button:hover:not(:disabled),
 .conducao-page button.doc-primary:hover:not(:disabled),
 .conducao-page button.secondary:hover:not(:disabled),
@@ -61,20 +61,20 @@
 .conducao-page .case-docs ul{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
 .conducao-page .case-docs li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 12px;border:1px solid #d4af37;border-radius:12px;background:rgba(255,255,255,.45)}
 .conducao-page .case-docs li>span{min-width:0;overflow-wrap:anywhere}
-.conducao-page .case-docs button.doc-remove{flex:none;cursor:pointer;border:0;border-radius:10px;padding:6px 14px;font-weight:600;color:#fff;background:linear-gradient(160deg,#78314b 0%,#53152c 50%,#2b0915 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),inset 0 -2px 0 rgba(0,0,0,.35),0 3px 0 #2a0713,0 6px 10px -4px rgba(0,0,0,.5);text-shadow:0 1px 1px rgba(0,0,0,.4);transition:transform .14s ease,box-shadow .14s ease}
+.conducao-page .case-docs button.doc-remove{flex:none;cursor:pointer;border:0;border-radius:10px;padding:6px 14px;font-weight:600;color:#fff;background:linear-gradient(160deg,#943c5d 0%,#661a36 50%,#350b1a 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),inset 0 -2px 0 rgba(0,0,0,.35),0 3px 0 #2a0713,0 6px 10px -4px rgba(0,0,0,.5);text-shadow:0 1px 1px rgba(0,0,0,.4);transition:transform .14s ease,box-shadow .14s ease}
 .conducao-page .case-docs button.doc-remove:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.08)}
 .conducao-page .case-docs button.doc-remove:active:not(:disabled){transform:translateY(2px);box-shadow:inset 0 3px 6px rgba(0,0,0,.4),0 1px 0 #2a0713}
 .conducao-page .case-docs button.doc-remove:disabled{opacity:.55;cursor:not-allowed}
 
 /* Abas do processo, seletores e checklist em 3D, vinho e dourado. */
 .conducao-page .lx-navigation-strip{gap:10px;flex-wrap:wrap;padding:4px 2px 8px}
-.conducao-page .lx-navigation-strip .lx-navigation-item{cursor:pointer;border:1px solid #d4af37;border-radius:12px;padding:10px 18px;font-weight:700;color:#2b0915;background:linear-gradient(160deg,#fffdf6 0%,#f1e6cc 100%);box-shadow:inset 0 1px 0 #fff,0 3px 0 #b8952c,0 7px 10px -4px rgba(0,0,0,.35)}
-.conducao-page .lx-navigation-strip .lx-navigation-item.is-current{color:#fff;background:linear-gradient(160deg,#78314b 0%,#53152c 50%,#2b0915 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 3px 0 #2a0713,0 8px 12px -4px rgba(0,0,0,.5)}
+.conducao-page .lx-navigation-strip .lx-navigation-item{cursor:pointer;border:1px solid #d4af37;border-radius:12px;padding:10px 18px;font-weight:700;color:#350b1a;background:linear-gradient(160deg,#fffdf6 0%,#f1e6cc 100%);box-shadow:inset 0 1px 0 #fff,0 3px 0 #b8952c,0 7px 10px -4px rgba(0,0,0,.35)}
+.conducao-page .lx-navigation-strip .lx-navigation-item.is-current{color:#fff;background:linear-gradient(160deg,#943c5d 0%,#661a36 50%,#350b1a 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 3px 0 #2a0713,0 8px 12px -4px rgba(0,0,0,.5)}
 .conducao-page select,.conducao-page .cp-input{border:1px solid #d4af37;box-shadow:0 3px 0 #b8952c}
 .conducao-page .pa-docs{grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))}
 .conducao-page .pa-docs label{border:1px solid #d4af37;box-shadow:0 3px 0 #b8952c,0 7px 10px -4px rgba(0,0,0,.3)}
 .conducao-page .pa-docs b{white-space:normal;overflow:visible}
-.conducao-page .pa-docs input{accent-color:#53152c;width:20px;height:20px;flex:none}
+.conducao-page .pa-docs input{accent-color:#661a36;width:20px;height:20px;flex:none}
 /* Textos de andamentos com links muito longos não podem alargar a tela. */
 .conducao-page :is(.doc-library-card,.cp-steps,.cp-steps li,.cp-focus){min-width:0;max-width:100%;overflow-wrap:anywhere}
 /* "Cliente e polo" fica dentro do cartão do processo, sem segunda caixa. */

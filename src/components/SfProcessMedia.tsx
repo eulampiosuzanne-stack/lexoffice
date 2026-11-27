@@ -42,7 +42,7 @@ export default function SfProcessMedia({ clientName, processStatus, explanation,
       <h3 style={{fontSize:"1.3rem",marginTop:0}}>Entenda seu processo</h3>
       <p style={{fontSize:"1.08rem",lineHeight:1.6}}>{explanation}</p>
       <button type="button" onClick={toggleSpeech} aria-label={speaking ? "Parar áudio" : "Ouvir minha atualização"}
-        style={{display:"flex",alignItems:"center",justifyContent:"center",gap:12,width:"100%",minHeight:58,borderRadius:14,background:"#3e071b",color:"white",fontSize:"1.1rem",fontWeight:700,cursor:"pointer"}}>
+        style={{display:"flex",alignItems:"center",justifyContent:"center",gap:12,width:"100%",minHeight:58,borderRadius:14,background:"#4c0821",color:"white",fontSize:"1.1rem",fontWeight:700,cursor:"pointer"}}>
         {speaking ? <Square aria-hidden="true"/> : <Volume2 aria-hidden="true"/>}
         {speaking ? "Parar áudio" : "Ouvir minha atualização"}
       </button>
