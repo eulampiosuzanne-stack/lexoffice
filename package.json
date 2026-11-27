@@ -20,7 +20,7 @@
     "test:helena-agenda": "node --experimental-strip-types --test tests/helenaAgenda.test.mts",
     "test:helena-lead-flow": "node --experimental-strip-types --test tests/helenaLeadFlow.test.mts",
     "test:helena-after-hours": "node --experimental-strip-types --test tests/helenaAfterHours.test.mts",
-    "test": "npm run test:signer && npm run test:helena-agenda && npm run test:client-doc-pdf && npm run test:typography-format && npm run test:whatsapp-format && npm run test:signature-review && npm run test:infinitepay && npm run test:client-calendar && npm run test:release-features && npm run test:ux-navigation && npm run verify && npm run test:design-system && npm run test:visual-contract && npm run test:workspaces && npm run test:internal-navigation && npm run test:configuration && npm run test:collections && npm run test:management && npm run test:reports && npm run test:client-app && npm run test:client-import && npm run test:process-workspace && npm run test:monitoring && npm run test:agenda-workspace && npm run test:production-export && npm run test:visual-preferences && npm run test:honorarios && npm run test:proposal-workspace && npm run test:proposal-repository",
+    "test": "npm run test:signer && npm run test:helena-agenda && npm run test:client-doc-pdf && npm run test:typography-format && npm run test:whatsapp-format && npm run test:signature-review && npm run test:infinitepay && npm run test:client-calendar && npm run test:release-features && npm run test:ux-navigation && npm run verify && npm run test:design-system && npm run test:visual-contract && npm run test:workspaces && npm run test:internal-navigation && npm run test:configuration && npm run test:collections && npm run test:management && npm run test:reports && npm run test:client-app && npm run test:client-import && npm run test:process-workspace && npm run test:monitoring && npm run test:agenda-workspace && npm run test:production-export && npm run test:visual-preferences && npm run test:honorarios && npm run test:proposal-workspace && npm run test:proposal-repository && npm run test:chatbot-botoes",
     "test:design-system": "node scripts/test-design-system.mjs",
     "test:visual-contract": "node scripts/test-visual-contract.mjs",
     "test:workspaces": "node scripts/test-workspace-navigation.mjs",
@@ -39,7 +39,8 @@
     "test:visual-preferences": "node scripts/test-visual-preferences.mjs",
     "test:honorarios": "node scripts/test-honorarios.mjs",
     "test:proposal-workspace": "node scripts/test-proposal-workspace.mjs",
-    "test:proposal-repository": "node scripts/test-proposal-repository.mjs"
+    "test:proposal-repository": "node scripts/test-proposal-repository.mjs",
+    "test:chatbot-botoes": "node --experimental-strip-types --test scripts/chatbot-botoes.test.mjs"
   },
   "dependencies": {
     "@neon/auth": "0.8.2",
