@@ -66,3 +66,19 @@
 @media(prefers-reduced-motion:reduce) {
   .app > aside nav .workspace-area-toggle { animation:none; transition:none; transform:none; }
 }
+
+/* Menu recolhível (computador): ficam só os ícones. */
+.app>aside .menu-mini-toggle{display:none}
+@media(min-width:761px){
+html[data-lex-theme] body .app>aside .menu-mini-toggle{display:block;flex:0 0 auto;margin:6px 10px 0;min-height:30px;padding:2px 8px;border:1px solid rgba(212,175,55,.6) !important;border-radius:8px;background:transparent !important;color:#f3e7c9 !important;font-size:13px;font-weight:700;cursor:pointer;box-shadow:none !important}
+html[data-lex-theme] body .app.menu-mini>aside{width:68px !important}
+html[data-lex-theme] body .app.menu-mini>main{margin-left:68px !important;width:calc(100% - 68px) !important}
+html[data-lex-theme] body .app.menu-mini>aside .menu-mini-toggle{margin:6px 8px 0;font-size:18px}
+html[data-lex-theme] body .app.menu-mini>aside .brand{justify-content:center;padding:8px !important}
+html[data-lex-theme] body .app.menu-mini>aside :is(.brand>div:not(.logo),.profile-copy,.profile .avatar,.lex2-favorites,nav>*>span,nav>p){display:none !important}
+html[data-lex-theme] body .app.menu-mini>aside .profile{justify-content:center;padding:8px !important}
+html[data-lex-theme] body .app.menu-mini>aside nav{padding-left:6px !important;padding-right:6px !important}
+html[data-lex-theme] body .app.menu-mini>aside nav .workspace-area-toggle{font-size:0 !important;justify-content:center;padding:10px 0 !important;gap:0}
+html[data-lex-theme] body .app.menu-mini>aside nav .workspace-area-toggle *:not(svg:first-child):not(svg:first-child *){display:none !important}
+html[data-lex-theme] body .app.menu-mini>aside nav .workspace-area-toggle~*{display:none !important}
+}

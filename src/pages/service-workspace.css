@@ -171,3 +171,5 @@ html[data-lex-theme] body .app .service-chat-page .service-chat-head .service-ac
 html[data-lex-theme] body .app .service-chat-page .service-chat-head{flex-wrap:wrap}
 }
 @media(min-width:761px) and (max-width:1050px){html[data-lex-theme] body .app .service-chat-page .service-shell.has-selection:not(.details-collapsed) .service-details{z-index:1000}}
+.service-chat-page :is(.service-avatar,.service-profile-avatar){overflow:hidden}
+.service-chat-page :is(.service-avatar,.service-profile-avatar) img{width:100%;height:100%;object-fit:cover;border-radius:inherit}

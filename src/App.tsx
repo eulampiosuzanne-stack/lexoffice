@@ -500,6 +500,8 @@ function ProspectCenter() {
 }
 export default function App() {
     const [ready, setReady] = useState(false), [session, setSession] = useState<any>(null), [profile, setProfile] = useState<any>(null), [isPlatformAdmin, setIsPlatformAdmin] = useState(false), [adminAccessReady, setAdminAccessReady] = useState(false), [navOpen, setNavOpen] = useState(false), [clientInboxUnread, setClientInboxUnread] = useState(0), [vipAlert, setVipAlert] = useState<any>(null), loc = useLocation();
+    const [menuMini, setMenuMini] = useState(() => { try { return localStorage.getItem("lex-menu-mini") === "1"; } catch { return false; } });
+    const toggleMenu = (next: boolean) => { setMenuMini(next); try { localStorage.setItem("lex-menu-mini", next ? "1" : "0"); } catch { /* sem armazenamento */ } };
     useEffect(() => {
         setNavOpen(false);
         if (!ready) {
@@ -658,12 +660,13 @@ export default function App() {
     const changeTheme = () => { const next = lexTheme === "dark" ? "light" : "dark"; setLexTheme(next); applyLexTheme(next); };
     const area = areaOf(loc.pathname);
     const areaTabs = area.tabs.filter(canSee);
-    return (<div className={`app ${navOpen ? "nav-open" : ""} ${loc.pathname === "/" ? "home-route" : ""} ${loc.pathname === "/whatsapp" ? "inbox-route" : ""}`}>
+    return (<div className={`app ${navOpen ? "nav-open" : ""} ${loc.pathname === "/" ? "home-route" : ""} ${loc.pathname === "/whatsapp" ? "inbox-route" : ""} ${menuMini ? "menu-mini" : ""}`}>
       <a className="skip-link" href="#conteudo-principal">
         Ir para o conteúdo principal
       </a>
       {navOpen && (<div className="nav-overlay" onClick={() => setNavOpen(false)}/>)}
-      <aside>
+      <aside onClickCapture={(e) => { if (!menuMini) return; const el = e.target as HTMLElement; if (el.closest("button.workspace-area-toggle,summary")) { e.preventDefault(); e.stopPropagation(); toggleMenu(false); } }}>
+        <button type="button" className="menu-mini-toggle" onClick={() => toggleMenu(!menuMini)} aria-label={menuMini ? "Abrir o menu" : "Recolher o menu"} title={menuMini ? "Abrir o menu" : "Recolher o menu"} aria-expanded={!menuMini}>{menuMini ? "»" : "« Recolher menu"}</button>
         <div className="brand">
           <div className="logo">
             <img src="/brand/sf-monogram.png" alt="SF"/>
