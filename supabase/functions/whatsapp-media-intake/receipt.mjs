@@ -11,7 +11,7 @@ export function checkReceipt(text, { fee = 300, now = Date.now() } = {}) {
   const v = t.match(/valor[^:\n]{0,30}:\s*r\$\s*([\d.]+,\d{2})/);
   const amount = v ? Number(v[1].replace(/\./g, '').replace(',', '.')) : NaN;
   if (!Number.isFinite(amount)) return no('não consegui ler o valor');
-  if (Math.abs(amount - fee) > 0.001) return no(`valor de R$ ${v[1]}, diferente da consulta`);
+  if (fee !== null && Math.abs(amount - fee) > 0.001) return no(`valor de R$ ${v[1]}, diferente da consulta`);
   let receiver = '';
   const i = lines.findIndex(l => /(recebedor|destinatario|favorecido|quem recebeu)/.test(l));
   if (i >= 0) {

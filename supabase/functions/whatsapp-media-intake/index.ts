@@ -1,15 +1,22 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { checkReceipt, looksLikeReceipt, phoneVariants } from "./receipt.mjs";
+import { settleInstallment } from "./settle.mjs";
 // Leitura de áudio, imagem e PDF recebidos pela Uazapi. Só é chamada pelo gate para números liberados.
 const ORG = "b3dd3ed0-2a05-4087-8220-307a44352cec";
 const OWNER = "0e98483f-a464-422b-bf3e-68f454cdd405";
-// Quem ainda não é cliente e manda comprovante da consulta: confere, registra (libera os dias) e avisa a Dra. no WhatsApp.
+// Comprovante: de quem não é cliente libera a consulta; de cliente dá baixa na parcela. Sempre avisa a Dra. no WhatsApp.
 async function consultReceipt(db: any, svc: string, phone: string, conv: any, pushName: string, text: string) {
   if (!conv?.id || !looksLikeReceipt(text)) return;
   const { data: cv } = await db.from("whatsapp_conversations").select("client_id,lead_id,contact_id").eq("id", conv.id).maybeSingle();
   const { data: ct } = cv?.contact_id ? await db.from("whatsapp_contacts").select("client_id,lead_id,name").eq("id", cv.contact_id).maybeSingle() : { data: null };
-  if (!cv || cv.client_id || ct?.client_id) return;
+  if (!cv) return;
   const { data: ws } = await db.from("whatsapp_settings").select("consultation_fee_amount,alert_phone,alerts_enabled").eq("org_id", ORG).maybeSingle();
+  const clientId = cv.client_id || ct?.client_id || null;
+  if (clientId) { // cliente: baixa da parcela em aberto
+    const note = await settleInstallment(db, { orgId: ORG, ownerId: OWNER, clientId, who: `${ct?.name || pushName || "Cliente"} (${phone})`, check: checkReceipt(text, { fee: null }) });
+    if (note) await alertOwner(svc, ws, note);
+    return;
+  }
   const lead = cv.lead_id || ct?.lead_id || null;
   const result: any = checkReceipt(text, { fee: Number(ws?.consultation_fee_amount || 0) || 300 });
   const who = `${ct?.name || pushName || "Contato"} (${phone})`;
@@ -25,6 +32,9 @@ async function consultReceipt(db: any, svc: string, phone: string, conv: any, pu
       msg = ins.error ? `⚠️ ${who} mandou comprovante correto, mas não consegui registrar. Os dias não foram liberados.` : `💰 PAGAMENTO DE CONSULTA\n${who}\nR$ ${result.amount.toFixed(2).replace(".", ",")} — confirmado pelo comprovante.\nOs dias foram liberados. Confira no extrato antes da reunião.`;
     }
   }
+  await alertOwner(svc, ws, msg);
+}
+async function alertOwner(svc: string, ws: any, msg: string) {
   if (!ws?.alert_phone || ws.alerts_enabled === false) return;
   const r = await fetch(Deno.env.get("SUPABASE_URL")! + "/functions/v1/whatsapp-operator-send", { method: "POST", headers: { Authorization: "Bearer " + svc, "Content-Type": "application/json" }, body: JSON.stringify({ org_id: ORG, message: msg, targets: [{ phone: ws.alert_phone, name: "Dra. Suzanne" }] }), signal: AbortSignal.timeout(15000) });
   if (!r.ok) console.error("receipt_alert_failed", r.status);
