@@ -45,3 +45,4 @@ html body .app .lxs div.lxs-card :is(h2,label:not(.lxs-btn),p,summary,b,span:not
 html body .app .lxs div.lxs-card h2>span{color:#f6dc7e !important}
 html body .app .lxs div.lxs-card :is(input:not([type=checkbox]),select){background:var(--lx-canvas) !important;color:var(--lx-text) !important;border:1px solid #a8861d !important}
 html body .app .lxs div.lxs-card .lxs-status.signed{color:#f6dc7e}
+.lxs summary{display:inline-block;padding:8px 14px;border:1px solid #a8861d;border-radius:12px;box-shadow:0 4px 0 #a8861d,0 8px 12px -5px rgba(0,0,0,.4)}
