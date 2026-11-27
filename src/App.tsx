@@ -665,8 +665,8 @@ export default function App() {
         Ir para o conteúdo principal
       </a>
       {navOpen && (<div className="nav-overlay" onClick={() => setNavOpen(false)}/>)}
-      <aside onClickCapture={(e) => { if (!menuMini) return; const el = e.target as HTMLElement; if (el.closest("button.workspace-area-toggle,summary")) { e.preventDefault(); e.stopPropagation(); toggleMenu(false); } }}>
-        <button type="button" className="menu-mini-toggle" onClick={() => toggleMenu(!menuMini)} aria-label={menuMini ? "Abrir o menu" : "Recolher o menu"} title={menuMini ? "Abrir o menu" : "Recolher o menu"} aria-expanded={!menuMini}>{menuMini ? "»" : "« Recolher menu"}</button>
+      <aside>
+        <button type="button" className="menu-mini-toggle" onClick={() => toggleMenu(!menuMini)} aria-label={menuMini ? "Manter o menu aberto" : "Recolher o menu"} title={menuMini ? "Manter o menu aberto" : "Recolher o menu"} aria-expanded={!menuMini}>{menuMini ? "Manter aberto »" : "« Recolher menu"}</button>
         <div className="brand">
           <div className="logo">
             <img src="/brand/sf-monogram.png" alt="SF"/>
