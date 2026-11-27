@@ -63,7 +63,11 @@ Deno.serve(async(req)=>{
     }
     const r=await fetch(url+"/functions/v1/whatsapp-outbound-gate",{method:"POST",headers:{Authorization:"Bearer "+service,apikey:service,"Content-Type":"application/json"},body:JSON.stringify({
       org_id:item.org_id,conversation_id:payload.conversation_id||null,phone,message:text,agent_key:agent,
-      format_agent_reply:false,idempotency_key:"notification:"+item.id
+      format_agent_reply:false,idempotency_key:"notification:"+item.id,
+      // Envio liberado pela Dra. fora do horário comercial (payload.operator_send=true).
+      ...(payload.operator_send===true?{operator_send:true}:{}),
+      // Imagem opcional (cabeçalho do informativo): o texto vai como legenda.
+      ...(/^https:\/\//.test(String(payload.image||""))?{image:String(payload.image),caption:text}:{})
     })});
     const d=await r.json().catch(()=>null);
     if(d?.reason==="outside_business_hours"&&d?.retryable===true){await a.from("notification_queue").update({status:"pending",scheduled_at:new Date(Date.now()+60*60000).toISOString(),last_error:"Aguardando horário comercial",updated_at:new Date().toISOString()}).eq("id",item.id).eq("status","processing");results.push({id:item.id,ok:false,deferred:true});continue;} if(!r.ok||d?.ok!==true||d?.allowed!==true)throw new Error(d?.error||d?.reason||"Envio não confirmado");
