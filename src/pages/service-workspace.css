@@ -116,3 +116,19 @@ html[data-lex-theme] body .app .service-chat-page :is(.service-filters button,.s
 html[data-lex-theme] body .app .service-chat-page :is(.service-filters button,.service-action,.service-quick,.service-side-btn):active:not(:disabled){transform:translateY(3px)}
 html[data-lex-theme] body .app .service-chat-page :is(.service-action,.service-quick,.service-side-btn):disabled{opacity:.55;cursor:not-allowed}
 html[data-lex-theme] body .app .service-chat-page span.service-conv-state{color:#5a0a22 !important}
+
+/* 27/11/2026: conversa mais bonita, com o nome de quem respondeu. */
+html[data-lex-theme] body .app .service-chat-page .service-bubble{border-radius:18px !important;box-shadow:0 4px 12px -6px rgba(63,13,32,.45);padding:10px 14px}
+html[data-lex-theme] body .app .service-chat-page .service-bubble>b{display:block;margin-bottom:4px;font-size:var(--lx-font-xs);letter-spacing:.02em}
+html[data-lex-theme] body .app .service-chat-page .service-bubble.in{align-self:flex-start;background:#fffdf8 !important;border:1px solid #d4af37 !important;border-bottom-left-radius:4px !important}
+html[data-lex-theme] body .app .service-chat-page .service-bubble.in :is(.service-message-text,small){color:#2a1a1f !important}
+html[data-lex-theme] body .app .service-chat-page .service-bubble.in>b{color:#7a1f3d !important}
+html[data-lex-theme] body .app .service-chat-page .service-bubble.out{align-self:flex-end;background:#f3e7c9 !important;border:1px solid #a8861d !important;border-bottom-right-radius:4px !important}
+html[data-lex-theme] body .app .service-chat-page .service-bubble.out :is(b,.service-message-text,small){color:#3f0d20 !important}
+html[data-lex-theme] body .app .service-chat-page .service-bubble.out.dra{background:linear-gradient(160deg,#8c2a4a 0%,#6b1832 55%,#3f0d20 100%) !important;border:1px solid #d4af37 !important}
+html[data-lex-theme] body .app .service-chat-page .service-bubble.out.dra :is(.service-message-text,.service-message-text *,small){color:#fff !important}
+html[data-lex-theme] body .app .service-chat-page .service-bubble.out.dra>b{color:#f6dc7e !important}
+html[data-lex-theme] body .app .service-chat-page .service-conv{border-radius:14px !important;border:1px solid #d9c38a !important;box-shadow:0 3px 0 #d9c38a}
+html[data-lex-theme] body .app .service-chat-page .service-avatar{background:linear-gradient(160deg,#f6dc7e,#a8861d) !important;color:#3f0d20 !important}
+/* Cachorrinho menor na Caixa de Entrada, para não cobrir a conversa. */
+body:has(.service-chat-page) .sf-guardian-trigger.sf-guardian-walker-btn{scale:.55;transform-origin:bottom right}
