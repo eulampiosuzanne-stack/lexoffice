@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseDocumentList,documentRequestDescription} from '../src/lib/documentRequests.ts';
+import {parseDocumentList,documentRequestDescription,documentRequestMessage} from '../src/lib/documentRequests.ts';
 test('um documento por linha, sem marcadores nem repetidos',()=>{
   assert.deepEqual(parseDocumentList('- RG e CPF\n\n2) Extratos de 3 meses\nrg e cpf\n  \nx'),['RG e CPF','Extratos de 3 meses']);
 });
@@ -17,4 +17,12 @@ test('vazio não gera pedido e título longo é limitado',()=>{
 test('descrição com prazo em data brasileira; data inválida é omitida',()=>{
   assert.equal(documentRequestDescription('1-2','2026-12-04','Juiz pediu.'),'Juiz pediu. Enviar até 04/12/2026. Processo 1-2.');
   assert.equal(documentRequestDescription('','abc',''),'');
+});
+test('aviso lista os documentos, prazo e link do app, sem número do processo',()=>{
+  const m=documentRequestMessage('MARIA DA SILVA',['RG','Holerite'],'2026-12-04',' ');
+  assert.match(m,/^Oi, Maria! 😊/);
+  assert.match(m,/📎 RG\n📎 Holerite/);
+  assert.match(m,/Envie até 04\/12\/2026\./);
+  assert.match(m,/univittagroup\.com\.br\/cliente$/);
+  assert.match(documentRequestMessage('',['RG'],'',''),/^Olá! 😊/);
 });

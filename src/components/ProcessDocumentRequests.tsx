@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FileSearch, Send, Trash2 } from "lucide-react";
 import { supabase } from "../lib/supabase";
-import { documentRequestDescription, parseDocumentList } from "../lib/documentRequests";
+import { documentRequestDescription, documentRequestMessage, parseDocumentList } from "../lib/documentRequests";
 
 type Request = { id: string; title: string; description?: string | null; status: string; created_at: string };
 type Props = { orgId: string; processId: string; clientId?: string | null; clientName?: string | null; cnj?: string | null };
@@ -33,7 +33,7 @@ export default function ProcessDocumentRequests({ orgId, processId, clientId, cl
     if (!supabase || !clientId || !orgId || lock.current) return;
     const titles = parseDocumentList(text, rows.filter((r) => r.status === "pending").map((r) => r.title));
     if (!titles.length) { setNotice("Escreva ao menos um documento que ainda não tenha sido pedido."); return; }
-    if (!window.confirm(`Pedir a ${clientName || "este cliente"}:\n\n• ${titles.join("\n• ")}\n\nO pedido aparece no aplicativo do cliente e a Helena lembra por WhatsApp se não for enviado.`)) return;
+    if (!window.confirm(`Pedir a ${clientName || "este cliente"}:\n\n• ${titles.join("\n• ")}\n\nO aviso vai AGORA pelo aplicativo e pelo WhatsApp, e a Helena cobra se não for enviado.`)) return;
     lock.current = true;
     setBusy(true);
     setNotice("");
@@ -48,12 +48,41 @@ export default function ProcessDocumentRequests({ orgId, processId, clientId, cl
     );
     if (error) setNotice("Não foi possível pedir: " + error.message);
     else {
+      const warning = await notify(titles, u?.user?.id || "");
       setText(""); setNote(""); setDue("");
-      setNotice(`${titles.length} documento(s) pedido(s). Já aparece no aplicativo do cliente.`);
+      setNotice(`${titles.length} documento(s) pedido(s). ${warning}`);
       await load();
     }
     lock.current = false;
     setBusy(false);
+  }
+
+  // Uma linha na fila envia o WhatsApp e o banco espelha no aplicativo (com notificação no celular).
+  async function notify(titles: string[], userId: string): Promise<string> {
+    if (!supabase || !clientId) return "";
+    const { data: c } = await supabase.from("clients").select("name,whatsapp,phone").eq("id", clientId).maybeSingle();
+    const phone = String(c?.whatsapp || c?.phone || "").replace(/\D/g, "");
+    const message = documentRequestMessage(c?.name || clientName || "", titles, due, note);
+    if (phone.length < 10) {
+      const { error } = await supabase.from("client_office_messages").insert({
+        org_id: orgId, client_id: clientId, title: "Documento solicitado", body: message,
+        category: "documentos", priority: "normal", requires_ack: false, sent_by: userId,
+        source_channel: "manual_app", metadata: { process_id: processId },
+      });
+      return error
+        ? "O pedido ficou salvo, mas o aviso não foi criado: " + error.message
+        : "Avisado só pelo aplicativo: o cliente está sem WhatsApp no cadastro.";
+    }
+    const { data, error } = await supabase.from("notification_queue").insert({
+      org_id: orgId, owner_user_id: userId, client_id: clientId, process_id: processId,
+      channel: "whatsapp", destination: phone, message, status: "pending",
+      scheduled_at: new Date().toISOString(), send_to_client_app: true,
+      payload: { source: "document_request", agent_key: "customer_success", category: "documentos", title: "Documento solicitado" },
+    }).select("status").single();
+    if (error) return "O pedido ficou salvo no aplicativo, mas o aviso não foi criado: " + error.message;
+    return data?.status === "cancelled"
+      ? "Atenção: o WhatsApp está bloqueado para este cliente. O pedido ficou no aplicativo."
+      : "Aviso no aplicativo e WhatsApp na fila de envio.";
   }
 
   async function cancel(r: Request) {
@@ -72,7 +101,7 @@ export default function ProcessDocumentRequests({ orgId, processId, clientId, cl
         <span className="doc-section-icon"><FileSearch size={20} /></span>
         <div>
           <h2>Pedir documentos ao cliente</h2>
-          <p>Use quando o juiz determinar a juntada. O cliente envia pelo aplicativo.</p>
+          <p>Use quando o juiz determinar a juntada. Avisa pelo aplicativo e WhatsApp, e a Helena cobra o envio (até 3 vezes).</p>
         </div>
       </div>
       {!clientId ? (
