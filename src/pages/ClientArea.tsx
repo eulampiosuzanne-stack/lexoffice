@@ -493,11 +493,12 @@ export default function ClientArea() {
       setNotice('Resposta publicada no aplicativo.');
       const client=clients.find(row=>row.id===item.client_id);
       const phone=String(client?.whatsapp||client?.phone||'').replace(/\D/g,'');
+      // A resposta já está salva: o aviso no WhatsApp e a recarga seguem em segundo plano, sem travar a tela.
       if(phone){
-        const sent=await sendWhatsappNotice({phone:phone.startsWith('55')?phone:'55'+phone,name:client?.name||'Cliente',message:'Você recebeu uma resposta do escritório na Área do Cliente da Suzanne Figueiredo Advocacia. Acesse: https://lexoffice.univittagroup.com.br/cliente'});
-        if(sent)setNotice('Resposta publicada no aplicativo. Aviso por WhatsApp confirmado pelo serviço de envio.');
+        void sendWhatsappNotice({phone:phone.startsWith('55')?phone:'55'+phone,name:client?.name||'Cliente',message:'Você recebeu uma resposta do escritório na Área do Cliente da Suzanne Figueiredo Advocacia. Acesse: https://lexoffice.univittagroup.com.br/cliente'})
+          .then(sent=>{if(sent)setNotice('Resposta publicada no aplicativo. Aviso por WhatsApp confirmado pelo serviço de envio.');});
       }else setNotice('Resposta publicada no aplicativo. Sem aviso por WhatsApp: cliente sem telefone cadastrado.');
-      await load();
+      void load();
     }catch(error){setNotice(error instanceof Error?error.message:'Não foi possível publicar a resposta. Seu rascunho foi preservado.');}
     finally{setBusy(false);}
   }
