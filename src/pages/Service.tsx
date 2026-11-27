@@ -66,7 +66,7 @@ export default function Service(){
  const hiddenBulkCount=Math.max(0,conversations.length-bulkEligible.length);
  async function openConversation(c:Conversation){
   const view={id:c.id,cursor:'',loading:false,pending:false};
-  messageView.current=view;
+  messageView.current=view;setBotOnly(false);
   setSelected(c);
   setMessages([]);
   setDetailTab('cliente');
@@ -86,7 +86,7 @@ export default function Service(){
   }
   await loadMessages(c.id);
   await db.from('whatsapp_conversations').update({unread_count:0}).eq('id',c.id);
-  setBotOnly(false);if(messageView.current===view)await syncMode(c);
+  if(messageView.current===view)await syncMode(c);
  }
  async function toggleBotOnly(){if(!selected?.contact?.phone)return;const next=!botOnly,target=selected;setBusy(true);setNotice('');try{const{error}=await db.rpc('set_chatbot_only',{p_conversation_id:target.id,p_enabled:next});if(error)throw error;if(messageView.current?.id===target.id){setBotOnly(next);await syncMode(target)}setNotice(next?'Este contato agora é atendido somente pelo chatbot de botões.':'Chatbot de botões desligado para este contato.');}catch(e:any){setNotice(e?.message||'Não foi possível salvar a preferência.');}finally{setBusy(false)}}
  async function setHandler(next:Mode){if(!selected?.contact?.phone||!orgId)return;setBusy(true);setNotice('');const now=new Date().toISOString(),ai=next==='ai',phone=phoneDigits(selected.contact.phone);try{const{data:existing,error:readError}=await db.from('ai_conversation_controls').select('id').eq('org_id',orgId).eq('contact_key',phone).maybeSingle();if(readError)throw readError;const patch={ai_enabled:ai,human_takeover:!ai,resume_at:null,updated_at:now};const control=existing?.id?await db.from('ai_conversation_controls').update(patch).eq('id',existing.id):await db.from('ai_conversation_controls').insert({org_id:orgId,contact_key:phone,...patch});if(control.error)throw control.error;const{error}=await db.from('whatsapp_conversations').update(ai?{bot_ativo:true,responsible_id:null,human_takeover_at:null,human_takeover_reason:null,conversation_owner:'CLARA',updated_at:now}:{bot_ativo:false,responsible_id:userId||null,human_takeover_at:now,human_takeover_reason:'operator_takeover',conversation_owner:'HUMAN',updated_at:now}).eq('id',selected.id);if(error)throw error;if(messageView.current?.id===selected.id)setMode(next);setSelected(current=>current?.id===selected.id?{...current,bot_ativo:ai}:current);setConversations(v=>v.map(c=>c.id===selected.id?{...c,bot_ativo:ai}:c));setNotice(ai?'Helena autorizada a responder este contato.':'Helena desativada para este contato até você reativar.');}catch(e:any){setNotice(e?.message||'Não foi possível salvar a preferência.');}finally{setBusy(false)}}
