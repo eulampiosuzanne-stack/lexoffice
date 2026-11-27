@@ -1,6 +1,7 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { checkReceipt, looksLikeReceipt, phoneVariants } from "./receipt.mjs";
 import { settleInstallment } from "./settle.mjs";
+import { chooseDocument, receiveRequestedFile } from "./inbox.ts";
 // Leitura de áudio, imagem e PDF recebidos pela Uazapi. Só é chamada pelo gate para números liberados.
 const ORG = "b3dd3ed0-2a05-4087-8220-307a44352cec";
 const OWNER = "0e98483f-a464-422b-bf3e-68f454cdd405";
@@ -49,6 +50,15 @@ const FAIL: Record<string, string> = {
 Deno.serve(async (req) => {
   try {
     const svc = (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "").trim();
+    // Escolha do documento: chamada só pelo gatilho do banco (cabeçalho x-bot-token).
+    const botToken = req.headers.get("x-bot-token");
+    if (botToken) {
+      const db = createClient(Deno.env.get("SUPABASE_URL")!, svc, { auth: { persistSession: false } });
+      const { data: s } = await db.from("chatbot_only_secret").select("token").eq("id", true).maybeSingle();
+      const b = await req.json().catch(() => ({}));
+      if (!s?.token || botToken !== s.token || b.action !== "choose") return J({ ok: false, error: "unauthorized" }, 401);
+      return J({ ok: true, ...(await chooseDocument(db, String(b.message_id || ""))) });
+    }
     if ((req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim() !== svc) return J({ ok: false, error: "unauthorized" }, 401);
     const x = await req.json();
     const phone = String(x.phone || "").replace(/\D/g, ""), m = x.m || {}, kind = String(x.kind || ""), caption = String(x.text || "").trim().slice(0, 500), pushName = String(x.pushName || "");
@@ -60,7 +70,7 @@ Deno.serve(async (req) => {
     const c = m?.content && typeof m.content === "object" ? m.content : {};
     const filename = String(c.fileName || m.fileName || ""), mime = String(c.mimetype || m.mimetype || "");
     // 1) link do arquivo na Uazapi
-    let reason = "", text = "";
+    let reason = "", text = "", fileUrl = "";
     try {
       const base = (await secret("uazapi_base_url")).replace(/\/+$/, ""), token = await secret("uazapi_instance_token");
       if (!/^https:\/\//.test(base) || !token || !mid) throw new Error("config");
@@ -68,11 +78,19 @@ Deno.serve(async (req) => {
       const dj: any = await dr.json().catch(() => ({}));
       const url = String(dj?.fileURL || dj?.fileUrl || dj?.url || "");
       if (!dr.ok || !url) throw new Error("download_" + dr.status);
+      fileUrl = url;
       const ar = await fetch(Deno.env.get("SUPABASE_URL")! + "/functions/v1/whatsapp-media-analyzer", { method: "POST", headers: { Authorization: "Bearer " + svc, "Content-Type": "application/json" }, body: JSON.stringify({ url, type, org_id: ORG, filename, mime }), signal: AbortSignal.timeout(50000) });
       const aj: any = await ar.json().catch(() => ({}));
       if (!ar.ok || !aj?.ok || !String(aj.text || "").trim()) throw new Error(String(aj?.error || "analyzer_" + ar.status));
       text = String(aj.text).trim().slice(0, 3000);
     } catch (e) { reason = e instanceof Error ? e.message : String(e); }
+    // Cliente com documento pedido na LEX: guarda e pergunta qual é (comprovante segue o caminho próprio).
+    if (type !== "audio" && fileUrl && mid && !looksLikeReceipt(text)) {
+      try {
+        const got = await receiveRequestedFile(db, { org: ORG, phone, variants: phoneVariants(phone), pushName, url: fileUrl, mid, filename, mime, label: type === "image" ? "imagem" : "documento" });
+        if (got) return J({ ok: true, kind: type, document_inbox: got });
+      } catch (e) { console.error("document_inbox", e instanceof Error ? e.message : String(e)); }
+    }
     // conversa (se existir)
     const { data: ct } = await db.from("whatsapp_contacts").select("id").eq("org_id", ORG).in("phone", phoneVariants(phone)).limit(1).maybeSingle();
     const findConv = async () => ct ? (await db.from("whatsapp_conversations").select("id,bot_ativo,conversation_owner").eq("org_id", ORG).eq("contact_id", ct.id).neq("status", "closed").order("updated_at", { ascending: false }).limit(1).maybeSingle()).data : null;
