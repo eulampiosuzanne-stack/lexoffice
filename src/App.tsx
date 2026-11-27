@@ -734,7 +734,7 @@ export default function App() {
             <Menu size={21}/>
           </button>
           <div className="topbar-context" aria-label="LexOffice SF – Superadvogadas">
-            <span className="topbar-brand-mark" aria-hidden="true">SF</span>
+            <span className="topbar-brand-mark" aria-hidden="true"><img src="/brand/sf-monogram.png" alt=""/></span>
             <span className="topbar-brand-copy"><strong>LexOffice SF – Superadvogadas</strong><small>Gestão Jurídica · Inteligência · Produtividade</small></span>
             <span className="topbar-route" aria-label="Localização atual">
               <span className="workspace-breadcrumb-area">{area.label}</span>

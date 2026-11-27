@@ -15,3 +15,4 @@ html[data-lex-theme] body .app>aside :is(.brand,.profile,nav,.workspace-sidebar)
 /* Topo com o vermelho da própria faixa enviada pela Dra.; menu no mesmo tom. */
 html[data-lex-theme] body .app>main>header.lex2-topbar{background:#030101 url(/brand/topo-vermelho.jpg) center/100% 100% no-repeat !important;box-shadow:0 8px 18px -12px rgba(0,0,0,.7)}
 html[data-lex-theme] body .app>aside{background:radial-gradient(130% 40% at 0% 0%,#b00a1c,rgba(90,0,8,.85) 45%,transparent 75%),linear-gradient(180deg,#4a0006 0%,#120203 45%,#060202 66%,#8f0715 100%) !important}
+html[data-lex-theme] body .app>main>header.lex2-topbar .topbar-brand-mark img{display:block;width:100%;height:100%;object-fit:contain;padding:3px;box-sizing:border-box}
