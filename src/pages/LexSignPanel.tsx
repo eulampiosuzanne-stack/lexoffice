@@ -1,14 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { localPhone, onlyDigits, samePhone, signerError } from '../lib/signer';
+import './lexsign.css';
 
 // Painel de envio da assinatura biométrica própria do LEXOFFICE (gratuita).
-type Client = { id: string; name: string; whatsapp?: string | null; phone?: string | null };
+type Client = { id: string; name: string; whatsapp?: string | null; phone?: string | null; cpf_cnpj?: string | null; relationship_tier?: string | null };
 type Doc = { id: string; name: string; file_path: string; mime_type?: string | null; created_at?: string | null };
 type Req = { id: string; batch_id?: string | null; title: string; signer_name?: string | null; status: string; created_at: string; viewed_at?: string | null; signed_at?: string | null; signed_path?: string | null; verification_code?: string | null; face_distance?: number | null };
 
 const FN = 'signature-biometric-public';
 const STATUS: Record<string, string> = { sent: 'Enviado', viewed: 'Aberto pelo cliente', pending_review: 'Aguardando sua conferência', signed: 'Assinado', rejected: 'Recusada', cancelled: 'Cancelado', expired: 'Expirado' };
-const COLOR: Record<string, string> = { pending_review: '#e0a13a', rejected: '#C99443', sent: '#c9a55c', viewed: '#D6AA55', signed: '#C99443', cancelled: '#8c8c8c', expired: '#C99443' };
+const FILTERS = [
+  { key: 'open', label: 'Pendentes', match: ['sent', 'viewed', 'expired', 'rejected'] },
+  { key: 'review', label: 'Para conferir', match: ['pending_review'] },
+  { key: 'signed', label: 'Assinados', match: ['signed'] },
+  { key: 'all', label: 'Todos', match: null },
+] as const;
 // Status do lote: o que ainda estiver pendente manda; se tudo acabou, vale o do principal.
 const groupStatus = (g: { status: string }[]) => {
   const live = g.filter((x) => x.status !== 'cancelled');
@@ -48,6 +55,15 @@ export default function LexSignPanel() {
   // Lista de documentos de cada envio: começa recolhida; clique para abrir/fechar.
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const toggleGroup = (k: string) => setOpenGroups((o) => ({ ...o, [k]: !o[k] }));
+  const [tab, setTab] = useState<'new' | 'track'>('new');
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]['key']>('open');
+  const [who, setWho] = useState<'client' | 'other'>('client');
+  const [other, setOther] = useState({ name: '', cpf: '', phone: '' });
+  const [otherError, setOtherError] = useState('');
+  const [saving, setSaving] = useState(false);
+  function chooseWho(next: 'client' | 'other') {
+    setWho(next); setClientId(''); setSearch(''); setOtherError(''); setNotice(''); setLink(''); setShareMsg('');
+  }
 
   async function loadReqs() {
     if (!supabase) return;
@@ -57,7 +73,7 @@ export default function LexSignPanel() {
   useEffect(() => {
     (async () => {
       if (!supabase) return;
-      const { data } = await supabase.from('clients').select('id,name,whatsapp,phone').not('name', 'ilike', '%DUPLICADO%').order('name').limit(2000);
+      const { data } = await supabase.from('clients').select('id,name,whatsapp,phone,relationship_tier').not('name', 'ilike', '%DUPLICADO%').order('name').limit(2000);
       setClients((data as Client[]) || []);
       await loadReqs();
     })();
@@ -85,7 +101,7 @@ export default function LexSignPanel() {
       setSearchingClients(true);
       try {
         const safe = q.replace(/[%_]/g, '');
-        const { data } = await supabase.from('clients').select('id,name,whatsapp,phone').ilike('name', `%${safe}%`).not('name', 'ilike', '%DUPLICADO%').order('name').limit(50);
+        const { data } = await supabase.from('clients').select('id,name,whatsapp,phone,relationship_tier').ilike('name', `%${safe}%`).not('name', 'ilike', '%DUPLICADO%').order('name').limit(50);
         if (data?.length) setClients((cur) => {
           const map = new Map(cur.map((x) => [x.id, x]));
           for (const x of data as Client[]) map.set(x.id, x);
@@ -102,6 +118,44 @@ export default function LexSignPanel() {
   const client = clients.find((c) => c.id === clientId);
   const phone = client?.whatsapp || client?.phone || '';
 
+  // Quem não é cliente entra no cadastro como contato (LEAD) para poder assinar. Não duplica quem já existe.
+  async function saveOther() {
+    if (!supabase || saving) return;
+    const invalid = signerError(other.name, other.cpf, other.phone);
+    setOtherError(invalid); setNotice('');
+    if (invalid) return;
+    setSaving(true);
+    try {
+      const all: Client[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await supabase.from('clients').select('id,name,whatsapp,phone,cpf_cnpj,relationship_tier').not('name', 'ilike', '%DUPLICADO%').order('id').range(from, from + 999);
+        if (error) throw error;
+        all.push(...((data as Client[]) || []));
+        if (!data || data.length < 1000) break;
+      }
+      const use = (c: Client, message: string) => {
+        setClients((cur) => [c, ...cur.filter((x) => x.id !== c.id)]);
+        setClientId(c.id); setNotice(message);
+      };
+      const cpf = onlyDigits(other.cpf);
+      const found = all.find((c) => onlyDigits(c.cpf_cnpj) === cpf);
+      if (found) { use(found, `Este CPF já está cadastrado como ${found.name}. Usei o cadastro existente, sem alterar os dados.`); return; }
+      const phoneOwner = all.find((c) => samePhone(c.whatsapp, other.phone) || samePhone(c.phone, other.phone));
+      if (phoneOwner && !window.confirm(`Este WhatsApp já está no cadastro de ${phoneOwner.name}. Criar mesmo assim um cadastro separado para ${other.name.trim()}?`)) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Sessão inválida. Entre novamente.');
+      const { data: p } = await supabase.from('profiles').select('org_id').eq('id', user.id).single();
+      if (!p?.org_id) throw new Error('Organização não encontrada.');
+      const { data, error } = await supabase.from('clients').insert({
+        org_id: p.org_id, name: other.name.trim().replace(/\s+/g, ' '), cpf_cnpj: cpf, whatsapp: localPhone(other.phone),
+        relationship_tier: 'LEAD', relationship_tier_source: 'manual', receive_automatic_emails: false,
+        notes: 'Cadastro rápido para assinatura (não é cliente).',
+      }).select('id,name,whatsapp,phone,cpf_cnpj,relationship_tier').single();
+      if (error) throw error;
+      use(data as Client, 'Pessoa salva. Agora adicione o PDF no passo 2.');
+    } catch (e: any) { setOtherError(e?.message || 'Não foi possível salvar.'); }
+    finally { setSaving(false); }
+  }
   // Copia um texto; se o navegador bloquear, avisa para copiar à mão.
   async function copyText(text: string, ok: string) {
     try { await navigator.clipboard.writeText(text); setNotice(ok); }
@@ -224,82 +278,107 @@ export default function LexSignPanel() {
     return Array.from(map.values()).map((g) => g.sort((a, b) => (a.id === a.batch_id ? -1 : b.id === b.batch_id ? 1 : a.created_at.localeCompare(b.created_at))));
   }, [reqs]);
 
+  const groupsBy = (match: readonly string[] | null) => groups.filter((g) => !match || match.includes(groupStatus(g)));
+  const shown = groupsBy(FILTERS.find((f) => f.key === filter)!.match);
+  const reviewCount = groupsBy(['pending_review']).length;
+  const sendOff = !docIds.length || !phone || !!busy || uploading;
+  const clientLabel = (c: Client) => (c.relationship_tier === 'LEAD' ? `${c.name} (não é cliente)` : c.name);
+
   return (
-    <section style={S.panel}>
-      <div style={S.head}>
-        <div>
-          <span style={S.pill}>GRATUITA • BIOMETRIA FACIAL</span>
-          <h2 style={S.h2}>Assinatura LEX com reconhecimento facial</h2>
-          <p style={S.p}>O cliente recebe um link pelo WhatsApp, confirma um código, fotografa o RG ou a CNH e faz uma selfie com prova de vida. O PDF assinado, com o certificado, volta sozinho para a ficha do cliente.</p>
-        </div>
-      </div>
-      <div style={S.grid}>
-        <label style={S.label}>Cliente
-          <input style={S.input} placeholder="Buscar pelo nome" value={search} onChange={(e) => setSearch(e.target.value)} />
-          <select style={S.input} value={clientId} onChange={(e) => setClientId(e.target.value)}>
-            <option value="">{searchingClients ? 'Buscando cliente...' : 'Selecione o cliente'}</option>
-            {filtered.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-          {client && <small style={{ color: phone ? "var(--lx-text)" : "var(--lx-accent)" }}>{phone ? `WhatsApp: ${phone}` : 'Este cliente não tem WhatsApp cadastrado.'}</small>}
-        </label>
-        <div style={S.label}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-            <span>Documentos para assinar {docIds.length > 0 && <b style={{ color: "var(--lx-accent)" }}>• {docIds.length} selecionado{docIds.length > 1 ? 's' : ''}</b>}</span>
-            {docs.length > 1 && <button type="button" style={S.small} onClick={() => setDocIds(allSelected ? [] : docs.map((d) => d.id))}>{allSelected ? 'Desmarcar todos' : 'Selecionar todos'}</button>}
+    <section className="lxs">
+      <nav className="lxs-tabs" aria-label="Assinaturas">
+        <button type="button" className="lxs-btn lxs-tab" aria-pressed={tab === 'new'} onClick={() => setTab('new')}>Nova assinatura</button>
+        <button type="button" className="lxs-btn lxs-tab" aria-pressed={tab === 'track'} onClick={() => setTab('track')}>Acompanhamento{reviewCount ? ` (${reviewCount} para conferir)` : ''}</button>
+      </nav>
+      {notice && <p className="lxs-notice" role="status">{notice}</p>}
+
+      {tab === 'new' && <>
+        <div className="lxs-card">
+          <h2><span>1</span>Quem vai assinar?</h2>
+          <div className="lxs-row">
+            <button type="button" className="lxs-btn lxs-choice" aria-pressed={who === 'client'} disabled={!!busy} onClick={() => chooseWho('client')}>Já é cliente</button>
+            <button type="button" className="lxs-btn lxs-choice" aria-pressed={who === 'other'} disabled={!!busy} onClick={() => chooseWho('other')}>Não é cliente</button>
           </div>
-          <div style={S.docList}>
-            {!clientId && <p style={S.empty}>Escolha o cliente primeiro.</p>}
-            {clientId && !docs.length && <p style={S.empty}>Nenhum PDF na ficha deste cliente. Adicione abaixo.</p>}
-            {docs.map((d) => {
-              const on = docIds.includes(d.id);
-              return (
-                <label key={d.id} style={{ ...S.docItem, ...(on ? S.docOn : {}) }}>
-                  <input type="checkbox" checked={on} onChange={() => toggleDoc(d.id)} style={{ width: 18, height: 18, accentColor: "var(--lx-accent)", flex: 'none' }} />
-                  <span style={{ minWidth: 0, flex: 1 }}>
-                    <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: "var(--lx-text)" }}>{d.name}</span>
-                    <small style={{ color: "var(--lx-text)" }}>{dt(d.created_at)}</small>
-                  </span>
+          {who === 'client' && (
+            <div className="lxs-fields">
+              <label>Buscar pelo nome<input placeholder="Digite o nome" value={search} onChange={(e) => setSearch(e.target.value)} /></label>
+              <label>Cliente
+                <select value={clientId} onChange={(e) => setClientId(e.target.value)}>
+                  <option value="">{searchingClients ? 'Buscando cliente...' : 'Selecione o cliente'}</option>
+                  {filtered.map((c) => <option key={c.id} value={c.id}>{clientLabel(c)}</option>)}
+                </select>
+              </label>
+            </div>
+          )}
+          {who === 'other' && !clientId && (
+            <form onSubmit={(e) => { e.preventDefault(); void saveOther(); }}>
+              <div className="lxs-fields">
+                <label>Nome completo<input value={other.name} maxLength={120} onChange={(e) => setOther({ ...other, name: e.target.value })} /></label>
+                <label>CPF<input inputMode="numeric" value={other.cpf} maxLength={14} placeholder="000.000.000-00" onChange={(e) => setOther({ ...other, cpf: e.target.value })} /></label>
+                <label>WhatsApp com DDD<input inputMode="tel" value={other.phone} maxLength={20} placeholder="(31) 99999-9999" onChange={(e) => setOther({ ...other, phone: e.target.value })} /></label>
+              </div>
+              {otherError && <p className="lxs-error" role="alert">{otherError}</p>}
+              <button type="button" className="lxs-btn wine" disabled={saving} onClick={() => void saveOther()}>{saving ? 'Salvando...' : 'Salvar e continuar'}</button>
+              <p className="lxs-hint">A pessoa fica no cadastro marcada como "não é cliente". Se depois fechar contrato, passa a cliente.</p>
+            </form>
+          )}
+          {client && (
+            <p className="lxs-chosen">Vai assinar: <b>{client.name}</b>{client.relationship_tier === 'LEAD' ? ' (não é cliente)' : ''} • {phone ? `WhatsApp ${phone}` : 'sem WhatsApp cadastrado'}
+              {who === 'other' && <button type="button" className="lxs-btn small" disabled={!!busy} onClick={() => { setClientId(''); setOther({ name: '', cpf: '', phone: '' }); setNotice(''); }}>Outra pessoa</button>}
+            </p>
+          )}
+        </div>
+
+        <div className="lxs-card">
+          <h2><span>2</span>Quais documentos?</h2>
+          {!clientId && <p className="lxs-hint">Primeiro conclua o passo 1.</p>}
+          {clientId && <>
+            <div className="lxs-row">
+              <label className="lxs-btn gold" aria-disabled={uploading}>
+                {uploading ? 'Enviando arquivos...' : 'Adicionar PDF do computador'}
+                <input type="file" accept="application/pdf,.pdf" multiple hidden disabled={uploading} onChange={(e) => { addUploads(e.target.files); e.target.value = ''; }} />
+              </label>
+              {docs.length > 1 && <button type="button" className="lxs-btn" onClick={() => setDocIds(allSelected ? [] : docs.map((d) => d.id))}>{allSelected ? 'Desmarcar todos' : 'Selecionar todos'}</button>}
+            </div>
+            {!docs.length && <p className="lxs-hint">Nenhum PDF na ficha ainda. Adicione acima.</p>}
+            {!!docs.length && <div className="lxs-docs">
+              {docs.map((d) => (
+                <label key={d.id} className={docIds.includes(d.id) ? 'on' : ''}>
+                  <input type="checkbox" checked={docIds.includes(d.id)} onChange={() => toggleDoc(d.id)} />
+                  <span><b>{d.name}</b><small>{dt(d.created_at)}</small></span>
                 </label>
-              );
-            })}
-          </div>
-          <small style={{ color: "var(--lx-text)" }}>Marque um ou mais. Todos vão no mesmo link: o cliente valida a identidade uma vez só e assina todos juntos.</small>
+              ))}
+            </div>}
+            <p className="lxs-hint">{docIds.length ? `${docIds.length} selecionado${docIds.length > 1 ? 's' : ''}. ` : ''}Todos os marcados vão num único link.</p>
+          </>}
         </div>
-      </div>
-      <div style={S.upload}>
-        <span style={{ fontSize: "var(--lx-font-sm)", color: "var(--lx-text)" }}>Adicionar PDFs do computador à ficha do cliente:</span>
-        <label style={{ ...S.small, opacity: !clientId || uploading ? 0.72 : 1, cursor: !clientId || uploading ? 'not-allowed' : 'pointer' }}>
-          {uploading ? 'Enviando arquivos...' : 'Escolher PDFs'}
-          <input type="file" accept="application/pdf,.pdf" multiple hidden disabled={!clientId || uploading} onChange={(e) => { addUploads(e.target.files); e.target.value = ''; }} />
-        </label>
-        <small style={{ color: "var(--lx-text)" }}>Pode escolher vários de uma vez; eles entram marcados na lista acima.</small>
-      </div>
-      <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
-        <button style={{ ...S.btn, opacity: !docIds.length || !phone || busy || uploading ? 0.72 : 1 }} disabled={!docIds.length || !phone || !!busy || uploading} onClick={() => send('whatsapp')}>
-          {busy === 'send' ? 'Enviando...' : 'Assinatura LEX: enviar pelo WhatsApp'}
-        </button>
-        <button style={{ ...S.btnAlt, opacity: !docIds.length || !phone || busy || uploading ? 0.72 : 1 }} disabled={!docIds.length || !phone || !!busy || uploading} onClick={() => send('copy')}>
-          {busy === 'send-copy' ? 'Gerando...' : 'Assinatura LEX: copiar mensagem com link'}
-        </button>
-        <button style={{ ...S.btnAlt, opacity: !docIds.length || !phone || busy || uploading ? 0.72 : 1 }} disabled={!docIds.length || !phone || !!busy || uploading} onClick={sendWhatsAppOnly}>
-          {busy === 'whatsapp-only' ? 'Enviando PDFs...' : 'Enviar PDFs pelo WhatsApp (sem assinatura LEX)'}
-        </button>
-      </div>
-      <small style={{ ...S.p, display: 'block', marginTop: 8 }}>"Enviar pelo WhatsApp" manda a mensagem ao número cadastrado do cliente. "Copiar mensagem" não envia nada: copia o texto pronto (link, código e explicação da assinatura com biometria facial) para você colar onde quiser. A última opção apenas entrega os arquivos no WhatsApp. Ela não cria solicitação, biometria ou assinatura dentro da Lex.</small>
-      {notice && <p style={S.notice}>{notice}</p>}
-      {link && (
-        <div style={{ ...S.linkBox, flexDirection: 'column', alignItems: 'stretch' }}>
-          {shareMsg && <textarea readOnly value={shareMsg} rows={8} style={{ ...S.input, width: '100%', resize: 'vertical', fontFamily: 'inherit' }} onFocus={(e) => e.currentTarget.select()} />}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {shareMsg && <button style={S.small} onClick={() => copyText(shareMsg, 'Mensagem copiada (link, código e explicação da biometria facial).')}>Copiar mensagem completa</button>}
-            <button style={S.small} onClick={() => copyText(link, 'Link copiado. Atenção: sem a mensagem, o cliente não recebe o código nem a explicação da biometria facial.')}>Copiar só o link</button>
+
+        <div className="lxs-card">
+          <h2><span>3</span>Enviar para assinar</h2>
+          <div className="lxs-row">
+            <button type="button" className="lxs-btn wine" disabled={sendOff} onClick={() => send('whatsapp')}>{busy === 'send' ? 'Enviando...' : 'Enviar pelo WhatsApp'}</button>
+            <button type="button" className="lxs-btn gold" disabled={sendOff} onClick={() => send('copy')}>{busy === 'send-copy' ? 'Gerando...' : 'Copiar mensagem com link'}</button>
           </div>
+          <p className="lxs-hint">A pessoa confirma um código, fotografa o RG ou a CNH e faz uma selfie. O PDF assinado volta para a ficha dela.</p>
+          <details>
+            <summary>Outra opção: mandar só o PDF, sem assinatura pela LEX</summary>
+            <button type="button" className="lxs-btn" disabled={sendOff} onClick={sendWhatsAppOnly}>{busy === 'whatsapp-only' ? 'Enviando PDFs...' : 'Enviar PDFs pelo WhatsApp (sem assinatura LEX)'}</button>
+          </details>
+          {link && (
+            <div className="lxs-link">
+              {shareMsg && <textarea readOnly value={shareMsg} rows={8} onFocus={(e) => e.currentTarget.select()} />}
+              <div className="lxs-row">
+                {shareMsg && <button type="button" className="lxs-btn gold" onClick={() => copyText(shareMsg, 'Mensagem copiada (link, código e explicação da biometria facial).')}>Copiar mensagem completa</button>}
+                <button type="button" className="lxs-btn" onClick={() => copyText(link, 'Link copiado. Atenção: sem a mensagem, o cliente não recebe o código nem a explicação da biometria facial.')}>Copiar só o link</button>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </>}
 
       {review && (
-        <div style={S.overlay} onClick={() => busy !== 'review' && setReview(null)}>
-          <div style={S.modal} onClick={(e) => e.stopPropagation()}>
+        <div className="lxs-overlay" onClick={() => busy !== 'review' && setReview(null)}>
+          <div className="lxs-modal" onClick={(e) => e.stopPropagation()}>
             <h3 style={{ ...S.h3, marginTop: 0 }}>Conferência de identidade</h3>
             <p style={S.p}><b>{(review.documents?.length || 1) > 1 ? `${review.documents.length} documentos (um único link)` : review.title}</b><br />{review.signer_name} • CPF {review.signer_cpf} • WhatsApp {review.signer_phone}</p>
             {(review.documents?.length || 0) > 1 && <ul style={{ ...S.p, margin: '8px 0 0', paddingLeft: 18 }}>{review.documents.map((d: any) => <li key={d.id}>{d.title}</li>)}</ul>}
@@ -312,81 +391,75 @@ export default function LexSignPanel() {
               <input style={S.input} value={reviewNote} onChange={(e) => setReviewNote(e.target.value)} placeholder="Ex.: RG de 1998, cliente conhecida do escritório" />
             </label>
             <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
-              <button style={S.btn} disabled={busy === 'review'} onClick={() => decide(true)}>{busy === 'review' ? 'Processando...' : 'É a mesma pessoa — aprovar'}</button>
-              <button style={{ ...S.small, padding: '12px 16px', fontSize: "var(--lx-font-md)" }} disabled={busy === 'review'} onClick={() => decide(false)}>Recusar</button>
-              <button style={{ ...S.small, padding: '12px 16px', fontSize: "var(--lx-font-md)", background: 'transparent' }} disabled={busy === 'review'} onClick={() => setReview(null)}>Fechar</button>
+              <button className="lxs-btn wine" disabled={busy === 'review'} onClick={() => decide(true)}>{busy === 'review' ? 'Processando...' : 'É a mesma pessoa — aprovar'}</button>
+              <button className="lxs-btn gold" disabled={busy === 'review'} onClick={() => decide(false)}>Recusar</button>
+              <button className="lxs-btn" disabled={busy === 'review'} onClick={() => setReview(null)}>Fechar</button>
             </div>
           </div>
         </div>
       )}
 
-      <h3 style={S.h3}>Acompanhamento</h3>
-      {!reqs.length && <p style={S.p}>Nenhuma assinatura enviada ainda.</p>}
-      <div style={{ display: 'grid', gap: 8 }}>
-        {groups.map((g) => {
+      {tab === 'track' && <>
+        <div className="lxs-row" role="group" aria-label="Filtrar assinaturas">
+          {FILTERS.map((f) => <button key={f.key} type="button" className="lxs-btn lxs-choice" aria-pressed={filter === f.key} onClick={() => setFilter(f.key)}>{f.label} ({groupsBy(f.match).length})</button>)}
+        </div>
+        {link && (
+          <div className="lxs-link">
+            {shareMsg && <textarea readOnly value={shareMsg} rows={8} onFocus={(e) => e.currentTarget.select()} />}
+            <div className="lxs-row">
+              {shareMsg && <button type="button" className="lxs-btn gold" onClick={() => copyText(shareMsg, 'Mensagem copiada.')}>Copiar mensagem completa</button>}
+              <button type="button" className="lxs-btn" onClick={() => copyText(link, 'Link copiado.')}>Copiar só o link</button>
+            </div>
+          </div>
+        )}
+        {!shown.length && <p className="lxs-hint">Nada nesta lista.</p>}
+        {shown.map((g) => {
           const r = g[0];
           const many = g.length > 1;
           const st = groupStatus(g);
           const gk = r.batch_id || r.id;
           const isOpen = !!openGroups[gk];
+          const signedCount = g.filter((x) => x.status === 'signed' && x.signed_path).length;
           return (
-            <div key={r.batch_id || r.id} style={{ ...S.row, flexDirection: 'column', alignItems: 'stretch' }}>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <b style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{many ? `${g.length} documentos • um único link` : r.title}</b>
-                  <small style={{ color: "var(--lx-text)" }}>{r.signer_name} • enviado {dt(r.created_at)}{r.viewed_at ? ` • aberto ${dt(r.viewed_at)}` : ''}{!many && r.verification_code ? ` • código ${r.verification_code}` : ''}{r.signed_at && st === 'signed' ? ` • ASSINADO EM ${dt(r.signed_at)}` : ''}</small>
-                </div>
-                <span style={{ ...S.status, color: COLOR[st] || "var(--lx-text)", borderColor: COLOR[st] || "var(--lx-border)" }}>{STATUS[st] || st}</span>
-                {st === 'pending_review' && <button style={{ ...S.small, background: "var(--lx-accent-soft)", borderColor: "var(--lx-accent)", color: "var(--lx-text)" }} disabled={!!busy} onClick={() => openReview(r)}>{busy === r.id ? '...' : 'Conferir'}</button>}
-                {!many && r.status === 'signed' && <button style={S.small} onClick={() => downloadSigned(r)}>Baixar assinado</button>}
-                {['sent', 'viewed', 'expired', 'rejected'].includes(st) && <button style={S.small} disabled={!!busy} onClick={() => resend(r)}>{busy === r.id ? '...' : 'Reenviar'}</button>}
-                {['sent', 'viewed', 'pending_review'].includes(st) && <button style={{ ...S.small, background: 'transparent' }} disabled={!!busy} onClick={() => cancel(r)}>Cancelar</button>}
-                {many && g.some((x) => x.status === 'signed' && x.signed_path) && <button type="button" style={{ ...S.small, background: "var(--lx-accent-soft)", borderColor: "var(--lx-accent)", color: "var(--lx-text)" }} onClick={() => downloadBatch(g)}>Baixar lote assinado ({g.filter((x) => x.status === 'signed' && x.signed_path).length})</button>}
-                {many && <button type="button" style={S.small} aria-expanded={isOpen} onClick={() => toggleGroup(gk)}>{isOpen ? 'Recolher ▲' : `Ver documentos (${g.length}) ▼`}</button>}
+            <div key={gk} className="lxs-card lxs-item">
+              <div className="lxs-item-head">
+                <b>{r.signer_name}</b>
+                <span className={`lxs-status ${st}`}>{STATUS[st] || st}</span>
+              </div>
+              <p>{many ? `${g.length} documentos num único link` : r.title}</p>
+              <small>Enviado {dt(r.created_at)}{r.viewed_at ? ` • aberto ${dt(r.viewed_at)}` : ''}{!many && r.verification_code ? ` • código ${r.verification_code}` : ''}{r.signed_at && st === 'signed' ? ` • assinado ${dt(r.signed_at)}` : ''}</small>
+              <div className="lxs-row">
+                {st === 'pending_review' && <button type="button" className="lxs-btn wine" disabled={!!busy} onClick={() => openReview(r)}>{busy === r.id ? '...' : 'Conferir'}</button>}
+                {!many && r.status === 'signed' && <button type="button" className="lxs-btn wine" onClick={() => downloadSigned(r)}>Baixar assinado</button>}
+                {many && signedCount > 0 && <button type="button" className="lxs-btn wine" onClick={() => downloadBatch(g)}>Baixar assinados ({signedCount})</button>}
+                {['sent', 'viewed', 'expired', 'rejected'].includes(st) && <button type="button" className="lxs-btn gold" disabled={!!busy} onClick={() => resend(r)}>{busy === r.id ? '...' : 'Reenviar'}</button>}
+                {many && <button type="button" className="lxs-btn" aria-expanded={isOpen} onClick={() => toggleGroup(gk)}>{isOpen ? 'Recolher ▲' : `Ver documentos (${g.length}) ▼`}</button>}
+                {['sent', 'viewed', 'pending_review'].includes(st) && <button type="button" className="lxs-btn" disabled={!!busy} onClick={() => cancel(r)}>Cancelar</button>}
               </div>
               {many && isOpen && (
-                <div style={{ display: 'grid', gap: 4, marginTop: 8, paddingLeft: 10, borderLeft: "2px solid var(--lx-accent)" }}>
+                <ul>
                   {g.map((m) => (
-                    <div key={m.id} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: "var(--lx-font-sm)" }}>
-                      <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: "var(--lx-text)" }}>{m.title}{m.verification_code && m.status === 'signed' ? <small style={{ color: "var(--lx-text)" }}> • código {m.verification_code}</small> : null}</span>
-                      <small style={{ color: COLOR[m.status] || "var(--lx-text)" }}>{STATUS[m.status] || m.status}</small>
-                      {m.status === 'signed' && <button style={S.small} onClick={() => downloadSigned(m)}>Baixar assinado</button>}
-                    </div>
+                    <li key={m.id}>
+                      <span>{m.title}{m.verification_code && m.status === 'signed' ? ` • código ${m.verification_code}` : ''}</span>
+                      <small>{STATUS[m.status] || m.status}</small>
+                      {m.status === 'signed' && <button type="button" className="lxs-btn small" onClick={() => downloadSigned(m)}>Baixar assinado</button>}
+                    </li>
                   ))}
-                </div>
+                </ul>
               )}
             </div>
           );
         })}
-      </div>
+      </>}
     </section>
   );
 }
 
 const S: Record<string, React.CSSProperties> = {
-  panel: { border: "1px solid var(--lx-border)", borderRadius: "var(--lx-radius-md)", padding: 20, marginBottom: 18, background: "linear-gradient(145deg,var(--lx-surface-raised),var(--lx-surface-raised))" },
-  head: { display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 12 },
-  pill: { fontSize: "var(--lx-font-xs)", letterSpacing: '.08em', color: "var(--lx-accent)", fontWeight: 700 },
-  h2: { margin: '6px 0 6px', fontSize: "var(--lx-section-size)" },
-  h3: { margin: '22px 0 10px', fontSize: "var(--lx-font-lg)", color: "var(--lx-accent)", textTransform: 'uppercase', letterSpacing: '.06em' },
+  h3: { margin: '0 0 10px', fontSize: "var(--lx-font-lg)" },
   p: { margin: 0, color: "var(--lx-text)", fontSize: "max(var(--lx-font-md),1rem)", lineHeight: 1.65 },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 14, margin: '10px 0 14px' },
-  label: { display: 'flex', flexDirection: 'column', gap: 7, fontSize: "max(var(--lx-font-sm),.95rem)", fontWeight: 700, color: "var(--lx-text)" },
+  label: { display: 'flex', flexDirection: 'column', gap: 7, fontWeight: 700 },
   input: { background: "var(--lx-surface-raised)", border: "1px solid var(--lx-border)", borderRadius: "var(--lx-radius-md)", padding: '10px 12px', color: 'inherit', fontSize: "var(--lx-font-md)" },
-  btn: { background: "#6b1328", color: "#fff", border: "1px solid #a54960", borderRadius: "var(--lx-radius-md)", padding: '13px 18px', fontWeight: 800, fontSize: "max(var(--lx-font-md),1rem)", cursor: 'pointer', textShadow: '0 1px 1px #000' },
-  btnAlt: { background: "var(--lx-surface-raised)", color: "var(--lx-text)", border: "2px solid #8f2942", borderRadius: "var(--lx-radius-md)", padding: '12px 18px', fontWeight: 800, fontSize: "max(var(--lx-font-md),1rem)", cursor: 'pointer' },
-  small: { background: "var(--lx-surface-raised)", color: "var(--lx-text)", border: "1px solid var(--lx-border)", borderRadius: "var(--lx-radius-md)", padding: '8px 11px', fontWeight: 700, fontSize: "max(var(--lx-font-xs),.9rem)", cursor: 'pointer', whiteSpace: 'nowrap' },
-  notice: { margin: '10px 0 0', color: "var(--lx-text)", fontSize: "var(--lx-font-md)" },
-  linkBox: { display: 'flex', gap: 10, alignItems: 'center', marginTop: 10, padding: 10, borderRadius: "var(--lx-radius-md)", background: "var(--lx-surface-raised)", fontSize: "var(--lx-font-xs)" },
-  row: { display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', padding: '10px 12px', borderRadius: "var(--lx-radius-md)", background: "var(--lx-surface-raised)", border: "1px solid var(--lx-border)" },
-  upload: { display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 12, padding: 12, borderRadius: "var(--lx-radius-md)", border: "1px dashed var(--lx-border)" },
-  overlay: { position: 'fixed', inset: 0, background: "var(--lx-surface-raised)", zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 },
-  modal: { width: '100%', maxWidth: 640, maxHeight: '92vh', overflow: 'auto', background: "var(--lx-surface-raised)", border: "1px solid var(--lx-border)", borderRadius: "var(--lx-radius-md)", padding: 20 },
   img: { width: '100%', height: 240, objectFit: 'contain', background: "var(--lx-surface-raised)", borderRadius: "var(--lx-radius-md)", border: "1px solid var(--lx-border)" },
   cap: { fontSize: "var(--lx-font-xs)", color: "var(--lx-text)", marginTop: 4, textAlign: 'center' },
-  docList: { display: 'grid', gap: 6, maxHeight: 260, overflowY: 'auto', padding: 6, borderRadius: "var(--lx-radius-md)", background: "var(--lx-surface-raised)", border: "1px solid var(--lx-border)" },
-  docItem: { display: 'flex', gap: 10, alignItems: 'center', padding: '8px 10px', borderRadius: "var(--lx-radius-md)", border: "1px solid var(--lx-border)", background: "var(--lx-surface-raised)", cursor: 'pointer' },
-  docOn: { borderColor: "var(--lx-border)", background: "var(--lx-surface-raised)" },
-  empty: { margin: 0, padding: 8, color: "var(--lx-text)", fontSize: "var(--lx-font-sm)" },
-  status: { fontSize: "var(--lx-font-xs)", fontWeight: 600, border: '1px solid', borderRadius: 999, padding: '3px 10px', whiteSpace: 'nowrap' },
 };

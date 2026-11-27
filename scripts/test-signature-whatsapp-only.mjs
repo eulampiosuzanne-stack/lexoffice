@@ -6,7 +6,9 @@ const clientArea = readFileSync(new URL('../src/pages/ClientArea.tsx', import.me
 const operator = readFileSync(new URL('../supabase/functions/whatsapp-operator-send/index.ts', import.meta.url), 'utf8');
 const gate = readFileSync(new URL('../supabase/functions/whatsapp-outbound-gate/index.ts', import.meta.url), 'utf8');
 
-assert.match(panel, /Assinar pelo sistema LEX/);
+assert.match(panel, /Enviar pelo WhatsApp/);
+assert.match(panel, /Não é cliente/);
+assert.match(panel, /relationship_tier: .LEAD./);
 assert.match(panel, /Enviar PDFs pelo WhatsApp \(sem assinatura LEX\)/);
 assert.match(panel, /document_ids: selected\.map/);
 assert.match(panel, /Nenhuma assinatura foi criada na Lex/);
