@@ -6,6 +6,7 @@ import {
   previewForLog,
 } from "./_shared/whatsapp-reply-format.mjs";
 import { buildTemplatePayload, buildTemplatePayloadV2, buildInteractivePayload, interactiveAsText, interactiveAsMenuText } from "./_shared/meta-template.mjs";
+import { waNumber } from "./_shared/phone-br.mjs";
 // v116 (21/11/2026) — a voz não lê mais o cabeçalho "Helena | Concierge Jurídica" / "Helena | Secretária".
 // v115 (21/11/2026) — pausas do "digitando" e da voz voltam ao padrão do v113 (1,2–4s; até 2,5s).
 // v114 (21/11/2026) — pausa do "digitando" e da voz mais curtas (0,8–2,2s e até 1,5s).
@@ -72,7 +73,7 @@ async function wahaSend(a: any, orgId: string, conversationId: string | null, ta
   const headers = { "X-Api-Key": apiKey, "Content-Type": "application/json" };
   const state = await fetch(base + "/api/sessions/" + encodeURIComponent(session), { headers, redirect: "error", signal: AbortSignal.timeout(10000) });
   if (!state.ok || (await state.json()).status !== "WORKING") throw new Error("WAHA: sessão do escritório indisponível");
-  const phone = digits(target);
+  const phone = waNumber(target);
   if (!target.includes("@") && !phone) throw new Error("WAHA: destino inválido");
   let chatId = target.includes("@") ? target : phone + "@c.us";
   let contactId: string | null = null;
@@ -188,7 +189,7 @@ async function metaUpload(token: string, phoneId: string, mime: string, b64: str
 }
 async function metaSend(a:any,orgId:string,phone:string,message:string,image:string|null=null,caption:string|null=null,document:string|null=null,fileName:string|null=null,template:{name:string}|null=null,interactive:any=null){
   if(orgId!==OFFICE_ORG)throw new Error("Provedor Meta não autorizado nesta organização");
-  const token=await runtimeSecret(a,"meta_system_user_token"),phoneId=await runtimeSecret(a,"meta_whatsapp_phone_number_id"),p=digits(phone);
+  const token=await runtimeSecret(a,"meta_system_user_token"),phoneId=await runtimeSecret(a,"meta_whatsapp_phone_number_id"),p=waNumber(phone);
   if(!token||!phoneId||!/^\d{10,15}$/.test(p))throw new Error("Meta não configurada ou número inválido");
   let payload:any,payloadOld:any=null;
   const media=document||image;
@@ -217,7 +218,7 @@ async function uazapiSend(a:any,orgId:string,phone:string,message:string,delaySe
  if(orgId!==OFFICE_ORG)throw new Error("Provedor Uazapi não autorizado nesta organização");
  const base=(await runtimeSecret(a,"uazapi_base_url")).replace(/\/+$/,"");
  const token=await runtimeSecret(a,"uazapi_instance_token");
- const p=digits(phone);
+ const p=waNumber(phone);
  if(!/^https:\/\//.test(base)||!token||!p)throw new Error("Uazapi não configurada ou número inválido");
  const media=document||image;
  const endpoint=media?"/send/media":"/send/text";
@@ -241,7 +242,7 @@ async function uazapiSendMenu(a:any,orgId:string,phone:string,interactive:any,me
   const base0=(await runtimeSecret(a,"uazapi_base_url")).replace(/\/+$/,""),token0=await runtimeSecret(a,"uazapi_instance_token");
   const lbody=String(interactive.body||message||"").trim();
   if(/^https:\/\//.test(base0)&&token0&&lbody){
-   const lp:any={number:digits(phone),type:"list",text:lbody.slice(0,1024),listButton:cutU(interactive.button||"Ver opções",24),footerText:cutU(interactive.footer||"",60),
+   const lp:any={number:waNumber(phone),type:"list",text:lbody.slice(0,1024),listButton:cutU(interactive.button||"Ver opções",24),footerText:cutU(interactive.footer||"",60),
     choices:["["+cutU(interactive.section||"Opções",24)+"]",...interactive.rows.slice(0,10).map((r:any)=>cutU(r.title,24)+"|"+String(r.id).slice(0,200).replace(/[|\n]/g,"")+(r.description?"|"+cutU(r.description,72):""))]};
    const dms=Math.max(0,Math.min(15000,Math.round(Number(delaySeconds)||0)*1000));if(dms>0)lp.delay=dms;
    try{const lr=await fetch(base0+"/send/menu",{method:"POST",headers:{token:token0,"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(lp),signal:AbortSignal.timeout(30000)});
@@ -255,7 +256,7 @@ async function uazapiSendMenu(a:any,orgId:string,phone:string,interactive:any,me
  if(!buttons||!buttons.length||!body)return null;
  const base=(await runtimeSecret(a,"uazapi_base_url")).replace(/\/+$/,""),token=await runtimeSecret(a,"uazapi_instance_token");
  if(!/^https:\/\//.test(base)||!token)return null;
- const payload:any={number:digits(phone),type:"button",text:body,choices:buttons.map((b)=>b.title.replace(/[|\n]/g," ")+"|"+b.id)};
+ const payload:any={number:waNumber(phone),type:"button",text:body,choices:buttons.map((b)=>b.title.replace(/[|\n]/g," ")+"|"+b.id)};
  const delayMs=Math.max(0,Math.min(15000,Math.round(Number(delaySeconds)||0)*1000));if(delayMs>0)payload.delay=delayMs;
  try{
   const r=await fetch(base+"/send/menu",{method:"POST",headers:{token,"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(payload),signal:AbortSignal.timeout(30000)});
@@ -270,7 +271,7 @@ async function uazapiPresence(a:any,phone:string,presence:"composing"|"recording
  try{
   const base=(await runtimeSecret(a,"uazapi_base_url")).replace(/\/+$/,""),token=await runtimeSecret(a,"uazapi_instance_token");
   if(!/^https:\/\//.test(base)||!token)return false;
-  const r=await fetch(base+"/message/presence",{method:"POST",headers:{token,"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({number:digits(phone),presence,delay:ms}),signal:AbortSignal.timeout(6000)});
+  const r=await fetch(base+"/message/presence",{method:"POST",headers:{token,"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({number:waNumber(phone),presence,delay:ms}),signal:AbortSignal.timeout(6000)});
   if(!r.ok)console.error("uazapi presence recusada",r.status,(await r.text().catch(()=>"")).slice(0,160));
   return r.ok;
  }catch(e){console.error("uazapi presence erro",e instanceof Error?e.message:String(e));return false}
@@ -302,7 +303,7 @@ async function uazapiVoice(a:any,orgId:string,phone:string,text:string){
   if(bytes.length<500||bytes.length>2_500_000)return null;
   let bin="";for(let i=0;i<bytes.length;i+=32768)bin+=String.fromCharCode(...bytes.subarray(i,i+32768));
   await rec;await sleepMs(Math.min(2500,600+say.length*12));
-  const r=await fetch(base+"/send/media",{method:"POST",headers:{token,"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({number:digits(phone),type:"ptt",file:btoa(bin)}),signal:AbortSignal.timeout(30000)});
+  const r=await fetch(base+"/send/media",{method:"POST",headers:{token,"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({number:waNumber(phone),type:"ptt",file:btoa(bin)}),signal:AbortSignal.timeout(30000)});
   const raw=await r.text();if(!r.ok){console.error("uazapi voz recusada",r.status,raw.slice(0,200));return null}
   try{return JSON.parse(raw)}catch{return {}}
  }catch(e){console.error("uazapi voz erro",e instanceof Error?e.message:String(e));return null}
@@ -310,7 +311,7 @@ async function uazapiVoice(a:any,orgId:string,phone:string,text:string){
 async function evolutionSend(a:any,orgId:string,phone:string,message:string,delaySeconds=0,typing=false,image:string|null=null,caption:string|null=null,document:string|null=null,fileName:string|null=null){
  const base=(await runtimeSecret(a,"evolution_api_url")).replace(/\/+$/,"");
  const key=await runtimeSecret(a,"evolution_api_key");
- const instance=(await runtimeSecret(a,"evolution_instance_name"))||"suzanne-lexoffice",p=digits(phone);
+ const instance=(await runtimeSecret(a,"evolution_instance_name"))||"suzanne-lexoffice",p=waNumber(phone);
  if(orgId!==OFFICE_ORG)throw new Error("Provedor Evolution não autorizado nesta organização");
  if(!/^https:\/\//.test(base)||!key||!p)throw new Error("Evolution não configurada ou número inválido");
  const {data:instanceRow,error:instanceError}=await a.from("whatsapp_evolution_instances").select("status,is_active").eq("org_id",orgId).eq("instance_name",instance).maybeSingle();
@@ -332,7 +333,7 @@ async function evolutionSendSmart(a:any,orgId:string,phone:string,interactive:an
  if(!media&&interactive?.style==="menu"&&interactive?.type==="list"&&Array.isArray(interactive.rows)&&interactive.rows.length>0&&interactive.prefer!=="text"&&orgId===OFFICE_ORG){
   try{
    const base=(await runtimeSecret(a,"evolution_api_url")).replace(/\/+$/,""),key=await runtimeSecret(a,"evolution_api_key");
-   const instance=(await runtimeSecret(a,"evolution_instance_name"))||"suzanne-lexoffice",p=digits(phone);
+   const instance=(await runtimeSecret(a,"evolution_instance_name"))||"suzanne-lexoffice",p=waNumber(phone);
    const cutW=(v:any,n:number)=>Array.from(String(v??"").trim()).slice(0,n).join("");
    const body={number:p,title:cutW(interactive.header||"Suzanne Figueiredo Advocacia",60),description:cutW(interactive.body||message,1024),buttonText:cutW(interactive.button||"Ver opções",20),footerText:cutW(interactive.footer||"",60),
     sections:[{title:cutW(interactive.section||"Opções",24),rows:interactive.rows.slice(0,10).map((r:any)=>({title:cutW(r.title,24),description:r.description?cutW(r.description,72):"",rowId:cutW(r.id,200)}))}]};
