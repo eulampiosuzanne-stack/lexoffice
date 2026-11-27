@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { step, choice } from '../supabase/functions/chatbot-botoes/menu.ts';
+import { step, choice, parts } from '../supabase/functions/chatbot-botoes/menu.ts';
 
 const open = new Date('2026-11-27T15:00:00Z'); // sexta 12h Brasília
 const closed = new Date('2026-11-28T15:00:00Z'); // sábado
@@ -11,6 +11,13 @@ test('início mostra as 5 opções do Word', () => {
   assert.equal(r.node, 'menu');
   assert.equal(r.replies[0].menu.rows.length, 5);
   assert.match(r.replies[0].text, /Olá Teste!/);
+});
+test('botões: no máximo 3 por mensagem, títulos até 20 letras', () => {
+  const p = parts(run('new', 'oi').replies[0]);
+  assert.deepEqual(p.map((x) => x.buttons.length), [3, 2]);
+  for (const b of p.flatMap((x) => x.buttons)) assert.ok([...b.title].length <= 20, b.title);
+  assert.equal(run('menu', 'Processo em curso').handoff, 'Processo em andamento');
+  assert.equal(run('menu', 'Financeiro').handoff, 'Financeiro');
 });
 test('opções levam ao destino certo', () => {
   assert.equal(run('menu', '1').handoff, 'Processo em andamento');

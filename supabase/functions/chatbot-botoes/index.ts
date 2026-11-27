@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2.57.4";
-import { step } from "./menu.ts";
+import { parts, step } from "./menu.ts";
 
 // Chamada somente pelo gatilho do banco (cabeçalho x-bot-token). Responde com o menu aos contatos marcados "Só chatbot".
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
@@ -38,17 +38,18 @@ Deno.serve(async (req) => {
       .eq("org_id", m.org_id).eq("contact_key", phone).eq("version", row.version).select("version");
     if (!claimed?.length) return json({ ok: true, duplicate: true });
 
-    for (let i = 0; i < r.replies.length; i++) {
-      const reply = r.replies[i];
+    const messages = r.replies.flatMap(parts);
+    for (let i = 0; i < messages.length; i++) {
+      const reply = messages[i];
       const gate = await fetch(url + "/functions/v1/whatsapp-outbound-gate", {
         method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + service },
         body: JSON.stringify({ org_id: m.org_id, conversation_id: cv.id, phone, agent_key: "system", message: reply.text, format_agent_reply: false, human_silence_minutes: 0, idempotency_key: `chatbot-botoes:${m.id}:${i}`,
-          interactive: reply.menu ? { style: "menu", type: "list", button: reply.menu.button, body: reply.text, rows: reply.menu.rows } : undefined }),
+          interactive: reply.buttons ? { type: "button", buttons: reply.buttons } : undefined }),
       });
       const sent = await gate.json().catch(() => ({}));
       const ok = gate.ok && sent?.ok === true && sent?.allowed === true;
       const at = new Date().toISOString();
-      await db.from("whatsapp_messages").insert({ org_id: m.org_id, conversation_id: cv.id, direction: "outbound", message_type: "text", body: reply.text, status: ok ? "sent" : "failed", sent_at: ok ? at : null,
+      await db.from("whatsapp_messages").insert({ org_id: m.org_id, conversation_id: cv.id, direction: "outbound", message_type: "text", body: [reply.text, ...(reply.buttons || []).map((x) => `[${x.title}]`)].join("\n"), status: ok ? "sent" : "failed", sent_at: ok ? at : null,
         external_message_id: String(sent?.provider_response?.messageid || sent?.provider_response?.messageId || sent?.provider_response?.key?.id || sent?.provider_response?.id || "") || null,
         metadata: { source: "chatbot", sender_type: "automation", flow: "chatbot-botoes", reason: ok ? null : String(sent?.reason || sent?.error || gate.status).slice(0, 200) } });
       if (!ok) throw new Error("Envio recusado: " + String(sent?.reason || sent?.error || gate.status).slice(0, 200));

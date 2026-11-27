@@ -1,20 +1,27 @@
 // Menu de botões (modelo Word da Dra.) para contatos marcados "Só chatbot". Lógica pura, sem rede nem banco.
-export type Menu = { button: string; rows: { id: string; title: string }[] };
+export type Menu = { question: string; rows: { id: string; title: string }[] };
 export type Reply = { text: string; menu?: Menu };
 export type Result = { node: string; tries: number; replies: Reply[]; handoff?: string };
 
 const SESSION_MS = 12 * 3600000;
-const MAIN = ["Processos em andamento", "Novo processo", "Envio de documentos", "Financeiro", "Endereço"];
+const MAIN = ["Processo em curso", "Novo processo", "Envio de documentos", "Financeiro", "Endereço"];
 const NOVO = ["Pessoa física", "Pessoa jurídica", "Voltar ao menu"];
 const SIMNAO = ["Sim, voltar ao menu", "Não, encerrar"];
 
 function menu(question: string, options: string[]): Reply {
   return {
     text: question + "\n\n" + options.map((o, i) => `${i + 1} - ${o}`).join("\n"),
-    menu: { button: "Ver opções", rows: options.map((o, i) => ({ id: `sfbot:${i + 1}`, title: o })) },
+    menu: { question, rows: options.map((o, i) => ({ id: `sfbot:${i + 1}`, title: o })) },
   };
 }
 const norm = (v: string) => v.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+// WhatsApp mostra no máximo 3 botões por mensagem: opções extras seguem em outra mensagem.
+export function parts(reply: Reply): { text: string; buttons?: { id: string; title: string }[] }[] {
+  if (!reply.menu) return [{ text: reply.text }];
+  const out = [];
+  for (let i = 0; i < reply.menu.rows.length; i += 3) out.push({ text: i ? "Mais opções:" : reply.menu.question, buttons: reply.menu.rows.slice(i, i + 3) });
+  return out;
+}
 export function choice(input: string, options: string[]): number {
   const t = norm(input).replace(/^sfbot:/, "").replace(/[.)!]+$/, "");
   const n = /^[1-9]$/.test(t) ? Number(t) : options.findIndex((o) => norm(o) === t || t === `${options.indexOf(o) + 1} - ${norm(o)}`) + 1;
