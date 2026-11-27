@@ -15,3 +15,6 @@ html[data-lex-theme] body .app>main>header.lex2-topbar .topbar-brand-copy small{
 /* Mesmo degradê da faixa no menu lateral. */
 html[data-lex-theme] body .app>aside{background:radial-gradient(130% 45% at 0% 0%,rgba(150,18,40,.9),transparent 65%),linear-gradient(180deg,#3a0408 0%,#12060a 45%,#0b0b0b 68%,#4a0610 100%) !important}
 html[data-lex-theme] body .app>aside :is(.brand,.profile,nav,.workspace-sidebar){background:transparent !important}
+/* Faixa oficial (imagem enviada pela Dra.) no topo. */
+html[data-lex-theme] body .app>main>header.lex2-topbar .topbar-context{grid-column:1/-1 !important;order:-1;display:flex !important;flex-direction:column;align-items:flex-start;gap:6px;width:100% !important;max-width:100% !important;min-width:0}
+html[data-lex-theme] body .app>main>header.lex2-topbar img.topbar-banner{display:block;width:100%;height:auto;border-radius:6px}

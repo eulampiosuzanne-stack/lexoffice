@@ -734,8 +734,7 @@ export default function App() {
             <Menu size={21}/>
           </button>
           <div className="topbar-context" aria-label="Suzanne Figueiredo – Advocacia e Soluções Jurídicas">
-            <img className="topbar-brand-logo" src="/brand/sf-monogram.png" alt="" aria-hidden="true"/>
-            <span className="topbar-brand-copy"><strong>Suzanne Figueiredo</strong><small>Advocacia e Soluções Jurídicas</small></span>
+            <img className="topbar-banner" src="/brand/faixa-topo.jpg" alt="Suzanne Figueiredo – Advocacia e Soluções Jurídicas"/>
             <span className="topbar-route" aria-label="Localização atual">
               <span className="workspace-breadcrumb-area">{area.label}</span>
               <ChevronRight size={13} aria-hidden="true"/>
