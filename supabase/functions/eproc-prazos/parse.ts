@@ -40,3 +40,22 @@ export function parsePrazos(html: string) {
   }
   return { prazos, naoLidas };
 }
+
+// Pendentes de citação/intimação: ainda sem início nem final ("Aguarda publicação"). Só registra que existem.
+export type Pendente = { cnj: string; evento: string; envio: string | null };
+export function parsePendentes(html: string): Pendente[] {
+  return rowCells(html).flatMap((cells) => {
+    const pi = cells.findIndex((c) => CNJ.test(c)), di = cells.findIndex((c) => DT.test(c));
+    return pi < 0 || di < 1 ? [] : [{ cnj: cells[pi].match(CNJ)![0], evento: cells[di - 1].slice(0, 300), envio: brDate(cells[di]) }];
+  });
+}
+
+// Listas de audiências: Número Processo | Evento | Local Data/Hora | Observação
+export type Audiencia = { cnj: string; evento: string; sala: string; inicio: string };
+export function parseAudiencias(html: string): Audiencia[] {
+  return rowCells(html).flatMap((cells) => {
+    const cnj = cells[0]?.match(CNJ)?.[0], m = (cells[2] || "").match(/^(.*?)\s*In[ií]cio\s+(\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}(?::\d{2})?)/);
+    const inicio = m ? brDate(m[2]) : null;
+    return cnj && inicio ? [{ cnj, evento: (cells[1] || "").slice(0, 300), sala: m![1].replace(/^Sala\s*:?\s*/i, "").slice(0, 200), inicio }] : [];
+  });
+}
