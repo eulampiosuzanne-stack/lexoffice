@@ -4,7 +4,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { Browser, decodeEntities, EprocStop, formFields, login, logout, text } from "./eproc.ts";
-import { Audiencia, parseAudiencias, parsePendentes, parsePrazos, Pendente, Prazo } from "./parse.ts";
+import { Audiencia, parseAudiencias, parsePendentes, parsePrazos, Pendente, Prazo, rowCells } from "./parse.ts";
 
 const OWNER_ORG = "b3dd3ed0-2a05-4087-8220-307a44352cec";
 const OWNER_USER = "0e98483f-a464-422b-bf3e-68f454cdd405";
@@ -102,11 +102,14 @@ async function lerTudo(b: Browser, home: string) {
     const u = hrefs(home).find((x) => x.includes(`acao=${acao}&`) && !/proxima=S/.test(x));
     if (!u) { avisos.push("lista de audiências não apareceu"); continue; }
     try {
-      for (const a of parseAudiencias(await b.go(abrir(u)))) if (!audiencias.some((q) => q.cnj === a.cnj && q.inicio === a.inicio)) audiencias.push(a);
+      const h = await b.go(abrir(u)), achadas = parseAudiencias(h), total = Number((text(h).match(/\((\d+)\s+registros?/i) || [])[1] ?? 0);
+      telasAud.push({ acao, total, lidas: achadas.length, titulo: text((h.match(/<title>([\s\S]*?)<\/title>/i) || [])[1] || ""), amostra: rowCells(h).slice(0, 2).map((c) => c.map((x) => x.slice(0, 90))) });
+      if (achadas.length < total) avisos.push(`audiências: ${achadas.length} de ${total} lidas`);
+      for (const a of achadas) if (!audiencias.some((q) => q.cnj === a.cnj && q.inicio === a.inicio)) audiencias.push(a);
     } catch { avisos.push("lista de audiências não abriu"); }
   }
   if (pendentes.length < pendEsperados) avisos.push(`pendentes: ${pendentes.length} de ${pendEsperados} lidas`);
-  return { prazos, naoLidas, pendentes, audiencias, avisos, esperados, completo: prazos.length >= esperados && !naoLidas.length };
+  return { prazos, naoLidas, pendentes, audiencias, telasAud, avisos, esperados, completo: prazos.length >= esperados && !naoLidas.length };
 }
 
 const quando = (iso: string) => new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -151,9 +154,9 @@ Deno.serve(async (req) => {
     const { b, html } = await login(user, pass, seed);
     let lido;
     try { lido = await lerTudo(b, html); } finally { await logout(b, html); }
-    const { prazos, naoLidas, pendentes, audiencias, avisos, completo } = lido;
+    const { prazos, naoLidas, pendentes, audiencias, telasAud, avisos, completo } = lido;
     const total = lido.esperados;
-    const contagem = { total_no_eproc: total, lidos: prazos.length, nao_lidos: naoLidas.length, completo, pendentes: pendentes.length, audiencias: audiencias.length, avisos };
+    const contagem = { total_no_eproc: total, lidos: prazos.length, nao_lidos: naoLidas.length, completo, pendentes: pendentes.length, audiencias: audiencias.length, avisos, telas_audiencia: telasAud };
     if (action === "preview") {
       await log(db, "success", `Prévia de prazos do eproc: ${prazos.length} lidos de ${total}.`, { code: "ok", ...contagem });
       return respond({ ok: true, ...contagem, rows: prazos, linhas_nao_lidas: naoLidas.slice(0, 5), lista_pendentes: pendentes, lista_audiencias: audiencias });
