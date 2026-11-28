@@ -1,5 +1,6 @@
 import { weekendNotice, requestsLawyerContact, isSuzanneOffice } from './office-availability.mjs';
 import { afterHours, afterHoursNotice, saysUrgent } from './after-hours.mjs';
+import { openUrgency, labelContact, hasDetail, urgencyInstructions, urgencyReply } from './urgency.mjs';
 import { leadFlowRules, lawyerBusyRule, TONE_RULES } from './lead-flow.mjs';
 import { receptionReply } from './reception-reply.mjs';
 import { receptionMessages } from './reception-messages.mjs';
@@ -343,6 +344,39 @@ Deno.serve(async req=>{
       }
       return J({ok:true,sent:!!sent.ok||undefined,handoff:true,reason:h.reason,critical:h.critical,reply:txt,dry_run:dryRun||undefined});
     };
+    // 27/11/2026 — modo urgência: a Helena continua na conversa (não passa para "humano"), acolhe e pergunta.
+    const urgencyOpen=followup?null:openUrgency(ctx);
+    if(!followup&&isSuzanneOffice(orgId)&&(urgencyOpen||hand?.critical||saysUrgent(message))){
+      let name='';
+      if(verifiedClientId){const {data:cl}=await a.from('clients').select('name').eq('org_id',orgId).eq('id',verifiedClientId).maybeSingle();name=String(cl?.name||'')}
+      if(!name&&conv?.contact_id){const {data:c}=await a.from('whatsapp_contacts').select('name,profile_name').eq('id',conv.contact_id).maybeSingle();name=String(c?.name||c?.profile_name||'')}
+      const first=!urgencyOpen;
+      const since=urgencyOpen?.since||new Date().toISOString();
+      const {data:uh}=await a.from('whatsapp_messages').select('direction,body,created_at').eq('conversation_id',conversationId).order('created_at',{ascending:false}).limit(14);
+      const lines=(uh||[]).filter((m:any)=>!isInternalNotice(m.body)).reverse();
+      const detail=hasDetail(message);
+      const hhmm=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'}).format(new Date());
+      // Avisa a Dra. na hora; avisa de novo quando a pessoa contar o que é (e, depois, no máximo a cada 10 min).
+      const mustAlert=first||(detail&&(!urgencyOpen?.detail||Date.now()-Date.parse(urgencyOpen?.lastAlert||since)>10*60000));
+      let alerted=!!urgencyOpen?.alerted,lastAlert=urgencyOpen?.lastAlert||null;
+      if(mustAlert&&!dryRun){
+        const told=lines.filter((m:any)=>m.direction==='inbound'&&Date.parse(m.created_at)>=Date.parse(since)-5*60000).map((m:any)=>labelContact(m.body)).join(' / ');
+        const what=(told||message).slice(-900);
+        const ok=await alertOwner(a,url,sk,orgId,agentKey,policy,conversationId,phone,detail?`URGENTE: ${hhmm} o que é — ${name||phone}`:`URGENTE: ${hhmm} pediu ajuda — ${name||phone}`,`Nome: ${name||'não informado'}\nTelefone: ${phone}\nO que é: ${detail?what:'ainda não contou (a Helena está perguntando). Mensagem: '+message}`,true);
+        if(ok){alerted=true;lastAlert=new Date().toISOString()}
+      }
+      let ai='';
+      try{
+        const recentU=lines.map((m:any)=>(m.direction==='inbound'?'Pessoa: ':'Escritório: ')+labelContact(m.body)).join('\n');
+        const g=await fetch(`${url}/functions/v1/ai-provider-gateway`,{method:'POST',headers:{Authorization:`Bearer ${sk}`,apikey:sk,'Content-Type':'application/json'},body:JSON.stringify({org_id:orgId,conversation_id:conversationId,agent_key:agentKey,purpose:'whatsapp_reply_helena',provider:policy.provider||'auto',model:policy.model||'',instructions:urgencyInstructions({name:verifiedClientId?name.split(/\s+/)[0]:'',alerted:alerted||dryRun}),input:`HISTÓRICO DA CONVERSA:\n${recentU}\n\nMENSAGEM NOVA (responda a esta):\n${labelContact(message)}`}),signal:AbortSignal.timeout(30000)});
+        const gd=await g.json().catch(()=>null);
+        if(g.ok&&gd?.ok)ai=cleanReply(String(gd.text||''));
+      }catch{console.error('helena_urgency_gateway')}
+      const reply=urgencyReply(ai,{first,name:verifiedClientId?name:'',alerted:alerted||dryRun});
+      const sent=await send(reply,`urgency:${conversationId}:${Date.now()}`);
+      if(!dryRun)await a.from('whatsapp_conversations').update({chatbot_context:{...(ctx||{}),urgency:{since,alerted,lastAlert,detail:detail||!!urgencyOpen?.detail}},priority:'urgent',updated_at:new Date().toISOString()}).eq('org_id',orgId).eq('id',conversationId);
+      return J({ok:true,urgency:true,first,alerted,sent:!!sent.ok&&sent.allowed!==false,reason:sent.reason,...(dryRun?{dry_run:true,reply,ai_used:!!ai}:{})});
+    }
     // Urgência real nunca espera o horário comercial.
     if(hand?.critical)return await doHandoff(hand);
     // 26/11/2026 — cliente fora do expediente: avisa uma vez por período, pergunta se é urgência e só então alerta.
@@ -484,7 +518,7 @@ Deno.serve(async req=>{
       const schedule=await agendaTool(a,{orgId,conversationId,message,ctx,clientId:verifiedClientId,leadId:leadIdA,name:nameA,phone,policyId:policy.id,dryRun,lastOutbound,strict:agentKey==='client_process_updates',recentInbound:(hist||[]).filter((m:any)=>m.direction==='inbound').map((m:any)=>String(m.body||'')).slice(0,6)});
       if(typeof schedule==='string')agendaCtx=schedule;else agendaReply=schedule;
     }
-    const recent=(hist||[]).reverse().map((m:any)=>(m.direction==='inbound'?'Cliente: ':'Escritório: ')+String(m.body||'').replace(/^(Suporte|Dra\. Suzanne Figueiredo):\s*/,'')).join('\n');
+    const recent=(hist||[]).reverse().map((m:any)=>(m.direction==='inbound'?'Cliente: ':'Escritório: ')+labelContact(m.body).replace(/^(Suporte|Dra\. Suzanne Figueiredo):\s*/,'')).join('\n');
 
     // O cliente sempre conversa com Helena. Os agentes especializados são internos e invisíveis.
     const identity='Helena';
