@@ -356,7 +356,7 @@ Deno.serve(async req=>{
       const lines=(uh||[]).filter((m:any)=>!isInternalNotice(m.body)).reverse();
       const detail=hasDetail(message);
       const hhmm=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'}).format(new Date());
-      // Avisa a Dra. na hora; avisa de novo quando a pessoa contar o que é (e, depois, no máximo a cada 10 min).
+      // Avisa a Dra. na hora; avisa de novo quando a pessoa contar o que é (e, depois, no máximo a cada 3 min).
       const mustAlert=first||(detail&&(!urgencyOpen?.detail||Date.now()-Date.parse(urgencyOpen?.lastAlert||since)>10*60000));
       let alerted=!!urgencyOpen?.alerted,lastAlert=urgencyOpen?.lastAlert||null;
       if(mustAlert&&!dryRun){

@@ -17,6 +17,7 @@ export const labelContact = body => {
 
 // "é urgente", "sim", "socorro": ainda não conta o que aconteceu.
 export const hasDetail = message => {
+  if (CARD.test(String(message || ''))) return false; // só o contato ainda não explica a urgência
   const t = plain(message).replace(/[^a-z0-9 ]/g, ' ')
     .replace(/\b(e|eh|sim|isso|urgente|urgencia|muito|socorro|ajuda|por favor|pfv|dra|doutora|suzanne|helena|preciso|de|oi|ola|boa noite|boa tarde|bom dia)\b/g, ' ')
     .replace(/\s+/g, ' ').trim();

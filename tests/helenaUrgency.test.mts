@@ -10,6 +10,7 @@ test('contato enviado não vira o nome da pessoa', () => {
 test('"é urgente" ainda não é o motivo', () => {
   for (const m of ['é urgente', 'Sim', 'socorro', 'Dra é muito urgente por favor']) assert.equal(hasDetail(m), false, m);
   assert.equal(hasDetail('é urgente, ele está no meu portão'), true);
+  assert.equal(hasDetail('Fulano Teste\nPhone: +55 35 90000-0000'), false);
 });
 test('primeira resposta acolhe, pergunta e orienta 190/192', () => {
   const r = urgencyReply('', { first: true, name: 'Maria Teste', alerted: true });
