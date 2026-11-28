@@ -82,9 +82,24 @@ async function lerPainel(b: Browser, home: string) {
 
 const num = (v: unknown) => Number(v || 0) || 0;
 async function lerTudo(b: Browser, home: string) {
+  // Audiências primeiro: depois de visitar o 2º grau os cookies mudam e o 1º grau devolve página genérica.
+  const prazos: Prazo[] = [], naoLidas: string[][] = [], pendentes: Pendente[] = [], audiencias: Audiencia[] = [], telasAud: unknown[] = [], avisos: string[] = [];
+  const inicio = b.last;
+  for (const acao of ["audiencia_futura_listar", "audiencia_futura_conciliacao_listar"]) {
+    const u = menuLinks(home)[acao];
+    if (!u) { avisos.push("lista de audiências não apareceu"); continue; }
+    try {
+      const h = await b.go(new URL(u, inicio).toString()), achadas = parseAudiencias(h), total = Number((text(h).match(/\((\d+)\s+registros?/i) || [])[1] ?? 0);
+      telasAud.push({ acao, total, lidas: achadas.length, titulo: text((h.match(/<title>([\s\S]*?)<\/title>/i) || [])[1] || ""), amostra: rowCells(h).slice(0, 2).map((c) => c.map((x) => x.slice(0, 90))) });
+      if (!/audi[eê]nc/i.test(text((h.match(/<title>([\s\S]*?)<\/title>/i) || [])[1] || ""))) avisos.push("lista de audiências não abriu");
+      else if (achadas.length < total) avisos.push(`audiências: ${achadas.length} de ${total} lidas`);
+      for (const a of achadas) if (!audiencias.some((q) => q.cnj === a.cnj && q.inicio === a.inicio)) audiencias.push(a);
+    } catch { avisos.push("lista de audiências não abriu"); }
+  }
+  b.last = inicio;
   const { paineis, falhas } = await lerPainel(b, home);
+  avisos.push(...falhas.map((e) => `painel ${e} não carregou`));
   if (!paineis.some((p) => p.estado === "MG")) throw new EprocStop("tela_mudou", "O painel de intimações do eproc não carregou.");
-  const prazos: Prazo[] = [], naoLidas: string[][] = [], pendentes: Pendente[] = [], audiencias: Audiencia[] = [], telasAud: unknown[] = [], avisos: string[] = falhas.map((e) => `painel ${e} não carregou`);
   let esperados = 0, pendEsperados = 0;
   const base = b.last;
   const abrir = (u: string) => new URL(decodeEntities(u), base).toString();
@@ -97,17 +112,6 @@ async function lerTudo(b: Browser, home: string) {
       // Só a LISTA das pendentes. Nunca abre item, documento ou processo (isso daria ciência).
       if (pend && p.links.intimacaoPendente) pendentes.push(...parsePendentes(await b.go(abrir(p.links.intimacaoPendente))));
     } catch { avisos.push(`lista de ${p.estado} não abriu`); }
-  }
-  for (const acao of ["audiencia_futura_listar", "audiencia_futura_conciliacao_listar"]) {
-    const u = menuLinks(home)[acao];
-    if (!u) { avisos.push("lista de audiências não apareceu"); continue; }
-    try {
-      const h = await b.go(abrir(u)), achadas = parseAudiencias(h), total = Number((text(h).match(/\((\d+)\s+registros?/i) || [])[1] ?? 0);
-      telasAud.push({ acao, total, lidas: achadas.length, titulo: text((h.match(/<title>([\s\S]*?)<\/title>/i) || [])[1] || ""), amostra: rowCells(h).slice(0, 2).map((c) => c.map((x) => x.slice(0, 90))) });
-      if (!/audi[eê]nc/i.test(text((h.match(/<title>([\s\S]*?)<\/title>/i) || [])[1] || ""))) avisos.push("lista de audiências não abriu");
-      else if (achadas.length < total) avisos.push(`audiências: ${achadas.length} de ${total} lidas`);
-      for (const a of achadas) if (!audiencias.some((q) => q.cnj === a.cnj && q.inicio === a.inicio)) audiencias.push(a);
-    } catch { avisos.push("lista de audiências não abriu"); }
   }
   if (pendentes.length < pendEsperados) avisos.push(`pendentes: ${pendentes.length} de ${pendEsperados} lidas`);
   return { prazos, naoLidas, pendentes, audiencias, telasAud, avisos, esperados, completo: prazos.length >= esperados && !naoLidas.length };
