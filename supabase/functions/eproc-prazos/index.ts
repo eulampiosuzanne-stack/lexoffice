@@ -93,13 +93,25 @@ async function acharListas(b: Browser, home: string, links: Record<string, strin
   return { usar: (completas.length ? completas : listas).slice(0, 6), soHoje: !completas.length, atalhos, painel: painel ? formato(painel) : null };
 }
 
-async function lerAudiencias(b: Browser, links: Record<string, string>) {
-  const out: Record<string, unknown> = {};
-  for (const k of ["audiencia_futura_listar", "audiencia_futura_conciliacao_listar"]) {
-    if (!links[k]) continue;
-    try { const h = await b.go(links[k]); out[k] = { legenda: formato(h).legenda, linhas: rowCells(h).slice(0, 30) }; } catch (e) { out[k] = { erro: e instanceof Error ? e.message : String(e) }; }
+// Só abre LISTAS de intimação, citação, prazo e audiência. Nunca abre item, documento ou processo (isso pode dar ciência).
+const ABA = /^(citacao|intimacao|audiencia)[a-z_]*listar[a-z_]*$/;
+const PROIBIDO = /ciencia|confirm|abrir|receb|peticion|cancelar|excluir|gerar|assinar/;
+async function varrerAbas(b: Browser, home: string, links: Record<string, string>) {
+  let painel = "";
+  if (links["painel_adv_listar"]) { try { painel = await b.go(links["painel_adv_listar"]); } catch { /* segue */ } }
+  const urls = new Map<string, string>();
+  for (const u of [...hrefs(painel), ...hrefs(home), ...Object.values(links)]) {
+    const acao = (u.match(/acao=([a-zA-Z0-9_]+)/) || [])[1] || "";
+    if (ABA.test(acao) && !PROIBIDO.test(u.replace(/hash=[a-f0-9]+/gi, ""))) urls.set(semHash(u), u);
   }
-  return out;
+  const abas: Record<string, unknown> = {};
+  for (const [nome, u] of [...urls].slice(0, 16)) {
+    try {
+      const h = await b.go(u), f = formato(h);
+      abas[nome] = { titulo: f.titulo, legenda: f.legenda || (text(h).match(/Lista de[^\n]{0,80}/) || [""])[0], colunas: f.colunas, linhas: rowCells(h).length, amostra: rowCells(h).slice(0, 3).map((c) => c.map((x) => x.slice(0, 100))), html_linha: f.html_linha.slice(0, 900) };
+    } catch (e) { abas[nome] = { erro: e instanceof Error ? e.message : String(e) }; }
+  }
+  return { achadas: urls.size, abas, painel_trecho: painel ? text(painel).replace(/[\s\S]*?Painel/i, "Painel").slice(0, 1800) : null };
 }
 
 Deno.serve(async (req) => {
@@ -131,7 +143,7 @@ Deno.serve(async (req) => {
         if (action === "preview") paginas.push({ url: semHash(url), total: l.total, lidos: l.prazos.length, tela: l.prazos.length ? null : formato(l.primeira) });
       }
       if (achadas.soHoje) completo = false;
-      if (action === "preview") telas = { so_vence_hoje: achadas.soHoje, atalhos: achadas.atalhos, menus: Object.keys(links), painel: achadas.painel, paginas, audiencias: await lerAudiencias(b, links) };
+      if (action === "preview") telas = { so_vence_hoje: achadas.soHoje, atalhos: achadas.atalhos, menus: Object.keys(links).filter((k) => /citac|intimac|prazo|audienc|painel|movim/i.test(k)), paginas, varredura: await varrerAbas(b, html, links) };
     } finally { await logout(b, html); }
     const contagem = { total_no_eproc: total, lidos: prazos.length, nao_lidos: naoLidas.length, completo };
     if (action === "preview") {
