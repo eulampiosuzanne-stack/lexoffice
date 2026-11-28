@@ -3,7 +3,7 @@
 // Divide a trava de acesso com o tjmg-mni-connector (10 min entre entradas; para em senha/2FA/captcha).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { Browser, EprocStop, formFields, login, logout, menuLinks, text } from "./eproc.ts";
+import { Browser, decodeEntities, EprocStop, formFields, login, logout, menuLinks, text } from "./eproc.ts";
 import { parsePrazos, Prazo, rowCells } from "./parse.ts";
 
 const OWNER_ORG = "b3dd3ed0-2a05-4087-8220-307a44352cec";
@@ -78,13 +78,28 @@ function formato(h: string) {
     linhas: rowCells(h).slice(0, 4).map((c) => c.map((x) => x.slice(0, 160))),
   };
 }
-async function olharTelas(b: Browser, home: string, links: Record<string, string>, listaHtml: string) {
-  const atalhos = [...new Set([...home.matchAll(/acao=((?:citacao|intimacao|audiencia)[a-z_]*)([^"']*)/gi)].map((m) => m[1] + m[2].replace(/hash=[a-f0-9]+/gi, "")))].slice(0, 25);
-  let audiencia: unknown = null;
-  if (links["audiencia_futura_listar"]) {
-    try { audiencia = formato(await b.go(links["audiencia_futura_listar"])); } catch (e) { audiencia = { erro: e instanceof Error ? e.message : String(e) }; }
+const semHash = (u: string) => u.replace(/hash=[a-f0-9]+/gi, "").replace(/controlador\.php\?acao=/, "");
+const hrefs = (h: string) => [...h.matchAll(/(?:href|data-url)=["']([^"']*controlador\.php\?acao=[^"']+)["']/gi)].map((m) => decodeEntities(m[1]))
+  .concat([...h.matchAll(/location(?:\.href)?\s*=\s*['"]([^'"]*controlador\.php\?acao=[^'"]+)['"]/gi)].map((m) => decodeEntities(m[1])));
+
+// O menu tem vários atalhos para a lista de prazos (o primeiro é só "vence hoje"): junta todos, também do painel do advogado.
+async function acharListas(b: Browser, home: string, links: Record<string, string>) {
+  let painel = "";
+  if (links["painel_adv_listar"]) { try { painel = await b.go(links["painel_adv_listar"]); } catch { /* segue com a página inicial */ } }
+  const todos = [...hrefs(home), ...hrefs(painel)];
+  const listas = [...new Map(todos.filter((u) => u.includes(`acao=${LIST}&`)).map((u) => [semHash(u), u])).values()];
+  const completas = listas.filter((u) => !/vence_hoje=S/i.test(u));
+  const atalhos = [...new Set(todos.map(semHash).filter((u) => /citac|intimac|prazo|painel|audienc/i.test(u)))].slice(0, 60);
+  return { usar: (completas.length ? completas : listas).slice(0, 6), soHoje: !completas.length, atalhos, painel: painel ? formato(painel) : null };
+}
+
+async function lerAudiencias(b: Browser, links: Record<string, string>) {
+  const out: Record<string, unknown> = {};
+  for (const k of ["audiencia_futura_listar", "audiencia_futura_conciliacao_listar"]) {
+    if (!links[k]) continue;
+    try { const h = await b.go(links[k]); out[k] = { legenda: formato(h).legenda, linhas: rowCells(h).slice(0, 30) }; } catch (e) { out[k] = { erro: e instanceof Error ? e.message : String(e) }; }
   }
-  return { atalhos, lista_prazos: formato(listaHtml), audiencia_futura: audiencia };
+  return out;
 }
 
 Deno.serve(async (req) => {
@@ -100,15 +115,24 @@ Deno.serve(async (req) => {
   try {
     await guard(db);
     const { b, html } = await login(user, pass, seed);
-    let lido: Awaited<ReturnType<typeof lerPrazos>>, telas: unknown;
+    const prazos: Prazo[] = [], naoLidas: string[][] = [], paginas: unknown[] = [];
+    let total = 0, completo = true, telas: unknown;
     try {
       const links = menuLinks(html);
-      if (!links[LIST]) throw new EprocStop("tela_mudou", "A lista de prazos em aberto não apareceu no menu do eproc.");
-      lido = await lerPrazos(b, links[LIST]);
-      if (action === "preview") telas = await olharTelas(b, html, links, lido.primeira);
+      const achadas = await acharListas(b, html, links);
+      if (!achadas.usar.length) throw new EprocStop("tela_mudou", "A lista de prazos em aberto não apareceu no menu do eproc.");
+      const chave = (p: Prazo) => `${p.cnj}|${p.envio}|${p.evento}|${p.final}`;
+      for (const url of achadas.usar) {
+        const l = await lerPrazos(b, url);
+        for (const p of l.prazos) if (!prazos.some((q) => chave(q) === chave(p))) prazos.push(p);
+        naoLidas.push(...l.naoLidas);
+        if (l.total < 0 || l.naoLidas.length || l.prazos.length < l.total) completo = false;
+        total += Math.max(0, l.total);
+        if (action === "preview") paginas.push({ url: semHash(url), total: l.total, lidos: l.prazos.length, tela: l.prazos.length ? null : formato(l.primeira) });
+      }
+      if (achadas.soHoje) completo = false;
+      if (action === "preview") telas = { so_vence_hoje: achadas.soHoje, atalhos: achadas.atalhos, menus: Object.keys(links), painel: achadas.painel, paginas, audiencias: await lerAudiencias(b, links) };
     } finally { await logout(b, html); }
-    const { prazos, naoLidas, total } = lido!;
-    const completo = total >= 0 && naoLidas.length === 0 && prazos.length >= total;
     const contagem = { total_no_eproc: total, lidos: prazos.length, nao_lidos: naoLidas.length, completo };
     if (action === "preview") {
       await log(db, "success", `Prévia de prazos do eproc: ${prazos.length} lidos de ${total}.`, { code: "ok", ...contagem });
@@ -117,7 +141,7 @@ Deno.serve(async (req) => {
     const { data: resumo, error } = await db.rpc("lex_apply_eproc_deadlines", { p_org: OWNER_ORG, p_owner: OWNER_USER, p_rows: prazos });
     if (error) throw new Error("Falha ao gravar os prazos: " + error.message);
     await db.rpc("lex_eproc_deadline_alerts", { p_org: OWNER_ORG, p_owner: OWNER_USER });
-    if (!completo) await notify(db, "Conferir prazos no eproc", `O robô leu ${prazos.length} de ${total < 0 ? "?" : total} prazos abertos. Confira a lista no eproc.`);
+    if (!completo) await notify(db, "Conferir prazos no eproc", `O robô leu ${prazos.length} de ${total || "?"} prazos abertos. Confira a lista no eproc.`);
     await log(db, completo ? "success" : "error", `Prazos do eproc: ${prazos.length} de ${total} lidos, ${resumo.novos} novo(s).`, { code: completo ? "ok" : "incompleto", ...contagem, ...resumo });
     return respond({ ok: true, ...contagem, ...resumo });
   } catch (e) {
