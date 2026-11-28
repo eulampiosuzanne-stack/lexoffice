@@ -84,7 +84,7 @@ const num = (v: unknown) => Number(v || 0) || 0;
 async function lerTudo(b: Browser, home: string) {
   const { paineis, falhas } = await lerPainel(b, home);
   if (!paineis.some((p) => p.estado === "MG")) throw new EprocStop("tela_mudou", "O painel de intimações do eproc não carregou.");
-  const prazos: Prazo[] = [], naoLidas: string[][] = [], pendentes: Pendente[] = [], audiencias: Audiencia[] = [], avisos: string[] = falhas.map((e) => `painel ${e} não carregou`);
+  const prazos: Prazo[] = [], naoLidas: string[][] = [], pendentes: Pendente[] = [], audiencias: Audiencia[] = [], telasAud: unknown[] = [], avisos: string[] = falhas.map((e) => `painel ${e} não carregou`);
   let esperados = 0, pendEsperados = 0;
   const base = b.last;
   const abrir = (u: string) => new URL(decodeEntities(u), base).toString();
