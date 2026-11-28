@@ -85,7 +85,7 @@ const hrefs = (h: string) => [...h.matchAll(/(?:href|data-url)=["']([^"']*contro
 // O menu tem vários atalhos para a lista de prazos (o primeiro é só "vence hoje"): junta todos, também do painel do advogado.
 async function acharListas(b: Browser, home: string, links: Record<string, string>) {
   let painel = "";
-  if (links["painel_adv_listar"]) { try { painel = await b.go(links["painel_adv_listar"]); } catch { /* segue com a página inicial */ } }
+  if (links["painel_advogado_listar"]) { try { painel = await b.go(links["painel_advogado_listar"]); } catch { /* segue com a página inicial */ } }
   const todos = [...hrefs(home), ...hrefs(painel)];
   const listas = [...new Map(todos.filter((u) => u.includes(`acao=${LIST}&`)).map((u) => [semHash(u), u])).values()];
   const completas = listas.filter((u) => !/vence_hoje=S/i.test(u));
@@ -98,7 +98,7 @@ const ABA = /^(citacao|intimacao|audiencia)[a-z_]*listar[a-z_]*$/;
 const PROIBIDO = /ciencia|confirm|abrir|receb|peticion|cancelar|excluir|gerar|assinar/;
 async function varrerAbas(b: Browser, home: string, links: Record<string, string>) {
   let painel = "";
-  if (links["painel_adv_listar"]) { try { painel = await b.go(links["painel_adv_listar"]); } catch { /* segue */ } }
+  if (links["painel_advogado_listar"]) { try { painel = await b.go(links["painel_advogado_listar"]); } catch { /* segue */ } }
   const urls = new Map<string, string>();
   for (const u of [...hrefs(painel), ...hrefs(home), ...Object.values(links)]) {
     const acao = (u.match(/acao=([a-zA-Z0-9_]+)/) || [])[1] || "";
