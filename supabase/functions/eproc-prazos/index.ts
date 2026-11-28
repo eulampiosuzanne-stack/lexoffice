@@ -3,7 +3,7 @@
 // Divide a trava de acesso com o tjmg-mni-connector (10 min entre entradas; para em senha/2FA/captcha).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { Browser, decodeEntities, EprocStop, formFields, login, logout, text } from "./eproc.ts";
+import { Browser, decodeEntities, EprocStop, formFields, login, logout, menuLinks, text } from "./eproc.ts";
 import { Audiencia, parseAudiencias, parsePendentes, parsePrazos, Pendente, Prazo, rowCells } from "./parse.ts";
 
 const OWNER_ORG = "b3dd3ed0-2a05-4087-8220-307a44352cec";
@@ -99,12 +99,13 @@ async function lerTudo(b: Browser, home: string) {
     } catch { avisos.push(`lista de ${p.estado} não abriu`); }
   }
   for (const acao of ["audiencia_futura_listar", "audiencia_futura_conciliacao_listar"]) {
-    const u = hrefs(home).find((x) => x.includes(`acao=${acao}&`) && !/proxima=S/.test(x));
+    const u = menuLinks(home)[acao];
     if (!u) { avisos.push("lista de audiências não apareceu"); continue; }
     try {
       const h = await b.go(abrir(u)), achadas = parseAudiencias(h), total = Number((text(h).match(/\((\d+)\s+registros?/i) || [])[1] ?? 0);
       telasAud.push({ acao, total, lidas: achadas.length, titulo: text((h.match(/<title>([\s\S]*?)<\/title>/i) || [])[1] || ""), amostra: rowCells(h).slice(0, 2).map((c) => c.map((x) => x.slice(0, 90))) });
-      if (achadas.length < total) avisos.push(`audiências: ${achadas.length} de ${total} lidas`);
+      if (!/audi[eê]nc/i.test(text((h.match(/<title>([\s\S]*?)<\/title>/i) || [])[1] || ""))) avisos.push("lista de audiências não abriu");
+      else if (achadas.length < total) avisos.push(`audiências: ${achadas.length} de ${total} lidas`);
       for (const a of achadas) if (!audiencias.some((q) => q.cnj === a.cnj && q.inicio === a.inicio)) audiencias.push(a);
     } catch { avisos.push("lista de audiências não abriu"); }
   }
