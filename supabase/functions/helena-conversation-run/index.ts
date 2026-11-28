@@ -361,7 +361,8 @@ Deno.serve(async req=>{
       let alerted=!!urgencyOpen?.alerted,lastAlert=urgencyOpen?.lastAlert||null;
       if(mustAlert&&!dryRun){
         const told=lines.filter((m:any)=>m.direction==='inbound'&&Date.parse(m.created_at)>=Date.parse(since)-5*60000).map((m:any)=>labelContact(m.body)).join(' / ');
-        const what=(told||message).slice(-900);
+        const now_=labelContact(message);
+        const what=(told.includes(now_)?told:[told,now_].filter(Boolean).join(' / ')).slice(-900);
         const ok=await alertOwner(a,url,sk,orgId,agentKey,policy,conversationId,phone,detail?`URGENTE: ${hhmm} o que é — ${name||phone}`:`URGENTE: ${hhmm} pediu ajuda — ${name||phone}`,`Nome: ${name||'não informado'}\nTelefone: ${phone}\nO que é: ${detail?what:'ainda não contou (a Helena está perguntando). Mensagem: '+message}`,true);
         if(ok){alerted=true;lastAlert=new Date().toISOString()}
       }
